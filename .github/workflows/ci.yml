@@ -1,0 +1,22 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      # `postinstall` runs `cargo-cdk types`, which needs a live workspace, so it
+      # is skipped in CI. The typecheck gate needs those generated types and is
+      # therefore run locally (`npm run typecheck`) rather than here.
+      - run: npm ci --ignore-scripts
+      - name: Validate cookbook scaffold
+        run: npm run validate

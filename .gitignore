@@ -1,0 +1,6 @@
+node_modules/
+cargo.state.json
+.cargo-ai/
+.env
+.env.local
+.env.*.local

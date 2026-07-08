@@ -1,0 +1,65 @@
+{
+  "shared": ["package.json", "tsconfig.json", ".env.example", ".nvmrc"],
+  "folders": {
+    "base-gtm": {
+      "requires": []
+    },
+    "crm-sync": {
+      "requires": ["base-gtm"]
+    },
+    "tam-building": {
+      "requires": ["base-gtm"]
+    },
+    "list-building": {
+      "requires": ["base-gtm"]
+    },
+    "signal-based-tam": {
+      "requires": ["base-gtm"]
+    },
+    "inbound-flow": {
+      "requires": ["base-gtm", "crm-sync"]
+    },
+    "gtm-knowledge-graph": {
+      "requires": ["base-gtm"]
+    },
+    "research-agent": {
+      "requires": ["base-gtm", "gtm-knowledge-graph"]
+    },
+    "mcp-copilot": {
+      "requires": ["research-agent"]
+    },
+    "contact-sourcing": {
+      "requires": ["base-gtm", "crm-sync"]
+    },
+    "routing-engine": {
+      "requires": ["base-gtm", "crm-sync"]
+    },
+    "account-scoring": {
+      "requires": ["base-gtm", "crm-sync", "gtm-knowledge-graph"]
+    },
+    "auto-enrichment": {
+      "requires": ["base-gtm", "crm-sync"]
+    },
+    "crm-button": {
+      "requires": ["base-gtm", "crm-sync"]
+    },
+    "pipeline-health": {
+      "requires": ["base-gtm"]
+    },
+    "closed-won-multiplier": {
+      "requires": ["base-gtm", "pipeline-health"]
+    },
+    "meeting-prep": {
+      "requires": ["base-gtm", "crm-sync"]
+    },
+    "ai-sdr": {
+      "requires": ["contact-sourcing", "research-agent"]
+    },
+    "plg-motion": {
+      "requires": ["base-gtm", "crm-sync"]
+    },
+    "rep-cockpit": {
+      "requires": ["account-scoring", "routing-engine", "ai-sdr"]
+    }
+  }
+}
