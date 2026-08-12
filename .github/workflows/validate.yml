@@ -1,0 +1,38 @@
+name: validate
+
+# The weekly run is the important one. Slugs and prices live upstream in
+# getcargohq/cargo-skills; they can go stale here without anyone touching this
+# repo. The cron is what catches a provider repricing before a new user does.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: "23 7 * * 1"
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: cargo-skills ref to validate against
+        required: false
+        default: main
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Check every slug and price against the Cargo playbooks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Node >= 22.18: validate.ts runs via native type-stripping, no build step.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Validate
+        env:
+          CARGO_SKILLS_REF: ${{ inputs.ref || 'main' }}
+        run: node scripts/validate.ts

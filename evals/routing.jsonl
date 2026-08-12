@@ -1,0 +1,61 @@
+// Routing evals for the standalone micro-skills — generated from the
+// `triggers` in micro-skills/manifest.ts. Every trigger phrase must route
+// to its own skill; if two micro-skills drift into each other's vocabulary
+// this is what catches it.
+// Regenerate: node .github/scripts/generate-micro-skills.ts
+{"prompt":"find 50 VPs of Sales at fintech companies","expect":"find-b2b-leads"}
+{"prompt":"build me a list of leads","expect":"find-b2b-leads"}
+{"prompt":"who are the heads of engineering at Series B startups","expect":"find-b2b-leads"}
+{"prompt":"get me prospects matching this profile","expect":"find-b2b-leads"}
+{"prompt":"source leads for my outbound","expect":"find-b2b-leads"}
+{"prompt":"build a TAM list","expect":"build-tam-list"}
+{"prompt":"how many companies match our ICP","expect":"build-tam-list"}
+{"prompt":"list every SaaS company in Europe under 200 employees","expect":"build-tam-list"}
+{"prompt":"size our addressable market","expect":"build-tam-list"}
+{"prompt":"find target accounts","expect":"build-tam-list"}
+{"prompt":"find the LinkedIn for John Smith at Acme","expect":"find-linkedin-url"}
+{"prompt":"get LinkedIn URLs for these contacts","expect":"find-linkedin-url"}
+{"prompt":"what's this person's LinkedIn","expect":"find-linkedin-url"}
+{"prompt":"add LinkedIn profiles to my list","expect":"find-linkedin-url"}
+{"prompt":"enrich these LinkedIn profiles","expect":"enrich-linkedin-profile"}
+{"prompt":"get details from this LinkedIn URL","expect":"enrich-linkedin-profile"}
+{"prompt":"I have LinkedIn URLs and need emails","expect":"enrich-linkedin-profile"}
+{"prompt":"enrich LinkedIn data","expect":"enrich-linkedin-profile"}
+{"prompt":"who is this person","expect":"enrich-linkedin-profile"}
+{"prompt":"find emails for these people","expect":"find-work-email"}
+{"prompt":"what's the email for this contact","expect":"find-work-email"}
+{"prompt":"get work emails for my list","expect":"find-work-email"}
+{"prompt":"I need email addresses for these prospects","expect":"find-work-email"}
+{"prompt":"verify these emails","expect":"verify-email-list"}
+{"prompt":"clean my email list","expect":"verify-email-list"}
+{"prompt":"check if these addresses are valid","expect":"verify-email-list"}
+{"prompt":"our bounce rate is too high","expect":"verify-email-list"}
+{"prompt":"validate emails before sending","expect":"verify-email-list"}
+{"prompt":"enrich these companies","expect":"enrich-company-data"}
+{"prompt":"add company size and industry to my list","expect":"enrich-company-data"}
+{"prompt":"get firmographics for these domains","expect":"enrich-company-data"}
+{"prompt":"fill in company data","expect":"enrich-company-data"}
+{"prompt":"find the buying committee at Acme","expect":"find-stakeholders"}
+{"prompt":"who are the decision makers at this company","expect":"find-stakeholders"}
+{"prompt":"find stakeholders","expect":"find-stakeholders"}
+{"prompt":"multi-thread this account","expect":"find-stakeholders"}
+{"prompt":"who else should I be talking to at this account","expect":"find-stakeholders"}
+{"prompt":"who changed jobs","expect":"track-job-changes"}
+{"prompt":"track job changes in my CRM","expect":"track-job-changes"}
+{"prompt":"did any of my contacts move companies","expect":"track-job-changes"}
+{"prompt":"alert me when a champion leaves","expect":"track-job-changes"}
+{"prompt":"find people who recently started a new role","expect":"track-job-changes"}
+{"prompt":"who just raised funding","expect":"track-funding-rounds"}
+{"prompt":"companies that raised a Series A","expect":"track-funding-rounds"}
+{"prompt":"track funding rounds in my market","expect":"track-funding-rounds"}
+{"prompt":"alert me when a target account raises","expect":"track-funding-rounds"}
+{"prompt":"find recently funded startups","expect":"track-funding-rounds"}
+{"prompt":"companies using Snowflake","expect":"find-companies-using-tech"}
+{"prompt":"who runs HubSpot","expect":"find-companies-using-tech"}
+{"prompt":"find companies hiring data engineers","expect":"find-companies-using-tech"}
+{"prompt":"tech stack targeting","expect":"find-companies-using-tech"}
+{"prompt":"companies with this tool in their stack","expect":"find-companies-using-tech"}
+{"prompt":"find Sequoia's portfolio companies","expect":"find-portfolio-companies"}
+{"prompt":"who has this VC invested in","expect":"find-portfolio-companies"}
+{"prompt":"list the companies in this accelerator batch","expect":"find-portfolio-companies"}
+{"prompt":"portfolio companies of","expect":"find-portfolio-companies"}
