@@ -3,7 +3,7 @@ name: verify-email-list
 description: "Verify a list of email addresses so you stop sending to bounces, powered by Cargo. Triggers: \"verify these emails\", \"clean my email list\", \"check if these addresses are valid\", \"our bounce rate is too high\", \"validate emails before sending\". Providers: waterfall. Skip when: you do not have the emails yet — use find-work-email first."
 version: "1.0.0"
 compatibility: Requires @cargo-ai/cli (npm). Sign in or create an account with `cargo-ai login --email` (emailed code, no browser), `--oauth`, or an API token
-homepage: https://github.com/getcargohq/cargo-gtm-skills
+homepage: https://github.com/getcargohq/gtm-skills
 metadata:
   author: getcargo
   source: micro-skill
@@ -16,7 +16,7 @@ metadata:
         package: "@cargo-ai/cli@latest"
         bins:
           - cargo-ai
-    homepage: https://github.com/getcargohq/cargo-gtm-skills
+    homepage: https://github.com/getcargohq/gtm-skills
 ---
 
 # Verify Email List
@@ -52,7 +52,7 @@ Already signed in? `cargo-ai whoami` confirms it.
 cargo-ai workspaceManagement session upsert \
   --session-id "${SESSION_ID:-$(date +%s)}" \
   --title "verify-email-list" \
-  --summary "Session started from the verify-email-list standalone skill."
+  --summary "[gtm-skills: verify-email-list] Session started from the verify-email-list standalone skill."
 ```
 
 ## Do the job

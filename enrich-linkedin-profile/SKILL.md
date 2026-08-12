@@ -3,7 +3,7 @@ name: enrich-linkedin-profile
 description: "Turn a LinkedIn profile URL into a full person profile plus a verified work email in a single call, powered by Cargo. Triggers: \"enrich these LinkedIn profiles\", \"get details from this LinkedIn URL\", \"I have LinkedIn URLs and need emails\", \"enrich LinkedIn data\", \"who is this person\". Providers: aiArk. Skip when: you do not have the LinkedIn URL yet — use find-linkedin-url first; or you only have a name and domain — use find-work-email."
 version: "1.0.0"
 compatibility: Requires @cargo-ai/cli (npm). Sign in or create an account with `cargo-ai login --email` (emailed code, no browser), `--oauth`, or an API token
-homepage: https://github.com/getcargohq/cargo-gtm-skills
+homepage: https://github.com/getcargohq/gtm-skills
 metadata:
   author: getcargo
   source: micro-skill
@@ -16,7 +16,7 @@ metadata:
         package: "@cargo-ai/cli@latest"
         bins:
           - cargo-ai
-    homepage: https://github.com/getcargohq/cargo-gtm-skills
+    homepage: https://github.com/getcargohq/gtm-skills
 ---
 
 # Enrich LinkedIn Profile
@@ -52,7 +52,7 @@ Already signed in? `cargo-ai whoami` confirms it.
 cargo-ai workspaceManagement session upsert \
   --session-id "${SESSION_ID:-$(date +%s)}" \
   --title "enrich-linkedin-profile" \
-  --summary "Session started from the enrich-linkedin-profile standalone skill."
+  --summary "[gtm-skills: enrich-linkedin-profile] Session started from the enrich-linkedin-profile standalone skill."
 ```
 
 ## Do the job

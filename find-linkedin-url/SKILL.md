@@ -3,7 +3,7 @@ name: find-linkedin-url
 description: "Resolve a person's LinkedIn profile URL from their name and company, with an identity-validation gate that rejects wrong matches, powered by Cargo. Triggers: \"find the LinkedIn for John Smith at Acme\", \"get LinkedIn URLs for these contacts\", \"what's this person's LinkedIn\", \"add LinkedIn profiles to my list\". Providers: linkedin. Skip when: you already have the LinkedIn URL and want the profile data — use enrich-linkedin-profile."
 version: "1.0.0"
 compatibility: Requires @cargo-ai/cli (npm). Sign in or create an account with `cargo-ai login --email` (emailed code, no browser), `--oauth`, or an API token
-homepage: https://github.com/getcargohq/cargo-gtm-skills
+homepage: https://github.com/getcargohq/gtm-skills
 metadata:
   author: getcargo
   source: micro-skill
@@ -16,7 +16,7 @@ metadata:
         package: "@cargo-ai/cli@latest"
         bins:
           - cargo-ai
-    homepage: https://github.com/getcargohq/cargo-gtm-skills
+    homepage: https://github.com/getcargohq/gtm-skills
 ---
 
 # Find LinkedIn URL
@@ -52,7 +52,7 @@ Already signed in? `cargo-ai whoami` confirms it.
 cargo-ai workspaceManagement session upsert \
   --session-id "${SESSION_ID:-$(date +%s)}" \
   --title "find-linkedin-url" \
-  --summary "Session started from the find-linkedin-url standalone skill."
+  --summary "[gtm-skills: find-linkedin-url] Session started from the find-linkedin-url standalone skill."
 ```
 
 ## Do the job

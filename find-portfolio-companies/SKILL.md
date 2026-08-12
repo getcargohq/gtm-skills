@@ -3,7 +3,7 @@ name: find-portfolio-companies
 description: "Find every portfolio company of an investor or accelerator, then the people inside them, powered by Cargo. Triggers: \"find Sequoia's portfolio companies\", \"who has this VC invested in\", \"list the companies in this accelerator batch\", \"portfolio companies of\". Providers: aiArk. Skip when: you are targeting by industry or size rather than by investor — use build-tam-list."
 version: "1.0.0"
 compatibility: Requires @cargo-ai/cli (npm). Sign in or create an account with `cargo-ai login --email` (emailed code, no browser), `--oauth`, or an API token
-homepage: https://github.com/getcargohq/cargo-gtm-skills
+homepage: https://github.com/getcargohq/gtm-skills
 metadata:
   author: getcargo
   source: micro-skill
@@ -16,7 +16,7 @@ metadata:
         package: "@cargo-ai/cli@latest"
         bins:
           - cargo-ai
-    homepage: https://github.com/getcargohq/cargo-gtm-skills
+    homepage: https://github.com/getcargohq/gtm-skills
 ---
 
 # Find Portfolio Companies
@@ -52,7 +52,7 @@ Already signed in? `cargo-ai whoami` confirms it.
 cargo-ai workspaceManagement session upsert \
   --session-id "${SESSION_ID:-$(date +%s)}" \
   --title "find-portfolio-companies" \
-  --summary "Session started from the find-portfolio-companies standalone skill."
+  --summary "[gtm-skills: find-portfolio-companies] Session started from the find-portfolio-companies standalone skill."
 ```
 
 ## Do the job

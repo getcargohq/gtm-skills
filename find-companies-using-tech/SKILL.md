@@ -3,7 +3,7 @@ name: find-companies-using-tech
 description: "Find companies by the technology they run or the roles they are hiring for, powered by Cargo. Triggers: \"companies using Snowflake\", \"who runs HubSpot\", \"find companies hiring data engineers\", \"tech stack targeting\", \"companies with this tool in their stack\". Providers: theirStack. Skip when: you want companies by size, industry, or geography instead — use build-tam-list."
 version: "1.0.0"
 compatibility: Requires @cargo-ai/cli (npm). Sign in or create an account with `cargo-ai login --email` (emailed code, no browser), `--oauth`, or an API token
-homepage: https://github.com/getcargohq/cargo-gtm-skills
+homepage: https://github.com/getcargohq/gtm-skills
 metadata:
   author: getcargo
   source: micro-skill
@@ -16,7 +16,7 @@ metadata:
         package: "@cargo-ai/cli@latest"
         bins:
           - cargo-ai
-    homepage: https://github.com/getcargohq/cargo-gtm-skills
+    homepage: https://github.com/getcargohq/gtm-skills
 ---
 
 # Find Companies Using Tech
@@ -52,7 +52,7 @@ Already signed in? `cargo-ai whoami` confirms it.
 cargo-ai workspaceManagement session upsert \
   --session-id "${SESSION_ID:-$(date +%s)}" \
   --title "find-companies-using-tech" \
-  --summary "Session started from the find-companies-using-tech standalone skill."
+  --summary "[gtm-skills: find-companies-using-tech] Session started from the find-companies-using-tech standalone skill."
 ```
 
 ## Do the job

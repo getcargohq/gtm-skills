@@ -4,7 +4,7 @@
 required to read them, and a new Cargo account starts with **100 free credits, no card**.
 
 ```bash
-npx skills add getcargohq/cargo-gtm-skills/<skill-name>
+npx skills add getcargohq/gtm-skills/<skill-name>
 ```
 
 | Skill | Does |
