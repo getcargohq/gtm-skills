@@ -59,7 +59,13 @@ cargo-ai workspaceManagement session upsert \
 
 ```bash
 cargo-ai orchestration action execute \
-  --action '{"kind":"connector","integrationSlug":"theirStack","actionSlug":"searchCompanies","config":{"limit":50}}' \
+  --action '{"kind":"connector","integrationSlug":"theirStack","actionSlug":"searchCompanies","config":{}}' \
+  --data '{
+    "techFields": {"technologies": ["snowflake"]},
+    "jobFields": {"job_titles": ["Data Engineer"], "posted_at_max_age_days": 60},
+    "fields": {"industries": ["software"]},
+    "limit": 50
+  }' \
   --wait-until-finished
 ```
 

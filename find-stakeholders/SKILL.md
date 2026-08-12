@@ -59,7 +59,15 @@ cargo-ai workspaceManagement session upsert \
 
 ```bash
 cargo-ai orchestration action execute \
-  --action '{"kind":"connector","integrationSlug":"aiArk","actionSlug":"searchPeople","config":{"limit":25}}' \
+  --action '{"kind":"connector","integrationSlug":"aiArk","actionSlug":"searchPeople","config":{}}' \
+  --data '{
+    "companyInfo": {"domain_or": ["acme.com"]},
+    "jobRole": {
+      "seniority_or": ["CXO", "VP", "Director"],
+      "department_or": ["Sales", "Marketing", "Operations", "Finance"]
+    },
+    "limit": 25
+  }' \
   --wait-until-finished
 ```
 

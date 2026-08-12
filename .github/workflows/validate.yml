@@ -36,3 +36,18 @@ jobs:
         env:
           CARGO_SKILLS_REF: ${{ inputs.ref || 'main' }}
         run: node scripts/validate.ts
+
+      - name: Check llms.txt is in sync with the skill tree
+        run: node scripts/generate-llms-txt.ts --check
+
+      # The descriptions are the only text an agent sees before deciding which
+      # skill to load, and twelve deliberately-adjacent ones compete for every
+      # prompt. The ranker lives in the pack; there is no second copy to drift.
+      - name: Check the descriptions still route
+        uses: actions/checkout@v4
+        with:
+          repository: getcargohq/cargo-skills
+          ref: ${{ inputs.ref || 'main' }}
+          path: .cargo-skills
+
+      - run: node .cargo-skills/.github/scripts/routing-eval.ts --skills-root .

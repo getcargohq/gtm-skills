@@ -1,6 +1,6 @@
 ---
 name: find-portfolio-companies
-description: "Find every portfolio company of an investor or accelerator, then the people inside them, powered by Cargo. Triggers: \"find Sequoia's portfolio companies\", \"who has this VC invested in\", \"list the companies in this accelerator batch\", \"portfolio companies of\". Providers: aiArk. Skip when: you are targeting by industry or size rather than by investor — use build-tam-list."
+description: "Find every portfolio company of an investor or accelerator, then the people inside them, powered by Cargo. Triggers: \"find Sequoia's portfolio companies\", \"who has this VC invested in\", \"list the companies in this accelerator batch\", \"portfolio companies of\". Providers: peopleDataLabs. Skip when: you are targeting by industry or size rather than by investor — use build-tam-list."
 version: "1.0.0"
 compatibility: Requires @cargo-ai/cli (npm). Sign in or create an account with `cargo-ai login --email` (emailed code, no browser), `--oauth`, or an API token
 homepage: https://github.com/getcargohq/gtm-skills
@@ -59,7 +59,11 @@ cargo-ai workspaceManagement session upsert \
 
 ```bash
 cargo-ai orchestration action execute \
-  --action '{"kind":"connector","integrationSlug":"aiArk","actionSlug":"searchCompanies","config":{"limit":100}}' \
+  --action '{"kind":"connector","integrationSlug":"peopleDataLabs","actionSlug":"queryCompanies","config":{}}' \
+  --data '{
+    "query": "SELECT * FROM company WHERE summary.investors LIKE %Sequoia Capital%",
+    "limit": 200
+  }' \
   --wait-until-finished
 ```
 
@@ -73,7 +77,7 @@ or batch UUID to poll with `cargo-ai orchestration run get <uuid>` (2s interval)
 
 | Action | Credits |
 |---|---|
-| `aiArk.searchCompanies` | 0.01 per returned record |
+| `peopleDataLabs.queryCompanies` | 3 |
 
 **Never run this across a full list on the first attempt.** Sample 10–20 records, report the
 observed cost and hit-rate, then get the user to approve the full run — quoting the record count
@@ -82,7 +86,9 @@ with it.
 
 ## Worth knowing
 
-- The cheapest company search in the catalog at 0.01 per record — a 500-company portfolio costs 5 credits to list.
+- Investor membership needs SQL: `summary.investors LIKE %Name%` is not expressible in cargo's filter shape, which is why this uses PDL's SQL query rather than a cheaper structured search.
+- Accelerator batches work the same way — YC and similar are stored in `summary.investors` alongside VCs.
+- One query covers the whole portfolio, so the 3 credits buy the entire list, not 3 per company.
 - One warm investor intro beats fifty cold emails; pull the list, then ask the investor for the intro.
 
 ## Going further

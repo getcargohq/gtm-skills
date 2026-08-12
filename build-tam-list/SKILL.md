@@ -59,7 +59,12 @@ cargo-ai workspaceManagement session upsert \
 
 ```bash
 cargo-ai orchestration action execute \
-  --action '{"kind":"connector","integrationSlug":"salesNavigator","actionSlug":"searchAccounts","config":{"companyHeadcounts":["51-200"],"industryCodes":["software-development"],"limit":100}}' \
+  --action '{"kind":"connector","integrationSlug":"salesNavigator","actionSlug":"searchAccounts","config":{}}' \
+  --data '{
+    "companyHeadcounts": ["51-200"],
+    "industryCodes": ["software-development"],
+    "limit": 100
+  }' \
   --wait-until-finished
 ```
 

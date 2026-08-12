@@ -178,6 +178,30 @@ async function checkSkill(skill: Skill): Promise<void> {
 
   if (!skill.called.size) fail(name, "no connector action found in any command block");
 
+  // `config` is always `{}`. Filters and per-call inputs go in `--data`, and
+  // per-record inputs in `--records`. Stuffing them into `config` is silently
+  // wrong: the call runs, ignores them, and returns an unfiltered result — the
+  // exact shape of bug that burns someone on their first command.
+  for (const action of skill.body.matchAll(/"kind":"connector"[^']*?"config":\{([^}]*)\}/g)) {
+    if (action[1].trim()) {
+      fail(
+        name,
+        `an action passes \`config:{${action[1].trim()}}\` — config must be \`{}\`; ` +
+          `filters belong in --data, per-record inputs in --records`,
+      );
+    }
+  }
+
+  // A search action reads its filters from --data. Without one it returns an
+  // arbitrary unfiltered page and bills for it.
+  const SEARCH = /^(search|query|fetch)[A-Z]/;
+  for (const pair of skill.called) {
+    const action = pair.split(".")[1];
+    if (SEARCH.test(action) && !/--data\s/.test(skill.body)) {
+      fail(name, `\`${pair}\` is a search action but no command passes --data, so it has no filters`);
+    }
+  }
+
   for (const pair of skill.called) {
     if (!skill.quoted.has(pair)) {
       fail(name, `command calls \`${pair}\` but the cost table does not price it`);
