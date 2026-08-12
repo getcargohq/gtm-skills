@@ -60,6 +60,44 @@ node scripts/validate.ts --ref v1.18.1                              # pin to a t
 CI also runs this weekly on a cron. Upstream pricing can change without anyone touching this
 repo, and that is exactly the drift nobody would otherwise notice.
 
-`evals/routing.jsonl` holds one case per trigger phrase. Nothing runs it yet — the runner lives in
-the pack (`.github/scripts/routing-eval.ts`) and is currently hardwired to that repo's layout.
+`evals/routing.jsonl` holds one case per trigger phrase, graded in CI by the pack's ranker
+(`.github/scripts/routing-eval.ts --skills-root .`). It currently scores 56/56, which is a
+ceiling effect rather than a result: every case was generated from the trigger phrases it
+grades, so it proves the triggers do not collide, not that the descriptions route. Real cases
+have to come from real sessions — see below.
+
+## Measuring whether any of this works
+
+Each skill stamps the session row on setup:
+
+```
+[gtm-skills: find-work-email] Session started from the find-work-email standalone skill.
+```
+
+Same marker grammar as the pack's skill-load telemetry (`[cargo-skills: …]`), so one query
+family covers both. Which standalone skills actually bring workspaces in:
+
+```sql
+SELECT
+  regexpExtract(summary, '\\[gtm-skills: ([a-z-]+)\\]', 1) AS skill,
+  count()                                                  AS sessions,
+  min(created_at)                                          AS first_seen
+FROM workspace_management.sessions
+WHERE summary LIKE '%[gtm-skills:%'
+GROUP BY skill
+ORDER BY sessions DESC
+```
+
+Three things that answers, each of which is a decision:
+
+1. **Which skills bring anyone in at all.** A skill with zero sessions after real traffic
+   elsewhere has a description problem, not a capability problem — the absence is the finding.
+2. **Whether registry discovery has real volume.** This is the load-bearing assumption behind
+   the whole repo, and it is untested. Twelve skills is a cheap way to find out; a hundred is
+   an expensive way to find out the same thing.
+3. **Where the next twelve should go.** Expand along whatever shows pull. Demand here is
+   power-law, so most of the long tail is maintenance cost with no traffic behind it.
+
+Sessions that arrive through a standalone skill and then load `cargo-gtm` are the deference
+guard working: someone found the narrow door and walked into the full pack.
 
