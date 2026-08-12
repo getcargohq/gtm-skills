@@ -149,6 +149,13 @@ const REQUIRED_BLOCKS: { label: string; needle: string }[] = [
     label: "the CTA back to the full pack",
     needle: "npx skills add getcargohq/cargo-skills",
   },
+  {
+    // Pinned on the question, not on the `gh api` line: a skill that kept the
+    // command and lost the question would still pass while quietly starring on
+    // the user's behalf, which is the one outcome this section exists to prevent.
+    label: "the star ask (the skill asks for the star — it never takes one)",
+    needle: "Want me to star",
+  },
 ];
 
 async function checkSkill(skill: Skill): Promise<void> {
