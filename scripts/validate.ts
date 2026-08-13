@@ -155,7 +155,7 @@ const REQUIRED_BLOCKS: { label: string; needle: string }[] = [
     // rows for one session and the attribution query counts the skill twice —
     // silently, and in the direction that flatters it.
     label: "the attribution guard (skips the manual session row when the plugin's hooks write one)",
-    needle: '"gtm@gtm-skills"',
+    needle: '"cargo@gtm"',
   },
   {
     // Pinned on the question, not on the `gh api` line: a skill that kept the
@@ -301,21 +301,26 @@ async function checkPluginChannel(skillNames: string[]): Promise<void> {
     fail("plugin", `manifest versions disagree (${detail}) — bump them together`);
   }
 
-  // The plugin id a user types is `<plugin>@<marketplace>`. The marketplace name
-  // must NOT be `cargo`: the full pack already publishes a marketplace by that
-  // name, and two marketplaces sharing one name cannot both be added.
+  // The plugin id a user types is `<plugin>@<marketplace>`. The plugin half is
+  // `cargo` on every Cargo product — the pack installs as `cargo@cargo`, this
+  // one as `cargo@gtm` — so the MARKETPLACE half is what has to differ, and it
+  // must not be `cargo`: two marketplaces sharing one name cannot both be added.
+  //
+  // The shared plugin name is also why hooks/lifecycle-guard.sh matches the
+  // pack on `…@cargo` rather than on a `cargo@` prefix, which would match this
+  // plugin's own id.
   for (const [label, manifest] of [
     [".claude-plugin/marketplace.json", claudeMarket],
     [".cursor-plugin/marketplace.json", cursorMarket],
     [".agents/plugins/marketplace.json", codexMarket],
   ] as const) {
     if (!manifest) continue;
-    if (manifest.name !== "gtm-skills") {
-      fail("plugin", `${label} marketplace name is \`${manifest.name}\` — must be \`gtm-skills\` (\`cargo\` belongs to the pack)`);
+    if (manifest.name !== "gtm") {
+      fail("plugin", `${label} marketplace name is \`${manifest.name}\` — must be \`gtm\` (\`cargo\` belongs to the pack)`);
     }
     const entries: any[] = manifest.plugins ?? [];
-    if (entries.length !== 1 || entries[0]?.name !== "gtm") {
-      fail("plugin", `${label} must list exactly one plugin named \`gtm\` — the install id is \`gtm@gtm-skills\``);
+    if (entries.length !== 1 || entries[0]?.name !== "cargo") {
+      fail("plugin", `${label} must list exactly one plugin named \`cargo\` — the install id is \`cargo@gtm\``);
     }
   }
   for (const [label, manifest] of [
@@ -324,8 +329,8 @@ async function checkPluginChannel(skillNames: string[]): Promise<void> {
     [".cursor-plugin/plugin.json", cursor],
     ["plugin.json", root],
   ] as const) {
-    if (manifest && manifest.name !== "gtm") {
-      fail("plugin", `${label} plugin name is \`${manifest.name}\` — must be \`gtm\``);
+    if (manifest && manifest.name !== "cargo") {
+      fail("plugin", `${label} plugin name is \`${manifest.name}\` — must be \`cargo\`, same as the pack's`);
     }
   }
 

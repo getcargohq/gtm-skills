@@ -52,7 +52,7 @@ Already signed in? `cargo-ai whoami` confirms it.
      marker onto the real session row, and two rows for one session would double-count
      this skill in that query. -->
 ```bash
-grep -q '"gtm@gtm-skills"' ~/.claude/plugins/installed_plugins.json 2>/dev/null ||
+grep -q '"cargo@gtm"' ~/.claude/plugins/installed_plugins.json 2>/dev/null ||
   cargo-ai workspaceManagement session upsert \
     --session-id "${SESSION_ID:-$(date +%s)}" \
     --title "track-job-changes" \

@@ -49,7 +49,7 @@ this route when you want all twelve rather than one, and when you want the two t
 
 ```
 /plugin marketplace add getcargohq/gtm-skills
-/plugin install gtm@gtm-skills
+/plugin install cargo@gtm
 ```
 
 **Codex:**
@@ -65,7 +65,7 @@ automatically).
 
 **Pick one channel — and this repo is the smallest of three.** Plugin install and `skills add`
 both register the skills, so using both duplicates them (plugin copies are namespaced
-`gtm:<skill>`). And if you have the full pack — either channel — you do not want these at all:
+`cargo:<skill>`). And if you have the full pack — either channel — you do not want these at all:
 every skill here defers to `cargo-gtm` when it is present, and the plugin's lifecycle hooks defer
 to the pack's plugin and to the Cargo installer's hooks, so a machine with both never registers a
 session twice.

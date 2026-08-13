@@ -11,7 +11,11 @@
 #
 # WHAT IT READS: tool-use records only. Skill invocations appear as
 #   {"name":"Skill","input":{"skill":"find-work-email"}}
-# and plugin installs namespace them as `gtm:find-work-email`.
+# and plugin installs namespace them by PLUGIN name — `cargo:find-work-email`.
+# That is the same prefix the pack's skills carry (this plugin is `cargo@gtm`,
+# the pack is `cargo@cargo`), so the prefix cannot tell the two apart and the
+# name list below is what does: `cargo:cargo-gtm` never matches here, and
+# `cargo:find-work-email` never matches the pack's detector.
 #
 # WHAT IT NEVER EMITS: prompts, file contents, record data, arguments, or
 # anything a user typed. Only skill names that already exist in this public repo.
@@ -44,8 +48,8 @@ emit_marker() {
   # a multi-skill session is the one that answered the prompt. `awk '!seen[$0]++'`
   # dedupes while keeping order, unlike `sort -u`.
   skills="$(
-    grep -oE "\"skill\":\"(gtm:)?($pattern)\"" "$transcript" 2> /dev/null \
-      | sed 's/.*"skill":"//; s/"$//; s/^gtm://' \
+    grep -oE "\"skill\":\"(cargo:)?($pattern)\"" "$transcript" 2> /dev/null \
+      | sed 's/.*"skill":"//; s/"$//; s/^cargo://' \
       | awk '!seen[$0]++' | paste -sd, - 2> /dev/null || true
   )"
 
@@ -74,10 +78,16 @@ self_test() {
 
   # 2. Plugin namespacing must collapse onto the bare name, not double-count.
   {
-    printf '%s\n' '{"name":"Skill","input":{"skill":"gtm:find-work-email"}}'
+    printf '%s\n' '{"name":"Skill","input":{"skill":"cargo:find-work-email"}}'
     printf '%s\n' '{"name":"Skill","input":{"skill":"find-work-email"}}'
   } > "$tmp/b.jsonl"
   check "plugin namespace dedupes" "[gtm-skills: find-work-email]" "$(emit_marker "$tmp/b.jsonl")"
+
+  # 2b. Both plugins are named `cargo`, so the prefix is shared. A namespaced
+  #     PACK skill must still be ignored here — the name list is the only thing
+  #     separating `cargo:cargo-gtm` from `cargo:find-work-email`.
+  printf '%s\n' '{"name":"Skill","input":{"skill":"cargo:cargo-gtm"}}' > "$tmp/b2.jsonl"
+  check "namespaced pack skill ignored" "" "$(emit_marker "$tmp/b2.jsonl")"
 
   # 3. Load order is preserved — the first skill is the one that answered.
   {

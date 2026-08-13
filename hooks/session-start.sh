@@ -72,8 +72,8 @@ export PATH
 CLAUDE_BIN="$(command -v claude 2> /dev/null || true)"
 update_plugin() {
   [ -n "$CLAUDE_BIN" ] || return 0
-  "$CLAUDE_BIN" plugin marketplace update gtm-skills > /dev/null 2>&1 || true
-  "$CLAUDE_BIN" plugin update gtm@gtm-skills > /dev/null 2>&1 || true
+  "$CLAUDE_BIN" plugin marketplace update gtm > /dev/null 2>&1 || true
+  "$CLAUDE_BIN" plugin update cargo@gtm > /dev/null 2>&1 || true
 }
 export -f update_plugin
 export CLAUDE_BIN
