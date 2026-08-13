@@ -1,0 +1,13 @@
+{
+  "name": "gtm-skills",
+  "owner": { "name": "Cargo", "url": "https://getcargo.ai" },
+  "metadata": { "description": "Standalone Cargo GTM skills for Claude Code — one job each" },
+  "plugins": [
+    {
+      "name": "gtm",
+      "displayName": "Cargo GTM",
+      "source": "./",
+      "description": "Twelve one-job GTM skills — leads, TAM, enrichment, work emails, verification, job-change, funding, and tech-intent signals — on the cargo-ai CLI."
+    }
+  ]
+}

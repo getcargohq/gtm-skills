@@ -40,6 +40,22 @@ jobs:
       - name: Check llms.txt is in sync with the skill tree
         run: node scripts/generate-llms-txt.ts --check
 
+      # The plugin channel's session hooks write this marker into the session
+      # row, so a regression here corrupts the attribution numbers silently
+      # rather than failing loudly.
+      - name: Run the skill-load detector's self-test
+        run: bash hooks/skill-loads.sh --self-test
+
+      # Hooks run on a stranger's machine with a minimal PATH and no way to
+      # report a syntax error. Parse them here instead.
+      - name: Parse every hook script
+        run: |
+          set -euo pipefail
+          for hook in hooks/*.sh; do
+            bash -n "$hook"
+            echo "ok  $hook"
+          done
+
       # The descriptions are the only text an agent sees before deciding which
       # skill to load, and twelve deliberately-adjacent ones compete for every
       # prompt. The ranker lives in the pack; there is no second copy to drift.
