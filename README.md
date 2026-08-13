@@ -67,6 +67,21 @@ codex plugin marketplace add getcargohq/gtm-skills
 install the **Cargo GTM** plugin (UI-driven; the `.cursor-plugin/` manifests are picked up
 automatically).
 
+For the **OpenAI Plugins Directory** (ChatGPT + Codex) the archive is built from the tree rather
+than hand-assembled, because that listing is the one channel that does not track this repo — every
+version is a manual, human-reviewed submission that then serves whatever was approved:
+
+```bash
+node scripts/build-codex-package.mjs      # -> dist/gtm-skills-codex.zip
+```
+
+It stages the twelve skills under `skills/`, drops the OpenClaw `metadata` block OpenAI rejects,
+writes the directory manifest, and asserts every documented limit — description lengths, the
+30-char display fields, square icons, archive shape — against the finished zip rather than the
+staging directory. Skills only: the hooks are wired with `${CLAUDE_PLUGIN_ROOT}`, which nothing
+outside Claude Code is known to set, so packaging them would put a path that cannot run in front
+of a reviewer. CI builds it on every commit; `dist/` holds the bytes that were uploaded.
+
 **Pick one channel — and this repo is the smallest of three.** Plugin install and `skills add`
 both register the skills, so using both duplicates them (plugin copies are namespaced
 `cargo:<skill>`). And if you have the full pack — either channel — you do not want these at all:
