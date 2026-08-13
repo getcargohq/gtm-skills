@@ -1,5 +1,9 @@
 # Cargo GTM Skills
 
+[![cargo-ai cli](https://img.shields.io/npm/v/@cargo-ai/cli?label=cargo-ai%20cli&color=black)](https://www.npmjs.com/package/@cargo-ai/cli)
+[![skills.sh](https://img.shields.io/badge/skills.sh-12%20skills-black)](https://www.skills.sh)
+[![License](https://img.shields.io/github/license/getcargohq/gtm-skills?color=black)](LICENSE)
+
 12 standalone agent skills, one job each. Install only the one you need — no account
 required to read them, and a new Cargo account starts with **100 free credits, no card**.
 

@@ -414,6 +414,50 @@ async function checkPluginChannel(skillNames: string[]): Promise<void> {
     }
   }
 
+  // Counts written by hand go stale the moment a skill is added, and a wrong
+  // one is not a typo — the badge is the first thing on the page and the
+  // manifest description is what a plugin listing shows. The pack learned this
+  // with a hand-listed skill table that fell two behind the tree.
+  const count = skillNames.length;
+  const readme = readFileSync(join(repoRoot, "README.md"), "utf8");
+  for (const [what, pattern] of [
+    ["the skills.sh badge", /skills\.sh-(\d+)%20skills/],
+    ["the opening line", /(\d+) standalone agent skills/],
+  ] as const) {
+    const found = pattern.exec(readme);
+    if (!found) {
+      fail("plugin", `README.md no longer contains ${what} — the count check cannot run`);
+    } else if (Number(found[1]) !== count) {
+      fail("plugin", `${what} says ${found[1]} skills, but there are ${count}`);
+    }
+  }
+
+  // Same count, spelled out, in the description every plugin listing displays.
+  const WORDS = "zero one two three four five six seven eight nine ten eleven twelve thirteen fourteen fifteen sixteen seventeen eighteen nineteen twenty".split(" ");
+  const spelled = WORDS[count];
+  for (const [label, manifest] of [
+    [".claude-plugin/plugin.json", claude],
+    [".codex-plugin/plugin.json", codex],
+    [".cursor-plugin/plugin.json", cursor],
+    [".claude-plugin/marketplace.json", claudeMarket],
+    [".cursor-plugin/marketplace.json", cursorMarket],
+    [".agents/plugins/marketplace.json", codexMarket],
+  ] as const) {
+    if (!manifest) continue;
+    const text = JSON.stringify(manifest);
+    const spoken = /\b([a-z]+) one-job GTM skills/i.exec(text);
+    if (spoken && spelled && spoken[1].toLowerCase() !== spelled) {
+      fail("plugin", `${label} says "${spoken[1]} one-job GTM skills" but there are ${count} (${spelled})`);
+    }
+  }
+
+  // The badge links to LICENSE, and plugin.json declares MIT. A repo that
+  // claims a license without shipping its text renders the badge as "unknown"
+  // and leaves the claim unbacked.
+  if (!existsSync(join(repoRoot, "LICENSE"))) {
+    fail("plugin", "LICENSE is missing, but plugin.json declares a license and README links to it");
+  }
+
   // The approval hook is the security-relevant surface, and it is a VERBATIM
   // copy of the pack's. Keeping it byte-identical is the whole maintenance
   // strategy: a fix reviewed once upstream reaches both plugins, and a local
