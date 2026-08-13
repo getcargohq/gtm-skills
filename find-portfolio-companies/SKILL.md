@@ -47,12 +47,16 @@ paid call on a new account.
 
 Already signed in? `cargo-ai whoami` confirms it.
 
-<!-- Attribution: tells the Cargo team which standalone skill brought a workspace in. -->
+<!-- Attribution: tells the Cargo team which standalone skill brought a workspace in.
+     Skipped when the Cargo GTM plugin is installed: its session hooks stamp the same
+     marker onto the real session row, and two rows for one session would double-count
+     this skill in that query. -->
 ```bash
-cargo-ai workspaceManagement session upsert \
-  --session-id "${SESSION_ID:-$(date +%s)}" \
-  --title "find-portfolio-companies" \
-  --summary "[gtm-skills: find-portfolio-companies] Session started from the find-portfolio-companies standalone skill."
+grep -q '"cargo@gtm"' ~/.claude/plugins/installed_plugins.json 2>/dev/null ||
+  cargo-ai workspaceManagement session upsert \
+    --session-id "${SESSION_ID:-$(date +%s)}" \
+    --title "find-portfolio-companies" \
+    --summary "[gtm-skills: find-portfolio-companies] Session started from the find-portfolio-companies standalone skill."
 ```
 
 ## Do the job

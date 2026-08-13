@@ -1,5 +1,9 @@
 # Cargo GTM Skills
 
+[![cargo-ai cli](https://img.shields.io/npm/v/@cargo-ai/cli?label=cargo-ai%20cli&color=black)](https://www.npmjs.com/package/@cargo-ai/cli)
+[![skills.sh](https://img.shields.io/badge/skills.sh-12%20skills-black)](https://www.skills.sh)
+[![License](https://img.shields.io/github/license/getcargohq/gtm-skills?color=black)](LICENSE)
+
 12 standalone agent skills, one job each. Install only the one you need — no account
 required to read them, and a new Cargo account starts with **100 free credits, no card**.
 
@@ -21,6 +25,54 @@ npx skills add getcargohq/gtm-skills/<skill-name>
 | [`track-funding-rounds`](track-funding-rounds/SKILL.md) | Track which companies recently raised funding, with round, amount, and investors. |
 | [`find-companies-using-tech`](find-companies-using-tech/SKILL.md) | Find companies by the technology they run or the roles they are hiring for. |
 | [`find-portfolio-companies`](find-portfolio-companies/SKILL.md) | Find every portfolio company of an investor or accelerator, then the people inside them. |
+
+Works with Claude Code, Codex, Cursor, Windsurf, GitHub Copilot, and any agent that supports the
+[skills.sh](https://skills.sh) standard.
+
+## As an agent plugin — Claude Code, Codex, Cursor
+
+The same twelve skills also install as a native **agent plugin**: one source, three targets. Take
+this route when you want all twelve rather than one, and when you want the two things
+`skills add` cannot deliver:
+
+- **An approval hook** ([`hooks/approve-cli.sh`](hooks/approve-cli.sh)) that auto-approves safe
+  `cargo-ai` calls (reads, queries, run and batch operations) so the agent stops prompting on every
+  invocation, while credentials (`login`), token minting, report egress, and any `remove`/`delete`
+  always still prompt. Allow-only — it can never override a deny rule. Wired per target:
+  `PreToolUse` (Claude Code), `PermissionRequest` (Codex), `beforeShellExecution` (Cursor). The
+  file is a **verbatim copy** of the pack's, and CI fails if it drifts: an allowlist should be
+  reviewed once, upstream, for both plugins — not forked here.
+- **Session-lifecycle hooks** (Claude Code only): `SessionStart` installs the CLI at the version
+  [`cli-version`](cli-version) pins — so a command in a SKILL.md always meets the CLI it was
+  written against — and `Stop`/`SessionEnd` keep the session row titled and current instead of
+  leaving a placeholder behind. They derive the attribution line each skill otherwise asks the
+  agent to write by hand, so the skills' own attribution step stands down when the plugin is
+  installed and a session is recorded once, not twice.
+
+**Claude Code** (≥ v2.1.154):
+
+```
+/plugin marketplace add getcargohq/gtm-skills
+/plugin install cargo@gtm
+```
+
+**Codex:**
+
+```bash
+codex plugin marketplace add getcargohq/gtm-skills
+# then install "Cargo GTM" from the Plugins menu
+```
+
+**Cursor:** open **Customize** in the sidebar → add the `getcargohq/gtm-skills` marketplace →
+install the **Cargo GTM** plugin (UI-driven; the `.cursor-plugin/` manifests are picked up
+automatically).
+
+**Pick one channel — and this repo is the smallest of three.** Plugin install and `skills add`
+both register the skills, so using both duplicates them (plugin copies are namespaced
+`cargo:<skill>`). And if you have the full pack — either channel — you do not want these at all:
+every skill here defers to `cargo-gtm` when it is present, and the plugin's lifecycle hooks defer
+to the pack's plugin and to the Cargo installer's hooks, so a machine with both never registers a
+session twice.
 
 ## Want all of it?
 
@@ -47,9 +99,19 @@ file, and every number in a cost table must match that playbook exactly. These s
 agents we do not control, with no session refresh to save them — a stale price fails on a new
 user's first command, which is the worst possible moment to be wrong.
 
-**Every skill carries the same four blocks:** the `cargo-gtm` deference guard, the free-credits
-line, the sample-before-you-spend rule, and the CTA back to the pack. Drop one and the build
-goes red. Trigger phrases must also be unique across skills, or they fight for the same prompts.
+**Every skill carries the same blocks:** the `cargo-gtm` deference guard, the free-credits
+line, the sample-before-you-spend rule, the CTA back to the pack, the star ask, and the
+attribution guard that skips the manual session row when the plugin's hooks already write one.
+Drop one and the build goes red. Trigger phrases must also be unique across skills, or they fight
+for the same prompts.
+
+**The plugin channel is checked too.** The four manifests
+(`.claude-plugin/`, `.codex-plugin/`, `.cursor-plugin/`, `plugin.json`) must agree on name and
+version, every hook they wire must exist and be executable, `cli-version` must be a real version,
+`skills.sh.json` must group every skill exactly once, the skill list embedded in
+[`hooks/skill-loads.sh`](hooks/skill-loads.sh) must match the directory tree, and
+`hooks/approve-cli.sh` must be byte-identical to the pack's. Adding a thirteenth skill therefore
+means adding it in three places, and the build will tell you which one you missed.
 
 ```bash
 node scripts/validate.ts                                            # against cargo-skills@main

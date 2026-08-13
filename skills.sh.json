@@ -1,0 +1,32 @@
+{
+  "$schema": "https://skills.sh/schemas/skills.sh.schema.json",
+  "notGrouped": "bottom",
+  "groupings": [
+    {
+      "title": "Find the accounts and the people",
+      "description": "Sourcing: who exists, who fits, and who sits on the buying committee.",
+      "skills": [
+        "find-b2b-leads",
+        "build-tam-list",
+        "find-stakeholders",
+        "find-portfolio-companies"
+      ]
+    },
+    {
+      "title": "Get the contact data",
+      "description": "Resolve identity, enrich it, and make sure the address is deliverable before you send.",
+      "skills": [
+        "find-linkedin-url",
+        "enrich-linkedin-profile",
+        "find-work-email",
+        "verify-email-list",
+        "enrich-company-data"
+      ]
+    },
+    {
+      "title": "Watch for the moment to reach out",
+      "description": "Buying signals: someone moved, someone raised, someone started hiring for the thing you sell.",
+      "skills": ["track-job-changes", "track-funding-rounds", "find-companies-using-tech"]
+    }
+  ]
+}
