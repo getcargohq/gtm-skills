@@ -24,6 +24,7 @@
  * Requires Node >= 22.18 (run as .ts via native type-stripping).
  */
 
+import { execFileSync } from "node:child_process";
 import { readFileSync, readdirSync, existsSync, statSync } from "node:fs";
 import { join, dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -456,6 +457,31 @@ async function checkPluginChannel(skillNames: string[]): Promise<void> {
   // and leaves the claim unbacked.
   if (!existsSync(join(repoRoot, "LICENSE"))) {
     fail("plugin", "LICENSE is missing, but plugin.json declares a license and README links to it");
+  }
+
+  // The committed archive is what was (or will be) uploaded to the OpenAI
+  // directory, and that channel does not self-update: the listing keeps serving
+  // whatever version was reviewed. So a zip left behind at an older version than
+  // the manifest is not stale build output, it is a claim about what is live
+  // that has quietly stopped being true. Rebuild it (scripts/build-codex-package.mjs)
+  // when the version moves.
+  const archive = join(repoRoot, "dist/gtm-skills-codex.zip");
+  if (existsSync(archive) && claude?.version) {
+    try {
+      const packaged = JSON.parse(
+        execFileSync("unzip", ["-p", archive, ".codex-plugin/plugin.json"], {
+          encoding: "utf8",
+        }),
+      );
+      if (packaged.version !== claude.version) {
+        fail(
+          "plugin",
+          `dist/gtm-skills-codex.zip packages version ${packaged.version} but the manifests say ${claude.version} — rebuild it before submitting`,
+        );
+      }
+    } catch (error) {
+      fail("plugin", `dist/gtm-skills-codex.zip could not be read: ${(error as Error).message}`);
+    }
   }
 
   // The approval hook is the security-relevant surface, and it is a VERBATIM

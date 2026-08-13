@@ -46,6 +46,15 @@ jobs:
       - name: Run the skill-load detector's self-test
         run: bash hooks/skill-loads.sh --self-test
 
+      # The OpenAI directory is the one channel that cannot self-update: every
+      # version is a manual, human-reviewed submission. Building the archive on
+      # every commit means the rejection is found here rather than a review
+      # cycle later. Built into a temp dir — the committed dist/ zip is the
+      # artifact that was actually uploaded, and zip timestamps make it
+      # pointless to diff.
+      - name: Build the OpenAI directory package
+        run: node scripts/build-codex-package.mjs --out "$RUNNER_TEMP/codex-package"
+
       # Hooks run on a stranger's machine with a minimal PATH and no way to
       # report a syntax error. Parse them here instead.
       - name: Parse every hook script
