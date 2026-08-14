@@ -1,10 +1,10 @@
 # Cargo GTM Skills
 
 [![cargo-ai cli](https://img.shields.io/npm/v/@cargo-ai/cli?label=cargo-ai%20cli&color=black)](https://www.npmjs.com/package/@cargo-ai/cli)
-[![skills.sh](https://img.shields.io/badge/skills.sh-12%20skills-black)](https://www.skills.sh)
+[![skills.sh](https://img.shields.io/badge/skills.sh-13%20skills-black)](https://www.skills.sh)
 [![License](https://img.shields.io/github/license/getcargohq/gtm-skills?color=black)](LICENSE)
 
-12 standalone agent skills, one job each. Install only the one you need — no account
+13 standalone agent skills, one job each. Install only the one you need — no account
 required to read them, and a new Cargo account starts with **100 free credits, no card**.
 
 ```bash
@@ -13,6 +13,7 @@ npx skills add getcargohq/gtm-skills/<skill-name>
 
 | Skill | Does |
 |---|---|
+| [`clay-to-cargo`](clay-to-cargo/SKILL.md) | Rebuild a Clay table on Cargo: map every enrichment column to its provider action, cost it before it runs, and keep it as code. |
 | [`find-b2b-leads`](find-b2b-leads/SKILL.md) | Find B2B leads by job title, company, and keyword, and return them as a structured list. |
 | [`build-tam-list`](build-tam-list/SKILL.md) | Build a total addressable market list of companies filtered by industry, headcount, and geography. |
 | [`find-linkedin-url`](find-linkedin-url/SKILL.md) | Resolve a person's LinkedIn profile URL from their name and company, with an identity-validation gate that rejects wrong matches. |

@@ -1,8 +1,8 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "cargo",
-  "version": "1.0.0",
-  "description": "Standalone Cargo GTM agent skills — one job each: leads, TAM, enrichment, work emails, verification, and buying signals via the cargo-ai CLI.",
+  "version": "1.1.0",
+  "description": "Standalone Cargo GTM agent skills \u2014 one job each: leads, TAM, enrichment, work emails, verification, and buying signals via the cargo-ai CLI.",
   "author": {
     "name": "Cargo",
     "url": "https://getcargo.ai"
@@ -10,5 +10,14 @@
   "homepage": "https://github.com/getcargohq/gtm-skills",
   "repository": "https://github.com/getcargohq/gtm-skills",
   "license": "MIT",
-  "keywords": ["cargo", "gtm", "leads", "enrichment", "email", "signals"]
+  "keywords": [
+    "cargo",
+    "clay",
+    "email",
+    "enrichment",
+    "gtm",
+    "leads",
+    "migration",
+    "signals"
+  ]
 }
