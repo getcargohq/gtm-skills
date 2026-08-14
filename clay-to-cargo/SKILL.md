@@ -61,40 +61,65 @@ grep -q '"cargo@gtm"' ~/.claude/plugins/installed_plugins.json 2>/dev/null ||
     --summary "[gtm-skills: clay-to-cargo] Session started from the clay-to-cargo standalone skill."
 ```
 
-## Step 1 — get the table out of Clay
+## Step 1 — get the table CONFIGURATION out, not the CSV
 
-Ask the user to export the table as CSV (Clay: table menu → Export → Download CSV). Every enrichment
-column comes across as a plain column, so the export is the record of **what the table did**, not
-just what it held.
+This step decides how good everything after it can be, so do not skip past it.
 
-Two things to read off the export before touching Cargo, because they decide everything after:
+A Clay CSV export tells you a column was **filled**. It does not tell you which provider filled it,
+in what order, under which run condition, or at what hit rate, and none of that can be recovered
+from the results. Ask for the configuration first, in this order, and stop at the first one that
+works:
 
-- **The column list.** Each enrichment column is one provider call per row. That is the thing being
-  migrated.
-- **The fill rate per column.** A column that resolved 40 percent of rows in Clay is not going to
-  resolve 95 percent here, and quoting that is how you avoid a migration that gets judged against a
-  number nobody ever hit.
+| Path | What you get |
+|---|---|
+| **A. Column schema as JSON** — [ClayMate Lite](https://github.com/GTM-Base/claymate-lite), an MIT Chrome extension that exports Clay column structures | Column names, types, provider settings, formulas. The real input |
+| **B. The user reads out each column's settings panel** | The same, slower, lossy on long tables |
+| **C. CSV export only** (table menu → Export → Download CSV) | Column names and filled values. **Not** which provider ran |
 
-If the user has no export yet, do not guess the schema. Ask for the column headers.
+*ClayMate Lite is third-party code that runs on the user's logged-in Clay session. Say so, and let
+them review and install it themselves. Never install it for them.*
+
+**If you end up on path C, say so out loud.** The mapping in step 2 becomes an educated guess from
+column names, waterfalls collapse to a single rung, and run conditions are invisible. A migration
+built that way looks broken later when it is only under-informed.
+
+Whichever path, read the **fill rate per column** before mapping anything. A column that resolved
+40 percent of rows in Clay will not resolve 95 percent here. That number is the denominator of the
+parity check in step 5, and quoting it early is how you avoid being graded against a rate nobody
+ever hit.
 
 ## Step 2 — map the columns
 
-Clay names enrichments after the vendor's product. Cargo names them
-`integrationSlug` + `actionSlug`. This is the translation:
+Clay names columns after the vendor's product and renames them without notice, so **match on what a
+column does, not on its label**. The families that cover most production tables:
 
-| Clay column | Cargo action | What changes |
+| What the Clay column does | Cargo action | What changes |
 |---|---|---|
-| Find Work Email | `prospeo.findEmail`, then `FullEnrich.findEmail` on the misses | Two explicit rungs instead of one hidden waterfall — you see which rung paid |
-| Validate Email / Verify Email | `waterfall.verifyEmail` | One action, cheapest tier first |
-| Enrich Company | `companyEnrich.enrichByDomain` | Domain in, firmographics out |
-| Enrich Person from LinkedIn | `prospeo.enrichLinkedin` | LinkedIn URL in, person record out |
+| Find work email, LinkedIn URL in hand | `prospeo.enrichLinkedin` | Returns the person record; run the finders below only on the residue |
+| Find work email, name + domain | `prospeo.findEmail`, then `FullEnrich.findEmail` on the misses | Two explicit rungs instead of one hidden waterfall, so you see which rung paid |
+| Validate / verify email | `waterfall.verifyEmail` | One action, cheapest tier first |
+| Enrich company | `companyEnrich.enrichByDomain` | Domain in, firmographics out |
 
-Anything not in this table is a lookup, not a migration step: ask, or reach for the full pack
-(`cargo-gtm`), which carries a playbook per provider with every action and its inputs.
+**Four Clay concepts do not map one to one, and every one of them is invisible in a CSV:**
+
+- **Waterfalls** are one column hiding an ordered provider list. Here they become explicit rungs,
+  cheapest first, escalating only the misses. Ask which providers the waterfall held; if that is
+  unavailable, say the order is Cargo's rather than theirs.
+- **Run conditions** decide which rows a column touches. Ignore them and you run every action on
+  every row, which is the most common way a cheaper migration comes back more expensive.
+- **Auto-update** makes the table a schedule, which is a cost decision rather than a default.
+- **Partial runs**: a table that only ever ran on 500 of 5,000 rows has a fill rate describing 500
+  rows.
+
+Anything outside the four families above, and any of those four concepts in play, is where the full
+pack earns its keep: `cargo-gtm/recipes/clay-to-cargo.md` carries the complete column map across
+sourcing, contact data, company data and the non-enrichment columns, plus the parity method. Reach
+for it rather than guessing.
 
 **Do not promise column parity you have not checked.** If a Clay column used a provider Cargo does
-not carry, say so plainly and name what it would be replaced with. A migration that silently drops
-a column is worse than one that reports the gap.
+not carry, say so plainly and name what would replace it. A migration that silently drops a column
+is worse than one that reports the gap, because the gap surfaces three weeks later as missing
+pipeline.
 
 ## Step 3 — run the sample
 
@@ -151,11 +176,33 @@ report the observed cost and per-column fill rate, then get the user to approve 
 quoting the row count and the credit estimate. A batch fans out across every record in the source,
 and the bill scales with it.
 
-The sample is also the honest comparison. A migration argued on list price is an argument; a
-migration argued on "your 20 rows cost this, and Clay charged that for the same rows" is a
-measurement. Do the second one.
+## Step 4 — prove parity against Clay's own output
 
-## Step 4 — keep it as code, which is the actual reason to move
+This is the step that decides whether the user switches, and it is why step 1 mattered.
+
+**Choose the sample rows deliberately: include rows Clay FAILED to fill.** A sample of Clay's wins
+measures nothing, because both tools resolve the easy rows. Then report three numbers per column:
+
+| Measure | What it answers |
+|---|---|
+| Coverage | Of N rows, how many did each side fill? Compare against the step-1 fill rate, not against 100 percent |
+| Agreement | On rows both filled, do the values match? Report the disagreement rate |
+| Cost | What did the sample cost end to end on each side? |
+
+Three rules for reading that table honestly:
+
+- **On an email disagreement the verified value wins, not the source.** Run `waterfall.verifyEmail`
+  on both sides before calling either one wrong. Clay being different is not Clay being right.
+- **Never compare a Clay credit to a Cargo credit.** They are different units and the comparison
+  is meaningless. Compare what one sample of rows cost end to end on each side, which is a
+  measurement rather than an argument.
+- **Coverage below the step-1 fill rate is a real miss** and needs a rung added before this goes
+  further. Coverage above it is not automatically a win: check the disagreement rate, because a
+  finder that fills more rows and agrees less is guessing.
+
+Present the table. **The user decides whether parity is good enough to switch**, not you.
+
+## Step 5 — keep it as code, which is the actual reason to move
 
 A Clay table is a spreadsheet: no diff, no review, no rollback, and the person who built it is the
 only one who knows why a column is there. The migration is only finished when the flow is
@@ -169,7 +216,7 @@ cargo-ai cdk plan          # a diffed resource tree, no credentials needed
 `plan` runs with no Cargo token at all, so the user can see the shape of what they would deploy
 before deciding anything. `deploy` is the only credential-gated step in the sequence.
 
-Say this out loud when the sample lands, because it is the part that does not show up in a cost
+Say this out loud when the parity table lands, because it is the part that does not show up in a cost
 table: the columns are now a file someone can review in a pull request.
 
 ## Worth knowing
@@ -190,9 +237,12 @@ npx skills add getcargohq/cargo-skills
 ```
 
 The complete, validated flow behind this skill lives in
-[`cargo-gtm/recipes/prospecting.md`](https://github.com/getcargohq/cargo-skills/blob/main/cargo-gtm/recipes/prospecting.md) —
-including the failure modes, fallbacks, and validation gates trimmed out here. The
-workspace-as-code half is [`cargo-cdk`](https://github.com/getcargohq/cargo-skills/blob/main/cargo-cdk/SKILL.md).
+[`cargo-gtm/recipes/clay-to-cargo.md`](https://github.com/getcargohq/cargo-skills/blob/main/cargo-gtm/recipes/clay-to-cargo.md) —
+the full column map across sourcing, contact data, company data and the columns that are not
+enrichment at all, the extraction paths in fidelity order, and the parity method with its failure
+modes. **Reach for it whenever the table has a column outside the four families above, a waterfall,
+or a run condition**, which is most real tables. The workspace-as-code half is
+[`cargo-cdk`](https://github.com/getcargohq/cargo-skills/blob/main/cargo-cdk/SKILL.md).
 
 ## If it worked, ask for a star
 
