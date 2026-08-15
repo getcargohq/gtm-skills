@@ -70,25 +70,30 @@ website for free.
 
 ## Step 2 — pull it, from sources you can name
 
-Three calls, and each one returns something with a URL attached. That is the
-point rather than a nicety: this skill's whole output discipline is that every
-line can be traced, and a source you can paste into the briefing is traceable in
-a way an enrichment blob is not.
+Four calls. The first gives the company baseline, the middle two return
+something with a URL attached, and the last is the company telling you in public
+where its money went.
 
 ```bash
-# 1. What they say they do, in their own words
+# 1. The baseline: what they are, how big, what they say they do
 cargo-ai orchestration action execute-batch \
-  --action '{"kind":"connector","integrationSlug":"firecrawl","actionSlug":"scrape","config":{}}' \
-  --records '[{"url":"https://acme.com"}]' \
+  --action '{"kind":"connector","integrationSlug":"linkedin","actionSlug":"enrichCompanyFromDomain","config":{}}' \
+  --records '[{"domain":"acme.com"}]' \
   --wait-until-finished
 
-# 2. The research question, answered with source links
+# 2. Their own words, read from their own pages
 cargo-ai orchestration action execute-batch \
-  --action '{"kind":"connector","integrationSlug":"linkup","actionSlug":"instruct","config":{}}' \
-  --records '[{"q":"What has Acme publicly said about its priorities and challenges in the last 12 months, and who does it name as competitors?","depth":"standard","outputType":"sourcedAnswer"}]' \
+  --action '{"kind":"connector","integrationSlug":"parallel","actionSlug":"extract","config":{}}' \
+  --records '[{"urls":["https://acme.com","https://acme.com/careers"],"objective":"What the company says it does, and which teams it is growing"}]' \
   --wait-until-finished
 
-# 3. What they are hiring for, which is what they are spending on
+# 3. The research question, structured, with its sources
+cargo-ai orchestration action execute-batch \
+  --action '{"kind":"connector","integrationSlug":"parallel","actionSlug":"createTask","config":{}}' \
+  --records '[{"input":"What has Acme publicly said about its priorities and challenges in the last 12 months, and who does it name as competitors?","processor":"lite","outputSchema":{"type":"object","properties":{"priorities":{"type":"array","items":{"type":"string"}},"competitors":{"type":"array","items":{"type":"string"}},"sources":{"type":"array","items":{"type":"string"}}}}}]' \
+  --wait-until-finished
+
+# 4. What they are hiring for, which is what they are spending on
 cargo-ai orchestration action execute-batch \
   --action '{"kind":"connector","integrationSlug":"theirStack","actionSlug":"searchJobs","config":{}}' \
   --data '{
@@ -99,13 +104,16 @@ cargo-ai orchestration action execute-batch \
   --wait-until-finished
 ```
 
-**`outputType: "sourcedAnswer"` is the one setting that must not be dropped.**
-Without it the answer arrives with no links, and every line of the briefing
-becomes unverifiable prose that reads exactly like the verified kind.
+**Two settings must not be dropped.** `processor: "lite"` pins the cheapest rung
+of a ladder that runs to 60 credits a record, and it is a required field with no
+default, so an example copied without it fails rather than surprising you. And
+the `sources` array in `outputSchema` is what makes step 3 checkable: without it
+the task returns confident prose with nothing behind it, which reads exactly like
+the verified kind.
 
 Open roles are the most under-used input in account research: a company hiring
-six data engineers is telling you where its budget went, and it is telling you in
-public, dated, and for 0.5 credits.
+six data engineers is telling you where its budget went, in public, dated, and
+for 0.5 credits.
 
 Operations are asynchronous. `--wait-until-finished` blocks until done; without it you get a run
 or batch UUID to poll with `cargo-ai orchestration run get <uuid>` (2s interval) or
@@ -134,8 +142,9 @@ from a template. That is the part a human keeps.
 
 | Action | Credits |
 |---|---|
-| `firecrawl.scrape` | 0.05 |
-| `linkup.instruct` | 1 |
+| `linkedin.enrichCompanyFromDomain` | 0.5 |
+| `parallel.extract` | 0.025 |
+| `parallel.createTask` | 0.125 |
 | `theirStack.searchJobs` | 0.5 |
 
 **Never run this across a full list on the first attempt.** Sample 10–20 records, report the
@@ -143,15 +152,17 @@ observed cost and hit-rate, then get the user to approve the full run — quotin
 and the credit estimate. A batch fans out across every record in the source, and the bill scales
 with it.
 
-One account is 1.55 credits, so a single briefing is cheap and a hundred of them
-is a decision. Say the total before running a list.
+One account is about 1.15 credits, so a single briefing is cheap and a hundred of
+them is a decision. Say the total before running a list. `parallel.extract` bills
+per URL, so two pages is 0.05 and ten is 0.25.
 
 ## Worth knowing
 
-- **Everything here reads public material**, so a private company with a thin web presence returns little. That is a real answer: report the gap rather than padding the page.
-- `linkup.instruct` is the expensive call at 1 credit and the only one that reasons. Drop it for a renewal, where the account team already knows the story, and keep the scrape and the roles.
+- **Most of this reads public material**, so a private company with a thin web presence returns little. That is a real answer: report the gap rather than padding the page.
+- **`processor` on `createTask` is required and the ladder runs to 60 credits a record.** Pin `lite`. Escalate to `base` (0.25) on a specific hard target, never across a list.
 - `theirStack.searchJobs` filters on `--data`, not on `--records`. Put the domain in `companyFields` there; passing it as a record returns an unfiltered page and bills for it.
-- Ask for the domain, not the company name. Every one of these three keys off it.
+- Ask for the domain, not the company name. Every call here keys off it.
+- For a renewal, drop steps 2 and 3 and keep the baseline and the roles. The account team already knows the story; what they want is what changed.
 
 ## Going further
 
