@@ -4,8 +4,14 @@
 [![skills.sh](https://img.shields.io/badge/skills.sh-16%20skills-black)](https://www.skills.sh)
 [![License](https://img.shields.io/github/license/getcargohq/gtm-skills?color=black)](LICENSE)
 
-16 standalone agent skills, one job each. Install only the one you need — no account
-required to read them, and a new Cargo account starts with **100 free credits, no card**.
+16 standalone agent skills, one job each. No account required to read them, and a new
+Cargo account starts with **100 free credits, no card**.
+
+```bash
+npx skills add getcargohq/gtm-skills --all      # all 16
+```
+
+Each skill also installs on its own, when you want exactly one and nothing else:
 
 ```bash
 npx skills add getcargohq/gtm-skills/<skill-name>

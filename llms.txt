@@ -4,7 +4,13 @@
 
 ## Install
 
-One skill, not a bundle:
+All of them:
+
+```bash
+npx skills add getcargohq/gtm-skills --all
+```
+
+Or exactly one:
 
 ```bash
 npx skills add getcargohq/gtm-skills/<skill-name>
