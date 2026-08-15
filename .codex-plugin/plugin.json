@@ -1,7 +1,7 @@
 {
   "name": "cargo",
-  "description": "Thirteen one-job GTM skills in Codex \u2014 find leads and stakeholders, build a TAM, resolve LinkedIn URLs, enrich companies and profiles, find and verify work emails, track job changes, funding, and tech intent \u2014 plus prompt-free approval for safe cargo-ai calls.",
-  "version": "1.1.0",
+  "description": "Fifteen one-job GTM skills in Codex \u2014 find leads and stakeholders, build a TAM, resolve LinkedIn URLs, enrich companies and profiles, find and verify work emails, track job changes, funding, and tech intent \u2014 plus prompt-free approval for safe cargo-ai calls.",
+  "version": "1.2.0",
   "author": {
     "name": "getcargo"
   },

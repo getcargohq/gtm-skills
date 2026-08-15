@@ -38,6 +38,14 @@
         "track-funding-rounds",
         "find-companies-using-tech"
       ]
+    },
+    {
+      "title": "Decide who is worth the time",
+      "description": "Rank a list against your profile, then understand the one account before you walk into the call.",
+      "skills": [
+        "score-leads",
+        "research-account"
+      ]
     }
   ]
 }
