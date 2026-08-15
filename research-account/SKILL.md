@@ -68,27 +68,44 @@ A discovery call and a renewal need different pages. Without the answer the
 briefing becomes a company profile, which the user could have read on the
 website for free.
 
-## Step 2 — pull it
+## Step 2 — pull it, from sources you can name
+
+Three calls, and each one returns something with a URL attached. That is the
+point rather than a nicety: this skill's whole output discipline is that every
+line can be traced, and a source you can paste into the briefing is traceable in
+a way an enrichment blob is not.
 
 ```bash
-# Resolve the company first: every cargo.enrichBusiness* action needs the match
+# 1. What they say they do, in their own words
 cargo-ai orchestration action execute-batch \
-  --action '{"kind":"connector","integrationSlug":"cargo","actionSlug":"matchBusiness","config":{}}' \
-  --records '[{"name":"Acme","domain":"acme.com"}]' \
+  --action '{"kind":"connector","integrationSlug":"firecrawl","actionSlug":"scrape","config":{}}' \
+  --records '[{"url":"https://acme.com"}]' \
   --wait-until-finished
 
-# What they publicly state is hard right now: the part a website skim misses
+# 2. The research question, answered with source links
 cargo-ai orchestration action execute-batch \
-  --action '{"kind":"connector","integrationSlug":"cargo","actionSlug":"enrichBusinessChallenges","config":{}}' \
-  --records '[{"business_id":"<from matchBusiness>"}]' \
+  --action '{"kind":"connector","integrationSlug":"linkup","actionSlug":"instruct","config":{}}' \
+  --records '[{"q":"What has Acme publicly said about its priorities and challenges in the last 12 months, and who does it name as competitors?","depth":"standard","outputType":"sourcedAnswer"}]' \
   --wait-until-finished
 
-# Who they name as competition
+# 3. What they are hiring for, which is what they are spending on
 cargo-ai orchestration action execute-batch \
-  --action '{"kind":"connector","integrationSlug":"cargo","actionSlug":"enrichBusinessCompetitiveLandscape","config":{}}' \
-  --records '[{"business_id":"<from matchBusiness>"}]' \
+  --action '{"kind":"connector","integrationSlug":"theirStack","actionSlug":"searchJobs","config":{}}' \
+  --data '{
+    "companyFields": {"company_domains": ["acme.com"]},
+    "fields": {"posted_at_max_age_days": 90},
+    "limit": 25
+  }' \
   --wait-until-finished
 ```
+
+**`outputType: "sourcedAnswer"` is the one setting that must not be dropped.**
+Without it the answer arrives with no links, and every line of the briefing
+becomes unverifiable prose that reads exactly like the verified kind.
+
+Open roles are the most under-used input in account research: a company hiring
+six data engineers is telling you where its budget went, and it is telling you in
+public, dated, and for 0.5 credits.
 
 Operations are asynchronous. `--wait-until-finished` blocks until done; without it you get a run
 or batch UUID to poll with `cargo-ai orchestration run get <uuid>` (2s interval) or
@@ -117,23 +134,24 @@ from a template. That is the part a human keeps.
 
 | Action | Credits |
 |---|---|
-| `cargo.matchBusiness` | 0.5 |
-| `cargo.enrichBusinessChallenges` | 1 |
-| `cargo.enrichBusinessCompetitiveLandscape` | 1 |
+| `firecrawl.scrape` | 0.05 |
+| `linkup.instruct` | 1 |
+| `theirStack.searchJobs` | 0.5 |
 
 **Never run this across a full list on the first attempt.** Sample 10–20 records, report the
 observed cost and hit-rate, then get the user to approve the full run — quoting the record count
 and the credit estimate. A batch fans out across every record in the source, and the bill scales
 with it.
 
-One account is 2.5 credits, so a single briefing is cheap and a hundred of them
+One account is 1.55 credits, so a single briefing is cheap and a hundred of them
 is a decision. Say the total before running a list.
 
 ## Worth knowing
 
-- `cargo.matchBusiness` runs **first**, and an unmatched company blocks everything after it. Retry with the domain rather than the name: a name match fails on anything generic.
-- Challenges and competitors come from public material, so a private company with a thin web presence returns little. That is a real answer: report the gap rather than padding the page.
-- Skip the competitive pull entirely for a renewal. It costs 1 credit to learn something the account team already knows.
+- **Everything here reads public material**, so a private company with a thin web presence returns little. That is a real answer: report the gap rather than padding the page.
+- `linkup.instruct` is the expensive call at 1 credit and the only one that reasons. Drop it for a renewal, where the account team already knows the story, and keep the scrape and the roles.
+- `theirStack.searchJobs` filters on `--data`, not on `--records`. Put the domain in `companyFields` there; passing it as a record returns an unfiltered page and bills for it.
+- Ask for the domain, not the company name. Every one of these three keys off it.
 
 ## Going further
 

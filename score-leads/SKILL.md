@@ -83,22 +83,24 @@ the artifact: it is what makes the ranking arguable later.
 
 ## Step 2 — enrich the facts the score needs
 
-Only the fields the criteria actually use. Every extra enrichment is a bill for a
-column nobody scores on.
+One call per company, keyed on the domain. Only the fields the criteria actually
+use: every extra enrichment is a bill for a column nobody scores on.
 
 ```bash
-# Resolve the company first: every cargo.enrichBusiness* action needs the match
 cargo-ai orchestration action execute-batch \
-  --action '{"kind":"connector","integrationSlug":"cargo","actionSlug":"matchBusiness","config":{}}' \
-  --records '[{"name":"Acme","domain":"acme.com"}]' \
-  --wait-until-finished
-
-# Industry, size, geography, founding year
-cargo-ai orchestration action execute-batch \
-  --action '{"kind":"connector","integrationSlug":"cargo","actionSlug":"enrichBusinessFirmographics","config":{}}' \
-  --records '[{"business_id":"<from matchBusiness>"}]' \
+  --action '{"kind":"connector","integrationSlug":"companyEnrich","actionSlug":"enrichByDomain","config":{}}' \
+  --records '[{"domain":"acme.com"}]' \
   --wait-until-finished
 ```
+
+That returns industry, employee count, revenue band, technologies, funding,
+socials and NAICS codes, which covers the firmographic criteria a scoring pass
+is normally built from.
+
+**It takes the domain directly, with no resolution step in front of it.** That
+matters for cost more than it looks: a chain that has to resolve a company to an
+internal id first pays that resolution on every row, including the rows it then
+fails to enrich.
 
 Operations are asynchronous. `--wait-until-finished` blocks until done; without it you get a run
 or batch UUID to poll with `cargo-ai orchestration run get <uuid>` (2s interval) or
@@ -128,8 +130,7 @@ only one of them is worth a second attempt.
 
 | Action | Credits |
 |---|---|
-| `cargo.matchBusiness` | 0.5 |
-| `cargo.enrichBusinessFirmographics` | 0.5 |
+| `companyEnrich.enrichByDomain` | 0.25 |
 
 **Never run this across a full list on the first attempt.** Sample 10–20 rows, report the
 observed cost and the score distribution, then get the user to approve the full run —
@@ -142,9 +143,10 @@ one tier the criteria are not discriminating, and that is worth finding out at
 
 ## Worth knowing
 
-- `cargo.matchBusiness` runs **first** for any `cargo.enrichBusiness*` chain, and an unmatched company cannot be enriched at all: it is a `missing` row, not a zero.
+- **`enrichByDomain` needs a domain, not a company name.** A list carrying only names has to be resolved first, and that is a different job: say so rather than sending names and reporting the misses as bad fits.
 - Scoring is deterministic and free. Keep it that way: an LLM asked to "rate fit" produces a number nobody can reproduce or argue with.
 - Re-scoring after the criteria change costs nothing, because the enrichment is already stored. Say so, because users assume otherwise and under-ask as a result.
+- Richer firmographics exist at a higher tier if a criterion genuinely needs them. Reach for one only when a stated criterion cannot be answered from the fields above, never by default.
 
 ## Going further
 

@@ -15,7 +15,7 @@ npx skills add getcargohq/gtm-skills/<skill-name>
 |---|---|
 | [`clay-to-cargo`](clay-to-cargo/SKILL.md) | Rebuild a Clay table on Cargo: map every enrichment column to its provider action, cost it before it runs, and keep it as code. |
 | [`score-leads`](score-leads/SKILL.md) | Score a list of companies against your ICP and rank it, with a number, a reason and a tier on every row. |
-| [`research-account`](research-account/SKILL.md) | Research one company before a call and hand back a one-page briefing, every line traceable to its source. |
+| [`research-account`](research-account/SKILL.md) | Research one company before a meeting and hand back a one-page briefing, every line traceable to a source you can open. |
 | [`find-b2b-leads`](find-b2b-leads/SKILL.md) | Find B2B leads by job title, company, and keyword, and return them as a structured list. |
 | [`build-tam-list`](build-tam-list/SKILL.md) | Build a total addressable market list of companies filtered by industry, headcount, and geography. |
 | [`find-linkedin-url`](find-linkedin-url/SKILL.md) | Resolve a person's LinkedIn profile URL from their name and company, with an identity-validation gate that rejects wrong matches. |
