@@ -1,10 +1,10 @@
 # Cargo GTM Skills
 
 [![cargo-ai cli](https://img.shields.io/npm/v/@cargo-ai/cli?label=cargo-ai%20cli&color=black)](https://www.npmjs.com/package/@cargo-ai/cli)
-[![skills.sh](https://img.shields.io/badge/skills.sh-15%20skills-black)](https://www.skills.sh)
+[![skills.sh](https://img.shields.io/badge/skills.sh-16%20skills-black)](https://www.skills.sh)
 [![License](https://img.shields.io/github/license/getcargohq/gtm-skills?color=black)](LICENSE)
 
-15 standalone agent skills, one job each. Install only the one you need — no account
+16 standalone agent skills, one job each. Install only the one you need — no account
 required to read them, and a new Cargo account starts with **100 free credits, no card**.
 
 ```bash
@@ -16,6 +16,7 @@ npx skills add getcargohq/gtm-skills/<skill-name>
 | [`clay-to-cargo`](clay-to-cargo/SKILL.md) | Rebuild a Clay table on Cargo: map every enrichment column to its provider action, cost it before it runs, and keep it as code. |
 | [`score-leads`](score-leads/SKILL.md) | Score a list of companies against your ICP and rank it, with a number, a reason and a tier on every row. |
 | [`research-account`](research-account/SKILL.md) | Research one company before a meeting and hand back a one-page briefing, every line traceable to a source you can open. |
+| [`monitor-buying-signals`](monitor-buying-signals/SKILL.md) | Watch target accounts for the public events that mean someone is in market, each with a date and a link. |
 | [`find-b2b-leads`](find-b2b-leads/SKILL.md) | Find B2B leads by job title, company, and keyword, and return them as a structured list. |
 | [`build-tam-list`](build-tam-list/SKILL.md) | Build a total addressable market list of companies filtered by industry, headcount, and geography. |
 | [`find-linkedin-url`](find-linkedin-url/SKILL.md) | Resolve a person's LinkedIn profile URL from their name and company, with an identity-validation gate that rejects wrong matches. |
