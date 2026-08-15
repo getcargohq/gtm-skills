@@ -36,7 +36,16 @@
       "skills": [
         "track-job-changes",
         "track-funding-rounds",
-        "find-companies-using-tech"
+        "find-companies-using-tech",
+        "monitor-buying-signals"
+      ]
+    },
+    {
+      "title": "Decide who is worth the time",
+      "description": "Rank a list against your profile, then understand the one account before you walk into the call.",
+      "skills": [
+        "score-leads",
+        "research-account"
       ]
     }
   ]
