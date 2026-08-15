@@ -3,6 +3,13 @@
   "notGrouped": "bottom",
   "groupings": [
     {
+      "title": "Coming from Clay",
+      "description": "Rebuild a table you already have: column-by-column mapping, priced before it runs, kept as code.",
+      "skills": [
+        "clay-to-cargo"
+      ]
+    },
+    {
       "title": "Find the accounts and the people",
       "description": "Sourcing: who exists, who fits, and who sits on the buying committee.",
       "skills": [
@@ -26,7 +33,11 @@
     {
       "title": "Watch for the moment to reach out",
       "description": "Buying signals: someone moved, someone raised, someone started hiring for the thing you sell.",
-      "skills": ["track-job-changes", "track-funding-rounds", "find-companies-using-tech"]
+      "skills": [
+        "track-job-changes",
+        "track-funding-rounds",
+        "find-companies-using-tech"
+      ]
     }
   ]
 }
