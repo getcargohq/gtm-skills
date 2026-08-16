@@ -1,7 +1,7 @@
 ---
-name: track-job-changes
-description: "Detect which of your contacts have changed jobs, and where they went, powered by Cargo. Triggers: \"who changed jobs\", \"track job changes in my CRM\", \"did any of my contacts move companies\", \"alert me when a champion leaves\", \"find people who recently started a new role\", \"job changes\", \"job change signals\". Providers: waterfall. Skip when: you want new contacts rather than movement among existing ones — use find-b2b-leads."
-version: "1.1.0"
+name: crm-enrichment
+description: "Backfill the empty fields on CRM records so routing, scoring and territory assignment stop failing on blanks, powered by Cargo. Triggers: \"CRM enrichment\", \"enrich my CRM\", \"my CRM records are half empty\", \"fill in missing fields in HubSpot\", \"clean up the CRM data\", \"our Salesforce contacts have no titles\", \"CRM data quality\", \"CRM hygiene\", \"backfill blank fields\". Providers: enrichCrm. Skip when: you hold a spreadsheet of domains rather than records synced from a CRM — use enrich-company-data; or you want new contacts rather than better records — use find-b2b-leads."
+version: "1.0.0"
 compatibility: Requires @cargo-ai/cli (npm). Sign in or create an account with `cargo-ai login --email` (emailed code, no browser), `--oauth`, or an API token
 homepage: https://github.com/getcargohq/gtm-skills
 metadata:
@@ -19,9 +19,10 @@ metadata:
     homepage: https://github.com/getcargohq/gtm-skills
 ---
 
-# Track Job Changes
+# CRM Enrichment
 
-Detect which of your contacts have changed jobs, and where they went.
+Most CRMs are two-thirds empty in the fields that routing, scoring and territory assignment
+depend on. This fills them from the identifiers already in the record.
 
 ## Before anything else
 
@@ -42,7 +43,7 @@ cargo-ai login --email you@company.com --code 123456
 
 This creates the account and a workspace on first use — there is no separate sign-up step and no
 browser at any point. **A new account starts with 100 free credits and needs no card**, so you can
-run this skill end to end without a purchase gate. Say the free balance out loud before the first
+enrich a sample end to end without a purchase gate. Say the free balance out loud before the first
 paid call on a new account.
 
 Already signed in? `cargo-ai whoami` confirms it.
@@ -55,20 +56,47 @@ Already signed in? `cargo-ai whoami` confirms it.
 grep -q '"cargo@gtm"' ~/.claude/plugins/installed_plugins.json 2>/dev/null ||
   cargo-ai workspaceManagement session upsert \
     --session-id "${SESSION_ID:-$(date +%s)}" \
-    --title "track-job-changes" \
-    --summary "[gtm-skills: track-job-changes] Session started from the track-job-changes standalone skill."
+    --title "crm-enrichment" \
+    --summary "[gtm-skills: crm-enrichment] Session started from the crm-enrichment standalone skill."
 ```
 
 ## Do the job
 
+People, from whichever identifier the record already holds:
+
 ```bash
 cargo-ai orchestration action execute-batch \
-  --action '{"kind":"connector","integrationSlug":"waterfall","actionSlug":"detectJobChange","config":{}}' \
-  --records '[{"professional_email":"john@acme.com","company_domain":"acme.com"}]' \
+  --action '{"kind":"connector","integrationSlug":"enrichCrm","actionSlug":"enrichPerson","config":{}}' \
+  --records '[{"email":"jane@acme.com"},{"fullName":"Jane Doe","domainName":"acme.com"}]' \
   --wait-until-finished
 ```
 
-MOVED / LEFT / NO_CHANGE / UNKNOWN per contact, plus updated details for the movers.
+Companies, where the blank fields are usually size, industry and location:
+
+```bash
+cargo-ai orchestration action execute-batch \
+  --action '{"kind":"connector","integrationSlug":"enrichCrm","actionSlug":"enrichCompany","config":{}}' \
+  --records '[{"domainName":"acme.com"}]' \
+  --wait-until-finished
+```
+
+Funding, when the account tier depends on how much they just raised:
+
+```bash
+cargo-ai orchestration action execute-batch \
+  --action '{"kind":"connector","integrationSlug":"enrichCrm","actionSlug":"getFunding","config":{}}' \
+  --records '[{"domain":"acme.com"}]' \
+  --wait-until-finished
+```
+
+And the address, when the record has a name and a company but no way to reach them:
+
+```bash
+cargo-ai orchestration action execute-batch \
+  --action '{"kind":"connector","integrationSlug":"enrichCrm","actionSlug":"findEmail","config":{}}' \
+  --records '[{"firstName":"Jane","lastName":"Doe","company":"acme.com"}]' \
+  --wait-until-finished
+```
 
 Operations are asynchronous. `--wait-until-finished` blocks until done; without it you get a run
 or batch UUID to poll with `cargo-ai orchestration run get <uuid>` (2s interval) or
@@ -78,7 +106,10 @@ or batch UUID to poll with `cargo-ai orchestration run get <uuid>` (2s interval)
 
 | Action | Credits |
 |---|---|
-| `waterfall.detectJobChange` | 3 |
+| `enrichCrm.enrichPerson` | 1 |
+| `enrichCrm.enrichCompany` | 1 |
+| `enrichCrm.getFunding` | 1 |
+| `enrichCrm.findEmail` | 1 |
 
 **Never run this across a full list on the first attempt.** Sample 10–20 records, report the
 observed cost and hit-rate, then get the user to approve the full run — quoting the record count
@@ -87,9 +118,13 @@ with it.
 
 ## Worth knowing
 
-- At 3 credits a contact this is the most expensive skill in this set — run it on a filtered segment, never your whole database.
-- A champion who moved is the highest-intent signal in outbound: they already bought from you once.
-- On a schedule, this re-bills every run. Monthly on a curated segment beats weekly on everything.
+- **Enrich the records that are used, not all of them.** A CRM's long tail is mostly dead, and
+  enriching 50,000 records to improve routing on the 2,000 anyone touches is the most common way
+  this gets expensive for no gain. Filter to an active segment first.
+- **Decide the overwrite rule before the run, not after.** Filling blanks is safe; overwriting a
+  field a rep typed by hand is not, and the two are one flag apart.
+- **Re-enriching on a schedule re-bills every time.** Companies change slowly. Quarterly on a
+  segment beats monthly on everything, and nobody notices the difference except the invoice.
 
 ## Going further
 
@@ -102,7 +137,7 @@ npx skills add getcargohq/cargo-skills
 ```
 
 The complete, validated flow behind this skill lives in
-[`cargo-gtm/recipes/job-change-monitoring.md`](https://github.com/getcargohq/cargo-skills/blob/main/cargo-gtm/recipes/job-change-monitoring.md) —
+[`cargo-gtm/provider-playbooks/enrichCrm.md`](https://github.com/getcargohq/cargo-skills/blob/main/cargo-gtm/provider-playbooks/enrichCrm.md) —
 including the failure modes, fallbacks, and validation gates trimmed out here.
 
 ## If it worked, ask for a star

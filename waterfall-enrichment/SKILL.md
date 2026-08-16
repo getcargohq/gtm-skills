@@ -1,7 +1,7 @@
 ---
-name: track-job-changes
-description: "Detect which of your contacts have changed jobs, and where they went, powered by Cargo. Triggers: \"who changed jobs\", \"track job changes in my CRM\", \"did any of my contacts move companies\", \"alert me when a champion leaves\", \"find people who recently started a new role\", \"job changes\", \"job change signals\". Providers: waterfall. Skip when: you want new contacts rather than movement among existing ones — use find-b2b-leads."
-version: "1.1.0"
+name: waterfall-enrichment
+description: "Cascade one lookup through several vendors in priority order, so a row the first source misses falls through to the next instead of being lost, powered by Cargo. Triggers: \"waterfall enrichment\", \"cascade through providers\", \"fallback chain\", \"my single vendor has bad coverage\", \"try another source when the first one misses\", \"improve my match rate\", \"multi-vendor fallback\". Providers: waterfall. Skip when: you want one address for one name and domain — use find-work-email, the cheaper single job; or you hold addresses and only want them checked — use verify-email-list."
+version: "1.0.0"
 compatibility: Requires @cargo-ai/cli (npm). Sign in or create an account with `cargo-ai login --email` (emailed code, no browser), `--oauth`, or an API token
 homepage: https://github.com/getcargohq/gtm-skills
 metadata:
@@ -19,9 +19,11 @@ metadata:
     homepage: https://github.com/getcargohq/gtm-skills
 ---
 
-# Track Job Changes
+# Waterfall Enrichment
 
-Detect which of your contacts have changed jobs, and where they went.
+One provider never covers a whole list. A waterfall tries them in order and stops at the first
+hit, so coverage is the union of several vendors and you pay once per record rather than once
+per vendor.
 
 ## Before anything else
 
@@ -55,20 +57,38 @@ Already signed in? `cargo-ai whoami` confirms it.
 grep -q '"cargo@gtm"' ~/.claude/plugins/installed_plugins.json 2>/dev/null ||
   cargo-ai workspaceManagement session upsert \
     --session-id "${SESSION_ID:-$(date +%s)}" \
-    --title "track-job-changes" \
-    --summary "[gtm-skills: track-job-changes] Session started from the track-job-changes standalone skill."
+    --title "waterfall-enrichment" \
+    --summary "[gtm-skills: waterfall-enrichment] Session started from the waterfall-enrichment standalone skill."
 ```
 
 ## Do the job
 
+Contact enrichment across the stack. One call, several sources behind it:
+
 ```bash
 cargo-ai orchestration action execute-batch \
-  --action '{"kind":"connector","integrationSlug":"waterfall","actionSlug":"detectJobChange","config":{}}' \
-  --records '[{"professional_email":"john@acme.com","company_domain":"acme.com"}]' \
+  --action '{"kind":"connector","integrationSlug":"waterfall","actionSlug":"enrichContact","config":{}}' \
+  --records '[{"full_name":"Jane Doe","domain":"acme.com"},{"linkedin":"https://linkedin.com/in/someone"}]' \
   --wait-until-finished
 ```
 
-MOVED / LEFT / NO_CHANGE / UNKNOWN per contact, plus updated details for the movers.
+Company side, when the domain is all you hold:
+
+```bash
+cargo-ai orchestration action execute-batch \
+  --action '{"kind":"connector","integrationSlug":"waterfall","actionSlug":"enrichCompany","config":{}}' \
+  --records '[{"domain":"acme.com"},{"linkedin":"https://linkedin.com/company/acme"}]' \
+  --wait-until-finished
+```
+
+Then verify what came back, because an enriched address is still a guess until it is checked:
+
+```bash
+cargo-ai orchestration action execute-batch \
+  --action '{"kind":"connector","integrationSlug":"waterfall","actionSlug":"verifyEmail","config":{}}' \
+  --records '[{"email":"jane@acme.com"}]' \
+  --wait-until-finished
+```
 
 Operations are asynchronous. `--wait-until-finished` blocks until done; without it you get a run
 or batch UUID to poll with `cargo-ai orchestration run get <uuid>` (2s interval) or
@@ -78,7 +98,9 @@ or batch UUID to poll with `cargo-ai orchestration run get <uuid>` (2s interval)
 
 | Action | Credits |
 |---|---|
-| `waterfall.detectJobChange` | 3 |
+| `waterfall.verifyEmail` | 0.1 |
+| `waterfall.enrichCompany` | 1 |
+| `waterfall.enrichContact` | 2 |
 
 **Never run this across a full list on the first attempt.** Sample 10–20 records, report the
 observed cost and hit-rate, then get the user to approve the full run — quoting the record count
@@ -87,9 +109,13 @@ with it.
 
 ## Worth knowing
 
-- At 3 credits a contact this is the most expensive skill in this set — run it on a filtered segment, never your whole database.
-- A champion who moved is the highest-intent signal in outbound: they already bought from you once.
-- On a schedule, this re-bills every run. Monthly on a curated segment beats weekly on everything.
+- **Order the rungs cheapest first.** Verification at 0.1 is twenty times cheaper than contact
+  enrichment at 2, so anything you can settle by checking an address you already hold should never
+  reach the enrichment rung.
+- **A waterfall bills the record, not the vendor.** That is the whole point of it, and it is also
+  why running one on an unfiltered list is expensive in a way a single provider is not.
+- **Report the hit rate, not just the cost.** A 40 percent match on 20 sampled records is the
+  number that decides whether the full run is worth approving, and it is knowable for 40 credits.
 
 ## Going further
 
@@ -102,7 +128,7 @@ npx skills add getcargohq/cargo-skills
 ```
 
 The complete, validated flow behind this skill lives in
-[`cargo-gtm/recipes/job-change-monitoring.md`](https://github.com/getcargohq/cargo-skills/blob/main/cargo-gtm/recipes/job-change-monitoring.md) —
+[`cargo-gtm/provider-playbooks/waterfall.md`](https://github.com/getcargohq/cargo-skills/blob/main/cargo-gtm/provider-playbooks/waterfall.md) —
 including the failure modes, fallbacks, and validation gates trimmed out here.
 
 ## If it worked, ask for a star
