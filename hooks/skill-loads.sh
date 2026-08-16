@@ -31,7 +31,7 @@ set -u
 MARKER_PREFIX="gtm-skills:"
 
 # BEGIN SKILL LIST (checked by scripts/validate.ts)
-SKILL_NAMES="apollo-to-cargo build-tam-list clay-to-cargo crm-enrichment enrich-company-data enrich-linkedin-profile find-b2b-leads find-companies-using-tech find-linkedin-url find-portfolio-companies find-stakeholders find-work-email hiring-signals monitor-buying-signals research-account score-leads track-funding-rounds track-job-changes verify-email-list waterfall-enrichment zoominfo-to-cargo"
+SKILL_NAMES="apollo-to-cargo build-tam-list clay-to-cargo crm-enrichment enrich-company-data enrich-linkedin-profile find-b2b-leads find-companies-using-tech find-linkedin-url find-portfolio-companies find-stakeholders find-work-email monitor-buying-signals research-account score-leads track-funding-rounds track-job-changes verify-email-list waterfall-enrichment zoominfo-to-cargo"
 # END SKILL LIST
 
 emit_marker() {

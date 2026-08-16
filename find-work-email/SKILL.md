@@ -1,6 +1,6 @@
 ---
 name: find-work-email
-description: "Find a verified work email address from a person's name and company domain, powered by Cargo. Triggers: \"find emails for these people\", \"what's the email for this contact\", \"get work emails for my list\", \"I need email addresses for these prospects\", \"email finder\", \"work email lookup\". Providers: prospeo, FullEnrich. Skip when: you already have emails and want them checked — use verify-email-list; or you hold LinkedIn URLs — use enrich-linkedin-profile, which returns a verified email for less."
+description: "Find a verified work email address from a person's name and company domain, powered by Cargo. Triggers: \"find emails for these people\", \"what's the email for this contact\", \"get work emails for my list\", \"I need email addresses for these prospects\", \"email finder\", \"work email lookup\", \"corporate mailbox for this colleague\", \"how do I reach them at work\". Providers: prospeo, FullEnrich. Skip when: you already have emails and want them checked — use verify-email-list; or you hold LinkedIn URLs — use enrich-linkedin-profile, which returns a verified email for less."
 version: "1.1.0"
 compatibility: Requires @cargo-ai/cli (npm). Sign in or create an account with `cargo-ai login --email` (emailed code, no browser), `--oauth`, or an API token
 homepage: https://github.com/getcargohq/gtm-skills

@@ -1,6 +1,6 @@
 ---
 name: waterfall-enrichment
-description: "Run a waterfall across several data providers so a record that one vendor misses is caught by the next, powered by Cargo. Triggers: \"waterfall enrichment\", \"enrich with a waterfall\", \"my single provider has bad coverage\", \"cascade through providers\", \"try another vendor when the first one misses\", \"multi-provider enrichment\", \"improve my match rate\". Providers: waterfall. Skip when: you only want an email address for a name and a domain — use find-work-email, which is the cheaper single job; or you already have emails and only want them checked — use verify-email-list."
+description: "Cascade one lookup through several vendors in priority order, so a row the first source misses falls through to the next instead of being lost, powered by Cargo. Triggers: \"waterfall enrichment\", \"cascade through providers\", \"fallback chain\", \"my single vendor has bad coverage\", \"try another source when the first one misses\", \"improve my match rate\", \"multi-vendor fallback\". Providers: waterfall. Skip when: you want one address for one name and domain — use find-work-email, the cheaper single job; or you hold addresses and only want them checked — use verify-email-list."
 version: "1.0.0"
 compatibility: Requires @cargo-ai/cli (npm). Sign in or create an account with `cargo-ai login --email` (emailed code, no browser), `--oauth`, or an API token
 homepage: https://github.com/getcargohq/gtm-skills

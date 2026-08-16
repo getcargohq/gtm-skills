@@ -1,14 +1,14 @@
 # Cargo GTM Skills
 
 [![cargo-ai cli](https://img.shields.io/npm/v/@cargo-ai/cli?label=cargo-ai%20cli&color=black)](https://www.npmjs.com/package/@cargo-ai/cli)
-[![skills.sh](https://img.shields.io/badge/skills.sh-21%20skills-black)](https://www.skills.sh)
+[![skills.sh](https://img.shields.io/badge/skills.sh-20%20skills-black)](https://www.skills.sh)
 [![License](https://img.shields.io/github/license/getcargohq/gtm-skills?color=black)](LICENSE)
 
-21 standalone agent skills, one job each. No account required to read them, and a new
+20 standalone agent skills, one job each. No account required to read them, and a new
 Cargo account starts with **100 free credits, no card**.
 
 ```bash
-npx skills add getcargohq/gtm-skills --all      # all 21
+npx skills add getcargohq/gtm-skills --all      # all 20
 ```
 
 Each skill also installs on its own, when you want exactly one and nothing else:
@@ -39,14 +39,13 @@ npx skills add getcargohq/gtm-skills/<skill-name>
 | [`find-portfolio-companies`](find-portfolio-companies/SKILL.md) | Find every portfolio company of an investor or accelerator, then the people inside them. |
 | [`waterfall-enrichment`](waterfall-enrichment/SKILL.md) | Run a waterfall across several providers so a record one vendor misses is caught by the next. |
 | [`crm-enrichment`](crm-enrichment/SKILL.md) | Fill the blank fields in your CRM records, contacts and companies alike. |
-| [`hiring-signals`](hiring-signals/SKILL.md) | Find companies hiring for a role, and treat the job posting as the buying signal it is. |
 
 Works with Claude Code, Codex, Cursor, Windsurf, GitHub Copilot, and any agent that supports the
 [skills.sh](https://skills.sh) standard.
 
 ## As an agent plugin — Claude Code, Codex, Cursor
 
-The same twenty-one skills also install as a native **agent plugin**: one source, three targets. Take
+The same twenty skills also install as a native **agent plugin**: one source, three targets. Take
 this route when you want all of them rather than one, and when you want the two things
 `skills add` cannot deliver:
 

@@ -1,6 +1,6 @@
 ---
 name: crm-enrichment
-description: "Fill the blank fields in your CRM records, contacts and companies alike, powered by Cargo. Triggers: \"CRM enrichment\", \"enrich my CRM\", \"my CRM records are half empty\", \"fill in missing fields in HubSpot\", \"clean up the CRM data\", \"our Salesforce contacts have no titles\", \"CRM data quality\", \"enrich company records\". Providers: enrichCrm. Skip when: you are enriching a CSV rather than records that came out of a CRM — use enrich-company-data; or you want new contacts rather than better ones — use find-b2b-leads."
+description: "Backfill the empty fields on CRM records so routing, scoring and territory assignment stop failing on blanks, powered by Cargo. Triggers: \"CRM enrichment\", \"enrich my CRM\", \"my CRM records are half empty\", \"fill in missing fields in HubSpot\", \"clean up the CRM data\", \"our Salesforce contacts have no titles\", \"CRM data quality\", \"CRM hygiene\", \"backfill blank fields\". Providers: enrichCrm. Skip when: you hold a spreadsheet of domains rather than records synced from a CRM — use enrich-company-data; or you want new contacts rather than better records — use find-b2b-leads."
 version: "1.0.0"
 compatibility: Requires @cargo-ai/cli (npm). Sign in or create an account with `cargo-ai login --email` (emailed code, no browser), `--oauth`, or an API token
 homepage: https://github.com/getcargohq/gtm-skills

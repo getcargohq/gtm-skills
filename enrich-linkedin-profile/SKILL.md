@@ -1,6 +1,6 @@
 ---
 name: enrich-linkedin-profile
-description: "Turn a LinkedIn profile URL into a full person profile plus a verified work email in a single call, powered by Cargo. Triggers: \"enrich these LinkedIn profiles\", \"get details from this LinkedIn URL\", \"I have LinkedIn URLs and need emails\", \"enrich LinkedIn data\", \"who is this person\", \"contact enrichment\", \"linkedin enrichment\". Providers: aiArk. Skip when: you do not have the LinkedIn URL yet — use find-linkedin-url first; or you only have a name and domain — use find-work-email."
+description: "Turn a LinkedIn profile URL into a full person profile plus a verified work email in a single call, powered by Cargo. Triggers: \"enrich these LinkedIn profiles\", \"get details from this LinkedIn URL\", \"I have LinkedIn URLs and need emails\", \"enrich LinkedIn data\", \"who is this person\", \"contact enrichment\", \"linkedin enrichment\", \"get their headline and tenure\", \"pull the whole biography\". Providers: aiArk. Skip when: you do not have the LinkedIn URL yet — use find-linkedin-url first; or you only have a name and domain — use find-work-email."
 version: "1.1.0"
 compatibility: Requires @cargo-ai/cli (npm). Sign in or create an account with `cargo-ai login --email` (emailed code, no browser), `--oauth`, or an API token
 homepage: https://github.com/getcargohq/gtm-skills
