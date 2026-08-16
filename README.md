@@ -1,14 +1,14 @@
 # Cargo GTM Skills
 
 [![cargo-ai cli](https://img.shields.io/npm/v/@cargo-ai/cli?label=cargo-ai%20cli&color=black)](https://www.npmjs.com/package/@cargo-ai/cli)
-[![skills.sh](https://img.shields.io/badge/skills.sh-16%20skills-black)](https://www.skills.sh)
+[![skills.sh](https://img.shields.io/badge/skills.sh-21%20skills-black)](https://www.skills.sh)
 [![License](https://img.shields.io/github/license/getcargohq/gtm-skills?color=black)](LICENSE)
 
-16 standalone agent skills, one job each. No account required to read them, and a new
+21 standalone agent skills, one job each. No account required to read them, and a new
 Cargo account starts with **100 free credits, no card**.
 
 ```bash
-npx skills add getcargohq/gtm-skills --all      # all 16
+npx skills add getcargohq/gtm-skills --all      # all 21
 ```
 
 Each skill also installs on its own, when you want exactly one and nothing else:
@@ -23,6 +23,8 @@ npx skills add getcargohq/gtm-skills/<skill-name>
 | [`score-leads`](score-leads/SKILL.md) | Score a list of companies against your ICP and rank it, with a number, a reason and a tier on every row. |
 | [`research-account`](research-account/SKILL.md) | Research one company before a meeting and hand back a one-page briefing, every line traceable to a source you can open. |
 | [`monitor-buying-signals`](monitor-buying-signals/SKILL.md) | Watch target accounts for the public events that mean someone is in market, each with a date and a link. |
+| [`apollo-to-cargo`](apollo-to-cargo/SKILL.md) | Rebuild an Apollo list on Cargo and price the two side by side on the same rows before you move anything. |
+| [`zoominfo-to-cargo`](zoominfo-to-cargo/SKILL.md) | Rebuild a ZoomInfo, Lusha or Cognism list on Cargo and measure the coverage you actually lose or gain before the renewal. |
 | [`find-b2b-leads`](find-b2b-leads/SKILL.md) | Find B2B leads by job title, company, and keyword, and return them as a structured list. |
 | [`build-tam-list`](build-tam-list/SKILL.md) | Build a total addressable market list of companies filtered by industry, headcount, and geography. |
 | [`find-linkedin-url`](find-linkedin-url/SKILL.md) | Resolve a person's LinkedIn profile URL from their name and company, with an identity-validation gate that rejects wrong matches. |
@@ -35,14 +37,17 @@ npx skills add getcargohq/gtm-skills/<skill-name>
 | [`track-funding-rounds`](track-funding-rounds/SKILL.md) | Track which companies recently raised funding, with round, amount, and investors. |
 | [`find-companies-using-tech`](find-companies-using-tech/SKILL.md) | Find companies by the technology they run or the roles they are hiring for. |
 | [`find-portfolio-companies`](find-portfolio-companies/SKILL.md) | Find every portfolio company of an investor or accelerator, then the people inside them. |
+| [`waterfall-enrichment`](waterfall-enrichment/SKILL.md) | Run a waterfall across several providers so a record one vendor misses is caught by the next. |
+| [`crm-enrichment`](crm-enrichment/SKILL.md) | Fill the blank fields in your CRM records, contacts and companies alike. |
+| [`hiring-signals`](hiring-signals/SKILL.md) | Find companies hiring for a role, and treat the job posting as the buying signal it is. |
 
 Works with Claude Code, Codex, Cursor, Windsurf, GitHub Copilot, and any agent that supports the
 [skills.sh](https://skills.sh) standard.
 
 ## As an agent plugin — Claude Code, Codex, Cursor
 
-The same twelve skills also install as a native **agent plugin**: one source, three targets. Take
-this route when you want all twelve rather than one, and when you want the two things
+The same twenty-one skills also install as a native **agent plugin**: one source, three targets. Take
+this route when you want all of them rather than one, and when you want the two things
 `skills add` cannot deliver:
 
 - **An approval hook** ([`hooks/approve-cli.sh`](hooks/approve-cli.sh)) that auto-approves safe

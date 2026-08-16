@@ -1,7 +1,7 @@
 ---
-name: enrich-company-data
-description: "Enrich a list of companies with firmographics — industry, size, geography, founding year, and headquarters, powered by Cargo. Triggers: \"enrich these companies\", \"add company size and industry to my list\", \"get firmographics for these domains\", \"fill in company data\", \"company enrichment\", \"enrich companies\". Providers: cargo. Skip when: you want funding history — use track-funding-rounds; or tech stack — use find-companies-using-tech."
-version: "1.1.0"
+name: hiring-signals
+description: "Find companies that are hiring for a role, and treat the job posting as the buying signal it is, powered by Cargo. Triggers: \"hiring signals\", \"who is hiring\", \"companies hiring data engineers\", \"job postings as intent\", \"find accounts building a team\", \"they just posted a role\", \"hiring intent data\". Providers: theirStack. Skip when: you want companies by the software they already run rather than the roles they are opening — use find-companies-using-tech; or you want the people inside one account — use find-stakeholders."
+version: "1.0.0"
 compatibility: Requires @cargo-ai/cli (npm). Sign in or create an account with `cargo-ai login --email` (emailed code, no browser), `--oauth`, or an API token
 homepage: https://github.com/getcargohq/gtm-skills
 metadata:
@@ -19,9 +19,10 @@ metadata:
     homepage: https://github.com/getcargohq/gtm-skills
 ---
 
-# Enrich Company Data
+# Hiring Signals
 
-Enrich a list of companies with firmographics — industry, size, geography, founding year, and headquarters.
+A company opening a role is telling you what it is about to spend money on. Find the postings,
+and you have found the accounts that are building the thing you sell into.
 
 ## Before anything else
 
@@ -55,27 +56,29 @@ Already signed in? `cargo-ai whoami` confirms it.
 grep -q '"cargo@gtm"' ~/.claude/plugins/installed_plugins.json 2>/dev/null ||
   cargo-ai workspaceManagement session upsert \
     --session-id "${SESSION_ID:-$(date +%s)}" \
-    --title "enrich-company-data" \
-    --summary "[gtm-skills: enrich-company-data] Session started from the enrich-company-data standalone skill."
+    --title "hiring-signals" \
+    --summary "[gtm-skills: hiring-signals] Session started from the hiring-signals standalone skill."
 ```
 
 ## Do the job
 
-```bash
-# 1. Resolve each company to a cargo business_id
-cargo-ai orchestration action execute-batch \
-  --action '{"kind":"connector","integrationSlug":"cargo","actionSlug":"matchBusiness","config":{}}' \
-  --records '[{"name":"Acme","domain":"acme.com"}]' \
-  --wait-until-finished > matched.json
+The postings themselves, which is the signal at its freshest:
 
-# 2. Enrich the matched ids
-cargo-ai orchestration action execute-batch \
-  --action '{"kind":"connector","integrationSlug":"cargo","actionSlug":"enrichBusinessFirmographics","config":{}}' \
-  --records "$(jq -c '[.results[] | {business_id}]' matched.json)" \
+```bash
+cargo-ai orchestration action execute \
+  --action '{"kind":"connector","integrationSlug":"theirStack","actionSlug":"searchJobs","config":{}}' \
+  --data '{"job_title_or":["data engineer","analytics engineer"],"posted_at_max_age_days":30,"limit":25}' \
   --wait-until-finished
 ```
 
-Industry, headcount, geography, founded year, and headquarters per company.
+The accounts behind them, when you want the company list rather than the postings:
+
+```bash
+cargo-ai orchestration action execute \
+  --action '{"kind":"connector","integrationSlug":"theirStack","actionSlug":"searchCompanies","config":{}}' \
+  --data '{"job_title_or":["data engineer"],"company_country_code_or":["US"],"limit":25}' \
+  --wait-until-finished
+```
 
 Operations are asynchronous. `--wait-until-finished` blocks until done; without it you get a run
 or batch UUID to poll with `cargo-ai orchestration run get <uuid>` (2s interval) or
@@ -85,8 +88,8 @@ or batch UUID to poll with `cargo-ai orchestration run get <uuid>` (2s interval)
 
 | Action | Credits |
 |---|---|
-| `cargo.matchBusiness` | 0.5 |
-| `cargo.enrichBusinessFirmographics` | 0.5 |
+| `theirStack.searchJobs` | 0.5 |
+| `theirStack.searchCompanies` | 0.5 |
 
 **Never run this across a full list on the first attempt.** Sample 10–20 records, report the
 observed cost and hit-rate, then get the user to approve the full run — quoting the record count
@@ -95,7 +98,14 @@ with it.
 
 ## Worth knowing
 
-- `matchBusiness` must run first — every other cargo business enrichment keys off the `business_id` it returns.
+- **Age the signal.** A role posted 90 days ago is a role nobody filled or a role already filled,
+  and neither is the moment you wanted. `posted_at_max_age_days` is the field that makes this a
+  signal rather than a directory.
+- **The posting names the stack.** A job description lists the tools the team runs, so a hiring
+  search doubles as a technographic one without a second provider.
+- **Hiring is a trigger, not a qualification.** It tells you the team is being built; it does not
+  tell you they have budget, authority, or a problem you solve. Pair it with fit before anyone is
+  contacted.
 
 ## Going further
 
@@ -108,7 +118,7 @@ npx skills add getcargohq/cargo-skills
 ```
 
 The complete, validated flow behind this skill lives in
-[`cargo-gtm/recipes/build-tam.md`](https://github.com/getcargohq/cargo-skills/blob/main/cargo-gtm/recipes/build-tam.md) —
+[`cargo-gtm/provider-playbooks/theirStack.md`](https://github.com/getcargohq/cargo-skills/blob/main/cargo-gtm/provider-playbooks/theirStack.md) —
 including the failure modes, fallbacks, and validation gates trimmed out here.
 
 ## If it worked, ask for a star

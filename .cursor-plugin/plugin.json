@@ -1,6 +1,6 @@
 {
   "name": "cargo",
-  "description": "Sixteen one-job GTM skills in Cursor \u2014 find leads and stakeholders, build a TAM, resolve LinkedIn URLs, enrich companies and profiles, find and verify work emails, track job changes, funding, and tech intent \u2014 plus prompt-free approval for safe cargo-ai calls.",
+  "description": "Twenty-one one-job GTM skills in Cursor \u2014 find leads and stakeholders, build a TAM, resolve LinkedIn URLs, enrich companies, profiles and CRM records, find and verify work emails, track job changes, funding, hiring and tech intent, and migrate off Clay, Apollo or ZoomInfo \u2014 plus prompt-free approval for safe cargo-ai calls.",
   "version": "1.3.0",
   "author": {
     "name": "getcargo"

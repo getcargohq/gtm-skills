@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Which standalone gtm-skill did this session actually load?
 #
-# The README's whole measurement question — which of these twelve doors people
+# The README's whole measurement question — which of these doors people
 # walk through, and whether registry discovery has any volume at all — is
 # answered by one marker in the session row. Each SKILL.md asks the agent to
 # write that marker by hand on setup; agents forget, and a forgotten marker is
@@ -31,7 +31,7 @@ set -u
 MARKER_PREFIX="gtm-skills:"
 
 # BEGIN SKILL LIST (checked by scripts/validate.ts)
-SKILL_NAMES="build-tam-list clay-to-cargo enrich-company-data enrich-linkedin-profile find-b2b-leads find-companies-using-tech find-linkedin-url find-portfolio-companies find-stakeholders find-work-email monitor-buying-signals research-account score-leads track-funding-rounds track-job-changes verify-email-list"
+SKILL_NAMES="apollo-to-cargo build-tam-list clay-to-cargo crm-enrichment enrich-company-data enrich-linkedin-profile find-b2b-leads find-companies-using-tech find-linkedin-url find-portfolio-companies find-stakeholders find-work-email hiring-signals monitor-buying-signals research-account score-leads track-funding-rounds track-job-changes verify-email-list waterfall-enrichment zoominfo-to-cargo"
 # END SKILL LIST
 
 emit_marker() {

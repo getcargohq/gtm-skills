@@ -3,10 +3,12 @@
   "notGrouped": "bottom",
   "groupings": [
     {
-      "title": "Coming from Clay",
-      "description": "Rebuild a table you already have: column-by-column mapping, priced before it runs, kept as code.",
+      "title": "Coming from another tool",
+      "description": "Rebuild what you already have: mapped column by column, priced before it runs, kept as code.",
       "skills": [
-        "clay-to-cargo"
+        "clay-to-cargo",
+        "apollo-to-cargo",
+        "zoominfo-to-cargo"
       ]
     },
     {
@@ -27,7 +29,9 @@
         "enrich-linkedin-profile",
         "find-work-email",
         "verify-email-list",
-        "enrich-company-data"
+        "enrich-company-data",
+        "waterfall-enrichment",
+        "crm-enrichment"
       ]
     },
     {
@@ -37,7 +41,8 @@
         "track-job-changes",
         "track-funding-rounds",
         "find-companies-using-tech",
-        "monitor-buying-signals"
+        "monitor-buying-signals",
+        "hiring-signals"
       ]
     },
     {

@@ -1,7 +1,7 @@
 ---
-name: enrich-company-data
-description: "Enrich a list of companies with firmographics — industry, size, geography, founding year, and headquarters, powered by Cargo. Triggers: \"enrich these companies\", \"add company size and industry to my list\", \"get firmographics for these domains\", \"fill in company data\", \"company enrichment\", \"enrich companies\". Providers: cargo. Skip when: you want funding history — use track-funding-rounds; or tech stack — use find-companies-using-tech."
-version: "1.1.0"
+name: zoominfo-to-cargo
+description: "Rebuild a ZoomInfo list on Cargo and measure the coverage you actually lose or gain before the renewal, powered by Cargo. Triggers: \"ZoomInfo alternative\", \"migrate off ZoomInfo\", \"replace ZoomInfo\", \"our ZoomInfo renewal is coming up\", \"ZoomInfo is too expensive\", \"I have a ZoomInfo export\", \"cheaper than ZoomInfo\", \"Lusha alternative\", \"Cognism alternative\". Providers: waterfall. Skip when: you are porting a Clay table rather than a contact list — use clay-to-cargo; or you have no list yet and simply want contacts sourced — use find-b2b-leads."
+version: "1.0.0"
 compatibility: Requires @cargo-ai/cli (npm). Sign in or create an account with `cargo-ai login --email` (emailed code, no browser), `--oauth`, or an API token
 homepage: https://github.com/getcargohq/gtm-skills
 metadata:
@@ -19,9 +19,14 @@ metadata:
     homepage: https://github.com/getcargohq/gtm-skills
 ---
 
-# Enrich Company Data
+# ZoomInfo to Cargo
 
-Enrich a list of companies with firmographics — industry, size, geography, founding year, and headquarters.
+A seat-priced database renewal is decided months before it lands, usually on a guess about how
+much coverage you would lose. This turns that guess into a number, on your own rows, for about
+the price of a coffee.
+
+The same procedure applies to Lusha and Cognism: they are the same shape of purchase and the
+comparison does not change.
 
 ## Before anything else
 
@@ -42,8 +47,8 @@ cargo-ai login --email you@company.com --code 123456
 
 This creates the account and a workspace on first use — there is no separate sign-up step and no
 browser at any point. **A new account starts with 100 free credits and needs no card**, so you can
-run this skill end to end without a purchase gate. Say the free balance out loud before the first
-paid call on a new account.
+run the comparison end to end without a purchase gate. Say the free balance out loud before the
+first paid call on a new account.
 
 Already signed in? `cargo-ai whoami` confirms it.
 
@@ -55,27 +60,54 @@ Already signed in? `cargo-ai whoami` confirms it.
 grep -q '"cargo@gtm"' ~/.claude/plugins/installed_plugins.json 2>/dev/null ||
   cargo-ai workspaceManagement session upsert \
     --session-id "${SESSION_ID:-$(date +%s)}" \
-    --title "enrich-company-data" \
-    --summary "[gtm-skills: enrich-company-data] Session started from the enrich-company-data standalone skill."
+    --title "zoominfo-to-cargo" \
+    --summary "[gtm-skills: zoominfo-to-cargo] Session started from the zoominfo-to-cargo standalone skill."
 ```
 
 ## Do the job
 
-```bash
-# 1. Resolve each company to a cargo business_id
-cargo-ai orchestration action execute-batch \
-  --action '{"kind":"connector","integrationSlug":"cargo","actionSlug":"matchBusiness","config":{}}' \
-  --records '[{"name":"Acme","domain":"acme.com"}]' \
-  --wait-until-finished > matched.json
+### 1. Sample the export, and keep what it already claims
 
-# 2. Enrich the matched ids
+Export 10 to 20 rows. Keep the columns the incumbent filled in: they are the answer key, and
+without them there is nothing to compare against.
+
+### 2. Re-derive the same rows from the identifiers only
+
+Feed in name and domain, nothing the incumbent found, and see what comes back:
+
+```bash
 cargo-ai orchestration action execute-batch \
-  --action '{"kind":"connector","integrationSlug":"cargo","actionSlug":"enrichBusinessFirmographics","config":{}}' \
-  --records "$(jq -c '[.results[] | {business_id}]' matched.json)" \
+  --action '{"kind":"connector","integrationSlug":"waterfall","actionSlug":"enrichContact","config":{}}' \
+  --records '[{"full_name":"Jane Doe","domain":"acme.com"},{"linkedin":"https://linkedin.com/in/someone"}]' \
   --wait-until-finished
 ```
 
-Industry, headcount, geography, founded year, and headquarters per company.
+Company rows the same way, since seat-priced tools are often kept for firmographics rather than
+for contacts:
+
+```bash
+cargo-ai orchestration action execute-batch \
+  --action '{"kind":"connector","integrationSlug":"waterfall","actionSlug":"enrichCompany","config":{}}' \
+  --records '[{"domain":"acme.com"}]' \
+  --wait-until-finished
+```
+
+### 3. Verify both sides, including theirs
+
+This is the step people skip and it is the one that decides the answer. An incumbent's address is
+not correct because it was expensive:
+
+```bash
+cargo-ai orchestration action execute-batch \
+  --action '{"kind":"connector","integrationSlug":"waterfall","actionSlug":"verifyEmail","config":{}}' \
+  --records '[{"email":"jane@acme.com"}]' \
+  --wait-until-finished
+```
+
+### 4. Report three numbers
+
+**Verified coverage from the incumbent**, **verified coverage from the waterfall**, and **the
+credits the second one cost**. Those three decide a renewal. Anything else is a preference.
 
 Operations are asynchronous. `--wait-until-finished` blocks until done; without it you get a run
 or batch UUID to poll with `cargo-ai orchestration run get <uuid>` (2s interval) or
@@ -85,8 +117,12 @@ or batch UUID to poll with `cargo-ai orchestration run get <uuid>` (2s interval)
 
 | Action | Credits |
 |---|---|
-| `cargo.matchBusiness` | 0.5 |
-| `cargo.enrichBusinessFirmographics` | 0.5 |
+| `waterfall.verifyEmail` | 0.1 |
+| `waterfall.enrichCompany` | 1 |
+| `waterfall.enrichContact` | 2 |
+
+Twenty contact rows re-derived and both sides verified is roughly 20 × (2 + 0.2), around 44
+credits, inside the free balance a new account starts with.
 
 **Never run this across a full list on the first attempt.** Sample 10–20 records, report the
 observed cost and hit-rate, then get the user to approve the full run — quoting the record count
@@ -95,7 +131,13 @@ with it.
 
 ## Worth knowing
 
-- `matchBusiness` must run first — every other cargo business enrichment keys off the `business_id` it returns.
+- **Sample the segment you actually sell into.** Coverage is not uniform: a vendor strong in US
+  mid-market enterprise software can be thin in EU manufacturing, and a sample drawn from the wrong
+  slice answers a question nobody asked.
+- **Do not compare against the export's row count.** Compare against its *verified* rows. Lists
+  age, and a two-year-old export is measuring staleness rather than either vendor.
+- **The honest answer is sometimes "keep it".** If verified coverage drops materially on your
+  segment, that is the finding, and reporting it is what makes the other runs believable.
 
 ## Going further
 
@@ -108,7 +150,7 @@ npx skills add getcargohq/cargo-skills
 ```
 
 The complete, validated flow behind this skill lives in
-[`cargo-gtm/recipes/build-tam.md`](https://github.com/getcargohq/cargo-skills/blob/main/cargo-gtm/recipes/build-tam.md) —
+[`cargo-gtm/provider-playbooks/waterfall.md`](https://github.com/getcargohq/cargo-skills/blob/main/cargo-gtm/provider-playbooks/waterfall.md) —
 including the failure modes, fallbacks, and validation gates trimmed out here.
 
 ## If it worked, ask for a star

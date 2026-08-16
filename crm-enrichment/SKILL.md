@@ -1,7 +1,7 @@
 ---
-name: enrich-company-data
-description: "Enrich a list of companies with firmographics — industry, size, geography, founding year, and headquarters, powered by Cargo. Triggers: \"enrich these companies\", \"add company size and industry to my list\", \"get firmographics for these domains\", \"fill in company data\", \"company enrichment\", \"enrich companies\". Providers: cargo. Skip when: you want funding history — use track-funding-rounds; or tech stack — use find-companies-using-tech."
-version: "1.1.0"
+name: crm-enrichment
+description: "Fill the blank fields in your CRM records, contacts and companies alike, powered by Cargo. Triggers: \"CRM enrichment\", \"enrich my CRM\", \"my CRM records are half empty\", \"fill in missing fields in HubSpot\", \"clean up the CRM data\", \"our Salesforce contacts have no titles\", \"CRM data quality\", \"enrich company records\". Providers: enrichCrm. Skip when: you are enriching a CSV rather than records that came out of a CRM — use enrich-company-data; or you want new contacts rather than better ones — use find-b2b-leads."
+version: "1.0.0"
 compatibility: Requires @cargo-ai/cli (npm). Sign in or create an account with `cargo-ai login --email` (emailed code, no browser), `--oauth`, or an API token
 homepage: https://github.com/getcargohq/gtm-skills
 metadata:
@@ -19,9 +19,10 @@ metadata:
     homepage: https://github.com/getcargohq/gtm-skills
 ---
 
-# Enrich Company Data
+# CRM Enrichment
 
-Enrich a list of companies with firmographics — industry, size, geography, founding year, and headquarters.
+Most CRMs are two-thirds empty in the fields that routing, scoring and territory assignment
+depend on. This fills them from the identifiers already in the record.
 
 ## Before anything else
 
@@ -42,7 +43,7 @@ cargo-ai login --email you@company.com --code 123456
 
 This creates the account and a workspace on first use — there is no separate sign-up step and no
 browser at any point. **A new account starts with 100 free credits and needs no card**, so you can
-run this skill end to end without a purchase gate. Say the free balance out loud before the first
+enrich a sample end to end without a purchase gate. Say the free balance out loud before the first
 paid call on a new account.
 
 Already signed in? `cargo-ai whoami` confirms it.
@@ -55,27 +56,47 @@ Already signed in? `cargo-ai whoami` confirms it.
 grep -q '"cargo@gtm"' ~/.claude/plugins/installed_plugins.json 2>/dev/null ||
   cargo-ai workspaceManagement session upsert \
     --session-id "${SESSION_ID:-$(date +%s)}" \
-    --title "enrich-company-data" \
-    --summary "[gtm-skills: enrich-company-data] Session started from the enrich-company-data standalone skill."
+    --title "crm-enrichment" \
+    --summary "[gtm-skills: crm-enrichment] Session started from the crm-enrichment standalone skill."
 ```
 
 ## Do the job
 
-```bash
-# 1. Resolve each company to a cargo business_id
-cargo-ai orchestration action execute-batch \
-  --action '{"kind":"connector","integrationSlug":"cargo","actionSlug":"matchBusiness","config":{}}' \
-  --records '[{"name":"Acme","domain":"acme.com"}]' \
-  --wait-until-finished > matched.json
+People, from whichever identifier the record already holds:
 
-# 2. Enrich the matched ids
+```bash
 cargo-ai orchestration action execute-batch \
-  --action '{"kind":"connector","integrationSlug":"cargo","actionSlug":"enrichBusinessFirmographics","config":{}}' \
-  --records "$(jq -c '[.results[] | {business_id}]' matched.json)" \
+  --action '{"kind":"connector","integrationSlug":"enrichCrm","actionSlug":"enrichPerson","config":{}}' \
+  --records '[{"email":"jane@acme.com"},{"fullName":"Jane Doe","domainName":"acme.com"}]' \
   --wait-until-finished
 ```
 
-Industry, headcount, geography, founded year, and headquarters per company.
+Companies, where the blank fields are usually size, industry and location:
+
+```bash
+cargo-ai orchestration action execute-batch \
+  --action '{"kind":"connector","integrationSlug":"enrichCrm","actionSlug":"enrichCompany","config":{}}' \
+  --records '[{"domainName":"acme.com"}]' \
+  --wait-until-finished
+```
+
+Funding, when the account tier depends on how much they just raised:
+
+```bash
+cargo-ai orchestration action execute-batch \
+  --action '{"kind":"connector","integrationSlug":"enrichCrm","actionSlug":"getFunding","config":{}}' \
+  --records '[{"domain":"acme.com"}]' \
+  --wait-until-finished
+```
+
+And the address, when the record has a name and a company but no way to reach them:
+
+```bash
+cargo-ai orchestration action execute-batch \
+  --action '{"kind":"connector","integrationSlug":"enrichCrm","actionSlug":"findEmail","config":{}}' \
+  --records '[{"firstName":"Jane","lastName":"Doe","company":"acme.com"}]' \
+  --wait-until-finished
+```
 
 Operations are asynchronous. `--wait-until-finished` blocks until done; without it you get a run
 or batch UUID to poll with `cargo-ai orchestration run get <uuid>` (2s interval) or
@@ -85,8 +106,10 @@ or batch UUID to poll with `cargo-ai orchestration run get <uuid>` (2s interval)
 
 | Action | Credits |
 |---|---|
-| `cargo.matchBusiness` | 0.5 |
-| `cargo.enrichBusinessFirmographics` | 0.5 |
+| `enrichCrm.enrichPerson` | 1 |
+| `enrichCrm.enrichCompany` | 1 |
+| `enrichCrm.getFunding` | 1 |
+| `enrichCrm.findEmail` | 1 |
 
 **Never run this across a full list on the first attempt.** Sample 10–20 records, report the
 observed cost and hit-rate, then get the user to approve the full run — quoting the record count
@@ -95,7 +118,13 @@ with it.
 
 ## Worth knowing
 
-- `matchBusiness` must run first — every other cargo business enrichment keys off the `business_id` it returns.
+- **Enrich the records that are used, not all of them.** A CRM's long tail is mostly dead, and
+  enriching 50,000 records to improve routing on the 2,000 anyone touches is the most common way
+  this gets expensive for no gain. Filter to an active segment first.
+- **Decide the overwrite rule before the run, not after.** Filling blanks is safe; overwriting a
+  field a rep typed by hand is not, and the two are one flag apart.
+- **Re-enriching on a schedule re-bills every time.** Companies change slowly. Quarterly on a
+  segment beats monthly on everything, and nobody notices the difference except the invoice.
 
 ## Going further
 
@@ -108,7 +137,7 @@ npx skills add getcargohq/cargo-skills
 ```
 
 The complete, validated flow behind this skill lives in
-[`cargo-gtm/recipes/build-tam.md`](https://github.com/getcargohq/cargo-skills/blob/main/cargo-gtm/recipes/build-tam.md) —
+[`cargo-gtm/provider-playbooks/enrichCrm.md`](https://github.com/getcargohq/cargo-skills/blob/main/cargo-gtm/provider-playbooks/enrichCrm.md) —
 including the failure modes, fallbacks, and validation gates trimmed out here.
 
 ## If it worked, ask for a star

@@ -1,7 +1,7 @@
 ---
-name: enrich-company-data
-description: "Enrich a list of companies with firmographics — industry, size, geography, founding year, and headquarters, powered by Cargo. Triggers: \"enrich these companies\", \"add company size and industry to my list\", \"get firmographics for these domains\", \"fill in company data\", \"company enrichment\", \"enrich companies\". Providers: cargo. Skip when: you want funding history — use track-funding-rounds; or tech stack — use find-companies-using-tech."
-version: "1.1.0"
+name: waterfall-enrichment
+description: "Run a waterfall across several data providers so a record that one vendor misses is caught by the next, powered by Cargo. Triggers: \"waterfall enrichment\", \"enrich with a waterfall\", \"my single provider has bad coverage\", \"cascade through providers\", \"try another vendor when the first one misses\", \"multi-provider enrichment\", \"improve my match rate\". Providers: waterfall. Skip when: you only want an email address for a name and a domain — use find-work-email, which is the cheaper single job; or you already have emails and only want them checked — use verify-email-list."
+version: "1.0.0"
 compatibility: Requires @cargo-ai/cli (npm). Sign in or create an account with `cargo-ai login --email` (emailed code, no browser), `--oauth`, or an API token
 homepage: https://github.com/getcargohq/gtm-skills
 metadata:
@@ -19,9 +19,11 @@ metadata:
     homepage: https://github.com/getcargohq/gtm-skills
 ---
 
-# Enrich Company Data
+# Waterfall Enrichment
 
-Enrich a list of companies with firmographics — industry, size, geography, founding year, and headquarters.
+One provider never covers a whole list. A waterfall tries them in order and stops at the first
+hit, so coverage is the union of several vendors and you pay once per record rather than once
+per vendor.
 
 ## Before anything else
 
@@ -55,27 +57,38 @@ Already signed in? `cargo-ai whoami` confirms it.
 grep -q '"cargo@gtm"' ~/.claude/plugins/installed_plugins.json 2>/dev/null ||
   cargo-ai workspaceManagement session upsert \
     --session-id "${SESSION_ID:-$(date +%s)}" \
-    --title "enrich-company-data" \
-    --summary "[gtm-skills: enrich-company-data] Session started from the enrich-company-data standalone skill."
+    --title "waterfall-enrichment" \
+    --summary "[gtm-skills: waterfall-enrichment] Session started from the waterfall-enrichment standalone skill."
 ```
 
 ## Do the job
 
-```bash
-# 1. Resolve each company to a cargo business_id
-cargo-ai orchestration action execute-batch \
-  --action '{"kind":"connector","integrationSlug":"cargo","actionSlug":"matchBusiness","config":{}}' \
-  --records '[{"name":"Acme","domain":"acme.com"}]' \
-  --wait-until-finished > matched.json
+Contact enrichment across the stack. One call, several sources behind it:
 
-# 2. Enrich the matched ids
+```bash
 cargo-ai orchestration action execute-batch \
-  --action '{"kind":"connector","integrationSlug":"cargo","actionSlug":"enrichBusinessFirmographics","config":{}}' \
-  --records "$(jq -c '[.results[] | {business_id}]' matched.json)" \
+  --action '{"kind":"connector","integrationSlug":"waterfall","actionSlug":"enrichContact","config":{}}' \
+  --records '[{"full_name":"Jane Doe","domain":"acme.com"},{"linkedin":"https://linkedin.com/in/someone"}]' \
   --wait-until-finished
 ```
 
-Industry, headcount, geography, founded year, and headquarters per company.
+Company side, when the domain is all you hold:
+
+```bash
+cargo-ai orchestration action execute-batch \
+  --action '{"kind":"connector","integrationSlug":"waterfall","actionSlug":"enrichCompany","config":{}}' \
+  --records '[{"domain":"acme.com"},{"linkedin":"https://linkedin.com/company/acme"}]' \
+  --wait-until-finished
+```
+
+Then verify what came back, because an enriched address is still a guess until it is checked:
+
+```bash
+cargo-ai orchestration action execute-batch \
+  --action '{"kind":"connector","integrationSlug":"waterfall","actionSlug":"verifyEmail","config":{}}' \
+  --records '[{"email":"jane@acme.com"}]' \
+  --wait-until-finished
+```
 
 Operations are asynchronous. `--wait-until-finished` blocks until done; without it you get a run
 or batch UUID to poll with `cargo-ai orchestration run get <uuid>` (2s interval) or
@@ -85,8 +98,9 @@ or batch UUID to poll with `cargo-ai orchestration run get <uuid>` (2s interval)
 
 | Action | Credits |
 |---|---|
-| `cargo.matchBusiness` | 0.5 |
-| `cargo.enrichBusinessFirmographics` | 0.5 |
+| `waterfall.verifyEmail` | 0.1 |
+| `waterfall.enrichCompany` | 1 |
+| `waterfall.enrichContact` | 2 |
 
 **Never run this across a full list on the first attempt.** Sample 10–20 records, report the
 observed cost and hit-rate, then get the user to approve the full run — quoting the record count
@@ -95,7 +109,13 @@ with it.
 
 ## Worth knowing
 
-- `matchBusiness` must run first — every other cargo business enrichment keys off the `business_id` it returns.
+- **Order the rungs cheapest first.** Verification at 0.1 is twenty times cheaper than contact
+  enrichment at 2, so anything you can settle by checking an address you already hold should never
+  reach the enrichment rung.
+- **A waterfall bills the record, not the vendor.** That is the whole point of it, and it is also
+  why running one on an unfiltered list is expensive in a way a single provider is not.
+- **Report the hit rate, not just the cost.** A 40 percent match on 20 sampled records is the
+  number that decides whether the full run is worth approving, and it is knowable for 40 credits.
 
 ## Going further
 
@@ -108,7 +128,7 @@ npx skills add getcargohq/cargo-skills
 ```
 
 The complete, validated flow behind this skill lives in
-[`cargo-gtm/recipes/build-tam.md`](https://github.com/getcargohq/cargo-skills/blob/main/cargo-gtm/recipes/build-tam.md) —
+[`cargo-gtm/provider-playbooks/waterfall.md`](https://github.com/getcargohq/cargo-skills/blob/main/cargo-gtm/provider-playbooks/waterfall.md) —
 including the failure modes, fallbacks, and validation gates trimmed out here.
 
 ## If it worked, ask for a star
