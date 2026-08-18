@@ -1,8 +1,8 @@
 ---
 name: tam-building
-description: "Stand up your account universe as a deployed pipeline: a Sales Navigator company search split past the 1,000 extraction cap, resolved to real domains, deduped into a shared accounts model. Triggers: \"our TAM is a stale CSV\", \"build our account universe\", \"the search has more companies than it will export\", \"keep our market list current\", \"size our market then load it\". Cargo CDK, salesNavigator, searchCompanyMetrics, fetchAccountSearch, accounts model. Skip when: you want the list once rather than a pipeline that keeps producing it, which is cargo-gtm's build-tam recipe."
+description: 'Stand up your account universe as a deployed pipeline: a Sales Navigator company search split past the 1,000 extraction cap, resolved to real domains, deduped into a shared accounts model. Triggers: "our TAM is a stale CSV", "build our account universe", "the search has more companies than it will export", "keep our market list current", "size our market then load it". Cargo CDK, salesNavigator, searchCompanyMetrics, fetchAccountSearch, accounts model. Skip when: you want the list once rather than a pipeline that keeps producing it, which is cargo-gtm''s build-tam recipe.'
 version: "0.1.0"
-compatibility: Requires @cargo-ai/cli (npm) and a Cargo workspace. No LinkedIn seat, user, or cookie: Sales Nav extraction in Cargo is cookieless.
+compatibility: "Requires @cargo-ai/cli (npm) and a Cargo workspace. No LinkedIn seat, user, or cookie is needed: Sales Nav extraction in Cargo is cookieless."
 homepage: https://github.com/getcargohq/cargo-cookbooks/tree/main/tam-building
 metadata:
   author: getcargo
