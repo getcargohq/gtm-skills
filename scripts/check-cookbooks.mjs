@@ -23,6 +23,7 @@
 //     implementations. The approval rule is the one thing standing between a
 //     launch post and a claim nobody tested.
 import { readFileSync, existsSync, readdirSync, statSync } from "node:fs";
+import { parse as parseYaml } from "yaml";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -47,19 +48,30 @@ const closure = (name, seen = new Set()) => {
   return seen;
 };
 
-// Minimal frontmatter reader: enough for `name` and `description`, which are
-// the only two fields this gate judges.
+// Parse the frontmatter as real YAML, because that is what the installer does.
+// A regex reader is not good enough, and this is not hypothetical: on
+// 2026-08-18 `tam-building` shipped an unquoted `compatibility` value
+// containing "cookie: Sales Nav ...". YAML read that colon-space as a nested
+// mapping, `npx skills add` reported "Found 2 skills" instead of 3, and the
+// skill was invisible to every agent — the exact discovery failure this layer
+// exists to prevent, failing SILENTLY. A regex reader saw nothing wrong.
 const frontmatter = (text) => {
-  if (!text.startsWith("---\n")) return null;
+  if (!text.startsWith("---\n")) return { error: "has no YAML frontmatter" };
   const end = text.indexOf("\n---", 3);
-  if (end === -1) return null;
-  const block = text.slice(4, end);
-  const read = (key) => {
-    const m = block.match(new RegExp(`^${key}:\\s*(.*)$`, "m"));
-    if (!m) return null;
-    return m[1].trim().replace(/^"(.*)"$/s, "$1");
-  };
-  return { name: read("name"), description: read("description") };
+  if (end === -1) return { error: "has frontmatter that is never closed" };
+  try {
+    const parsed = parseYaml(text.slice(4, end));
+    if (!parsed || typeof parsed !== "object") {
+      return { error: "has frontmatter that did not parse to a mapping" };
+    }
+    return { data: parsed };
+  } catch (e) {
+    // Reproduce the installer's own failure so the fix is obvious. The usual
+    // cause is an unquoted value containing ": ".
+    return {
+      error: `has a YAML parse error, so the installer will silently skip it: ${e.message.split("\n")[0]}`,
+    };
+  }
 };
 
 const INPUT_KINDS = new Set(["value", "generated", "env", "manual"]);
@@ -173,9 +185,9 @@ for (const name of declared) {
   }
 
   if (hasSkill) {
-    const fm = frontmatter(readFileSync(skillPath, "utf8"));
-    if (!fm) {
-      errors.push(`${name}/SKILL.md has no YAML frontmatter`);
+    const { data: fm, error } = frontmatter(readFileSync(skillPath, "utf8"));
+    if (error) {
+      errors.push(`${name}/SKILL.md ${error}`);
     } else {
       if (fm.name !== name) {
         errors.push(
