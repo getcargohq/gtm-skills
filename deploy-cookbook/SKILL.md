@@ -47,7 +47,18 @@ cargo-ai whoami                                  # already signed in? this confi
 **Confirm which workspace you are pointed at before anything else.** A cookbook deployed into the
 wrong workspace looks like a success and is silently wrong.
 
-## 1. Scaffold
+## 1. Scaffold, or add to what is already there
+
+**Look before you scaffold.** These two cases are different, and getting them the wrong way round
+destroys work:
+
+```bash
+ls cargo.state.json 2>/dev/null           # a deployed project
+grep -l '@cargo-ai/cdk' package.json      # a CDK project, deployed or not
+ls -d */cookbook.json 2>/dev/null          # cookbooks already installed here
+```
+
+### Empty directory: scaffold normally
 
 ```bash
 cargo-ai cdk init <dir> --from getcargohq/cargo-cookbooks/<slug>
@@ -58,8 +69,41 @@ cd <dir> && npm install
 transitively, keeping the folder layout so cross-folder imports resolve. `base-gtm` always comes
 along. Never hand-copy a folder: you will miss a dependency and the imports will not resolve.
 
-Adding a cookbook to a project that already has one? Scaffold into a temp directory and copy the
-new folder across. The shared root files and `base-gtm` are already there.
+### Existing project: add, never re-scaffold
+
+**Never run `cargo-ai cdk init --force` in a project that already has anything in it.** The scaffold
+overwrites the shared root files (`package.json`, `tsconfig.json`, `.env.example`, `.nvmrc`) and
+every folder it carries. Measured on 2026-08-18 against a project with one cookbook already
+deployed:
+
+|                                                         | before           | after `--force`                       |
+| ------------------------------------------------------- | ---------------- | ------------------------------------- |
+| `package.json` name, custom scripts, extra dependencies | theirs           | **replaced with the cookbook repo's** |
+| an edit to `base-gtm/models/accounts.ts`                | theirs           | **reverted to pristine**              |
+| `cargo.state.json`                                      | their live state | survived                              |
+
+The survivor is the dangerous one: the state file still describes resources whose code was just
+reverted, so the next `plan` diffs their live workspace against code they did not write.
+
+Do this instead:
+
+```bash
+cargo-ai cdk init /tmp/cb-add --from getcargohq/cargo-cookbooks/<slug>
+```
+
+Then copy across **only the folders that do not already exist**:
+
+- **A folder that is already present is theirs, not ours.** They may have adapted it (see step 2),
+  and a fresh copy silently reverts that. Leave it, and say which required siblings you found and
+  are assuming are already fitted.
+- **Do not touch `package.json`, `tsconfig.json` or `cargo.state.json`.** The dependency they need
+  (`@cargo-ai/cdk`) is already there or the project would not build.
+- **`.env.example` is additive.** Append the variables the new cookbook needs; never overwrite the
+  file.
+- Delete the temp directory when you are done.
+
+Then check the seams: the new cookbook imports handles from `base-gtm` (and possibly `crm-sync`),
+so if those were adapted, confirm the names it imports still exist before planning.
 
 ## 2. Adapt it to the company
 
@@ -163,6 +207,8 @@ the same session and two rows would double-count.
 ## What this skill will not do
 
 - Deploy without showing the plan.
+- Run `cargo-ai cdk init --force`. There is no case in this procedure that needs it, and it
+  silently reverts adapted code and replaces the project's `package.json`.
 - Mark a cookbook approved. Approval needs a fresh-workspace test **and** two customer or partner
   implementations, and it is recorded by a person.
 - Claim an outcome for a cookbook whose `state` is `to-be-approved`. Every cookbook is
