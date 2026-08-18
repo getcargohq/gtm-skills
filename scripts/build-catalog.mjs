@@ -120,31 +120,8 @@ for (const name of readdirSync(root).sort()) {
   }
   skills.push(rec);
 }
-// Resource folders that are not skills yet: listed so nobody is told they do not exist.
-const pending = readdirSync(root)
-  .filter(
-    (n) =>
-      !n.startsWith(".") &&
-      statSync(join(root, n)).isDirectory() &&
-      !existsSync(join(root, n, "SKILL.md")) &&
-      existsSync(join(root, n, "README.md")) &&
-      readdirSync(join(root, n)).some((f) => RESOURCE_DIRS.has(f)),
-  )
-  .sort()
-  .map((name) => {
-    const readme = readFileSync(join(root, name, "README.md"), "utf8");
-    const para =
-      readme.split("\n\n").find((p) => p && !p.startsWith("#")) ?? "";
-    return {
-      name,
-      kind: "cdk-example",
-      skill: false,
-      job: para.replace(/\s+/g, " ").trim(),
-      state: approvals[name]?.state ?? "to-be-approved",
-    };
-  });
 
-const catalog = { source: "getcargohq/gtm-skills", skills, pending };
+const catalog = { source: "getcargohq/gtm-skills", skills };
 const rendered = JSON.stringify(catalog, null, 2) + "\n";
 if (process.argv.includes("--check")) {
   const current = existsSync(out) ? readFileSync(out, "utf8") : "";
@@ -154,12 +131,8 @@ if (process.argv.includes("--check")) {
     );
     process.exit(1);
   }
-  console.log(
-    `ok: catalog.json matches (${skills.length} skills, ${pending.length} pending)`,
-  );
+  console.log(`ok: catalog.json matches (${skills.length} skills)`);
 } else {
   writeFileSync(out, rendered);
-  console.log(
-    `wrote catalog.json (${skills.length} skills, ${pending.length} pending)`,
-  );
+  console.log(`wrote catalog.json (${skills.length} skills)`);
 }

@@ -89,8 +89,12 @@ exactly one skill and get exactly one working thing.
    this skill, one that must reach the run-once sibling instead.
 6. `npm run validate`, then a PR against `main`.
 
-Sixteen folders carry resource code and no `SKILL.md` yet;
-`node scripts/check-cdk-examples.mjs` prints the list every run.
+**A folder without a `SKILL.md` is not a skill and does not belong at the root.**
+Sixteen worked examples (`contact-sourcing`, `signal-based-tam`, `ai-sdr`,
+`rep-cockpit`, …) were written before their skills and are kept in history, not
+in the tree: restore one with `git checkout 305cd88 -- <name>`, write its
+`SKILL.md`, and it lands with the skill. The validator refuses a resource folder
+that carries no skill.
 
 ## Approval
 

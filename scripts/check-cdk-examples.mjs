@@ -47,7 +47,6 @@ import { parse as parseYaml } from "yaml";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const errors = [];
-const toConvert = [];
 
 const RESOURCE_DIRS = new Set([
   "models",
@@ -126,6 +125,16 @@ const allSkillFolders = readdirSync(root).filter(
 );
 
 for (const name of exampleFolders) {
+  const skillPath = join(root, name, "SKILL.md");
+  if (!existsSync(skillPath)) {
+    // A folder without a skill is not a skill and does not belong at the root:
+    // everything here installs with `skills add`. Worked examples written
+    // before their skill live in history (see CONTRIBUTING.md), not in the tree.
+    errors.push(
+      `${name}/ carries resource code but no SKILL.md: restore it with its skill, or not at all`,
+    );
+    continue;
+  }
   if (!(name in approvals)) {
     errors.push(
       `${name} carries resource code but has no entry in .github/data/approvals.json`,
@@ -133,11 +142,6 @@ for (const name of exampleFolders) {
     continue;
   }
   const record = approvals[name];
-  const skillPath = join(root, name, "SKILL.md");
-  if (!existsSync(skillPath)) {
-    toConvert.push(name);
-    continue;
-  }
   const {
     data: fm,
     body,
@@ -282,7 +286,5 @@ if (errors.length) {
   process.exit(1);
 }
 console.log(
-  `ok: ${exampleFolders.length - toConvert.length}/${exampleFolders.length} CDK-example skills carry a SKILL.md`,
+  `ok: ${exampleFolders.length} CDK-example skills, every one self-contained`,
 );
-if (toConvert.length)
-  console.log(`   still to convert: ${toConvert.join(", ")}`);
