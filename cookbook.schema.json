@@ -2,7 +2,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://github.com/getcargohq/cargo-cookbooks/cookbook.schema.json",
   "title": "cookbook.json",
-  "description": "The data behind one cookbook: what it produces, what it needs answered before it can deploy, and how you know it worked. The prose lives in README.md and SKILL.md; this file is what the installer skill, the validator, and the UI deployment surface all read. It deliberately does NOT carry `requires` — the dependency graph lives once, in cargo.scaffold.json.",
+  "description": "The contract behind one cookbook. The code is a STARTING POINT, not a template to fill in: this file says what may be reshaped (`variations`), what must hold or the cookbook stops working (`invariants`), and what has to be answered either way (`inputs`). The prose lives in README.md and SKILL.md; this is what the installer skill, the validator, and the UI deployment surface all read. It deliberately does NOT carry `requires` \u2014 the dependency graph lives once, in cargo.scaffold.json.",
   "type": "object",
   "required": ["slug", "kind", "outcome", "state"],
   "additionalProperties": false,
@@ -47,13 +47,19 @@
             "required": ["customer", "date"],
             "additionalProperties": false,
             "properties": {
-              "customer": { "type": "string" },
+              "customer": {
+                "type": "string"
+              },
               "date": {
                 "type": "string",
                 "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
               },
-              "workspaceUuid": { "type": "string" },
-              "note": { "type": "string" }
+              "workspaceUuid": {
+                "type": "string"
+              },
+              "note": {
+                "type": "string"
+              }
             }
           }
         }
@@ -61,13 +67,16 @@
     },
     "inputs": {
       "type": "array",
-      "description": "Everything that must be answered before this cookbook can deploy. Derive before you ask: an input carrying a `derive` is looked up, not asked. If more than about four inputs have no `derive`, the interview is too long and most of them should have been lookups.",
+      "description": "The questions that must be answered whichever shape the operator lands on. Derive before you ask: an input carrying a `derive` is looked up, not asked. If more than about four inputs have no `derive`, the interview is too long and most of them should have been lookups. Note this is the FLOOR of the conversation, not the whole of it: `variations` is where the code gets reshaped.",
       "items": {
         "type": "object",
         "required": ["id", "kind", "ask"],
         "additionalProperties": false,
         "properties": {
-          "id": { "type": "string", "pattern": "^[a-zA-Z][a-zA-Z0-9]*$" },
+          "id": {
+            "type": "string",
+            "pattern": "^[a-zA-Z][a-zA-Z0-9]*$"
+          },
           "kind": {
             "enum": ["value", "generated", "env", "manual"],
             "description": "value = patch it into file/path. generated = the skill writes the whole file from the answers. env = a secret the operator sets in .env before deploy; the skill never reads or writes it. manual = something that must be true outside the repo (a CRM property, an OAuth connection) and can only be checked, not written."
@@ -96,7 +105,9 @@
             "enum": ["string", "string[]", "number", "boolean", "markdown"]
           },
           "default": {},
-          "max": { "type": "number" },
+          "max": {
+            "type": "number"
+          },
           "derive": {
             "type": "string",
             "description": "How to look the answer up instead of asking: a cargo-ai call, an existing connector, a row count."
@@ -111,7 +122,9 @@
     "doneWhen": {
       "type": "array",
       "minItems": 1,
-      "items": { "type": "string" },
+      "items": {
+        "type": "string"
+      },
       "description": "The acceptance test, one checkable statement per line. This is what a fresh-workspace run walks to earn `approval.demoWorkspace`."
     },
     "cost": {
@@ -130,8 +143,92 @@
     },
     "composesInto": {
       "type": "array",
-      "items": { "type": "string" },
+      "items": {
+        "type": "string"
+      },
       "description": "Cookbook slugs that build on this one. Suggested as the next step after a successful deploy."
+    },
+    "invariants": {
+      "type": "array",
+      "description": "What must stay true however far the operator adapts the code. These are the reason the design is the way it is, and they are the one thing the installer skill argues back about. Sourced from the README's \"Why <x> is not optional\" sections, which were prose the skill could not act on.",
+      "items": {
+        "type": "object",
+        "required": ["holds", "whatBreaks"],
+        "additionalProperties": false,
+        "properties": {
+          "holds": {
+            "type": "string",
+            "description": "The statement that must remain true, in one line."
+          },
+          "whatBreaks": {
+            "type": "string",
+            "description": "The concrete failure if it is violated. Not \"it is best practice\": name the symptom, because that is what makes an operator change their mind."
+          },
+          "where": {
+            "type": "string",
+            "description": "Repo-relative file the invariant is embodied in, when there is one."
+          }
+        }
+      }
+    },
+    "variations": {
+      "type": "array",
+      "description": "Adaptations this cookbook expects, with the trade each one makes. Sourced from the README's \"Variant\", \"Extending\" and \"Alternatives\" sections. The installer skill offers these rather than waiting to be asked: an operator does not know a variant exists unless it is named.",
+      "items": {
+        "type": "object",
+        "required": ["id", "when", "how", "trade"],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
+          },
+          "when": {
+            "type": "string",
+            "description": "The situation that makes this the right choice, in the operator's terms."
+          },
+          "how": {
+            "type": "string",
+            "description": "What actually changes in the code. Concrete enough to act on."
+          },
+          "trade": {
+            "type": "string",
+            "description": "What you give up. Every variation costs something; a variation with no trade is just the default."
+          },
+          "affects": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Repo-relative files this reshapes."
+          }
+        }
+      }
+    },
+    "decisions": {
+      "type": "array",
+      "description": "Written by the installer skill INTO THE SCAFFOLDED COPY, never present in this repo: the record of what this particular deployment adapted and why. It is what tells whoever opens the project in six months why their code diverges from the cookbook it came from. The validator refuses this key in the cookbook repo itself.",
+      "items": {
+        "type": "object",
+        "required": ["what", "why"],
+        "additionalProperties": false,
+        "properties": {
+          "what": {
+            "type": "string"
+          },
+          "why": {
+            "type": "string"
+          },
+          "variation": {
+            "type": "string",
+            "description": "The variation id, when the change was one this cookbook already anticipated."
+          },
+          "date": {
+            "type": "string",
+            "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+          }
+        }
+      }
     }
   }
 }

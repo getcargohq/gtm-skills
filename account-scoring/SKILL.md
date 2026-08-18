@@ -57,6 +57,27 @@ looks successful and the scores land nowhere, which wastes the whole batch. And 
 `cargo_tier` must be selected as columns on the accounts model, or the tier segments filter on a
 column they cannot see.
 
+## What you can change
+
+The code is a worked example. These reshapes are expected, and the agent offers
+them rather than waiting to be asked:
+
+| Variation               | When it is right                                                                                  | What it costs                                                                                                                                |
+| ----------------------- | ------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| `deterministic-scoring` | You need fixed cost and exact reproducibility, or an LLM judgement is not acceptable to your team | The criteria move out of the ICP markdown and into code, so they stop being reviewable by non-engineers, and you lose the rationale entirely |
+| `skip-crm-roundtrip`    | You want the score on the model directly and do not need it visible in the CRM                    | Reps lose the score and rationale where they actually work. The native's input is untyped, so confirm the field shape on the first run       |
+| `no-crm-at-all`         | You have no CRM, or you do not want to hand this cookbook a CRM credential                        | Every other CRM-dependent cookbook you install later will pull `crm-sync` back in anyway                                                     |
+
+## What should not change
+
+- **The scorer looks the account up before judging it.** A score guessed from the domain name is unfalsifiable and the rationale cites nothing. The evaluator exists to fail exactly this, and a book scored that way is worse than an unscored one because people trust it.
+- **ICP disqualifiers cap the score, they are not just negative weight.** Without a cap, a disqualified account with many fit signals still scores high and reaches a rep. The disqualifiers are the half of an ICP that actually protects the team's time.
+- **`cargo_score` and `cargo_tier` are selected as columns on the accounts model.** The tier segments filter on a column they cannot see, so they come back empty while everything upstream reports success.
+- **Every tier the scorer can emit is either covered by a segment or excluded on purpose.** The shipped segments cover A and C. The agent also emits B, so tier B accounts land nowhere and quietly disappear from the book.
+
+Ask for one of these anyway and the agent will tell you what breaks, then do it
+if you still want it, and record why in `cookbook.json` `decisions`.
+
 ## Done when
 
 - A test account run shows the agent's lookups in the trace, not a score guessed from the domain.

@@ -65,6 +65,26 @@ It returns `total_results` and costs a fraction of a credit. Splitting order tha
 industry first (descend the LinkedIn taxonomy only where a segment is still oversized), then
 geography, then headcount band. Recount every sub-search; split any that is still over.
 
+## What you can change
+
+The code is a worked example. These reshapes are expected, and the agent offers
+them rather than waiting to be asked:
+
+| Variation                | When it is right                                                                        | What it costs                                                                                                                                           |
+| ------------------------ | --------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `non-linkedin-source`    | You do not want to source from LinkedIn at all, or Sales Nav does not cover your market | You lose the Sales Nav facet taxonomy that makes the split tactic mechanical, and the splitting has to be redesigned around the new source's own limits |
+| `land-without-promoting` | You want to see and filter the raw market before paying to enrich it                    | Nothing reaches `accounts`, so no downstream cookbook (scoring, contact sourcing, signals) has anything to work with until you promote                  |
+| `sample-first`           | The market search is large and you want to see the cost curve before committing         | Your TAM is deliberately incomplete until you widen it, so do not score or report on coverage from a sample                                             |
+
+## What should not change
+
+- **Every company is resolved to a real domain before it is promoted into `accounts`.** The shared `accounts` model keys on `website`. A domainless account cannot be deduped, so it forks into duplicates the first time the same company appears in another list. This is why a row that cannot be resolved is dropped rather than written.
+- **Every search is counted before it is extracted.** Extracting blind is how you take a silently truncated list: the search holds 4,000 companies, the extractor takes 1,000, and nothing tells you the rest exist.
+- **No sub-search sits at or above the extraction cap.** A search returning exactly the cap is truncated. That is the failure this whole cookbook exists to prevent, and it is invisible unless you check the number.
+
+Ask for one of these anyway and the agent will tell you what breaks, then do it
+if you still want it, and record why in `cookbook.json` `decisions`.
+
 ## Done when
 
 - The sub-search extractions sum to roughly the count of the original whole-market search.

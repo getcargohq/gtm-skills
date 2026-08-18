@@ -4,7 +4,10 @@
   "outcome": "Every account scored and tiered against your written ICP by an agent that cites its evidence, with the rationale on the CRM record",
   "chain": 1,
   "state": "to-be-approved",
-  "approval": { "demoWorkspace": null, "implementations": [] },
+  "approval": {
+    "demoWorkspace": null,
+    "implementations": []
+  },
   "inputs": [
     {
       "id": "icp",
@@ -55,5 +58,53 @@
     "note": "One LLM call plus up to two Cargo database calls (matchBusiness, enrichBusinessFirmographics) per account, on arrival and again on the weekly stale sweep (last scored 3+ months ago).",
     "scalesWith": "accounts in the model, times re-scores. A TAM built by tam-building scores at that size."
   },
-  "composesInto": ["routing-engine", "rep-cockpit", "ai-sdr"]
+  "composesInto": ["routing-engine", "rep-cockpit", "ai-sdr"],
+  "invariants": [
+    {
+      "holds": "The scorer looks the account up before judging it",
+      "whatBreaks": "A score guessed from the domain name is unfalsifiable and the rationale cites nothing. The evaluator exists to fail exactly this, and a book scored that way is worse than an unscored one because people trust it.",
+      "where": "account-scoring/agents/scorer.ts"
+    },
+    {
+      "holds": "ICP disqualifiers cap the score, they are not just negative weight",
+      "whatBreaks": "Without a cap, a disqualified account with many fit signals still scores high and reaches a rep. The disqualifiers are the half of an ICP that actually protects the team's time.",
+      "where": "account-scoring/agents/scorer.ts"
+    },
+    {
+      "holds": "`cargo_score` and `cargo_tier` are selected as columns on the accounts model",
+      "whatBreaks": "The tier segments filter on a column they cannot see, so they come back empty while everything upstream reports success.",
+      "where": "account-scoring/segments/tiers.ts"
+    },
+    {
+      "holds": "Every tier the scorer can emit is either covered by a segment or excluded on purpose",
+      "whatBreaks": "The shipped segments cover A and C. The agent also emits B, so tier B accounts land nowhere and quietly disappear from the book.",
+      "where": "account-scoring/segments/tiers.ts"
+    }
+  ],
+  "variations": [
+    {
+      "id": "deterministic-scoring",
+      "when": "You need fixed cost and exact reproducibility, or an LLM judgement is not acceptable to your team",
+      "how": "Swap the agent call for the native `scoring` node, with criteria as {name, value, score} booleans in the workflow",
+      "trade": "The criteria move out of the ICP markdown and into code, so they stop being reviewable by non-engineers, and you lose the rationale entirely",
+      "affects": [
+        "account-scoring/agents/scorer.ts",
+        "account-scoring/plays/score-accounts.ts"
+      ]
+    },
+    {
+      "id": "skip-crm-roundtrip",
+      "when": "You want the score on the model directly and do not need it visible in the CRM",
+      "how": "Write with the platform's `native.modelUpsert({...})` in the workflow instead of going through the CRM connector",
+      "trade": "Reps lose the score and rationale where they actually work. The native's input is untyped, so confirm the field shape on the first run",
+      "affects": ["account-scoring/plays/score-accounts.ts"]
+    },
+    {
+      "id": "no-crm-at-all",
+      "when": "You have no CRM, or you do not want to hand this cookbook a CRM credential",
+      "how": "Take `skip-crm-roundtrip`, then drop the `crm-sync` requirement so no CRM connector is registered",
+      "trade": "Every other CRM-dependent cookbook you install later will pull `crm-sync` back in anyway",
+      "affects": ["crm-sync/connectors/hubspot.ts"]
+    }
+  ]
 }

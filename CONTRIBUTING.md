@@ -59,9 +59,30 @@ A cookbook that is only code is not installable: the README says the
 placeholders in prose, and whoever installs it has to read that prose and guess.
 Two files fix that, and `scripts/check-cookbooks.mjs` gates both.
 
-**`cookbook.json` is the data** ([`cookbook.schema.json`](cookbook.schema.json)):
-what this produces, what must be answered before it can deploy, how you know it
-worked, what it costs, and whether it is approved. The installer skill reads it,
+**`cookbook.json` is the contract** ([`cookbook.schema.json`](cookbook.schema.json)).
+The code in a cookbook is a **worked example**, not a template with holes in it:
+whoever installs it should end up with the code their company would have
+written. So the file says which parts may be reshaped and which may not:
+
+- **`invariants`** — what must stay true however far it is adapted, each with the
+  concrete `whatBreaks` symptom. This is what the installer argues back with when
+  an operator asks for something that will quietly fail. Source them from the
+  README's "Why <x> is not optional" sections, which were prose no skill could
+  act on.
+- **`variations`** — the reshapes this cookbook expects, each with `when`, `how`,
+  and the `trade` it makes. Source them from the README's "Variant", "Extending"
+  and "Alternatives" sections. **Nobody asks for a variant they do not know
+  exists**, so these get offered unprompted. A variation with no `trade` is the
+  default in hiding, and the validator rejects it.
+- **`inputs`** — the floor: the questions that must be answered whichever shape
+  the operator lands on.
+- **`decisions`** — written by the installer into the _scaffolded copy_, never
+  into this repo (the validator refuses the key here). It records what this
+  deployment adapted and why, which is the only thing that explains, six months
+  later, why their code diverges from the cookbook it came from.
+
+Plus what this produces, how you know it worked, what it costs, and whether it is
+approved. The installer skill reads it,
 the validator checks it, and the UI deployment surface renders its `inputs` as
 fields. It deliberately carries **no `requires` key**: the dependency graph lives
 once, in `cargo.scaffold.json`.
