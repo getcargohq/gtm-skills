@@ -59,3 +59,19 @@
 {"prompt":"who has this VC invested in","expect":"find-portfolio-companies"}
 {"prompt":"list the companies in this accelerator batch","expect":"find-portfolio-companies"}
 {"prompt":"portfolio companies of","expect":"find-portfolio-companies"}
+
+// --- CDK-example skills: the run-once / deployed seam ----------------------------
+// tam-building and account-scoring carry a worked CDK example and deploy a
+// pipeline. build-tam-list and score-leads do the same job once, in a turn. The
+// same words describe both, so these cases pin which way each phrasing goes;
+// a CDK-example skill that starts winning the one-off prompts has stolen them.
+{"prompt": "Our TAM is a stale CSV, I want it to stay current", "expect": "tam-building", "why": "The standing tell, in the user's words: keep it current."}
+{"prompt": "The Sales Navigator search has way more companies than it will let me export", "expect": "tam-building", "why": "The extraction-cap problem is what this skill exists for."}
+{"prompt": "Build our account universe and keep loading new companies into it", "expect": "tam-building"}
+{"prompt": "Stand up a pipeline that builds our market from LinkedIn company searches", "expect": "tam-building"}
+{"prompt": "Build a TAM list of seed-stage SaaS companies in Europe", "expect": "build-tam-list", "why": "Same words as tam-building, opposite intent: a list today, not a pipeline."}
+{"prompt": "How many companies match our ICP in DACH?", "expect": "build-tam-list", "why": "A count is a one-off."}
+{"prompt": "Keep our accounts scored as they arrive and re-score when the ICP changes", "expect": "account-scoring"}
+{"prompt": "Our lead scoring is a spreadsheet nobody trusts", "expect": "account-scoring"}
+{"prompt": "Why is this account tier A?", "expect": "account-scoring", "why": "Only the deployed scorer writes a rationale anyone can read back."}
+{"prompt": "Score this list of 200 companies against our ICP and rank them", "expect": "score-leads", "why": "A supplied list, scored once: the run-once skill, not the deployed scorer."}

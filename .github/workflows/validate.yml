@@ -32,13 +32,32 @@ jobs:
         with:
           node-version: "22"
 
-      - name: Validate
+      # Repo tooling only (yaml for the frontmatter parser, prettier, the CDK for
+      # typechecking the examples). Nothing in the root package.json ships: a
+      # customer's project shell comes from `cargo-ai cdk init --template blank`.
+      - run: npm ci --ignore-scripts
+
+      - name: Validate the run-once skills against the Cargo playbooks
         env:
           CARGO_SKILLS_REF: ${{ inputs.ref || 'main' }}
         run: node scripts/validate.ts
 
+      # The skills that carry a CDK example: frontmatter parses, the contract
+      # sections exist, no relative import escapes the folder, and the
+      # to-be-approved banner follows .github/data/approvals.json.
+      - name: Validate the CDK-example skills
+        run: node scripts/check-cdk-examples.mjs
+
       - name: Check llms.txt is in sync with the skill tree
         run: node scripts/generate-llms-txt.ts --check
+
+      - name: Check catalog.json is in sync with the skill tree
+        run: node scripts/build-catalog.mjs --check
+
+      # Prettier covers the example .ts files. Typecheck needs generated types
+      # (`cargo-ai login` then `npm run types`) and runs locally, not here.
+      - name: Format check
+        run: npx prettier --check .
 
       # The plugin channel's session hooks write this marker into the session
       # row, so a regression here corrupts the attribution numbers silently

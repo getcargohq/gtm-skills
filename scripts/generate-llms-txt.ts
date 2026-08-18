@@ -65,7 +65,7 @@ function render(skills: Skill[]): string {
 
   return `# Cargo GTM Skills
 
-> ${skills.length} standalone agent skills for go-to-market work — finding B2B leads, building target account lists, resolving LinkedIn URLs, finding and verifying work emails, enriching companies and people, mapping buying committees, and tracking job changes, funding rounds, and tech-stack signals. Each does one job and installs on its own. Powered by [Cargo](https://getcargo.ai).
+> ${skills.length} standalone agent skills for go-to-market work — finding B2B leads, building target account lists, resolving LinkedIn URLs, finding and verifying work emails, enriching companies and people, mapping buying committees, and tracking job changes, funding rounds, and tech-stack signals. Each does one job and installs on its own. Some carry a worked CDK example instead of a command: the same job as a deployed pipeline that keeps running, which your agent adapts into your project. Powered by [Cargo](https://getcargo.ai).
 
 ## Install
 
