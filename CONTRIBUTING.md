@@ -48,56 +48,53 @@ Run `npm run typecheck` and `npm run format:check` locally before opening a PR.
    cookbooks it imports from, `base-gtm` at minimum). `npm run validate` enforces
    this.
 6. Add a row to the Cookbooks table in the root `README.md`.
-7. Add a `cookbook.json` (see below). `npm run validate` reports every folder
-   that still lacks one.
-8. If it is an outcome cookbook, add a `SKILL.md` and at least one routing eval
-   case in `evals/routing.jsonl`.
+7. Give the folder a `kind` in `cargo.scaffold.json`: `outcome` for a use case
+   somebody installs on purpose, `foundation` for a slot others build on.
+8. If it is an outcome, add a `SKILL.md` (see below) and at least one routing
+   eval case in `evals/routing.jsonl`. `npm run validate` reports every outcome
+   that still lacks a skill.
 
-## cookbook.json and SKILL.md
+## SKILL.md: the contract and the discovery surface in one file
 
 A cookbook that is only code is not installable: the README says the
 placeholders in prose, and whoever installs it has to read that prose and guess.
-Two files fix that, and `scripts/check-cookbooks.mjs` gates both.
+`SKILL.md` fixes that, and `scripts/check-cookbooks.mjs` gates it. Only outcome
+cookbooks have one. `base-gtm` and `crm-sync` are `kind: foundation`: they
+define no motion of their own, so a skill for them would compete for prompts it
+cannot serve, and the validator refuses one.
 
-**`cookbook.json` is the contract** ([`cookbook.schema.json`](cookbook.schema.json)).
-The code in a cookbook is a **worked example**, not a template with holes in it:
-whoever installs it should end up with the code their company would have
-written. So the file says which parts may be reshaped and which may not:
+**The code in a cookbook is a worked example, not a template with holes in it.**
+Whoever installs it should end up with the code their company would have
+written. So the skill says which parts may be reshaped and which may not, under
+four fixed headings the validator checks for:
 
-- **`invariants`** — what must stay true however far it is adapted, each with the
-  concrete `whatBreaks` symptom. This is what the installer argues back with when
-  an operator asks for something that will quietly fail. Source them from the
-  README's "Why <x> is not optional" sections, which were prose no skill could
-  act on.
-- **`variations`** — the reshapes this cookbook expects, each with `when`, `how`,
-  and the `trade` it makes. Source them from the README's "Variant", "Extending"
-  and "Alternatives" sections. **Nobody asks for a variant they do not know
-  exists**, so these get offered unprompted. A variation with no `trade` is the
-  default in hiding, and the validator rejects it.
-- **`inputs`** — the floor: the questions that must be answered whichever shape
-  the operator lands on.
-- **`decisions`** — written by the installer into the _scaffolded copy_, never
-  into this repo (the validator refuses the key here). It records what this
-  deployment adapted and why, which is the only thing that explains, six months
-  later, why their code diverges from the cookbook it came from.
+- **`## What you will be asked`**: a table of inputs. Write it derive-before-ask:
+  an input that can be looked up (which connector is authenticated, what the CRM
+  schema holds, how many closed-won rows there are) is marked _derived_, not
+  _asked_. If more than about four rows are genuinely asked, the interview is
+  too long. Every row says why it matters, which is what the agent says when the
+  operator pushes back.
+- **`## What you can change`**: the reshapes this cookbook expects, each with when
+  it is right, how, and what it costs. Source them from the README's "Variant",
+  "Extending" and "Alternatives" sections. **Nobody asks for a variant they do
+  not know exists**, so these get offered unprompted. A variation with no cost is
+  the default in hiding.
+- **`## What should not change`**: what must stay true however far it is adapted,
+  each with the concrete symptom if it is violated. Source them from the README's
+  "Why <x> is not optional" sections, which were prose no skill could act on. This
+  is what the installer argues back with; an operator who still wants it after
+  hearing what breaks gets it, recorded.
+- **`## Done when`**: the acceptance test, one checkable line each. This is what a
+  fresh-workspace run walks to earn `approval.demoWorkspace`.
 
-Plus what this produces, how you know it worked, what it costs, and whether it is
-approved. The installer skill reads it,
-the validator checks it, and the UI deployment surface renders its `inputs` as
-fields. It deliberately carries **no `requires` key**: the dependency graph lives
-once, in `cargo.scaffold.json`.
-
-Write `inputs` so that **derive comes before ask**. An input carrying a `derive`
-is a lookup, not a question: which connector is already authenticated, what the
-CRM schema contains, how many closed-won rows there are. If more than about four
-inputs have no `derive`, the interview is too long and most of them should have
-been lookups. Every input needs a `why`, which is what you say when the operator
-pushes back on the question.
-
-**`SKILL.md` is the discovery surface**, and only outcome cookbooks have one.
-`base-gtm` and `crm-sync` are `kind: foundation`: they define no motion of their
-own, so a skill for them would compete for prompts it cannot serve, and the
-validator refuses one.
+The frontmatter carries what a gate genuinely needs to be structured, and it is
+YAML so it stays checkable: `outcome` (one line, what the menu renders), `chain`
+(step in the cookbook chain, or null), `state` (`to-be-approved` | `approved`),
+and `approval` (`demoWorkspace` date plus `implementations`, both required before
+`approved` passes). **Quote any frontmatter value containing a colon-space.**
+Unquoted, YAML reads it as a nested mapping and `npx skills add` skips the whole
+file with a warning nobody reads. The validator catches it now; it did not on day
+one.
 
 The `description` follows the four-part template from cargo-skills'
 `CONTRIBUTING.md` (job → literal quoted triggers → proper nouns → `Skip when:`),
@@ -107,9 +104,14 @@ a TAM" belongs to `cargo-gtm` when someone wants a list today and to
 `tam-building` when they want a pipeline that keeps it current. Get that wrong
 and a user installs a CDK project to answer a question that wanted one turn.
 
-Do not restate the install procedure in a cookbook's `SKILL.md`. Scaffold, fit,
-deploy, verify is identical for all of them and lives once, in
+Do not restate the install procedure in a cookbook's `SKILL.md`. Get the code in,
+adapt, plan, deploy, verify is identical for all of them and lives once, in
 [`deploy-cookbook/SKILL.md`](deploy-cookbook/SKILL.md).
+
+There used to be a second file, `cookbook.json`, carrying the same contract as
+data. It was folded into `SKILL.md` on 2026-08-18: every reader of the contract
+is an agent, and agents read markdown, so the JSON was a second authored copy for
+a consumer that did not exist.
 
 ## Every resource must earn its deploy
 
@@ -144,8 +146,9 @@ rots. Three rules learned the hard way:
 
 - Mark values that must be edited before deploy with a `PLACEHOLDER` comment
   (API keys via env, channel IDs, member uuids, persona filters), **and give each
-  one an entry in `cookbook.json` `inputs`**. The comment is for whoever reads the
-  code; the entry is what lets an agent, the CLI, or the UI actually resolve it.
+  one a row under `## What you will be asked` in the cookbook's `SKILL.md`**. The
+  comment is for whoever reads the code; the row is what lets an agent resolve it
+  instead of guessing.
 - Read secrets with `secret("NAME")` and document the env var in `.env.example`.
 - Keep `defineContext` paths root-relative — resources are loaded from the
   project root.

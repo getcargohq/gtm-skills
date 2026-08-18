@@ -1,7 +1,7 @@
 ---
 name: deploy-cookbook
 description: 'Install a Cargo cookbook into a workspace: scaffold the worked example, adapt it to this company (offering the variations it supports and defending the invariants it depends on), deploy it, and check it actually worked. Triggers: "install a cookbook", "deploy the cookbook", "set up the revenue engine", "which cookbook do I need", "scaffold this GTM outcome", "finish setting this cookbook up". Cookbooks: base-gtm, crm-sync, tam-building, list-building, signal-based-tam, inbound-flow, contact-sourcing, routing-engine, account-scoring, auto-enrichment, crm-button, meeting-prep, pipeline-health, closed-won-multiplier, gtm-knowledge-graph, research-agent, mcp-copilot, ai-sdr, plg-motion, rep-cockpit. Skip when: the user wants a result once rather than a deployed pipeline that keeps producing it, which is cargo-gtm''s job, not a cookbook''s.'
-version: "0.1.0"
+version: "0.2.0"
 compatibility: Requires @cargo-ai/cli (npm) and a Cargo workspace. Sign in with `cargo-ai login --email` (emailed code, no browser), `--oauth`, or an API token.
 homepage: https://github.com/getcargohq/cargo-cookbooks
 metadata:
@@ -21,14 +21,14 @@ metadata:
 # Deploy a cookbook
 
 This is the procedure every cookbook shares. Each cookbook's own `SKILL.md` carries what makes it
-different: the outcome, the questions, the acceptance test, the bill. It does not restate anything
-below, so read this once and then read the cookbook.
+different: the outcome, the questions, what may change, what must not, the acceptance test, the
+bill. It does not restate anything below, so read this once and then read the cookbook.
 
 ## What a cookbook is
 
 A folder of `define*` CDK resources that combine into one outcome, sitting on a shared `base-gtm`
-foundation so two cookbooks stack instead of colliding. Installing one is four moves: **scaffold,
-adapt, deploy, verify.**
+foundation so two cookbooks stack instead of colliding. Installing one is four moves: **get the
+code in, adapt, deploy, verify.**
 
 The second move is the reason this is a skill and not a `git clone`. **The code that arrives is a
 worked example.** It encodes an architecture that is right, with the specifics of some other
@@ -47,18 +47,16 @@ cargo-ai whoami                                  # already signed in? this confi
 **Confirm which workspace you are pointed at before anything else.** A cookbook deployed into the
 wrong workspace looks like a success and is silently wrong.
 
-## 1. Scaffold, or add to what is already there
+## 1. Get the code in
 
-**Look before you scaffold.** These two cases are different, and getting them the wrong way round
-destroys work:
+**Look first.** These two cases take different commands, and the wrong one destroys work:
 
 ```bash
-ls cargo.state.json 2>/dev/null           # a deployed project
-grep -l '@cargo-ai/cdk' package.json      # a CDK project, deployed or not
-ls -d */cookbook.json 2>/dev/null          # cookbooks already installed here
+grep -l '@cargo-ai/cdk' package.json 2>/dev/null   # a CDK project already lives here
+ls cargo.state.json 2>/dev/null                    # ... and it has been deployed
 ```
 
-### Empty directory: scaffold normally
+### Empty directory: scaffold
 
 ```bash
 cargo-ai cdk init <dir> --from getcargohq/cargo-cookbooks/<slug>
@@ -67,97 +65,77 @@ cd <dir> && npm install
 
 `--from` reads `cargo.scaffold.json` and pulls the cookbook **plus its required siblings**,
 transitively, keeping the folder layout so cross-folder imports resolve. `base-gtm` always comes
-along. Never hand-copy a folder: you will miss a dependency and the imports will not resolve.
+along.
 
-### Existing project: add, never re-scaffold
-
-**Never run `cargo-ai cdk init --force` in a project that already has anything in it.** The scaffold
-overwrites the shared root files (`package.json`, `tsconfig.json`, `.env.example`, `.nvmrc`) and
-every folder it carries. Measured on 2026-08-18 against a project with one cookbook already
-deployed:
-
-|                                                         | before           | after `--force`                       |
-| ------------------------------------------------------- | ---------------- | ------------------------------------- |
-| `package.json` name, custom scripts, extra dependencies | theirs           | **replaced with the cookbook repo's** |
-| an edit to `base-gtm/models/accounts.ts`                | theirs           | **reverted to pristine**              |
-| `cargo.state.json`                                      | their live state | survived                              |
-
-The survivor is the dangerous one: the state file still describes resources whose code was just
-reverted, so the next `plan` diffs their live workspace against code they did not write.
-
-Do this instead:
+### Existing project: add
 
 ```bash
-cargo-ai cdk init /tmp/cb-add --from getcargohq/cargo-cookbooks/<slug>
+cargo-ai manifest add <slug> --dir .        # a plain CDK project (resources at the root)
+cargo-ai manifest add <slug>                # a Manifest repo (resources under infra/, the default)
 ```
 
-Then copy across **only the folders that do not already exist**:
+`manifest add` is copy-in: the required siblings come along, **files that already exist are kept**,
+and every installed file's source, ref and content hash is recorded in `manifest.json`. A folder
+that is already present is theirs, not ours: they may have adapted it, and the hashes are how a
+later `add --diff` shows what diverged. Say which required siblings you found already there and
+are assuming are fitted.
 
-- **A folder that is already present is theirs, not ours.** They may have adapted it (see step 2),
-  and a fresh copy silently reverts that. Leave it, and say which required siblings you found and
-  are assuming are already fitted.
-- **Do not touch `package.json`, `tsconfig.json` or `cargo.state.json`.** The dependency they need
-  (`@cargo-ai/cdk`) is already there or the project would not build.
-- **`.env.example` is additive.** Append the variables the new cookbook needs; never overwrite the
-  file.
-- Delete the temp directory when you are done.
+**Never `cargo-ai cdk init --force` into a directory that is not empty.** Measured on 2026-08-18
+against a live project: it replaced `package.json` (name, scripts, dependencies) and reverted an
+adapted `base-gtm/models/accounts.ts`, while `cargo.state.json` survived, so the next `plan`
+diffed a live workspace against code nobody wrote. `manifest add` exists so that never has to
+happen.
 
 Then check the seams: the new cookbook imports handles from `base-gtm` (and possibly `crm-sync`),
 so if those were adapted, confirm the names it imports still exist before planning.
 
 ## 2. Adapt it to the company
 
-**The scaffolded code is a worked example, not a template with holes in it.** Your job is to end up
-with the code this company would have written, which is rarely the code that arrived. Read the
-cookbook's `README.md` first: it explains why the design is the way it is, and you cannot adapt
-something safely until you know which parts are load-bearing.
+The cookbook's `SKILL.md` is now beside the code (`<slug>/SKILL.md` in the project) and it is the
+contract. Read the cookbook's `README.md` first: it explains why the design is the way it is, and
+you cannot adapt something safely until you know which parts are load-bearing. Then work the four
+sections of `SKILL.md`, in this order:
 
-`cookbook.json` tells you which is which.
+### `What should not change`: argue back about these
 
-### `invariants` — argue back about these
-
-Each one carries `holds` (what must stay true) and `whatBreaks` (the concrete symptom if it does
-not). These are the parts of the design that are not preference. When an operator asks for
+Each line says what must stay true and what breaks if it does not. When an operator asks for
 something that violates one, **do not silently comply and do not silently refuse**: tell them what
-breaks, in the words of `whatBreaks`, and let them decide. Most change their mind, because the
-failure is usually one they have already lived through.
+breaks, in the words written there, and let them decide. Most change their mind, because the
+failure is usually one they have already lived through. If they still want it, do it, and record
+it under `## Decisions` (below). An invariant is the strongest thing the file can say, not a lock.
 
-If they still want it, do it, and record it under `decisions` with their reason. An invariant is
-the strongest thing this file can say, not a lock.
+### `What you can change`: offer these unprompted
 
-### `variations` — offer these unprompted
+Each row is a reshape we expect, with when it is right, how, and what it costs. **Nobody asks for a
+variant they do not know exists**, so name the ones whose "when" matches what you have already
+learned about this company. If they have no CRM, say so before you ask them for a CRM credential. A
+variation is a real reshape: files get rewritten, resources dropped, a connector swapped. That is
+expected and is not a bug in the cookbook.
 
-Each carries `when` (the situation that makes it right), `how` (what changes in the code), and
-`trade` (what it costs). **Nobody asks for a variant they do not know exists**, so name the ones
-whose `when` matches what you have already learned about this company. If they have no CRM, say so
-before you ask them for a CRM credential.
+### `What you will be asked`: the floor of the conversation
 
-A variation is a real reshape: files get rewritten, resources get dropped, a connector gets
-swapped. That is expected and is not a bug in the cookbook.
-
-### `inputs` — the floor of the conversation
-
-These must be answered whichever shape you land on. **Derive before you ask.** Every input carrying
-a `derive` is a lookup, not a question: which connector is authenticated, which models exist, how
+These must be answered whichever shape you land on. **Derive before you ask.** A row marked
+_derived_ is a lookup, not a question: which connector is authenticated, which models exist, how
 many closed-won rows there are, what the CRM schema actually contains. **If you are asking more
 than about four questions, you have skipped lookups you should have run.**
 
-| `kind`      | What you do                                                                                                                                                                                                   |
+| Kind        | What you do                                                                                                                                                                                                   |
 | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `value`     | Patch the answer into the named `file` at `path`.                                                                                                                                                             |
-| `generated` | Write the whole `file` from the answers. These are the files whose content _is_ the configuration, like an ICP.                                                                                               |
+| `value`     | Patch the answer into the named file.                                                                                                                                                                         |
+| `generated` | Write the whole file from the answers. These are the files whose content _is_ the configuration, like an ICP.                                                                                                 |
 | `env`       | Tell the operator to set the variable in `.env`. **Never read, print, echo or commit the value.**                                                                                                             |
 | `manual`    | Something that must be true outside the repo: a CRM property, an OAuth connection. Check it and report. You cannot write it, and deploying without it produces a run that looks successful and lands nowhere. |
 
-Every input carries a `why`, which is what you say when the operator pushes back. Every input with
-a `validate` is checked before you move on, not after the deploy.
+Every row says why it matters, which is what you say when the operator pushes back. Every check
+listed under the table is run before you move on, not after the deploy.
 
 ### Record what you changed
 
-Append to `decisions` in the scaffolded project's `cookbook.json`: `what`, `why`, the `variation`
-id if it was one the cookbook anticipated, and the date. This is the only thing that will tell
-somebody in six months why their code diverges from the cookbook it came from. Write it as you go,
-not from memory at the end.
+Append a `## Decisions` section to the project's copy of `<slug>/SKILL.md`: what changed, why, the
+variation name if it was one the cookbook anticipated, and the date. `manifest.json` already
+records which files diverged from upstream, by hash; this records the reason. It is the only thing
+that will tell somebody in six months why their code differs from the cookbook it came from. Write
+it as you go, not from memory at the end.
 
 Ask your questions in one pass, not one at a time across several turns.
 
@@ -181,14 +159,14 @@ seen.
 
 ## 4. Verify
 
-Walk `doneWhen` from `cookbook.json`, one line at a time, and report each as pass or fail with the
+Walk the cookbook's `Done when` list, one line at a time, and report each as pass or fail with the
 evidence. This is the acceptance test, not a formality: a cookbook that deployed cleanly and
 produces nothing is the normal failure, because CDK resources reconcile happily whether or not the
 data behind them is right.
 
 If every check passes on a **fresh** workspace, say so explicitly. That is half the approval
-evidence a cookbook needs, and it is recorded in `cookbook.json` under `approval.demoWorkspace` by
-a human, not by you.
+evidence a cookbook needs, and it is recorded in the cookbook's frontmatter under `approval` by a
+human, not by you.
 
 ## 5. Record the install
 
@@ -208,13 +186,15 @@ the same session and two rows would double-count.
 
 - Deploy without showing the plan.
 - Run `cargo-ai cdk init --force`. There is no case in this procedure that needs it, and it
-  silently reverts adapted code and replaces the project's `package.json`.
+  silently reverts adapted code and replaces the project's `package.json`. `manifest add` is the
+  path into an existing project.
 - Mark a cookbook approved. Approval needs a fresh-workspace test **and** two customer or partner
   implementations, and it is recorded by a person.
 - Claim an outcome for a cookbook whose `state` is `to-be-approved`. Every cookbook is
-  `to-be-approved` until the evidence is in `cookbook.json`, and most are.
-- Violate an `invariant` without telling the operator what breaks and getting an explicit yes.
-- Reshape the code and leave no `decisions` entry. Undocumented divergence is how a project stops
-  being recognisably the cookbook it came from.
-- Treat a missing input as licence to guess. If the cookbook needs something `cookbook.json` does
+  `to-be-approved` until the evidence is in its frontmatter, and most are.
+- Violate a "should not change" line without telling the operator what breaks and getting an
+  explicit yes.
+- Reshape the code and leave no `## Decisions` entry. Undocumented divergence is how a project
+  stops being recognisably the cookbook it came from.
+- Treat a missing input as licence to guess. If the cookbook needs something its `SKILL.md` does
   not list, say so and add it in a PR: the next person installing it hits the same gap.

@@ -45,6 +45,13 @@ for (const name of declared) {
       errors.push(`folder "${name}" requires "${req}", which is not declared`);
     }
   }
+  // `kind` sits beside `requires` because both are facts about the folder. The
+  // CLI's schema strips unknown keys, so this is ours alone to enforce.
+  if (!["outcome", "foundation"].includes(folders[name].kind)) {
+    errors.push(
+      `folder "${name}" needs kind: "outcome" or "foundation" (foundations define no motion and carry no skill)`,
+    );
+  }
 }
 
 // Every cookbook directory on disk (a top-level dir with a README) must be

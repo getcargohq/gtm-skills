@@ -1,60 +1,56 @@
 #!/usr/bin/env node
-// Validates the skill layer: cookbook.json (the data an installer reads) and
-// SKILL.md (the description an agent routes on). Sibling of check-scaffold.mjs,
-// which owns the `--from` dependency graph; this owns everything stacked on it.
+// Validates the skill layer: one SKILL.md per outcome cookbook. Sibling of
+// check-scaffold.mjs, which owns the `--from` dependency graph; this owns what
+// is stacked on it. Dependency-free except `yaml`, because it must run on a
+// bare clone with `npm ci --ignore-scripts` and no workspace.
 //
-// Dependency-free on purpose, like its sibling: it must run on a bare clone
-// with `npm ci --ignore-scripts` and no workspace.
+// There used to be a second file, cookbook.json, carrying the contract as
+// data. It was folded into SKILL.md on 2026-08-18: every reader of the
+// contract is an agent, and agents read markdown, so the JSON was a second
+// authored copy for a consumer that did not exist. What a gate genuinely
+// needs to be structured (kind, state, approval) lives in frontmatter, which
+// is YAML and therefore still checkable. `kind` lives in cargo.scaffold.json,
+// beside `requires`, because both are facts about the folder.
 //
 // The rules, and why each exists:
-//   - slug == folder, and no `requires` key: the dependency graph lives once,
-//     in cargo.scaffold.json. Two copies of a fact can disagree.
-//   - kind: outcome carries a SKILL.md; kind: foundation must not. base-gtm and
-//     crm-sync define no motion of their own, and a skill for them would
-//     compete for prompts it cannot serve.
-//   - descriptions carry Triggers and Skip when: the description is the only
-//     text an agent weighs before loading a skill, and the negative case is
-//     what stops the wrong one loading. Graded properly by cargo-skills'
-//     routing-eval.ts; this is the cheap structural half.
-//   - inputs[].file resolves, and a file outside the folder belongs to a
-//     required sibling: an input pointing at a file the scaffold will not pull
-//     is an interview question nobody can answer.
+//   - frontmatter parses as YAML: the installer skips a file that does not,
+//     silently. tam-building shipped that way on day one ("cookie: Sales Nav"
+//     read as a nested mapping) and was invisible to every agent.
+//   - name == folder; description carries Triggers and Skip when: the
+//     description is the only text an agent weighs before loading a skill,
+//     and the negative case is what stops the wrong one loading.
+//   - kind: foundation carries no SKILL.md (it defines no motion, and a skill
+//     for it would compete for prompts it cannot serve); kind: outcome without
+//     one is reported as still-to-convert, never failed, so the rollout stays
+//     visible on every run.
+//   - the four contract sections are present in every outcome skill: what
+//     you will be asked, what you can change, what should not change, done
+//     when. Prose cannot be gated for field completeness; presence is what
+//     stops a cookbook shipping with the adaptation model half written.
 //   - approved needs its evidence: a fresh-workspace date AND two
 //     implementations. The approval rule is the one thing standing between a
 //     launch post and a claim nobody tested.
 import { readFileSync, existsSync, readdirSync, statSync } from "node:fs";
-import { parse as parseYaml } from "yaml";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { parse as parseYaml } from "yaml";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const errors = [];
-const notes = [];
+const toConvert = [];
 
 const scaffold = JSON.parse(
   readFileSync(join(root, "cargo.scaffold.json"), "utf8"),
 );
 const folders = scaffold.folders ?? {};
-const declared = Object.keys(folders);
 
-// Transitive requires closure, so an input may point at a file in a sibling the
-// scaffold will actually pull.
-const closure = (name, seen = new Set()) => {
-  for (const req of folders[name]?.requires ?? []) {
-    if (seen.has(req)) continue;
-    seen.add(req);
-    closure(req, seen);
-  }
-  return seen;
-};
+const REQUIRED_SECTIONS = [
+  "## What you will be asked",
+  "## What you can change",
+  "## What should not change",
+  "## Done when",
+];
 
-// Parse the frontmatter as real YAML, because that is what the installer does.
-// A regex reader is not good enough, and this is not hypothetical: on
-// 2026-08-18 `tam-building` shipped an unquoted `compatibility` value
-// containing "cookie: Sales Nav ...". YAML read that colon-space as a nested
-// mapping, `npx skills add` reported "Found 2 skills" instead of 3, and the
-// skill was invisible to every agent — the exact discovery failure this layer
-// exists to prevent, failing SILENTLY. A regex reader saw nothing wrong.
 const frontmatter = (text) => {
   if (!text.startsWith("---\n")) return { error: "has no YAML frontmatter" };
   const end = text.indexOf("\n---", 3);
@@ -64,214 +60,121 @@ const frontmatter = (text) => {
     if (!parsed || typeof parsed !== "object") {
       return { error: "has frontmatter that did not parse to a mapping" };
     }
-    return { data: parsed };
+    return { data: parsed, body: text.slice(end + 4) };
   } catch (e) {
-    // Reproduce the installer's own failure so the fix is obvious. The usual
-    // cause is an unquoted value containing ": ".
     return {
       error: `has a YAML parse error, so the installer will silently skip it: ${e.message.split("\n")[0]}`,
     };
   }
 };
 
-const INPUT_KINDS = new Set(["value", "generated", "env", "manual"]);
+for (const [name, entry] of Object.entries(folders)) {
+  const kind = entry.kind;
+  if (!["outcome", "foundation"].includes(kind)) {
+    errors.push(
+      `cargo.scaffold.json folder "${name}" has kind "${kind}", expected outcome or foundation`,
+    );
+    continue;
+  }
+  const skillPath = join(root, name, "SKILL.md");
+  const hasSkill = existsSync(skillPath);
 
-for (const name of declared) {
-  const dir = join(root, name);
-  const bookPath = join(dir, "cookbook.json");
-  const skillPath = join(dir, "SKILL.md");
-
-  if (!existsSync(bookPath)) {
-    // Rollout is deliberately incremental: a folder without cookbook.json is
-    // not yet in the skill layer. Reported, never failed, so the remaining work
-    // is visible on every run instead of tracked somewhere else.
-    notes.push(name);
+  if (kind === "foundation") {
+    if (hasSkill) {
+      errors.push(
+        `${name} is a foundation and must not carry a SKILL.md: it would compete for prompts it cannot serve`,
+      );
+    }
     continue;
   }
 
-  let book;
-  try {
-    book = JSON.parse(readFileSync(bookPath, "utf8"));
-  } catch (e) {
-    errors.push(`${name}/cookbook.json is not valid JSON: ${e.message}`);
+  if (!hasSkill) {
+    toConvert.push(name);
     continue;
   }
 
-  if (book.slug !== name) {
+  const {
+    data: fm,
+    body,
+    error,
+  } = frontmatter(readFileSync(skillPath, "utf8"));
+  if (error) {
+    errors.push(`${name}/SKILL.md ${error}`);
+    continue;
+  }
+  if (fm.name !== name) {
     errors.push(
-      `${name}/cookbook.json slug is "${book.slug}", expected "${name}"`,
+      `${name}/SKILL.md frontmatter name is "${fm.name}", expected "${name}"`,
     );
   }
-  if ("requires" in book) {
+  const d = fm.description ?? "";
+  if (!d)
     errors.push(
-      `${name}/cookbook.json carries a "requires" key: that fact lives only in cargo.scaffold.json`,
+      `${name}/SKILL.md has no description: it is the only text an agent sees before loading`,
+    );
+  if (d && !/Triggers:/.test(d))
+    errors.push(`${name}/SKILL.md description carries no "Triggers:" clause`);
+  if (d && !/Skip when:/.test(d))
+    errors.push(`${name}/SKILL.md description carries no "Skip when:" clause`);
+  if (!fm.outcome || String(fm.outcome).length < 20) {
+    errors.push(
+      `${name}/SKILL.md frontmatter needs an "outcome" line a user would recognise: it is what the menu renders`,
     );
   }
-  if (!["outcome", "foundation"].includes(book.kind)) {
-    errors.push(`${name}/cookbook.json kind must be "outcome" or "foundation"`);
-  }
-  if (!["to-be-approved", "approved"].includes(book.state)) {
+  if (!["to-be-approved", "approved"].includes(fm.state)) {
     errors.push(
-      `${name}/cookbook.json state must be "to-be-approved" or "approved"`,
+      `${name}/SKILL.md frontmatter state must be "to-be-approved" or "approved"`,
     );
   }
-  if (!book.outcome || book.outcome.length < 20) {
-    errors.push(
-      `${name}/cookbook.json needs an "outcome" line a user would recognise`,
-    );
-  }
-  if (!Array.isArray(book.doneWhen) || book.doneWhen.length === 0) {
-    errors.push(
-      `${name}/cookbook.json needs at least one doneWhen check: it is the acceptance test`,
-    );
-  }
-
-  // The approval rule, enforced rather than remembered.
-  if (book.state === "approved") {
-    const a = book.approval ?? {};
-    if (!a.demoWorkspace) {
+  if (fm.state === "approved") {
+    const a = fm.approval ?? {};
+    if (!a.demoWorkspace)
       errors.push(
         `${name} is marked approved but has no approval.demoWorkspace date`,
       );
-    }
     if (!Array.isArray(a.implementations) || a.implementations.length < 2) {
       errors.push(
         `${name} is marked approved but lists ${a.implementations?.length ?? 0} implementations: the rule is two`,
       );
     }
   }
-
-  // Inputs must point at files the scaffold will actually pull.
-  const reachable = closure(name).add(name);
-  for (const input of book.inputs ?? []) {
-    const where = `${name}/cookbook.json input "${input.id}"`;
-    if (!INPUT_KINDS.has(input.kind)) {
-      errors.push(
-        `${where} has kind "${input.kind}", expected one of ${[...INPUT_KINDS].join(", ")}`,
-      );
-    }
-    if (!input.ask)
-      errors.push(
-        `${where} has no "ask": every input is answerable or it is not an input`,
-      );
-    if (input.kind === "env" && !input.env) {
-      errors.push(`${where} is kind env but names no variable`);
-    }
-    if (input.file) {
-      if (!existsSync(join(root, input.file))) {
-        errors.push(`${where} points at "${input.file}", which does not exist`);
-      }
-      const owner = input.file.split("/")[0];
-      if (!reachable.has(owner)) {
-        errors.push(
-          `${where} points into "${owner}", which "${name}" does not require: the scaffold will not pull it`,
-        );
-      }
-    }
-    if (input.kind === "value" && !input.file) {
-      errors.push(`${where} is kind value but names no file to patch`);
+  for (const section of REQUIRED_SECTIONS) {
+    if (!body.includes(`\n${section}`)) {
+      errors.push(`${name}/SKILL.md is missing the "${section}" section`);
     }
   }
-
-  // The code is a worked example, so the file has to say what may be reshaped
-  // and what must hold. A cookbook with no invariants is claiming nothing about
-  // its design is load-bearing, which for a real outcome is never true — and it
-  // leaves the installer with nothing to argue back with when an operator asks
-  // for something that will quietly break.
-  for (const inv of book.invariants ?? []) {
-    if (!inv.holds || !inv.whatBreaks) {
-      errors.push(
-        `${name}/cookbook.json has an invariant missing "holds" or "whatBreaks": an invariant nobody can explain is a rule nobody will follow`,
-      );
-    }
-    if (inv.where && !existsSync(join(root, inv.where))) {
-      errors.push(
-        `${name}/cookbook.json invariant points at "${inv.where}", which does not exist`,
-      );
-    }
-  }
-  if (book.kind === "outcome" && (book.invariants ?? []).length === 0) {
+  if (/cookbook\.json/.test(body)) {
     errors.push(
-      `${name}/cookbook.json lists no invariants: name at least the one thing that must not be adapted away`,
+      `${name}/SKILL.md refers to cookbook.json, which no longer exists`,
     );
-  }
-
-  for (const v of book.variations ?? []) {
-    const where = `${name}/cookbook.json variation "${v.id ?? "?"}"`;
-    for (const field of ["id", "when", "how", "trade"]) {
-      if (!v[field]) errors.push(`${where} is missing "${field}"`);
-    }
-    // A variation with no cost is not a variation, it is the default in hiding.
-    for (const f of v.affects ?? []) {
-      if (!existsSync(join(root, f)))
-        errors.push(`${where} affects "${f}", which does not exist`);
-    }
-  }
-
-  // `decisions` is what an installer writes into the SCAFFOLDED copy. In this
-  // repo it would mean the cookbook had already been adapted to somebody.
-  if ("decisions" in book) {
-    errors.push(
-      `${name}/cookbook.json carries "decisions": that key belongs in a scaffolded project, not in the cookbook`,
-    );
-  }
-
-  // Foundations define no motion, so they carry no skill. Outcomes must.
-  const hasSkill = existsSync(skillPath);
-  if (book.kind === "outcome" && !hasSkill) {
-    errors.push(`${name} is an outcome cookbook and needs a SKILL.md`);
-  }
-  if (book.kind === "foundation" && hasSkill) {
-    errors.push(
-      `${name} is a foundation cookbook and must not carry a SKILL.md: it would compete for prompts it cannot serve`,
-    );
-  }
-
-  if (hasSkill) {
-    const { data: fm, error } = frontmatter(readFileSync(skillPath, "utf8"));
-    if (error) {
-      errors.push(`${name}/SKILL.md ${error}`);
-    } else {
-      if (fm.name !== name) {
-        errors.push(
-          `${name}/SKILL.md frontmatter name is "${fm.name}", expected "${name}"`,
-        );
-      }
-      const d = fm.description ?? "";
-      if (!d)
-        errors.push(
-          `${name}/SKILL.md has no description: it is the only text an agent sees before loading`,
-        );
-      if (d && !/Triggers:/.test(d)) {
-        errors.push(
-          `${name}/SKILL.md description carries no "Triggers:" clause`,
-        );
-      }
-      if (d && !/Skip when:/.test(d)) {
-        errors.push(
-          `${name}/SKILL.md description carries no "Skip when:" clause`,
-        );
-      }
-    }
   }
 }
 
-// A SKILL.md in a folder with no cookbook.json is a skill with no data behind it.
+// A SKILL.md in a folder the scaffold does not declare is a skill nobody can install.
 for (const entry of readdirSync(root)) {
-  if (entry.startsWith(".") || entry === "deploy-cookbook") continue;
+  if (
+    entry.startsWith(".") ||
+    entry === "deploy-cookbook" ||
+    entry === "node_modules"
+  )
+    continue;
   const dir = join(root, entry);
   if (!statSync(dir).isDirectory()) continue;
-  if (
-    existsSync(join(dir, "SKILL.md")) &&
-    !existsSync(join(dir, "cookbook.json"))
-  ) {
-    errors.push(`${entry}/SKILL.md exists with no cookbook.json beside it`);
+  if (existsSync(join(dir, "SKILL.md")) && !(entry in folders)) {
+    errors.push(
+      `${entry}/SKILL.md exists but "${entry}" is not declared in cargo.scaffold.json`,
+    );
   }
 }
 
-if (!existsSync(join(root, "deploy-cookbook", "SKILL.md"))) {
+const procedure = join(root, "deploy-cookbook", "SKILL.md");
+if (!existsSync(procedure)) {
   errors.push(
     "deploy-cookbook/SKILL.md is missing: it is the procedure every cookbook skill defers to",
+  );
+} else if (/cookbook\.json/.test(readFileSync(procedure, "utf8"))) {
+  errors.push(
+    "deploy-cookbook/SKILL.md refers to cookbook.json, which no longer exists",
   );
 }
 
@@ -281,8 +184,11 @@ if (errors.length) {
   process.exit(1);
 }
 
-const done = declared.length - notes.length;
-console.log(`ok: ${done}/${declared.length} cookbooks carry a cookbook.json`);
-if (notes.length) {
-  console.log(`   still to convert: ${notes.join(", ")}`);
-}
+const outcomes = Object.values(folders).filter(
+  (f) => f.kind === "outcome",
+).length;
+console.log(
+  `ok: ${outcomes - toConvert.length}/${outcomes} outcome cookbooks carry a SKILL.md`,
+);
+if (toConvert.length)
+  console.log(`   still to convert: ${toConvert.join(", ")}`);

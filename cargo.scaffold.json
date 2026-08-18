@@ -2,64 +2,84 @@
   "shared": ["package.json", "tsconfig.json", ".env.example", ".nvmrc"],
   "folders": {
     "base-gtm": {
-      "requires": []
+      "requires": [],
+      "kind": "foundation"
     },
     "crm-sync": {
-      "requires": ["base-gtm"]
+      "requires": ["base-gtm"],
+      "kind": "foundation"
     },
     "tam-building": {
-      "requires": ["base-gtm"]
+      "requires": ["base-gtm"],
+      "kind": "outcome"
     },
     "list-building": {
-      "requires": ["base-gtm"]
+      "requires": ["base-gtm"],
+      "kind": "outcome"
     },
     "signal-based-tam": {
-      "requires": ["base-gtm"]
+      "requires": ["base-gtm"],
+      "kind": "outcome"
     },
     "inbound-flow": {
-      "requires": ["base-gtm", "crm-sync"]
+      "requires": ["base-gtm", "crm-sync"],
+      "kind": "outcome"
     },
     "gtm-knowledge-graph": {
-      "requires": ["base-gtm"]
+      "requires": ["base-gtm"],
+      "kind": "outcome"
     },
     "research-agent": {
-      "requires": ["base-gtm", "gtm-knowledge-graph"]
+      "requires": ["base-gtm", "gtm-knowledge-graph"],
+      "kind": "outcome"
     },
     "mcp-copilot": {
-      "requires": ["research-agent"]
+      "requires": ["research-agent"],
+      "kind": "outcome"
     },
     "contact-sourcing": {
-      "requires": ["base-gtm", "crm-sync"]
+      "requires": ["base-gtm", "crm-sync"],
+      "kind": "outcome"
     },
     "routing-engine": {
-      "requires": ["base-gtm", "crm-sync"]
+      "requires": ["base-gtm", "crm-sync"],
+      "kind": "outcome"
     },
     "account-scoring": {
-      "requires": ["base-gtm", "crm-sync", "gtm-knowledge-graph"]
+      "requires": ["base-gtm", "crm-sync", "gtm-knowledge-graph"],
+      "kind": "outcome"
     },
     "auto-enrichment": {
-      "requires": ["base-gtm", "crm-sync"]
+      "requires": ["base-gtm", "crm-sync"],
+      "kind": "outcome"
     },
     "crm-button": {
-      "requires": ["base-gtm", "crm-sync"]
+      "requires": ["base-gtm", "crm-sync"],
+      "kind": "outcome"
     },
     "pipeline-health": {
-      "requires": ["base-gtm"]
+      "requires": ["base-gtm"],
+      "kind": "outcome"
     },
     "closed-won-multiplier": {
-      "requires": ["base-gtm", "pipeline-health"]
+      "requires": ["base-gtm", "pipeline-health"],
+      "kind": "outcome"
     },
     "meeting-prep": {
-      "requires": ["base-gtm", "crm-sync"]
+      "requires": ["base-gtm", "crm-sync"],
+      "kind": "outcome"
     },
     "ai-sdr": {
-      "requires": ["contact-sourcing", "research-agent"]
+      "requires": ["contact-sourcing", "research-agent"],
+      "kind": "outcome"
     },
     "plg-motion": {
-      "requires": ["base-gtm", "crm-sync"]
+      "requires": ["base-gtm", "crm-sync"],
+      "kind": "outcome"
     },
     "rep-cockpit": {
-      "requires": ["account-scoring", "routing-engine", "ai-sdr"]
+      "requires": ["account-scoring", "routing-engine", "ai-sdr"],
+      "kind": "outcome"
     }
   }
 }
