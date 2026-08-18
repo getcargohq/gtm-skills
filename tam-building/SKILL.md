@@ -4,12 +4,6 @@ description: 'Stand up your account universe as a deployed pipeline: a Sales Nav
 version: "0.2.0"
 compatibility: "Requires @cargo-ai/cli (npm) and a Cargo workspace. No LinkedIn seat, user, or cookie is needed: Sales Nav extraction in Cargo is cookieless."
 homepage: https://github.com/getcargohq/cargo-cookbooks/tree/main/tam-building
-outcome: "Your account universe built from a Sales Navigator company search, split past the 1,000 extraction cap and resolved to real domains"
-chain: 2
-state: to-be-approved
-approval:
-  demoWorkspace: null
-  implementations: []
 metadata:
   author: getcargo
   openclaw:
@@ -28,7 +22,7 @@ metadata:
 
 **State: to-be-approved.** Deploy-verified against a live workspace: not yet. Treat `Done when`
 below as the acceptance test and review `cargo-ai cdk plan` before deploying. Make no outcome claim
-for this cookbook until the frontmatter says `approved`.
+for this cookbook until it is approved.
 
 ## The outcome
 

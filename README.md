@@ -63,8 +63,9 @@ Run from this directory — `defineContext` paths are root-relative.
 
 Every cookbook is **to be approved** until it has been tested in a fresh demo
 workspace **and** implemented by two customers or partners. That state lives in
-each `SKILL.md`'s frontmatter, and `node scripts/validate.mjs` refuses an `approved`
-cookbook that cannot show both. Cargo makes no public outcome claim for a cookbook that is not
+`cargo.scaffold.json`, and `node scripts/validate.mjs` refuses an `approved`
+cookbook that cannot show both. A cookbook's `SKILL.md` says only whether it is
+approved yet; the evidence is not the customer's concern. Cargo makes no public outcome claim for a cookbook that is not
 approved, and at the time of writing none of them is.
 
 ## Conventions

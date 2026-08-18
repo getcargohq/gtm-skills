@@ -4,12 +4,6 @@ description: 'Keep every account scored and tiered against your written ICP by a
 version: "0.2.0"
 compatibility: "Requires @cargo-ai/cli (npm), a Cargo workspace, and a CRM credential (crm-sync). Pulls base-gtm, crm-sync and gtm-knowledge-graph as required siblings."
 homepage: https://github.com/getcargohq/cargo-cookbooks/tree/main/account-scoring
-outcome: "Every account scored and tiered against your written ICP by an agent that cites its evidence, with the rationale on the CRM record"
-chain: 1
-state: to-be-approved
-approval:
-  demoWorkspace: null
-  implementations: []
 metadata:
   author: getcargo
   openclaw:
@@ -28,7 +22,7 @@ metadata:
 
 **State: to-be-approved.** Deploy-verified against a live workspace: not yet. Treat `Done when`
 below as the acceptance test and review `cargo-ai cdk plan` before deploying. Make no outcome claim
-for this cookbook until the frontmatter says `approved`.
+for this cookbook until it is approved.
 
 ## The outcome
 

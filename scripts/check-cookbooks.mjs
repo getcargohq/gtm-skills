@@ -7,10 +7,15 @@
 // There used to be a second file, cookbook.json, carrying the contract as
 // data. It was folded into SKILL.md on 2026-08-18: every reader of the
 // contract is an agent, and agents read markdown, so the JSON was a second
-// authored copy for a consumer that did not exist. What a gate genuinely
-// needs to be structured (kind, state, approval) lives in frontmatter, which
-// is YAML and therefore still checkable. `kind` lives in cargo.scaffold.json,
-// beside `requires`, because both are facts about the folder.
+// authored copy for a consumer that did not exist.
+//
+// SKILL.md is customer-facing: it is what `skills add` installs and what an
+// agent loads. So it carries only the standard skill frontmatter and the
+// contract. Cargo's own bookkeeping about a cookbook (kind, state, approval
+// evidence, chain position) lives in cargo.scaffold.json beside `requires`:
+// that file is the repo's manifest of folders, the CLI reads it and never
+// copies it, and its schema strips keys it does not know. A customer sees
+// one honest line in the body ("State: to-be-approved") and nothing else.
 //
 // The rules, and why each exists:
 //   - frontmatter parses as YAML: the installer skips a file that does not,
@@ -29,7 +34,9 @@
 //     stops a cookbook shipping with the adaptation model half written.
 //   - approved needs its evidence: a fresh-workspace date AND two
 //     implementations. The approval rule is the one thing standing between a
-//     launch post and a claim nobody tested.
+//     launch post and a claim nobody tested. The evidence sits in
+//     cargo.scaffold.json; the SKILL.md body must carry the to-be-approved
+//     banner exactly when the manifest says so, and must not once approved.
 import { readFileSync, existsSync, readdirSync, statSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -116,27 +123,43 @@ for (const [name, entry] of Object.entries(folders)) {
     errors.push(`${name}/SKILL.md description carries no "Triggers:" clause`);
   if (d && !/Skip when:/.test(d))
     errors.push(`${name}/SKILL.md description carries no "Skip when:" clause`);
-  if (!fm.outcome || String(fm.outcome).length < 20) {
+  for (const key of ["outcome", "chain", "state", "approval"]) {
+    if (key in fm) {
+      errors.push(
+        `${name}/SKILL.md frontmatter carries "${key}": that is Cargo bookkeeping and lives in cargo.scaffold.json, not in the customer-facing skill`,
+      );
+    }
+  }
+
+  // The manifest owns state and evidence; the customer file follows it.
+  const state = entry.state;
+  if (!["to-be-approved", "approved"].includes(state)) {
     errors.push(
-      `${name}/SKILL.md frontmatter needs an "outcome" line a user would recognise: it is what the menu renders`,
+      `cargo.scaffold.json folder "${name}" needs state: "to-be-approved" or "approved"`,
     );
   }
-  if (!["to-be-approved", "approved"].includes(fm.state)) {
-    errors.push(
-      `${name}/SKILL.md frontmatter state must be "to-be-approved" or "approved"`,
-    );
-  }
-  if (fm.state === "approved") {
-    const a = fm.approval ?? {};
+  if (state === "approved") {
+    const a = entry.approval ?? {};
     if (!a.demoWorkspace)
       errors.push(
-        `${name} is marked approved but has no approval.demoWorkspace date`,
+        `${name} is marked approved but has no approval.demoWorkspace date in cargo.scaffold.json`,
       );
     if (!Array.isArray(a.implementations) || a.implementations.length < 2) {
       errors.push(
         `${name} is marked approved but lists ${a.implementations?.length ?? 0} implementations: the rule is two`,
       );
     }
+  }
+  const banner = /\*\*State: to-be-approved\.\*\*/.test(body);
+  if (state === "to-be-approved" && !banner) {
+    errors.push(
+      `${name}/SKILL.md must open with the "**State: to-be-approved.**" banner while cargo.scaffold.json says so: a customer reads this file`,
+    );
+  }
+  if (state === "approved" && banner) {
+    errors.push(
+      `${name}/SKILL.md still carries the to-be-approved banner but cargo.scaffold.json says approved`,
+    );
   }
   for (const section of REQUIRED_SECTIONS) {
     if (!body.includes(`\n${section}`)) {

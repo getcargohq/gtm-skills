@@ -48,8 +48,13 @@ Run `npm run typecheck` and `npm run format:check` locally before opening a PR.
    cookbooks it imports from, `base-gtm` at minimum). `node scripts/validate.mjs` enforces
    this.
 6. Add a row to the Cookbooks table in the root `README.md`.
-7. Give the folder a `kind` in `cargo.scaffold.json`: `outcome` for a use case
-   somebody installs on purpose, `foundation` for a slot others build on.
+7. Register the folder in `cargo.scaffold.json` with its `kind` (`outcome` for a
+   use case somebody installs on purpose, `foundation` for a slot others build
+   on) and, for an outcome, `state: "to-be-approved"` with an empty `approval`.
+   Approval evidence goes there too, when it exists: `demoWorkspace` (the date
+   every `Done when` line passed on a fresh workspace) and two `implementations`
+   (`{date, ref}`, where `ref` points at the internal record rather than naming
+   the customer in a public file).
 8. If it is an outcome, add a `SKILL.md` (see below) and at least one routing
    eval case in `evals/routing.jsonl`. `node scripts/validate.mjs` reports every outcome
    that still lacks a skill.
@@ -87,11 +92,15 @@ four fixed headings the validator checks for:
 - **`## Done when`**: the acceptance test, one checkable line each. This is what a
   fresh-workspace run walks to earn `approval.demoWorkspace`.
 
-The frontmatter carries what a gate genuinely needs to be structured, and it is
-YAML so it stays checkable: `outcome` (one line, what the menu renders), `chain`
-(step in the cookbook chain, or null), `state` (`to-be-approved` | `approved`),
-and `approval` (`demoWorkspace` date plus `implementations`, both required before
-`approved` passes). **Quote any frontmatter value containing a colon-space.**
+**The frontmatter is the standard skill frontmatter and nothing else** (`name`,
+`description`, `version`, `compatibility`, `homepage`, `metadata`). `SKILL.md`
+is customer-facing: `skills add` installs it and an agent loads it, so Cargo's own
+bookkeeping stays out. State, approval evidence and chain position live in
+`cargo.scaffold.json` beside `requires` and `kind`, which the CLI reads and never
+copies. The one thing a customer should see is the honest banner at the top of
+the body, `**State: to-be-approved.**`, and the validator requires it exactly
+while the manifest says so and refuses it once approved. **Quote any frontmatter
+value containing a colon-space.**
 Unquoted, YAML reads it as a nested mapping and `npx skills add` skips the whole
 file with a warning nobody reads. The validator catches it now; it did not on day
 one.

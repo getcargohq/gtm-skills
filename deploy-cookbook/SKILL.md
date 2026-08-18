@@ -173,8 +173,7 @@ produces nothing is the normal failure, because CDK resources reconcile happily 
 data behind them is right.
 
 If every check passes on a **fresh** workspace, say so explicitly. That is half the approval
-evidence a cookbook needs, and it is recorded in the cookbook's frontmatter under `approval` by a
-human, not by you.
+evidence a cookbook needs, and it is recorded in the cookbook repo by a human, not by you.
 
 ## 5. Record the install
 
@@ -198,8 +197,8 @@ the same session and two rows would double-count.
   path into an existing project.
 - Mark a cookbook approved. Approval needs a fresh-workspace test **and** two customer or partner
   implementations, and it is recorded by a person.
-- Claim an outcome for a cookbook whose `state` is `to-be-approved`. Every cookbook is
-  `to-be-approved` until the evidence is in its frontmatter, and most are.
+- Claim an outcome for a cookbook that opens with `State: to-be-approved.` Every cookbook does
+  until Cargo has tested it in a fresh workspace and two customers or partners have run it.
 - Violate a "should not change" line without telling the operator what breaks and getting an
   explicit yes.
 - Reshape the code and leave no `## Decisions` entry. Undocumented divergence is how a project
