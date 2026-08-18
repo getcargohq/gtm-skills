@@ -1,0 +1,26 @@
+{
+  "name": "cargo-cookbooks",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "types": "cargo-cdk types",
+    "typecheck": "tsc --noEmit",
+    "plan": "cargo-cdk plan",
+    "deploy": "cargo-cdk deploy",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "postinstall": "npm run types || echo 'skipped: cargo-cdk types needs a workspace (run `cargo-ai login`, then `npm run types`). Typecheck works without it.'"
+  },
+  "dependencies": {
+    "@cargo-ai/cdk": "^1.0.46",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "prettier": "^3.4.2",
+    "typescript": "^5.3.2",
+    "yaml": "^2.6.0"
+  }
+}

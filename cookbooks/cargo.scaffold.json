@@ -1,0 +1,178 @@
+{
+  "shared": ["package.json", "tsconfig.json", ".env.example", ".nvmrc"],
+  "folders": {
+    "base-gtm": {
+      "requires": [],
+      "kind": "foundation"
+    },
+    "crm-sync": {
+      "requires": ["base-gtm"],
+      "kind": "foundation",
+      "chain": 0
+    },
+    "tam-building": {
+      "requires": ["base-gtm"],
+      "kind": "outcome",
+      "state": "to-be-approved",
+      "approval": {
+        "demoWorkspace": null,
+        "implementations": []
+      },
+      "chain": 2
+    },
+    "list-building": {
+      "requires": ["base-gtm"],
+      "kind": "outcome",
+      "state": "to-be-approved",
+      "approval": {
+        "demoWorkspace": null,
+        "implementations": []
+      }
+    },
+    "signal-based-tam": {
+      "requires": ["base-gtm"],
+      "kind": "outcome",
+      "state": "to-be-approved",
+      "approval": {
+        "demoWorkspace": null,
+        "implementations": []
+      }
+    },
+    "inbound-flow": {
+      "requires": ["base-gtm", "crm-sync"],
+      "kind": "outcome",
+      "state": "to-be-approved",
+      "approval": {
+        "demoWorkspace": null,
+        "implementations": []
+      }
+    },
+    "gtm-knowledge-graph": {
+      "requires": ["base-gtm"],
+      "kind": "outcome",
+      "state": "to-be-approved",
+      "approval": {
+        "demoWorkspace": null,
+        "implementations": []
+      }
+    },
+    "research-agent": {
+      "requires": ["base-gtm", "gtm-knowledge-graph"],
+      "kind": "outcome",
+      "state": "to-be-approved",
+      "approval": {
+        "demoWorkspace": null,
+        "implementations": []
+      }
+    },
+    "mcp-copilot": {
+      "requires": ["research-agent"],
+      "kind": "outcome",
+      "state": "to-be-approved",
+      "approval": {
+        "demoWorkspace": null,
+        "implementations": []
+      }
+    },
+    "contact-sourcing": {
+      "requires": ["base-gtm", "crm-sync"],
+      "kind": "outcome",
+      "state": "to-be-approved",
+      "approval": {
+        "demoWorkspace": null,
+        "implementations": []
+      }
+    },
+    "routing-engine": {
+      "requires": ["base-gtm", "crm-sync"],
+      "kind": "outcome",
+      "state": "to-be-approved",
+      "approval": {
+        "demoWorkspace": null,
+        "implementations": []
+      }
+    },
+    "account-scoring": {
+      "requires": ["base-gtm", "crm-sync", "gtm-knowledge-graph"],
+      "kind": "outcome",
+      "state": "to-be-approved",
+      "approval": {
+        "demoWorkspace": null,
+        "implementations": []
+      },
+      "chain": 1
+    },
+    "auto-enrichment": {
+      "requires": ["base-gtm", "crm-sync"],
+      "kind": "outcome",
+      "state": "to-be-approved",
+      "approval": {
+        "demoWorkspace": null,
+        "implementations": []
+      }
+    },
+    "crm-button": {
+      "requires": ["base-gtm", "crm-sync"],
+      "kind": "outcome",
+      "state": "to-be-approved",
+      "approval": {
+        "demoWorkspace": null,
+        "implementations": []
+      }
+    },
+    "pipeline-health": {
+      "requires": ["base-gtm"],
+      "kind": "outcome",
+      "state": "to-be-approved",
+      "approval": {
+        "demoWorkspace": null,
+        "implementations": []
+      }
+    },
+    "closed-won-multiplier": {
+      "requires": ["base-gtm", "pipeline-health"],
+      "kind": "outcome",
+      "state": "to-be-approved",
+      "approval": {
+        "demoWorkspace": null,
+        "implementations": []
+      }
+    },
+    "meeting-prep": {
+      "requires": ["base-gtm", "crm-sync"],
+      "kind": "outcome",
+      "state": "to-be-approved",
+      "approval": {
+        "demoWorkspace": null,
+        "implementations": []
+      }
+    },
+    "ai-sdr": {
+      "requires": ["contact-sourcing", "research-agent"],
+      "kind": "outcome",
+      "state": "to-be-approved",
+      "approval": {
+        "demoWorkspace": null,
+        "implementations": []
+      }
+    },
+    "plg-motion": {
+      "requires": ["base-gtm", "crm-sync"],
+      "kind": "outcome",
+      "state": "to-be-approved",
+      "approval": {
+        "demoWorkspace": null,
+        "implementations": []
+      }
+    },
+    "rep-cockpit": {
+      "requires": ["account-scoring", "routing-engine", "ai-sdr"],
+      "kind": "outcome",
+      "state": "to-be-approved",
+      "approval": {
+        "demoWorkspace": null,
+        "implementations": []
+      }
+    }
+  }
+}

@@ -1,0 +1,7 @@
+node_modules/
+.cargo-ai/
+cargo.state.json
+package-lock.json
+**/package-lock.json
+**/apps/*/**
+**/workers/*/**
