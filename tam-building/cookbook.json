@@ -1,0 +1,55 @@
+{
+  "slug": "tam-building",
+  "kind": "outcome",
+  "outcome": "Your account universe built from a Sales Navigator company search, split past the 1,000 extraction cap and resolved to real domains",
+  "chain": 2,
+  "state": "to-be-approved",
+  "approval": { "demoWorkspace": null, "implementations": [] },
+  "inputs": [
+    {
+      "id": "marketSearch",
+      "kind": "manual",
+      "ask": "Paste the Sales Navigator company search that describes your whole market, however oversized it is",
+      "why": "This is the only input that cannot be derived: it encodes who you sell to. Everything else in this cookbook is arithmetic on top of it.",
+      "validate": "the URL is a linkedin.com/sales/search/company URL"
+    },
+    {
+      "id": "searchUrls",
+      "kind": "value",
+      "file": "tam-building/models/salesnav-companies.ts",
+      "path": "config.urls",
+      "type": "string[]",
+      "ask": "Which sub-searches should be extracted? (derived by counting and splitting the market search)",
+      "why": "A search holding 4,000 companies extracts 1,000 and tells you nothing about the missing 3,000. Splitting under the cap is the entire point of this cookbook.",
+      "derive": "cargo-ai orchestration action execute --action salesNavigator.searchCompanyMetrics --data '{\"url\":\"<marketSearch>\"}' returns total_results. Over the cap, split by facet (industry first, descending the LinkedIn taxonomy only where still oversized, then geography, then headcount band) and recount each sub-search until every one is under the cap.",
+      "validate": "every sub-search count is strictly below config.limit; a count equal to the cap means it is still truncated and must be split again"
+    },
+    {
+      "id": "limit",
+      "kind": "value",
+      "file": "tam-building/models/salesnav-companies.ts",
+      "path": "config.limit",
+      "type": "number",
+      "default": 1000,
+      "max": 1000,
+      "ask": "Extraction cap per sub-search (leave at 1000 unless you are deliberately sampling)",
+      "why": "This is the upstream cost control. Promotion is 1:1 with extraction, so what you extract is what you pay to enrich.",
+      "validate": "at or below 1000"
+    }
+  ],
+  "doneWhen": [
+    "the sub-search extractions sum to roughly the count of the original whole-market search",
+    "no sub-search returned exactly the cap, which would mean it is still truncated",
+    "promoted accounts appear in `accounts` with a website, deduped across overlapping sub-searches"
+  ],
+  "cost": {
+    "note": "Counting is a fraction of a credit and is the cheapest insurance here. Promotion is the expensive step: every promoted company costs two credited calls (matchBusiness + enrichBusinessFirmographics), because Sales Nav returns no domain and both are needed to resolve one. A 5,000-company TAM is roughly 10,000 enrichment calls.",
+    "scalesWith": "rows extracted, controlled upstream by config.limit and how many sub-search URLs are added. To spend less, extract less: start with one small sub-search, watch it land, then widen."
+  },
+  "composesInto": [
+    "list-building",
+    "contact-sourcing",
+    "account-scoring",
+    "signal-based-tam"
+  ]
+}

@@ -1,0 +1,46 @@
+{
+  "slug": "crm-sync",
+  "kind": "foundation",
+  "outcome": "The CRM slot: the one connector the CRM-dependent cookbooks read from and write back to",
+  "chain": 0,
+  "state": "to-be-approved",
+  "approval": { "demoWorkspace": null, "implementations": [] },
+  "inputs": [
+    {
+      "id": "crmIntegration",
+      "kind": "value",
+      "file": "crm-sync/connectors/hubspot.ts",
+      "path": "integration",
+      "type": "string",
+      "default": "hubspot",
+      "ask": "Which CRM holds your accounts and contacts?",
+      "why": "The downstream contract is only the two models in base-gtm, so swapping this is a one-line change. Getting it wrong means every dependent cookbook writes into a system nobody reads.",
+      "derive": "cargo-ai connection list: if exactly one of hubspot / salesforce / attio is already authenticated in this workspace, that is the answer",
+      "validate": "the chosen integration appears in the connector catalog and is authenticated"
+    },
+    {
+      "id": "crmToken",
+      "kind": "env",
+      "env": "HUBSPOT_API_KEY",
+      "ask": "Set the CRM credential in .env before deploy (HUBSPOT_API_KEY for a HubSpot private app)",
+      "why": "secret() reads it at deploy time and keeps it out of the content hash, so rotating the token does not read as drift. Deploy fails without it.",
+      "validate": "the variable is non-empty in the deploying environment; never print or store its value"
+    }
+  ],
+  "doneWhen": [
+    "the CRM connector shows as authenticated in the workspace",
+    "a dependent cookbook's write-back lands on a real CRM record"
+  ],
+  "cost": {
+    "note": "The connector itself is free. Reads and writes through it are billed by the dependent cookbook, not here."
+  },
+  "composesInto": [
+    "account-scoring",
+    "contact-sourcing",
+    "routing-engine",
+    "auto-enrichment",
+    "inbound-flow",
+    "plg-motion",
+    "ai-sdr"
+  ]
+}
