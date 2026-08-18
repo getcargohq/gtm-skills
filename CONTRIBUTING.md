@@ -20,17 +20,17 @@ clone.
 
 ## Checks
 
-| Command                    | What it does                                               |
-| -------------------------- | ---------------------------------------------------------- |
-| `npm run validate`         | the scaffold graph, the skill layer, and the routing evals |
-| `npm run validate:routing` | cookbook descriptions graded against cargo-skills' 17      |
-| `npm run typecheck`        | `tsc --noEmit` (needs generated types — run locally)       |
-| `npm run format`           | Prettier write                                             |
-| `npm run format:check`     | Prettier check                                             |
-| `npm run plan`             | dry-run the resource graph against your workspace          |
+| Command                         | What it does                                                                                                                                                                                                                             |
+| ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `node scripts/validate.mjs`     | the scaffold graph, the skill layer, and the routing evals. Not an npm script on purpose: `package.json` ships to every scaffolded project and `scripts/` does not, so `npm run validate` there used to fail on the customer's first day |
+| `node scripts/routing-eval.mjs` | cookbook descriptions graded against cargo-skills' 17 (`--llm` for the model tier)                                                                                                                                                       |
+| `npm run typecheck`             | `tsc --noEmit` (needs generated types — run locally)                                                                                                                                                                                     |
+| `npm run format`                | Prettier write                                                                                                                                                                                                                           |
+| `npm run format:check`          | Prettier check                                                                                                                                                                                                                           |
+| `npm run plan`                  | dry-run the resource graph against your workspace                                                                                                                                                                                        |
 
-CI runs `npm run validate` and `npm run typecheck`: both work without a live workspace.
-The routing evals inside `validate` need a `cargo-skills` checkout beside this repo and
+CI runs `node scripts/validate.mjs` and `npm run typecheck`: both work without a live workspace.
+The routing evals inside it need a `cargo-skills` checkout beside this repo and
 skip with a message when it is absent, so a bare clone still passes.
 Run `npm run typecheck` and `npm run format:check` locally before opening a PR.
 
@@ -45,13 +45,13 @@ Run `npm run typecheck` and `npm run format:check` locally before opening a PR.
 4. Add a `README.md` stating the cookbook's resource graph, placeholders, and a
    "done when" check.
 5. Register the folder in `cargo.scaffold.json` with its `requires` (the sibling
-   cookbooks it imports from, `base-gtm` at minimum). `npm run validate` enforces
+   cookbooks it imports from, `base-gtm` at minimum). `node scripts/validate.mjs` enforces
    this.
 6. Add a row to the Cookbooks table in the root `README.md`.
 7. Give the folder a `kind` in `cargo.scaffold.json`: `outcome` for a use case
    somebody installs on purpose, `foundation` for a slot others build on.
 8. If it is an outcome, add a `SKILL.md` (see below) and at least one routing
-   eval case in `evals/routing.jsonl`. `npm run validate` reports every outcome
+   eval case in `evals/routing.jsonl`. `node scripts/validate.mjs` reports every outcome
    that still lacks a skill.
 
 ## SKILL.md: the contract and the discovery surface in one file

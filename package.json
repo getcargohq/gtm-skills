@@ -10,14 +10,12 @@
     "typecheck": "tsc --noEmit",
     "plan": "cargo-cdk plan",
     "deploy": "cargo-cdk deploy",
-    "validate": "node scripts/check-scaffold.mjs && node scripts/check-cookbooks.mjs && node scripts/routing-eval.mjs",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "postinstall": "npm run types || echo 'skipped: cargo-cdk types needs a workspace (run `cargo-ai login`, then `npm run types`). Typecheck works without it.'",
-    "validate:routing": "node scripts/routing-eval.mjs"
+    "postinstall": "npm run types || echo 'skipped: cargo-cdk types needs a workspace (run `cargo-ai login`, then `npm run types`). Typecheck works without it.'"
   },
   "dependencies": {
-    "@cargo-ai/cdk": "^1.0.28",
+    "@cargo-ai/cdk": "^1.0.46",
     "zod": "^4.4.3"
   },
   "devDependencies": {

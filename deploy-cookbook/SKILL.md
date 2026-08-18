@@ -74,11 +74,19 @@ cargo-ai manifest add <slug> --dir .        # a plain CDK project (resources at 
 cargo-ai manifest add <slug>                # a Manifest repo (resources under infra/, the default)
 ```
 
+**`--dir` defaults to `infra/`.** In a plain CDK project (resources at the root, no `infra/`)
+that lands the cookbook in a folder nothing imports from. Pass `--dir .` there; the tell is
+`package.json` depending on `@cargo-ai/cdk` with no `infra/` beside it.
+
+`.env.example` is kept if it exists, like every other file, so a new cookbook's variables do not
+land in it. Append the ones the cookbook needs by hand; never overwrite the file.
+
 `manifest add` is copy-in: the required siblings come along, **files that already exist are kept**,
 and every installed file's source, ref and content hash is recorded in `manifest.json`. A folder
-that is already present is theirs, not ours: they may have adapted it, and the hashes are how a
-later `add --diff` shows what diverged. Say which required siblings you found already there and
-are assuming are fitted.
+that is already present is theirs, not ours: they may have adapted it. The hashes are a ledger of
+what was installed at which ref; there is no upstream diff command yet, so comparing against a
+newer cookbook is a manual `git diff` against a fresh scaffold. Say which required siblings you
+found already there and are assuming are fitted.
 
 **Never `cargo-ai cdk init --force` into a directory that is not empty.** Measured on 2026-08-18
 against a live project: it replaced `package.json` (name, scripts, dependencies) and reverted an
@@ -132,8 +140,8 @@ listed under the table is run before you move on, not after the deploy.
 ### Record what you changed
 
 Append a `## Decisions` section to the project's copy of `<slug>/SKILL.md`: what changed, why, the
-variation name if it was one the cookbook anticipated, and the date. `manifest.json` already
-records which files diverged from upstream, by hash; this records the reason. It is the only thing
+variation name if it was one the cookbook anticipated, and the date. `manifest.json` records
+which files were installed and at what hash; this records why any of them changed. It is the only thing
 that will tell somebody in six months why their code differs from the cookbook it came from. Write
 it as you go, not from memory at the end.
 

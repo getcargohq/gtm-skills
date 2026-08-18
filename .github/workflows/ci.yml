@@ -31,6 +31,6 @@ jobs:
           path: .cargo-skills
         continue-on-error: true
       - name: Validate cookbook scaffold, skill layer, and routing
-        run: npm run validate
+        run: node scripts/validate.mjs
         env:
           CARGO_SKILLS_ROOT: .cargo-skills
