@@ -1,9 +1,0 @@
-node_modules/
-cargo.state.json
-.cargo-ai/
-.env
-.env.local
-.env.*.local
-
-# routing-eval corpus, checked out in CI (see .github/workflows/ci.yml)
-.cargo-skills/

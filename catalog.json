@@ -1,0 +1,492 @@
+{
+  "source": "getcargohq/gtm-skills",
+  "skills": [
+    {
+      "name": "account-scoring",
+      "kind": "cdk-example",
+      "job": "Keep every account scored and tiered against your written ICP by a deployed agent that re-scores as accounts arrive and as the ICP changes, writing the rationale back to the CRM.",
+      "description": "Keep every account scored and tiered against your written ICP by a deployed agent that re-scores as accounts arrive and as the ICP changes, writing the rationale back to the CRM. Triggers: \"keep our accounts scored as they arrive\", \"re-score everything when the ICP changes\", \"which accounts should the team work first\", \"our scoring is a spreadsheet nobody trusts\", \"why is this account tier A\", \"stand up account tiering\". Cargo CDK, defineAgent, cargo_score, cargo_tier, HubSpot, Salesforce, Attio. Skip when: someone hands you a list and wants it qualified once, which is cargo-gtm's job, not a deployed scorer's.",
+      "version": "0.2.0",
+      "homepage": "https://github.com/getcargohq/gtm-skills/tree/main/account-scoring",
+      "group": "Make it run forever",
+      "install": "npx skills add getcargohq/gtm-skills/account-scoring",
+      "partOf": [],
+      "state": "to-be-approved",
+      "chain": 1,
+      "resources": [
+        "agents",
+        "connectors",
+        "context",
+        "folders",
+        "models",
+        "plays",
+        "segments"
+      ],
+      "asked": [
+        {
+          "input": "icp` (`context/icp.md`)",
+          "kind": "generated",
+          "how": "**derived**: If the workspace already has closed-won and closed-lost data, extract the industry, size, geography and stack that separate won from lost accounts and propose the ICP from it rather than asking cold.",
+          "why": "The criteria ARE the prompt. There are no point weights in code, so a vague ICP produces vague scores and the disqualifiers are what cap a bad account at 20."
+        },
+        {
+          "input": "languageModel` (`agents/scorer.ts`)",
+          "kind": "value",
+          "how": "**derived**: whichever LLM connector is already authenticated in the workspace",
+          "why": "Scoring quality and per-account cost both live here."
+        },
+        {
+          "input": "crmScoreProperties",
+          "kind": "manual",
+          "how": "**derived**: read the CRM's account schema through the CRM connector and report which of the four are missing",
+          "why": "The play writes all four back. If they do not exist the run looks successful and the scores land nowhere, which is the failure mode that wastes a whole batch."
+        },
+        {
+          "input": "tierThresholds` (`segments/tiers.ts`)",
+          "kind": "value",
+          "how": "**asked**",
+          "why": "The agent emits A, B and C but the skill ships segments for A and C only. Tier B accounts land in no segment unless you add one."
+        }
+      ],
+      "canChange": [
+        {
+          "id": "deterministic-scoring",
+          "when": "You need fixed cost and exact reproducibility, or an LLM judgement is not acceptable to your team",
+          "how": "Swap the agent call for the native `scoring` node, with criteria as {name, value, score} booleans in the workflow (`agents/scorer.ts`, `plays/score-accounts.ts`)",
+          "cost": "The criteria move out of the ICP markdown and into code, so they stop being reviewable by non-engineers, and you lose the rationale entirely"
+        },
+        {
+          "id": "skip-crm-roundtrip",
+          "when": "You want the score on the model directly and do not need it visible in the CRM",
+          "how": "Write with the platform's `native.modelUpsert({...})` in the workflow instead of going through the CRM connector (`plays/score-accounts.ts`)",
+          "cost": "Reps lose the score and rationale where they actually work. The native's input is untyped, so confirm the field shape on the first run"
+        },
+        {
+          "id": "no-crm-at-all",
+          "when": "You have no CRM, or you do not want to hand this skill a CRM credential",
+          "how": "Take `skip-crm-roundtrip`, then delete `connectors/hubspot.ts` so no CRM connector is registered",
+          "cost": "Every other CRM-dependent skill you install later brings a CRM connector of its own; reuse one"
+        }
+      ],
+      "shouldNotChange": [
+        "**The scorer looks the account up before judging it.** (`agents/scorer.ts`) A score guessed from the domain name is unfalsifiable and the rationale cites nothing. The evaluator exists to fail exactly this, and a book scored that way is worse than an unscored one because people trust it.",
+        "**ICP disqualifiers cap the score, they are not just negative weight.** (`agents/scorer.ts`) Without a cap, a disqualified account with many fit signals still scores high and reaches a rep. The disqualifiers are the half of an ICP that actually protects the team's time.",
+        "**`cargo_score` and `cargo_tier` are selected as columns on the accounts model.** (`segments/tiers.ts`) The tier segments filter on a column they cannot see, so they come back empty while everything upstream reports success.",
+        "**Every tier the scorer can emit is either covered by a segment or excluded on purpose.** (`segments/tiers.ts`) The shipped segments cover A and C. The agent also emits B, so tier B accounts land nowhere and quietly disappear from the book."
+      ],
+      "doneWhen": [
+        "a test account run shows the agent's lookups in the trace, not a score guessed from the domain name",
+        "the CRM record carries a score with a rationale citing real evidence and named ICP criteria",
+        "the evaluator scores at least 0.8",
+        "after the next model refresh the account appears in the matching tier segment"
+      ],
+      "cost": "One LLM call plus up to two Cargo database calls (`matchBusiness`,\n`enrichBusinessFirmographics`) per account, on arrival and again on the weekly sweep of accounts\nlast scored three or more months ago. It scales with accounts in the model times re-scores, so a\nTAM built by `tam-building` scores at that size. Score a sample before the book.",
+      "composesInto": "`routing-engine` (territories and capacity over the scored book), `rep-cockpit`, `ai-sdr`."
+    },
+    {
+      "name": "apollo-to-cargo",
+      "kind": "run-once",
+      "job": "Rebuild an Apollo list on Cargo and price the two side by side before you move anything, powered by Cargo.",
+      "description": "Rebuild an Apollo list on Cargo and price the two side by side before you move anything, powered by Cargo. Triggers: \"Apollo alternative\", \"migrate off Apollo\", \"move my Apollo list to Cargo\", \"replace Apollo.io\", \"I have an Apollo export\", \"Apollo credits ran out\", \"is Cargo cheaper than Apollo\", \"Apollo coverage is bad in my niche\". Providers: apolloio, waterfall. Skip when: you are porting a Clay table rather than an Apollo list — use clay-to-cargo; or you simply want contacts sourced and have nothing to migrate — use find-b2b-leads.",
+      "version": "1.0.0",
+      "homepage": "https://github.com/getcargohq/gtm-skills",
+      "group": "Coming from another tool",
+      "install": "npx skills add getcargohq/gtm-skills/apollo-to-cargo",
+      "partOf": []
+    },
+    {
+      "name": "build-tam-list",
+      "kind": "run-once",
+      "job": "Build a total addressable market list of companies filtered by industry, headcount, and geography, powered by Cargo.",
+      "description": "Build a total addressable market list of companies filtered by industry, headcount, and geography, powered by Cargo. Triggers: \"build a TAM list\", \"how many companies match our ICP\", \"list every SaaS company in Europe under 200 employees\", \"size our addressable market\", \"find target accounts\", \"list building\", \"build a list of companies\". Providers: salesNavigator. Skip when: you want the people at those companies — use find-b2b-leads or find-stakeholders; or you want companies by tech stack — use find-companies-using-tech.",
+      "version": "1.1.0",
+      "homepage": "https://github.com/getcargohq/gtm-skills",
+      "group": "Find the accounts and the people",
+      "install": "npx skills add getcargohq/gtm-skills/build-tam-list",
+      "partOf": []
+    },
+    {
+      "name": "clay-to-cargo",
+      "kind": "run-once",
+      "job": "Rebuild a Clay table on Cargo, powered by Cargo — map every Clay enrichment column to its provider action, price the run before it happens, and keep the result as version-controlled code instead of a spreadsheet.",
+      "description": "Rebuild a Clay table on Cargo, powered by Cargo — map every Clay enrichment column to its provider action, price the run before it happens, and keep the result as version-controlled code instead of a spreadsheet. Triggers: \"migrate from Clay\", \"move my Clay table to Cargo\", \"Clay alternative\", \"replace Clay\", \"I have a Clay export\", \"what does Clay's enrichment column map to\", \"my Clay bill is too high\", \"Clay but as code\". Migration, mapping, parity, spreadsheet, declarative. Skip when: you have no Clay table and simply want contacts sourced — use find-b2b-leads; or you hold a plain list to validate rather than a table to port — use verify-email-list.",
+      "version": "1.0.0",
+      "homepage": "https://github.com/getcargohq/gtm-skills",
+      "group": "Coming from another tool",
+      "install": "npx skills add getcargohq/gtm-skills/clay-to-cargo",
+      "partOf": []
+    },
+    {
+      "name": "crm-enrichment",
+      "kind": "run-once",
+      "job": "Backfill the empty fields on CRM records so routing, scoring and territory assignment stop failing on blanks, powered by Cargo.",
+      "description": "Backfill the empty fields on CRM records so routing, scoring and territory assignment stop failing on blanks, powered by Cargo. Triggers: \"CRM enrichment\", \"enrich my CRM\", \"my CRM records are half empty\", \"fill in missing fields in HubSpot\", \"clean up the CRM data\", \"our Salesforce contacts have no titles\", \"CRM data quality\", \"CRM hygiene\", \"backfill blank fields\". Providers: enrichCrm. Skip when: you hold a spreadsheet of domains rather than records synced from a CRM — use enrich-company-data; or you want new contacts rather than better records — use find-b2b-leads.",
+      "version": "1.0.0",
+      "homepage": "https://github.com/getcargohq/gtm-skills",
+      "group": "Get the contact data",
+      "install": "npx skills add getcargohq/gtm-skills/crm-enrichment",
+      "partOf": []
+    },
+    {
+      "name": "enrich-company-data",
+      "kind": "run-once",
+      "job": "Enrich a list of companies with firmographics — industry, size, geography, founding year, and headquarters, powered by Cargo.",
+      "description": "Enrich a list of companies with firmographics — industry, size, geography, founding year, and headquarters, powered by Cargo. Triggers: \"enrich these companies\", \"add company size and industry to my list\", \"get firmographics for these domains\", \"fill in company data\", \"company enrichment\", \"enrich companies\", \"what sector is this business in\", \"how big is this organisation\". Providers: cargo. Skip when: you want funding history — use track-funding-rounds; or tech stack — use find-companies-using-tech.",
+      "version": "1.1.0",
+      "homepage": "https://github.com/getcargohq/gtm-skills",
+      "group": "Get the contact data",
+      "install": "npx skills add getcargohq/gtm-skills/enrich-company-data",
+      "partOf": []
+    },
+    {
+      "name": "enrich-linkedin-profile",
+      "kind": "run-once",
+      "job": "Turn a LinkedIn profile URL into a full person profile plus a verified work email in a single call, powered by Cargo.",
+      "description": "Turn a LinkedIn profile URL into a full person profile plus a verified work email in a single call, powered by Cargo. Triggers: \"enrich these LinkedIn profiles\", \"get details from this LinkedIn URL\", \"I have LinkedIn URLs and need emails\", \"enrich LinkedIn data\", \"who is this person\", \"contact enrichment\", \"linkedin enrichment\", \"get their headline and tenure\", \"pull the whole biography\". Providers: aiArk. Skip when: you do not have the LinkedIn URL yet — use find-linkedin-url first; or you only have a name and domain — use find-work-email.",
+      "version": "1.1.0",
+      "homepage": "https://github.com/getcargohq/gtm-skills",
+      "group": "Get the contact data",
+      "install": "npx skills add getcargohq/gtm-skills/enrich-linkedin-profile",
+      "partOf": []
+    },
+    {
+      "name": "find-b2b-leads",
+      "kind": "run-once",
+      "job": "Find B2B leads by job title, company, and keyword, and return them as a structured list, powered by Cargo.",
+      "description": "Find B2B leads by job title, company, and keyword, and return them as a structured list, powered by Cargo. Triggers: \"find 50 VPs of Sales at fintech companies\", \"build me a list of leads\", \"who are the heads of engineering at Series B startups\", \"get me prospects matching this profile\", \"source leads for my outbound\", \"build a b2b lead list\", \"lead sourcing\". Providers: salesNavigator. Skip when: you need companies rather than people — use build-tam-list; or you already have the people and need contact details — use find-work-email.",
+      "version": "1.1.0",
+      "homepage": "https://github.com/getcargohq/gtm-skills",
+      "group": "Find the accounts and the people",
+      "install": "npx skills add getcargohq/gtm-skills/find-b2b-leads",
+      "partOf": []
+    },
+    {
+      "name": "find-companies-using-tech",
+      "kind": "run-once",
+      "job": "Find companies by the technology they run or the roles they are hiring for, powered by Cargo.",
+      "description": "Find companies by the technology they run or the roles they are hiring for, powered by Cargo. Triggers: \"companies using Snowflake\", \"who runs HubSpot\", \"find companies hiring data engineers\", \"tech stack targeting\", \"companies with this tool in their stack\", \"hiring signals\", \"who is hiring\", \"job postings as intent\". Providers: theirStack. Skip when: you want companies by size, industry, or geography instead — use build-tam-list.",
+      "version": "1.1.0",
+      "homepage": "https://github.com/getcargohq/gtm-skills",
+      "group": "Watch for the moment to reach out",
+      "install": "npx skills add getcargohq/gtm-skills/find-companies-using-tech",
+      "partOf": []
+    },
+    {
+      "name": "find-linkedin-url",
+      "kind": "run-once",
+      "job": "Resolve a person's LinkedIn profile URL from their name and company, with an identity-validation gate that rejects wrong matches, powered by Cargo.",
+      "description": "Resolve a person's LinkedIn profile URL from their name and company, with an identity-validation gate that rejects wrong matches, powered by Cargo. Triggers: \"find the LinkedIn for John Smith at Acme\", \"get LinkedIn URLs for these contacts\", \"what's this person's LinkedIn\", \"add LinkedIn profiles to my list\". Providers: linkedin. Skip when: you already have the LinkedIn URL and want the profile data — use enrich-linkedin-profile.",
+      "version": "1.0.0",
+      "homepage": "https://github.com/getcargohq/gtm-skills",
+      "group": "Get the contact data",
+      "install": "npx skills add getcargohq/gtm-skills/find-linkedin-url",
+      "partOf": []
+    },
+    {
+      "name": "find-portfolio-companies",
+      "kind": "run-once",
+      "job": "Find every portfolio company of an investor or accelerator, then the people inside them, powered by Cargo.",
+      "description": "Find every portfolio company of an investor or accelerator, then the people inside them, powered by Cargo. Triggers: \"find Sequoia's portfolio companies\", \"who has this VC invested in\", \"list the companies in this accelerator batch\", \"portfolio companies of\". Providers: peopleDataLabs. Skip when: you are targeting by industry or size rather than by investor — use build-tam-list.",
+      "version": "1.0.0",
+      "homepage": "https://github.com/getcargohq/gtm-skills",
+      "group": "Find the accounts and the people",
+      "install": "npx skills add getcargohq/gtm-skills/find-portfolio-companies",
+      "partOf": []
+    },
+    {
+      "name": "find-stakeholders",
+      "kind": "run-once",
+      "job": "Find the buying committee at a target account — every stakeholder matching a set of titles, seniorities, and departments, powered by Cargo.",
+      "description": "Find the buying committee at a target account — every stakeholder matching a set of titles, seniorities, and departments, powered by Cargo. Triggers: \"find the buying committee at Acme\", \"who are the decision makers at this company\", \"find stakeholders\", \"multi-thread this account\", \"who else should I be talking to at this account\". Providers: aiArk. Skip when: you are sourcing across many companies rather than going deep on a few — use find-b2b-leads.",
+      "version": "1.0.0",
+      "homepage": "https://github.com/getcargohq/gtm-skills",
+      "group": "Find the accounts and the people",
+      "install": "npx skills add getcargohq/gtm-skills/find-stakeholders",
+      "partOf": []
+    },
+    {
+      "name": "find-work-email",
+      "kind": "run-once",
+      "job": "Find a verified work email address from a person's name and company domain, powered by Cargo.",
+      "description": "Find a verified work email address from a person's name and company domain, powered by Cargo. Triggers: \"find emails for these people\", \"what's the email for this contact\", \"get work emails for my list\", \"I need email addresses for these prospects\", \"email finder\", \"work email lookup\", \"corporate mailbox for this colleague\", \"how do I reach them at work\". Providers: prospeo, FullEnrich. Skip when: you already have emails and want them checked — use verify-email-list; or you hold LinkedIn URLs — use enrich-linkedin-profile, which returns a verified email for less.",
+      "version": "1.1.0",
+      "homepage": "https://github.com/getcargohq/gtm-skills",
+      "group": "Get the contact data",
+      "install": "npx skills add getcargohq/gtm-skills/find-work-email",
+      "partOf": []
+    },
+    {
+      "name": "monitor-buying-signals",
+      "kind": "run-once",
+      "job": "Watch a list of target accounts for the public events that mean someone is in market, powered by Cargo — hiring for the role you sell into, saying something new, or turning up in a detection feed, each with a date and a link.",
+      "description": "Watch a list of target accounts for the public events that mean someone is in market, powered by Cargo — hiring for the role you sell into, saying something new, or turning up in a detection feed, each with a date and a link. Triggers: \"tell me when these accounts do something\", \"what changed at my target accounts\", \"who is in market right now\", \"set up intent monitoring\", \"watch these companies for me\", \"any triggers on this list\". Intent, triggers, watchlist, timing, freshness. Skip when: you have no account list yet — use build-tam-list; or you want a verdict on fit rather than on timing — use score-leads.",
+      "version": "1.0.0",
+      "homepage": "https://github.com/getcargohq/gtm-skills",
+      "group": "Watch for the moment to reach out",
+      "install": "npx skills add getcargohq/gtm-skills/monitor-buying-signals",
+      "partOf": []
+    },
+    {
+      "name": "research-account",
+      "kind": "run-once",
+      "job": "Research one company before a meeting and hand back a briefing, powered by Cargo — what it does, what it publicly says is hard right now, and who it names as competition, each line traceable to where it came from.",
+      "description": "Research one company before a meeting and hand back a briefing, powered by Cargo — what it does, what it publicly says is hard right now, and who it names as competition, each line traceable to where it came from. Triggers: \"research this company\", \"brief me on this account\", \"prep me for this meeting\", \"what should I know about them\", \"write me a one-pager on\", \"what are they struggling with\", \"who do they compete with\". Meeting prep, briefing, dossier, talking points. Skip when: you want many companies filtered rather than one understood — use build-tam-list; or you want the people to contact there — use find-stakeholders.",
+      "version": "1.0.0",
+      "homepage": "https://github.com/getcargohq/gtm-skills",
+      "group": "Decide who is worth the time",
+      "install": "npx skills add getcargohq/gtm-skills/research-account",
+      "partOf": []
+    },
+    {
+      "name": "score-leads",
+      "kind": "run-once",
+      "job": "Score a list of companies against your ideal customer profile and rank them, powered by Cargo — every row gets a number, the reason behind it, and a tier, so the bottom of the list can be dropped before anyone spends time on it.",
+      "description": "Score a list of companies against your ideal customer profile and rank them, powered by Cargo — every row gets a number, the reason behind it, and a tier, so the bottom of the list can be dropped before anyone spends time on it. Triggers: \"score these leads\", \"which of these fit our ICP\", \"rank this list\", \"prioritise these accounts\", \"who should we go after first\", \"disqualify the bad ones\", \"tier this list\". Firmographic fit, thresholds, tiering, prioritisation. Skip when: you have no list yet and need one built — use build-tam-list or find-b2b-leads; or you want people inside an account rather than a verdict on the account — use find-stakeholders.",
+      "version": "1.0.0",
+      "homepage": "https://github.com/getcargohq/gtm-skills",
+      "group": "Decide who is worth the time",
+      "install": "npx skills add getcargohq/gtm-skills/score-leads",
+      "partOf": []
+    },
+    {
+      "name": "tam-building",
+      "kind": "cdk-example",
+      "job": "Stand up your account universe as a deployed pipeline: a Sales Navigator company search split past the 1,000 extraction cap, resolved to real domains, deduped into a shared accounts model.",
+      "description": "Stand up your account universe as a deployed pipeline: a Sales Navigator company search split past the 1,000 extraction cap, resolved to real domains, deduped into a shared accounts model. Triggers: \"our TAM is a stale CSV\", \"build our account universe\", \"the search has more companies than it will export\", \"keep our market list current\", \"size our market then load it\". Cargo CDK, salesNavigator, searchCompanyMetrics, fetchAccountSearch, accounts model. Skip when: you want the list once rather than a pipeline that keeps producing it, which is cargo-gtm's build-tam recipe.",
+      "version": "0.2.0",
+      "homepage": "https://github.com/getcargohq/gtm-skills/tree/main/tam-building",
+      "group": "Make it run forever",
+      "install": "npx skills add getcargohq/gtm-skills/tam-building",
+      "partOf": [],
+      "state": "to-be-approved",
+      "chain": 2,
+      "resources": [
+        "connectors",
+        "folders",
+        "models",
+        "plays"
+      ],
+      "asked": [
+        {
+          "input": "marketSearch",
+          "kind": "manual",
+          "how": "**checked, not written**: Paste the Sales Navigator company search that describes your whole market, however oversized it is",
+          "why": "This is the only input that cannot be derived: it encodes who you sell to. Everything else in this skill is arithmetic on top of it."
+        },
+        {
+          "input": "searchUrls` (`models/salesnav-companies.ts`)",
+          "kind": "value",
+          "how": "**derived**: cargo-ai orchestration action execute --action salesNavigator.searchCompanyMetrics --data '{\"url\":\"<marketSearch>\"}' returns total_results. Over the cap, split by facet (industry first, descending the LinkedIn taxonomy only where still oversized, then geography, then headcount band) and recount each sub-search until every one is under the cap.",
+          "why": "A search holding 4,000 companies extracts 1,000 and tells you nothing about the missing 3,000. Splitting under the cap is the entire point of this skill."
+        },
+        {
+          "input": "limit` (`models/salesnav-companies.ts`)",
+          "kind": "value",
+          "how": "defaults to `1000`; ask only to change it",
+          "why": "This is the upstream cost control. Promotion is 1:1 with extraction, so what you extract is what you pay to enrich."
+        }
+      ],
+      "canChange": [
+        {
+          "id": "non-linkedin-source",
+          "when": "You do not want to source from LinkedIn at all, or Sales Nav does not cover your market",
+          "how": "Swap the Sales Nav connector and landing model for the Ark enrichment API (https://ai-ark.com/platform/enrichment-api), keeping `promote-to-accounts` and the `accounts` contract unchanged (`models/salesnav-companies.ts`, `connectors/sales-navigator.ts`)",
+          "cost": "You lose the Sales Nav facet taxonomy that makes the split tactic mechanical, and the splitting has to be redesigned around the new source's own limits"
+        },
+        {
+          "id": "land-without-promoting",
+          "when": "You want to see and filter the raw market before paying to enrich it",
+          "how": "Deploy the landing model only and leave `promote-to-accounts` out until you have decided which rows are worth promoting (`plays/promote-to-accounts.ts`)",
+          "cost": "Nothing reaches `accounts`, so no downstream skill (scoring, contact sourcing, signals) has anything to work with until you promote"
+        },
+        {
+          "id": "sample-first",
+          "when": "The market search is large and you want to see the cost curve before committing",
+          "how": "Set `config.limit` well below the cap and start with one sub-search URL, then widen once rows land correctly (`models/salesnav-companies.ts`)",
+          "cost": "Your TAM is deliberately incomplete until you widen it, so do not score or report on coverage from a sample"
+        }
+      ],
+      "shouldNotChange": [
+        "**Every company is resolved to a real domain before it is promoted into `accounts`.** (`plays/promote-to-accounts.ts`) The shared `accounts` model keys on `website`. A domainless account cannot be deduped, so it forks into duplicates the first time the same company appears in another list. This is why a row that cannot be resolved is dropped rather than written.",
+        "**Every search is counted before it is extracted.** (`models/salesnav-companies.ts`) Extracting blind is how you take a silently truncated list: the search holds 4,000 companies, the extractor takes 1,000, and nothing tells you the rest exist.",
+        "**No sub-search sits at or above the extraction cap.** (`models/salesnav-companies.ts`) A search returning exactly the cap is truncated. That is the failure this whole skill exists to prevent, and it is invisible unless you check the number."
+      ],
+      "doneWhen": [
+        "the sub-search extractions sum to roughly the count of the original whole-market search",
+        "no sub-search returned exactly the cap, which would mean it is still truncated",
+        "promoted accounts appear in `accounts` with a website, deduped across overlapping sub-searches"
+      ],
+      "cost": "Counting is a fraction of a credit and is the cheapest insurance here. **Promotion is the\nexpensive step:** every promoted company costs two credited calls (`matchBusiness` +\n`enrichBusinessFirmographics`), because Sales Nav returns no domain and both are needed to resolve\none. A 5,000-company TAM is roughly 10,000 enrichment calls. That is the price of the outcome, not\nwaste, but it is real money and it should be spent on purpose.\n\nThe control is upstream, where the rows are created: `config.limit` and how many sub-search URLs\nyou add. **To spend less, extract less.** Start with one small sub-search, watch it land correctly,\nthen widen.",
+      "composesInto": "`list-building` (the same split tactic for people), `contact-sourcing` (the buyers at every account\nyou just built), `account-scoring`, `signal-based-tam` (watch the universe you just built)."
+    },
+    {
+      "name": "track-funding-rounds",
+      "kind": "run-once",
+      "job": "Track which companies recently raised funding, with round, amount, and investors, powered by Cargo.",
+      "description": "Track which companies recently raised funding, with round, amount, and investors, powered by Cargo. Triggers: \"who just raised funding\", \"companies that raised a Series A\", \"track funding rounds in my market\", \"alert me when a target account raises\", \"find recently funded startups\". Providers: cargo. Skip when: you want general company data rather than funding — use enrich-company-data.",
+      "version": "1.0.0",
+      "homepage": "https://github.com/getcargohq/gtm-skills",
+      "group": "Watch for the moment to reach out",
+      "install": "npx skills add getcargohq/gtm-skills/track-funding-rounds",
+      "partOf": []
+    },
+    {
+      "name": "track-job-changes",
+      "kind": "run-once",
+      "job": "Detect which of your contacts have changed jobs, and where they went, powered by Cargo.",
+      "description": "Detect which of your contacts have changed jobs, and where they went, powered by Cargo. Triggers: \"who changed jobs\", \"track job changes in my CRM\", \"did any of my contacts move companies\", \"alert me when a champion leaves\", \"find people who recently started a new role\", \"job changes\", \"job change signals\". Providers: waterfall. Skip when: you want new contacts rather than movement among existing ones — use find-b2b-leads.",
+      "version": "1.1.0",
+      "homepage": "https://github.com/getcargohq/gtm-skills",
+      "group": "Watch for the moment to reach out",
+      "install": "npx skills add getcargohq/gtm-skills/track-job-changes",
+      "partOf": []
+    },
+    {
+      "name": "verify-email-list",
+      "kind": "run-once",
+      "job": "Verify a list of email addresses so you stop sending to bounces, powered by Cargo.",
+      "description": "Verify a list of email addresses so you stop sending to bounces, powered by Cargo. Triggers: \"verify these emails\", \"clean my email list\", \"check if these addresses are valid\", \"our bounce rate is too high\", \"validate emails before sending\". Providers: waterfall. Skip when: you do not have the emails yet — use find-work-email first.",
+      "version": "1.0.0",
+      "homepage": "https://github.com/getcargohq/gtm-skills",
+      "group": "Get the contact data",
+      "install": "npx skills add getcargohq/gtm-skills/verify-email-list",
+      "partOf": []
+    },
+    {
+      "name": "waterfall-enrichment",
+      "kind": "run-once",
+      "job": "Cascade one lookup through several vendors in priority order, so a row the first source misses falls through to the next instead of being lost, powered by Cargo.",
+      "description": "Cascade one lookup through several vendors in priority order, so a row the first source misses falls through to the next instead of being lost, powered by Cargo. Triggers: \"waterfall enrichment\", \"cascade through providers\", \"fallback chain\", \"my single vendor has bad coverage\", \"try another source when the first one misses\", \"improve my match rate\", \"multi-vendor fallback\". Providers: waterfall. Skip when: you want one address for one name and domain — use find-work-email, the cheaper single job; or you hold addresses and only want them checked — use verify-email-list.",
+      "version": "1.0.0",
+      "homepage": "https://github.com/getcargohq/gtm-skills",
+      "group": "Get the contact data",
+      "install": "npx skills add getcargohq/gtm-skills/waterfall-enrichment",
+      "partOf": []
+    },
+    {
+      "name": "zoominfo-to-cargo",
+      "kind": "run-once",
+      "job": "Rebuild a ZoomInfo list on Cargo and measure the coverage you actually lose or gain before the renewal, powered by Cargo.",
+      "description": "Rebuild a ZoomInfo list on Cargo and measure the coverage you actually lose or gain before the renewal, powered by Cargo. Triggers: \"ZoomInfo alternative\", \"migrate off ZoomInfo\", \"replace ZoomInfo\", \"our ZoomInfo renewal is coming up\", \"ZoomInfo is too expensive\", \"I have a ZoomInfo export\", \"cheaper than ZoomInfo\", \"Lusha alternative\", \"Cognism alternative\". Providers: waterfall. Skip when: you are porting a Clay table rather than a contact list — use clay-to-cargo; or you have no list yet and simply want contacts sourced — use find-b2b-leads.",
+      "version": "1.0.0",
+      "homepage": "https://github.com/getcargohq/gtm-skills",
+      "group": "Coming from another tool",
+      "install": "npx skills add getcargohq/gtm-skills/zoominfo-to-cargo",
+      "partOf": []
+    }
+  ],
+  "pending": [
+    {
+      "name": "ai-sdr",
+      "kind": "cdk-example",
+      "skill": false,
+      "job": "Go from an account to a sent first-touch — written by AI, enrolled into an Email Bison campaign. This is the \"put it all together\" skill.",
+      "state": "to-be-approved"
+    },
+    {
+      "name": "auto-enrichment",
+      "kind": "cdk-example",
+      "skill": false,
+      "job": "Keep your accounts and contacts filled in automatically. Every night, records missing key fields get re-enriched — without overwriting anything a human typed.",
+      "state": "to-be-approved"
+    },
+    {
+      "name": "closed-won-multiplier",
+      "kind": "cdk-example",
+      "skill": false,
+      "job": "Turn every won deal into net-new lookalike accounts.",
+      "state": "to-be-approved"
+    },
+    {
+      "name": "contact-sourcing",
+      "kind": "cdk-example",
+      "skill": false,
+      "job": "For every account you care about, find the right people, verify their emails, and add them to your CRM — all on Cargo credits, no extra provider keys.",
+      "state": "to-be-approved"
+    },
+    {
+      "name": "crm-button",
+      "kind": "cdk-example",
+      "skill": false,
+      "job": "Run a Cargo tool from any CRM record, with one click.",
+      "state": "to-be-approved"
+    },
+    {
+      "name": "gtm-knowledge-graph",
+      "kind": "cdk-example",
+      "skill": false,
+      "job": "Your go-to-market knowledge — ICP, positioning, personas, plays — written as versioned markdown that agents can read and answer questions from.",
+      "state": "to-be-approved"
+    },
+    {
+      "name": "inbound-flow",
+      "kind": "cdk-example",
+      "skill": false,
+      "job": "Turn every form or demo request into a verified, enriched CRM contact — then qualify it, alert the team on hot ones, and define who owns what.",
+      "state": "to-be-approved"
+    },
+    {
+      "name": "list-building",
+      "kind": "cdk-example",
+      "skill": false,
+      "job": "Build contact lists from Sales Navigator people searches, using the same recursive split as TAM building, with a higher ceiling.",
+      "state": "to-be-approved"
+    },
+    {
+      "name": "mcp-copilot",
+      "kind": "cdk-example",
+      "skill": false,
+      "job": "Expose your GTM stack to any AI assistant as tools, behind a single MCP endpoint.",
+      "state": "to-be-approved"
+    },
+    {
+      "name": "meeting-prep",
+      "kind": "cdk-example",
+      "skill": false,
+      "job": "A briefing card before every intro call, in Slack, unattended.",
+      "state": "to-be-approved"
+    },
+    {
+      "name": "pipeline-health",
+      "kind": "cdk-example",
+      "skill": false,
+      "job": "An agent that reads your open deals and surfaces the at-risk ones, each with the fix attached.",
+      "state": "to-be-approved"
+    },
+    {
+      "name": "plg-motion",
+      "kind": "cdk-example",
+      "skill": false,
+      "job": "Spot product-qualified workspaces from usage data, and route them to the right territory for a human to approve — once per workspace, with the usage context attached.",
+      "state": "to-be-approved"
+    },
+    {
+      "name": "rep-cockpit",
+      "kind": "cdk-example",
+      "skill": false,
+      "job": "One screen per rep: their routed, scored accounts with the AI outreach draft and a \"next action\" box that writes straight back to the workspace. This is the surface on top of everything the other skills computed.",
+      "state": "to-be-approved"
+    },
+    {
+      "name": "research-agent",
+      "kind": "cdk-example",
+      "skill": false,
+      "job": "Turn an account into an AE-ready brief, grounded in your own GTM knowledge.",
+      "state": "to-be-approved"
+    },
+    {
+      "name": "routing-engine",
+      "kind": "cdk-example",
+      "skill": false,
+      "job": "Define your sales territories and rep capacity as code, and automatically assign accounts to the right territory — on arrival and re-checked weekly.",
+      "state": "to-be-approved"
+    },
+    {
+      "name": "signal-based-tam",
+      "kind": "cdk-example",
+      "skill": false,
+      "job": "Watch your whole account list for buying signals, and automatically reach out the moment a high-intent one fires.",
+      "state": "to-be-approved"
+    }
+  ]
+}

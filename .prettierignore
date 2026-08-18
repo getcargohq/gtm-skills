@@ -1,0 +1,26 @@
+# Prettier covers the CDK example code (the resource .ts files inside skill
+# folders) and the repo scripts. The run-once skills, plugin manifests and
+# generated files predate it and are left as they are.
+node_modules/
+.cargo-ai/
+dist/
+package-lock.json
+catalog.json
+llms.txt
+*.md
+!tam-building/**/*.md
+!account-scoring/**/*.md
+!CONTRIBUTING.md
+.agents/
+.claude-plugin/
+.codex-plugin/
+.cursor-plugin/
+plugin.json
+skills.sh.json
+hooks/
+evals/
+*/apps/*/**
+*/workers/*/**
+scripts/build-codex-package.mjs
+scripts/validate.ts
+scripts/generate-llms-txt.ts

@@ -534,12 +534,28 @@ if (!skillNames.length) {
   process.exit(1);
 }
 
-const skills = skillNames.map(readSkill);
+// A skill that carries a CDK example (metadata.source: cdk-example) is a
+// worked example an agent adapts, not a command an agent runs: it names no
+// connector action, prices no call, asks no star. scripts/check-cdk-examples.mjs
+// owns those. They still take part in the trigger-collision check below,
+// because a run-once skill and a CDK-example skill compete for the same
+// prompts and that is exactly the seam that must not blur.
+//
+// The frontmatter reader above is flat on purpose (top-level keys only), so
+// the nested `metadata.source` marker is read straight from the file: it is
+// the same indented line every micro-skill already carries as `source:
+// micro-skill`.
+const allSkills = skillNames.map(readSkill);
+const isCdkExample = (skill: Skill): boolean =>
+  /^\s+source:\s*cdk-example\s*$/m.test(
+    readFileSync(join(repoRoot, skill.name, "SKILL.md"), "utf8").split(/\n---\n/)[0] ?? "",
+  );
+const skills = allSkills.filter((skill) => !isCdkExample(skill));
 
 // Two skills claiming the same trigger phrase is the failure mode that degrades
 // routing for the whole set, so it is an error rather than a warning.
 const triggerOwners = new Map<string, string>();
-for (const skill of skills) {
+for (const skill of allSkills) {
   const clause = /Triggers:\s*(.+?)\.\s*(?:Providers:|Skip when:)/.exec(skill.frontmatter.description ?? "");
   for (const quoted of clause?.[1].matchAll(/\\?"([^"\\]+)\\?"/g) ?? []) {
     const phrase = quoted[1].toLowerCase().trim();

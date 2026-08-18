@@ -1,0 +1,110 @@
+{
+  "account-scoring": {
+    "state": "to-be-approved",
+    "chain": 1,
+    "demoWorkspace": null,
+    "implementations": []
+  },
+  "ai-sdr": {
+    "state": "to-be-approved",
+    "chain": null,
+    "demoWorkspace": null,
+    "implementations": []
+  },
+  "auto-enrichment": {
+    "state": "to-be-approved",
+    "chain": null,
+    "demoWorkspace": null,
+    "implementations": []
+  },
+  "closed-won-multiplier": {
+    "state": "to-be-approved",
+    "chain": null,
+    "demoWorkspace": null,
+    "implementations": []
+  },
+  "contact-sourcing": {
+    "state": "to-be-approved",
+    "chain": null,
+    "demoWorkspace": null,
+    "implementations": []
+  },
+  "crm-button": {
+    "state": "to-be-approved",
+    "chain": null,
+    "demoWorkspace": null,
+    "implementations": []
+  },
+  "gtm-knowledge-graph": {
+    "state": "to-be-approved",
+    "chain": null,
+    "demoWorkspace": null,
+    "implementations": []
+  },
+  "inbound-flow": {
+    "state": "to-be-approved",
+    "chain": null,
+    "demoWorkspace": null,
+    "implementations": []
+  },
+  "list-building": {
+    "state": "to-be-approved",
+    "chain": null,
+    "demoWorkspace": null,
+    "implementations": []
+  },
+  "mcp-copilot": {
+    "state": "to-be-approved",
+    "chain": null,
+    "demoWorkspace": null,
+    "implementations": []
+  },
+  "meeting-prep": {
+    "state": "to-be-approved",
+    "chain": null,
+    "demoWorkspace": null,
+    "implementations": []
+  },
+  "pipeline-health": {
+    "state": "to-be-approved",
+    "chain": null,
+    "demoWorkspace": null,
+    "implementations": []
+  },
+  "plg-motion": {
+    "state": "to-be-approved",
+    "chain": null,
+    "demoWorkspace": null,
+    "implementations": []
+  },
+  "rep-cockpit": {
+    "state": "to-be-approved",
+    "chain": null,
+    "demoWorkspace": null,
+    "implementations": []
+  },
+  "research-agent": {
+    "state": "to-be-approved",
+    "chain": null,
+    "demoWorkspace": null,
+    "implementations": []
+  },
+  "routing-engine": {
+    "state": "to-be-approved",
+    "chain": null,
+    "demoWorkspace": null,
+    "implementations": []
+  },
+  "signal-based-tam": {
+    "state": "to-be-approved",
+    "chain": null,
+    "demoWorkspace": null,
+    "implementations": []
+  },
+  "tam-building": {
+    "state": "to-be-approved",
+    "chain": 2,
+    "demoWorkspace": null,
+    "implementations": []
+  }
+}
