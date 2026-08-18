@@ -10,9 +10,11 @@ import { salesNav } from "../../base-gtm/connectors/sales-navigator";
 // not one giant search: it is N sub-searches, each under the cap, unioned here.
 //
 // `urls` takes the whole list, so the recursion lives in the config rather than
-// in code: count each search with the `count-search` tool first (see
-// ../tools/count-search.ts), split any oversized one by facet, and add the
-// resulting sub-search URLs below. Rows from every URL land in this one model.
+// in code: count each search first, split any oversized one by facet, and add
+// the resulting sub-search URLs below. Rows from every URL land in this one
+// model. Counting is a design-time CLI call, not a deployed resource (a tool
+// that only ever wraps one connector action is ceremony) — the command is in
+// this cookbook's README and in `searchUrls.derive` in cookbook.json.
 //
 // Splitting facets, in the order that usually works: industry first (the
 // LinkedIn industry taxonomy has three levels, so descend from Level 1 into

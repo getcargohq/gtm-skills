@@ -4,3 +4,6 @@ cargo.state.json
 .env
 .env.local
 .env.*.local
+
+# routing-eval corpus, checked out in CI (see .github/workflows/ci.yml)
+.cargo-skills/

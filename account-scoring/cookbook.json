@@ -1,0 +1,59 @@
+{
+  "slug": "account-scoring",
+  "kind": "outcome",
+  "outcome": "Every account scored and tiered against your written ICP by an agent that cites its evidence, with the rationale on the CRM record",
+  "chain": 1,
+  "state": "to-be-approved",
+  "approval": { "demoWorkspace": null, "implementations": [] },
+  "inputs": [
+    {
+      "id": "icp",
+      "kind": "generated",
+      "file": "gtm-knowledge-graph/context/icp.md",
+      "type": "markdown",
+      "ask": "Who do you sell to, and who do you refuse? Name the fit signals and, just as important, the disqualifiers",
+      "why": "The criteria ARE the prompt. There are no point weights in code, so a vague ICP produces vague scores and the disqualifiers are what cap a bad account at 20.",
+      "derive": "If the workspace already has closed-won and closed-lost data, extract the industry, size, geography and stack that separate won from lost accounts and propose the ICP from it rather than asking cold.",
+      "validate": "the file names at least one disqualifier, not only fit signals"
+    },
+    {
+      "id": "languageModel",
+      "kind": "value",
+      "file": "account-scoring/agents/scorer.ts",
+      "path": "languageModel",
+      "type": "string",
+      "default": "gpt-4o",
+      "ask": "Which language model should judge the accounts?",
+      "why": "Scoring quality and per-account cost both live here.",
+      "derive": "whichever LLM connector is already authenticated in the workspace"
+    },
+    {
+      "id": "crmScoreProperties",
+      "kind": "manual",
+      "ask": "Create cargo_score, cargo_tier, cargo_rationale and cargo_last_updated_at as properties on the CRM's account object",
+      "why": "The play writes all four back. If they do not exist the run looks successful and the scores land nowhere, which is the failure mode that wastes a whole batch.",
+      "derive": "read the CRM's account schema through the crm-sync connector and report which of the four are missing",
+      "validate": "all four exist, and cargo_score plus cargo_tier are selected as columns on the accounts model so the tier segments can filter on them"
+    },
+    {
+      "id": "tierThresholds",
+      "kind": "value",
+      "file": "account-scoring/segments/tiers.ts",
+      "type": "string",
+      "ask": "Which tiers do you want as segments, and at what score boundaries?",
+      "why": "The agent emits A, B and C but the cookbook ships segments for A and C only. Tier B accounts land in no segment unless you add one.",
+      "validate": "every tier the agent can emit is either covered by a segment or deliberately excluded"
+    }
+  ],
+  "doneWhen": [
+    "a test account run shows the agent's lookups in the trace, not a score guessed from the domain name",
+    "the CRM record carries a score with a rationale citing real evidence and named ICP criteria",
+    "the evaluator scores at least 0.8",
+    "after the next model refresh the account appears in the matching tier segment"
+  ],
+  "cost": {
+    "note": "One LLM call plus up to two Cargo database calls (matchBusiness, enrichBusinessFirmographics) per account, on arrival and again on the weekly stale sweep (last scored 3+ months ago).",
+    "scalesWith": "accounts in the model, times re-scores. A TAM built by tam-building scores at that size."
+  },
+  "composesInto": ["routing-engine", "rep-cockpit", "ai-sdr"]
+}

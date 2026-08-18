@@ -20,15 +20,18 @@ clone.
 
 ## Checks
 
-| Command                | What it does                                         |
-| ---------------------- | ---------------------------------------------------- |
-| `npm run validate`     | `cargo.scaffold.json` matches the folders on disk    |
-| `npm run typecheck`    | `tsc --noEmit` (needs generated types — run locally) |
-| `npm run format`       | Prettier write                                       |
-| `npm run format:check` | Prettier check                                       |
-| `npm run plan`         | dry-run the resource graph against your workspace    |
+| Command                    | What it does                                               |
+| -------------------------- | ---------------------------------------------------------- |
+| `npm run validate`         | the scaffold graph, the skill layer, and the routing evals |
+| `npm run validate:routing` | cookbook descriptions graded against cargo-skills' 17      |
+| `npm run typecheck`        | `tsc --noEmit` (needs generated types — run locally)       |
+| `npm run format`           | Prettier write                                             |
+| `npm run format:check`     | Prettier check                                             |
+| `npm run plan`             | dry-run the resource graph against your workspace          |
 
 CI runs `npm run validate` and `npm run typecheck`: both work without a live workspace.
+The routing evals inside `validate` need a `cargo-skills` checkout beside this repo and
+skip with a message when it is absent, so a bare clone still passes.
 Run `npm run typecheck` and `npm run format:check` locally before opening a PR.
 
 ## Adding a cookbook
@@ -45,6 +48,47 @@ Run `npm run typecheck` and `npm run format:check` locally before opening a PR.
    cookbooks it imports from, `base-gtm` at minimum). `npm run validate` enforces
    this.
 6. Add a row to the Cookbooks table in the root `README.md`.
+7. Add a `cookbook.json` (see below). `npm run validate` reports every folder
+   that still lacks one.
+8. If it is an outcome cookbook, add a `SKILL.md` and at least one routing eval
+   case in `evals/routing.jsonl`.
+
+## cookbook.json and SKILL.md
+
+A cookbook that is only code is not installable: the README says the
+placeholders in prose, and whoever installs it has to read that prose and guess.
+Two files fix that, and `scripts/check-cookbooks.mjs` gates both.
+
+**`cookbook.json` is the data** ([`cookbook.schema.json`](cookbook.schema.json)):
+what this produces, what must be answered before it can deploy, how you know it
+worked, what it costs, and whether it is approved. The installer skill reads it,
+the validator checks it, and the UI deployment surface renders its `inputs` as
+fields. It deliberately carries **no `requires` key**: the dependency graph lives
+once, in `cargo.scaffold.json`.
+
+Write `inputs` so that **derive comes before ask**. An input carrying a `derive`
+is a lookup, not a question: which connector is already authenticated, what the
+CRM schema contains, how many closed-won rows there are. If more than about four
+inputs have no `derive`, the interview is too long and most of them should have
+been lookups. Every input needs a `why`, which is what you say when the operator
+pushes back on the question.
+
+**`SKILL.md` is the discovery surface**, and only outcome cookbooks have one.
+`base-gtm` and `crm-sync` are `kind: foundation`: they define no motion of their
+own, so a skill for them would compete for prompts it cannot serve, and the
+validator refuses one.
+
+The `description` follows the four-part template from cargo-skills'
+`CONTRIBUTING.md` (job → literal quoted triggers → proper nouns → `Skip when:`),
+because that is the only text an agent weighs before loading a skill. **Every
+`Skip when:` has the same job here: pin the one-off vs standing seam.** "Build me
+a TAM" belongs to `cargo-gtm` when someone wants a list today and to
+`tam-building` when they want a pipeline that keeps it current. Get that wrong
+and a user installs a CDK project to answer a question that wanted one turn.
+
+Do not restate the install procedure in a cookbook's `SKILL.md`. Scaffold, fit,
+deploy, verify is identical for all of them and lives once, in
+[`deploy-cookbook/SKILL.md`](deploy-cookbook/SKILL.md).
 
 ## Every resource must earn its deploy
 
@@ -78,7 +122,9 @@ rots. Three rules learned the hard way:
 ## Conventions
 
 - Mark values that must be edited before deploy with a `PLACEHOLDER` comment
-  (API keys via env, channel IDs, member uuids, persona filters).
+  (API keys via env, channel IDs, member uuids, persona filters), **and give each
+  one an entry in `cookbook.json` `inputs`**. The comment is for whoever reads the
+  code; the entry is what lets an agent, the CLI, or the UI actually resolve it.
 - Read secrets with `secret("NAME")` and document the env var in `.env.example`.
 - Keep `defineContext` paths root-relative — resources are loaded from the
   project root.

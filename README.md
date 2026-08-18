@@ -8,7 +8,22 @@ stack.
 
 ## Using a cookbook
 
-Scaffold one directly (requires `@cargo-ai/cdk` with `init --from` support):
+**With an agent** (it asks you the handful of things only you know, then deploys
+and verifies):
+
+```sh
+npx skills add getcargohq/cargo-cookbooks/deploy-cookbook
+npx skills add getcargohq/cargo-cookbooks/tam-building
+```
+
+Every outcome cookbook carries a `SKILL.md` (what it is, what you will be asked,
+how you know it worked) and a `cookbook.json` (the same thing as data: inputs,
+acceptance checks, cost, approval state). The install procedure itself is
+identical for all of them and lives once, in
+[`deploy-cookbook/`](deploy-cookbook/SKILL.md).
+
+**By hand.** Scaffold one directly (requires `@cargo-ai/cdk` with `init --from`
+support):
 
 ```sh
 cargo-ai cdk init my-tam --from getcargohq/cargo-cookbooks/tam-building
@@ -30,10 +45,20 @@ cargo-ai cdk deploy
 
 Run from this directory — `defineContext` paths are root-relative.
 
+## Approval state
+
+Every cookbook is **to be approved** until it has been tested in a fresh demo
+workspace **and** implemented by two customers or partners. That state lives in
+each `cookbook.json`, and `npm run validate` refuses an `approved` cookbook that
+cannot show both. Cargo makes no public outcome claim for a cookbook that is not
+approved, and at the time of writing none of them is.
+
 ## Conventions
 
 - **Placeholders** are marked `PLACEHOLDER` in code comments — edit them before
-  deploying (API keys via env, channel IDs, member uuids, persona filters).
+  deploying (API keys via env, channel IDs, member uuids, persona filters) — and
+  each one has a matching entry in the cookbook's `cookbook.json` `inputs`, which
+  is what lets an agent or the UI resolve it instead of guessing.
 - **Shared resources** (Slack, LinkedIn, waterfall, Cargo-DB and LLM connectors,
   the accounts/contacts models, folders) live in `base-gtm`: cookbooks import
   handles from there and never redefine them. The **CRM** connector is the one

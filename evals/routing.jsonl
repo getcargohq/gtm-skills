@@ -1,0 +1,41 @@
+// Routing evals for the cookbook skills — the prompts that should reach a
+// cookbook, and the ones that must NOT.
+//
+// Run with cargo-skills' grader, which takes a foreign skills root:
+//   node ../cargo-skills/.github/scripts/routing-eval.ts --skills-root ../cargo-cookbooks
+//   node ../cargo-skills/.github/scripts/routing-eval.ts --skills-root ../cargo-cookbooks --llm --llm-min=90
+//
+// The seam these cases exist to defend is ONE-OFF vs STANDING. "Build me a TAM"
+// is cargo-gtm's job when someone wants a list today, and tam-building's job
+// when they want a pipeline that keeps it current. A cookbook description that
+// starts winning the one-off prompts has stolen them from the pack, and that
+// regression is invisible until someone installs a CDK project to answer a
+// question they wanted answered in one turn.
+//
+// Add a case whenever you change a description.
+
+// --- deploy-cookbook: the procedure, and the "which one" question ------------
+{"prompt": "Install a cookbook in my workspace", "expect": "deploy-cookbook"}
+{"prompt": "Which cookbook do I need for this?", "expect": "deploy-cookbook", "why": "The menu question belongs to the installer, not to any one cookbook."}
+{"prompt": "I scaffolded this cookbook, now finish setting it up", "expect": "deploy-cookbook"}
+{"prompt": "Set up the revenue engine for us", "expect": "deploy-cookbook", "why": "The whole-chain ask has no single cookbook; the installer routes it."}
+
+// --- tam-building -----------------------------------------------------------
+{"prompt": "Our TAM is a stale CSV, I want it to stay current", "expect": "tam-building", "why": "The standing-vs-one-off tell, stated in the user's own words."}
+{"prompt": "The Sales Navigator search has way more companies than it will let me export", "expect": "tam-building", "why": "The cap problem is what this cookbook exists for; no other skill mentions it."}
+{"prompt": "Build our account universe and keep loading new companies into it", "expect": "tam-building"}
+{"prompt": "Stand up a pipeline that builds our market from LinkedIn company searches", "expect": "tam-building"}
+
+// --- account-scoring --------------------------------------------------------
+{"prompt": "Score every account against our ICP and put the reason on the CRM record", "expect": "account-scoring"}
+{"prompt": "Our lead scoring is a spreadsheet nobody trusts", "expect": "account-scoring"}
+{"prompt": "Which accounts should the team work first?", "expect": "account-scoring"}
+{"prompt": "Why is this account tier A?", "expect": "account-scoring", "why": "Only account-scoring writes a rationale anyone can read back."}
+
+// --- the seam: these must NOT reach a cookbook -------------------------------
+{"prompt": "Find me 50 VPs of Sales at Series B fintechs and verify their emails", "expect": "cargo-gtm", "why": "A one-off pull. A cookbook here means installing a CDK project to answer a question that wanted one turn."}
+{"prompt": "Build a TAM list of seed-stage SaaS companies in Europe", "expect": "cargo-gtm", "why": "Same words as tam-building, opposite intent: a list today, not a pipeline."}
+{"prompt": "Enrich this CSV with company size and funding stage", "expect": "cargo-gtm"}
+{"prompt": "Qualify these 200 accounts against our ICP for me", "expect": "cargo-gtm", "tier": "hard", "why": "A scoring pass over a supplied list is not a deployed scorer. Marked hard because the distinguishing signal is \"these 200\" and \"for me\", which no bag-of-words ranker can weigh: the prompt shares every content word with account-scoring. Worse, the lexical tier scores `Skip when:` text POSITIVELY, so naming the excluded case pulls the prompt toward the skill that excludes it. Judge this one with --llm."}
+{"prompt": "Why did this run fail?", "expect": "cargo-diagnostics", "why": "Cookbooks must not capture the post-mortem vocabulary."}
+{"prompt": "Set up our whole workspace as code so I can review it in a PR", "expect": "cargo-cdk", "why": "The CDK skill still owns as-code work with no named GTM outcome behind it."}

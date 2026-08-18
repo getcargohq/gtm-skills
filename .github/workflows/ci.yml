@@ -18,5 +18,19 @@ jobs:
       # is skipped in CI. The typecheck gate needs those generated types and is
       # therefore run locally (`npm run typecheck`) rather than here.
       - run: npm ci --ignore-scripts
-      - name: Validate cookbook scaffold
+      # The routing evals grade cookbook descriptions against cargo-skills' 17,
+      # because the question is not whether a cookbook beats the other cookbooks
+      # but whether it beats cargo-gtm. Without this checkout they skip.
+      # `path` must stay inside the workspace, and a dotted directory is skipped
+      # by both validators' directory scans. continue-on-error keeps a bare
+      # clone green: routing-eval.mjs reports a skip when the corpus is absent.
+      - name: Check out cargo-skills (routing eval corpus)
+        uses: actions/checkout@v4
+        with:
+          repository: getcargohq/cargo-skills
+          path: .cargo-skills
+        continue-on-error: true
+      - name: Validate cookbook scaffold, skill layer, and routing
         run: npm run validate
+        env:
+          CARGO_SKILLS_ROOT: .cargo-skills
