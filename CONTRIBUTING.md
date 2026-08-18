@@ -4,10 +4,10 @@ Every folder at the root of this repo is one skill, installed on its own with
 `npx skills add getcargohq/gtm-skills/<name>`. Two kinds live side by side and
 the validators tell them apart by one frontmatter line:
 
-| Kind | Marker | What the folder holds | Validated by |
-| --- | --- | --- | --- |
-| run-once | `metadata.source: micro-skill` | `SKILL.md`: a job an agent runs in a turn, with the exact `cargo-ai` command and its price | `scripts/validate.ts` (slugs and prices against the Cargo playbooks) |
-| CDK example | `metadata.source: cdk-example` | `SKILL.md` plus worked CDK resources (`models/`, `plays/`, `agents/`, …) an agent adapts into a project and deploys | `scripts/check-cdk-examples.mjs` |
+| Kind        | Marker                         | What the folder holds                                                                                               | Validated by                                                         |
+| ----------- | ------------------------------ | ------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
+| run-once    | `metadata.source: micro-skill` | `SKILL.md`: a job an agent runs in a turn, with the exact `cargo-ai` command and its price                          | `scripts/validate.ts` (slugs and prices against the Cargo playbooks) |
+| CDK example | `metadata.source: cdk-example` | `SKILL.md` plus worked CDK resources (`models/`, `plays/`, `agents/`, …) an agent adapts into a project and deploys | `scripts/check-cdk-examples.mjs`                                     |
 
 Both are graded by the same routing evals (`evals/routing.jsonl`), because a
 run-once skill and a CDK-example skill compete for the same prompts and that
@@ -28,14 +28,14 @@ comes from `cargo-ai cdk init --template blank`; a skill is a folder they copy.
 
 ## Checks
 
-| Command | What it does |
-| --- | --- |
-| `node scripts/validate.ts` | run-once skills: every slug and price against `getcargohq/cargo-skills` playbooks, plus the plugin channel |
-| `node scripts/check-cdk-examples.mjs` | CDK-example skills: frontmatter parses as YAML, the contract sections exist, **no relative import escapes the folder**, the to-be-approved banner follows `.github/data/approvals.json` |
-| `node scripts/generate-llms-txt.ts --check` | `llms.txt` in sync |
-| `node scripts/build-catalog.mjs --check` | `catalog.json` in sync (the one machine-readable view of the whole repo) |
-| `npx prettier --check .` | the CDK example code and repo scripts |
-| routing evals | CI checks out `getcargohq/cargo-skills` and runs its `routing-eval.ts --skills-root .` |
+| Command                                     | What it does                                                                                                                                                                            |
+| ------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `node scripts/validate.ts`                  | run-once skills: every slug and price against `getcargohq/cargo-skills` playbooks, plus the plugin channel                                                                              |
+| `node scripts/check-cdk-examples.mjs`       | CDK-example skills: frontmatter parses as YAML, the contract sections exist, **no relative import escapes the folder**, the to-be-approved banner follows `.github/data/approvals.json` |
+| `node scripts/generate-llms-txt.ts --check` | `llms.txt` in sync                                                                                                                                                                      |
+| `node scripts/build-catalog.mjs --check`    | `catalog.json` in sync (the one machine-readable view of the whole repo)                                                                                                                |
+| `npx prettier --check .`                    | the CDK example code and repo scripts                                                                                                                                                   |
+| routing evals                               | CI checks out `getcargohq/cargo-skills` and runs its `routing-eval.ts --skills-root .`                                                                                                  |
 
 ## Adding a run-once skill
 
@@ -71,7 +71,7 @@ exactly one skill and get exactly one working thing.
      skill carries its own, the way every run-once skill carries its own Setup.
    - `## What you will be asked`: a table of inputs, **derive before ask**.
      An input that can be looked up (which connector is authenticated, what
-     the CRM schema holds) is marked *derived*; if more than about four rows
+     the CRM schema holds) is marked _derived_; if more than about four rows
      are genuinely asked, the interview is too long. Every row says why.
    - `## What you can change`: the reshapes you expect, each with when it is
      right, how, and what it costs. Nobody asks for a variant they do not know
@@ -120,7 +120,7 @@ weight: it deploys, it shows up in the workspace, and it rots.
 
 ## Conventions
 
-- Read secrets with `secret("NAME")` and say so under *What you will be asked*
+- Read secrets with `secret("NAME")` and say so under _What you will be asked_
   as an `env` input; never inline a value.
 - Keep `defineContext` paths relative to the project root, and remember it is
   a per-workspace singleton: an example that ships one says what to do when
