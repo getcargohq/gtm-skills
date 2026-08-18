@@ -173,6 +173,49 @@ for (const name of declared) {
     }
   }
 
+  // The code is a worked example, so the file has to say what may be reshaped
+  // and what must hold. A cookbook with no invariants is claiming nothing about
+  // its design is load-bearing, which for a real outcome is never true — and it
+  // leaves the installer with nothing to argue back with when an operator asks
+  // for something that will quietly break.
+  for (const inv of book.invariants ?? []) {
+    if (!inv.holds || !inv.whatBreaks) {
+      errors.push(
+        `${name}/cookbook.json has an invariant missing "holds" or "whatBreaks": an invariant nobody can explain is a rule nobody will follow`,
+      );
+    }
+    if (inv.where && !existsSync(join(root, inv.where))) {
+      errors.push(
+        `${name}/cookbook.json invariant points at "${inv.where}", which does not exist`,
+      );
+    }
+  }
+  if (book.kind === "outcome" && (book.invariants ?? []).length === 0) {
+    errors.push(
+      `${name}/cookbook.json lists no invariants: name at least the one thing that must not be adapted away`,
+    );
+  }
+
+  for (const v of book.variations ?? []) {
+    const where = `${name}/cookbook.json variation "${v.id ?? "?"}"`;
+    for (const field of ["id", "when", "how", "trade"]) {
+      if (!v[field]) errors.push(`${where} is missing "${field}"`);
+    }
+    // A variation with no cost is not a variation, it is the default in hiding.
+    for (const f of v.affects ?? []) {
+      if (!existsSync(join(root, f)))
+        errors.push(`${where} affects "${f}", which does not exist`);
+    }
+  }
+
+  // `decisions` is what an installer writes into the SCAFFOLDED copy. In this
+  // repo it would mean the cookbook had already been adapted to somebody.
+  if ("decisions" in book) {
+    errors.push(
+      `${name}/cookbook.json carries "decisions": that key belongs in a scaffolded project, not in the cookbook`,
+    );
+  }
+
   // Foundations define no motion, so they carry no skill. Outcomes must.
   const hasSkill = existsSync(skillPath);
   if (book.kind === "outcome" && !hasSkill) {

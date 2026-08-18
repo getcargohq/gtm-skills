@@ -4,7 +4,10 @@
   "outcome": "Your account universe built from a Sales Navigator company search, split past the 1,000 extraction cap and resolved to real domains",
   "chain": 2,
   "state": "to-be-approved",
-  "approval": { "demoWorkspace": null, "implementations": [] },
+  "approval": {
+    "demoWorkspace": null,
+    "implementations": []
+  },
   "inputs": [
     {
       "id": "marketSearch",
@@ -51,5 +54,48 @@
     "contact-sourcing",
     "account-scoring",
     "signal-based-tam"
+  ],
+  "invariants": [
+    {
+      "holds": "Every company is resolved to a real domain before it is promoted into `accounts`",
+      "whatBreaks": "The shared `accounts` model keys on `website`. A domainless account cannot be deduped, so it forks into duplicates the first time the same company appears in another list. This is why a row that cannot be resolved is dropped rather than written.",
+      "where": "tam-building/plays/promote-to-accounts.ts"
+    },
+    {
+      "holds": "Every search is counted before it is extracted",
+      "whatBreaks": "Extracting blind is how you take a silently truncated list: the search holds 4,000 companies, the extractor takes 1,000, and nothing tells you the rest exist.",
+      "where": "tam-building/models/salesnav-companies.ts"
+    },
+    {
+      "holds": "No sub-search sits at or above the extraction cap",
+      "whatBreaks": "A search returning exactly the cap is truncated. That is the failure this whole cookbook exists to prevent, and it is invisible unless you check the number.",
+      "where": "tam-building/models/salesnav-companies.ts"
+    }
+  ],
+  "variations": [
+    {
+      "id": "non-linkedin-source",
+      "when": "You do not want to source from LinkedIn at all, or Sales Nav does not cover your market",
+      "how": "Swap the Sales Nav connector and landing model for the Ark enrichment API (https://ai-ark.com/platform/enrichment-api), keeping `promote-to-accounts` and the `accounts` contract unchanged",
+      "trade": "You lose the Sales Nav facet taxonomy that makes the split tactic mechanical, and the splitting has to be redesigned around the new source's own limits",
+      "affects": [
+        "tam-building/models/salesnav-companies.ts",
+        "base-gtm/connectors/sales-navigator.ts"
+      ]
+    },
+    {
+      "id": "land-without-promoting",
+      "when": "You want to see and filter the raw market before paying to enrich it",
+      "how": "Deploy the landing model only and leave `promote-to-accounts` out until you have decided which rows are worth promoting",
+      "trade": "Nothing reaches `accounts`, so no downstream cookbook (scoring, contact sourcing, signals) has anything to work with until you promote",
+      "affects": ["tam-building/plays/promote-to-accounts.ts"]
+    },
+    {
+      "id": "sample-first",
+      "when": "The market search is large and you want to see the cost curve before committing",
+      "how": "Set `config.limit` well below the cap and start with one sub-search URL, then widen once rows land correctly",
+      "trade": "Your TAM is deliberately incomplete until you widen it, so do not score or report on coverage from a sample",
+      "affects": ["tam-building/models/salesnav-companies.ts"]
+    }
   ]
 }

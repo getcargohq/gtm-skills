@@ -4,7 +4,10 @@
   "outcome": "The shared accounts/contacts schema and credit-based connectors every other cookbook imports by handle",
   "chain": null,
   "state": "to-be-approved",
-  "approval": { "demoWorkspace": null, "implementations": [] },
+  "approval": {
+    "demoWorkspace": null,
+    "implementations": []
+  },
   "inputs": [],
   "doneWhen": [
     "`accounts` and `contacts` appear as models in the workspace, filed under the GTM folder",
@@ -19,5 +22,18 @@
     "gtm-knowledge-graph",
     "pipeline-health",
     "signal-based-tam"
-  ]
+  ],
+  "invariants": [
+    {
+      "holds": "`accounts` keys on website and `contacts` keys on email",
+      "whatBreaks": "Every cookbook that promotes into these models dedupes on that key. Change it and overlapping sources fork into duplicate records instead of collapsing.",
+      "where": "base-gtm/models/accounts.ts"
+    },
+    {
+      "holds": "No connector here requires a credential",
+      "whatBreaks": "Importing a file IS registration in the CDK, so a credentialed connector in base-gtm is deployed by everyone. That is why the CRM lives in crm-sync: someone installing the research agent should not be forced to supply a HubSpot token.",
+      "where": "base-gtm/connectors/cargo.ts"
+    }
+  ],
+  "variations": []
 }

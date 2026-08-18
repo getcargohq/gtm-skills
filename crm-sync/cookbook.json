@@ -4,7 +4,10 @@
   "outcome": "The CRM slot: the one connector the CRM-dependent cookbooks read from and write back to",
   "chain": 0,
   "state": "to-be-approved",
-  "approval": { "demoWorkspace": null, "implementations": [] },
+  "approval": {
+    "demoWorkspace": null,
+    "implementations": []
+  },
   "inputs": [
     {
       "id": "crmIntegration",
@@ -42,5 +45,33 @@
     "inbound-flow",
     "plg-motion",
     "ai-sdr"
+  ],
+  "invariants": [
+    {
+      "holds": "The downstream contract is only the two models in base-gtm",
+      "whatBreaks": "If a dependent cookbook reads CRM-shaped fields directly instead of going through `accounts`/`contacts`, swapping the CRM stops being a one-line change and every dependent breaks at once.",
+      "where": "crm-sync/connectors/hubspot.ts"
+    },
+    {
+      "holds": "The credential is read with secret(), never inlined",
+      "whatBreaks": "An inlined token enters the content hash, so rotating it reads as drift, and it lands in git.",
+      "where": "crm-sync/connectors/hubspot.ts"
+    }
+  ],
+  "variations": [
+    {
+      "id": "other-crm",
+      "when": "Your accounts live in Salesforce or Attio rather than HubSpot",
+      "how": "Change the integration in `connectors/hubspot.ts` and set the matching credential; nothing downstream changes",
+      "trade": "None structurally. Action slugs and field names differ per provider, so any write-back column names need rechecking",
+      "affects": ["crm-sync/connectors/hubspot.ts"]
+    },
+    {
+      "id": "crm-sourced-models",
+      "when": "Your accounts and contacts already live in the CRM and should be sourced from it rather than filled by a sourcing cookbook",
+      "how": "Swap base-gtm's native models for connector-backed ones; the shape is written out at the top of base-gtm/models/accounts.ts",
+      "trade": "base-gtm stops deploying zero-config: a fresh workspace now needs the CRM credential before anything runs",
+      "affects": ["base-gtm/models/accounts.ts", "base-gtm/models/contacts.ts"]
+    }
   ]
 }
