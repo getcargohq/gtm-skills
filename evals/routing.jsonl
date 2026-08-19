@@ -75,4 +75,4 @@
 {"prompt": "Keep our accounts scored as they arrive and re-score when the ICP changes", "expect": "account-scoring"}
 {"prompt": "Our lead scoring is a spreadsheet nobody trusts", "expect": "account-scoring"}
 {"prompt": "Why is this account tier A?", "expect": "account-scoring", "why": "Only the deployed scorer writes a rationale anyone can read back."}
-{"prompt": "Score this list of 200 companies against our ICP and rank them", "expect": "score-leads", "why": "A supplied list, scored once: the run-once skill, not the deployed scorer."}
+{"prompt": "Score this list of 200 companies against our ICP and rank them", "expect": "score-leads", "why": "A supplied list, scored once: the one-off, not the deployed scorer."}
