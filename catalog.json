@@ -3,7 +3,7 @@
   "skills": [
     {
       "name": "account-scoring",
-      "kind": "cdk-example",
+      "kind": "cookbook",
       "job": "Keep every account scored and tiered against your written ICP by a deployed agent that re-scores as accounts arrive and as the ICP changes, writing the rationale back to the CRM.",
       "description": "Keep every account scored and tiered against your written ICP by a deployed agent that re-scores as accounts arrive and as the ICP changes, writing the rationale back to the CRM. Triggers: \"keep our accounts scored as they arrive\", \"re-score everything when the ICP changes\", \"which accounts should the team work first\", \"our scoring is a spreadsheet nobody trusts\", \"why is this account tier A\", \"stand up account tiering\". Cargo CDK, defineAgent, cargo_score, cargo_tier, HubSpot, Salesforce, Attio. Skip when: someone hands you a list and wants it qualified once, which is cargo-gtm's job, not a deployed scorer's.",
       "version": "0.2.0",
@@ -85,7 +85,7 @@
     },
     {
       "name": "apollo-to-cargo",
-      "kind": "run-once",
+      "kind": "one-off",
       "job": "Rebuild an Apollo list on Cargo and price the two side by side before you move anything, powered by Cargo.",
       "description": "Rebuild an Apollo list on Cargo and price the two side by side before you move anything, powered by Cargo. Triggers: \"Apollo alternative\", \"migrate off Apollo\", \"move my Apollo list to Cargo\", \"replace Apollo.io\", \"I have an Apollo export\", \"Apollo credits ran out\", \"is Cargo cheaper than Apollo\", \"Apollo coverage is bad in my niche\". Providers: apolloio, waterfall. Skip when: you are porting a Clay table rather than an Apollo list — use clay-to-cargo; or you simply want contacts sourced and have nothing to migrate — use find-b2b-leads.",
       "version": "1.0.0",
@@ -96,7 +96,7 @@
     },
     {
       "name": "build-tam-list",
-      "kind": "run-once",
+      "kind": "one-off",
       "job": "Build a total addressable market list of companies filtered by industry, headcount, and geography, powered by Cargo.",
       "description": "Build a total addressable market list of companies filtered by industry, headcount, and geography, powered by Cargo. Triggers: \"build a TAM list\", \"how many companies match our ICP\", \"list every SaaS company in Europe under 200 employees\", \"size our addressable market\", \"find target accounts\", \"list building\", \"build a list of companies\". Providers: salesNavigator. Skip when: you want the people at those companies — use find-b2b-leads or find-stakeholders; or you want companies by tech stack — use find-companies-using-tech.",
       "version": "1.1.0",
@@ -107,7 +107,7 @@
     },
     {
       "name": "clay-to-cargo",
-      "kind": "run-once",
+      "kind": "one-off",
       "job": "Rebuild a Clay table on Cargo, powered by Cargo — map every Clay enrichment column to its provider action, price the run before it happens, and keep the result as version-controlled code instead of a spreadsheet.",
       "description": "Rebuild a Clay table on Cargo, powered by Cargo — map every Clay enrichment column to its provider action, price the run before it happens, and keep the result as version-controlled code instead of a spreadsheet. Triggers: \"migrate from Clay\", \"move my Clay table to Cargo\", \"Clay alternative\", \"replace Clay\", \"I have a Clay export\", \"what does Clay's enrichment column map to\", \"my Clay bill is too high\", \"Clay but as code\". Migration, mapping, parity, spreadsheet, declarative. Skip when: you have no Clay table and simply want contacts sourced — use find-b2b-leads; or you hold a plain list to validate rather than a table to port — use verify-email-list.",
       "version": "1.0.0",
@@ -118,7 +118,7 @@
     },
     {
       "name": "crm-enrichment",
-      "kind": "run-once",
+      "kind": "one-off",
       "job": "Backfill the empty fields on CRM records so routing, scoring and territory assignment stop failing on blanks, powered by Cargo.",
       "description": "Backfill the empty fields on CRM records so routing, scoring and territory assignment stop failing on blanks, powered by Cargo. Triggers: \"CRM enrichment\", \"enrich my CRM\", \"my CRM records are half empty\", \"fill in missing fields in HubSpot\", \"clean up the CRM data\", \"our Salesforce contacts have no titles\", \"CRM data quality\", \"CRM hygiene\", \"backfill blank fields\". Providers: enrichCrm. Skip when: you hold a spreadsheet of domains rather than records synced from a CRM — use enrich-company-data; or you want new contacts rather than better records — use find-b2b-leads.",
       "version": "1.0.0",
@@ -129,7 +129,7 @@
     },
     {
       "name": "enrich-company-data",
-      "kind": "run-once",
+      "kind": "one-off",
       "job": "Enrich a list of companies with firmographics — industry, size, geography, founding year, and headquarters, powered by Cargo.",
       "description": "Enrich a list of companies with firmographics — industry, size, geography, founding year, and headquarters, powered by Cargo. Triggers: \"enrich these companies\", \"add company size and industry to my list\", \"get firmographics for these domains\", \"fill in company data\", \"company enrichment\", \"enrich companies\", \"what sector is this business in\", \"how big is this organisation\". Providers: cargo. Skip when: you want funding history — use track-funding-rounds; or tech stack — use find-companies-using-tech.",
       "version": "1.1.0",
@@ -140,7 +140,7 @@
     },
     {
       "name": "enrich-linkedin-profile",
-      "kind": "run-once",
+      "kind": "one-off",
       "job": "Turn a LinkedIn profile URL into a full person profile plus a verified work email in a single call, powered by Cargo.",
       "description": "Turn a LinkedIn profile URL into a full person profile plus a verified work email in a single call, powered by Cargo. Triggers: \"enrich these LinkedIn profiles\", \"get details from this LinkedIn URL\", \"I have LinkedIn URLs and need emails\", \"enrich LinkedIn data\", \"who is this person\", \"contact enrichment\", \"linkedin enrichment\", \"get their headline and tenure\", \"pull the whole biography\". Providers: aiArk. Skip when: you do not have the LinkedIn URL yet — use find-linkedin-url first; or you only have a name and domain — use find-work-email.",
       "version": "1.1.0",
@@ -151,7 +151,7 @@
     },
     {
       "name": "find-b2b-leads",
-      "kind": "run-once",
+      "kind": "one-off",
       "job": "Find B2B leads by job title, company, and keyword, and return them as a structured list, powered by Cargo.",
       "description": "Find B2B leads by job title, company, and keyword, and return them as a structured list, powered by Cargo. Triggers: \"find 50 VPs of Sales at fintech companies\", \"build me a list of leads\", \"who are the heads of engineering at Series B startups\", \"get me prospects matching this profile\", \"source leads for my outbound\", \"build a b2b lead list\", \"lead sourcing\". Providers: salesNavigator. Skip when: you need companies rather than people — use build-tam-list; or you already have the people and need contact details — use find-work-email.",
       "version": "1.1.0",
@@ -162,7 +162,7 @@
     },
     {
       "name": "find-companies-using-tech",
-      "kind": "run-once",
+      "kind": "one-off",
       "job": "Find companies by the technology they run or the roles they are hiring for, powered by Cargo.",
       "description": "Find companies by the technology they run or the roles they are hiring for, powered by Cargo. Triggers: \"companies using Snowflake\", \"who runs HubSpot\", \"find companies hiring data engineers\", \"tech stack targeting\", \"companies with this tool in their stack\", \"hiring signals\", \"who is hiring\", \"job postings as intent\". Providers: theirStack. Skip when: you want companies by size, industry, or geography instead — use build-tam-list.",
       "version": "1.1.0",
@@ -173,7 +173,7 @@
     },
     {
       "name": "find-linkedin-url",
-      "kind": "run-once",
+      "kind": "one-off",
       "job": "Resolve a person's LinkedIn profile URL from their name and company, with an identity-validation gate that rejects wrong matches, powered by Cargo.",
       "description": "Resolve a person's LinkedIn profile URL from their name and company, with an identity-validation gate that rejects wrong matches, powered by Cargo. Triggers: \"find the LinkedIn for John Smith at Acme\", \"get LinkedIn URLs for these contacts\", \"what's this person's LinkedIn\", \"add LinkedIn profiles to my list\". Providers: linkedin. Skip when: you already have the LinkedIn URL and want the profile data — use enrich-linkedin-profile.",
       "version": "1.0.0",
@@ -184,7 +184,7 @@
     },
     {
       "name": "find-portfolio-companies",
-      "kind": "run-once",
+      "kind": "one-off",
       "job": "Find every portfolio company of an investor or accelerator, then the people inside them, powered by Cargo.",
       "description": "Find every portfolio company of an investor or accelerator, then the people inside them, powered by Cargo. Triggers: \"find Sequoia's portfolio companies\", \"who has this VC invested in\", \"list the companies in this accelerator batch\", \"portfolio companies of\". Providers: peopleDataLabs. Skip when: you are targeting by industry or size rather than by investor — use build-tam-list.",
       "version": "1.0.0",
@@ -195,7 +195,7 @@
     },
     {
       "name": "find-stakeholders",
-      "kind": "run-once",
+      "kind": "one-off",
       "job": "Find the buying committee at a target account — every stakeholder matching a set of titles, seniorities, and departments, powered by Cargo.",
       "description": "Find the buying committee at a target account — every stakeholder matching a set of titles, seniorities, and departments, powered by Cargo. Triggers: \"find the buying committee at Acme\", \"who are the decision makers at this company\", \"find stakeholders\", \"multi-thread this account\", \"who else should I be talking to at this account\". Providers: aiArk. Skip when: you are sourcing across many companies rather than going deep on a few — use find-b2b-leads.",
       "version": "1.0.0",
@@ -206,7 +206,7 @@
     },
     {
       "name": "find-work-email",
-      "kind": "run-once",
+      "kind": "one-off",
       "job": "Find a verified work email address from a person's name and company domain, powered by Cargo.",
       "description": "Find a verified work email address from a person's name and company domain, powered by Cargo. Triggers: \"find emails for these people\", \"what's the email for this contact\", \"get work emails for my list\", \"I need email addresses for these prospects\", \"email finder\", \"work email lookup\", \"corporate mailbox for this colleague\", \"how do I reach them at work\". Providers: prospeo, FullEnrich. Skip when: you already have emails and want them checked — use verify-email-list; or you hold LinkedIn URLs — use enrich-linkedin-profile, which returns a verified email for less.",
       "version": "1.1.0",
@@ -217,7 +217,7 @@
     },
     {
       "name": "monitor-buying-signals",
-      "kind": "run-once",
+      "kind": "one-off",
       "job": "Watch a list of target accounts for the public events that mean someone is in market, powered by Cargo — hiring for the role you sell into, saying something new, or turning up in a detection feed, each with a date and a link.",
       "description": "Watch a list of target accounts for the public events that mean someone is in market, powered by Cargo — hiring for the role you sell into, saying something new, or turning up in a detection feed, each with a date and a link. Triggers: \"tell me when these accounts do something\", \"what changed at my target accounts\", \"who is in market right now\", \"set up intent monitoring\", \"watch these companies for me\", \"any triggers on this list\". Intent, triggers, watchlist, timing, freshness. Skip when: you have no account list yet — use build-tam-list; or you want a verdict on fit rather than on timing — use score-leads.",
       "version": "1.0.0",
@@ -228,7 +228,7 @@
     },
     {
       "name": "research-account",
-      "kind": "run-once",
+      "kind": "one-off",
       "job": "Research one company before a meeting and hand back a briefing, powered by Cargo — what it does, what it publicly says is hard right now, and who it names as competition, each line traceable to where it came from.",
       "description": "Research one company before a meeting and hand back a briefing, powered by Cargo — what it does, what it publicly says is hard right now, and who it names as competition, each line traceable to where it came from. Triggers: \"research this company\", \"brief me on this account\", \"prep me for this meeting\", \"what should I know about them\", \"write me a one-pager on\", \"what are they struggling with\", \"who do they compete with\". Meeting prep, briefing, dossier, talking points. Skip when: you want many companies filtered rather than one understood — use build-tam-list; or you want the people to contact there — use find-stakeholders.",
       "version": "1.0.0",
@@ -239,7 +239,7 @@
     },
     {
       "name": "score-leads",
-      "kind": "run-once",
+      "kind": "one-off",
       "job": "Score a list of companies against your ideal customer profile and rank them, powered by Cargo — every row gets a number, the reason behind it, and a tier, so the bottom of the list can be dropped before anyone spends time on it.",
       "description": "Score a list of companies against your ideal customer profile and rank them, powered by Cargo — every row gets a number, the reason behind it, and a tier, so the bottom of the list can be dropped before anyone spends time on it. Triggers: \"score these leads\", \"which of these fit our ICP\", \"rank this list\", \"prioritise these accounts\", \"who should we go after first\", \"disqualify the bad ones\", \"tier this list\". Firmographic fit, thresholds, tiering, prioritisation. Skip when: you have no list yet and need one built — use build-tam-list or find-b2b-leads; or you want people inside an account rather than a verdict on the account — use find-stakeholders.",
       "version": "1.0.0",
@@ -250,7 +250,7 @@
     },
     {
       "name": "tam-building",
-      "kind": "cdk-example",
+      "kind": "cookbook",
       "job": "Stand up your account universe as a deployed pipeline: a Sales Navigator company search split past the 1,000 extraction cap, resolved to real domains, deduped into a shared accounts model.",
       "description": "Stand up your account universe as a deployed pipeline: a Sales Navigator company search split past the 1,000 extraction cap, resolved to real domains, deduped into a shared accounts model. Triggers: \"our TAM is a stale CSV\", \"build our account universe\", \"the search has more companies than it will export\", \"keep our market list current\", \"size our market then load it\". Cargo CDK, salesNavigator, searchCompanyMetrics, fetchAccountSearch, accounts model. Skip when: you want the list once rather than a pipeline that keeps producing it, which is cargo-gtm's build-tam recipe.",
       "version": "0.2.0",
@@ -321,7 +321,7 @@
     },
     {
       "name": "track-funding-rounds",
-      "kind": "run-once",
+      "kind": "one-off",
       "job": "Track which companies recently raised funding, with round, amount, and investors, powered by Cargo.",
       "description": "Track which companies recently raised funding, with round, amount, and investors, powered by Cargo. Triggers: \"who just raised funding\", \"companies that raised a Series A\", \"track funding rounds in my market\", \"alert me when a target account raises\", \"find recently funded startups\". Providers: cargo. Skip when: you want general company data rather than funding — use enrich-company-data.",
       "version": "1.0.0",
@@ -332,7 +332,7 @@
     },
     {
       "name": "track-job-changes",
-      "kind": "run-once",
+      "kind": "one-off",
       "job": "Detect which of your contacts have changed jobs, and where they went, powered by Cargo.",
       "description": "Detect which of your contacts have changed jobs, and where they went, powered by Cargo. Triggers: \"who changed jobs\", \"track job changes in my CRM\", \"did any of my contacts move companies\", \"alert me when a champion leaves\", \"find people who recently started a new role\", \"job changes\", \"job change signals\". Providers: waterfall. Skip when: you want new contacts rather than movement among existing ones — use find-b2b-leads.",
       "version": "1.1.0",
@@ -343,7 +343,7 @@
     },
     {
       "name": "verify-email-list",
-      "kind": "run-once",
+      "kind": "one-off",
       "job": "Verify a list of email addresses so you stop sending to bounces, powered by Cargo.",
       "description": "Verify a list of email addresses so you stop sending to bounces, powered by Cargo. Triggers: \"verify these emails\", \"clean my email list\", \"check if these addresses are valid\", \"our bounce rate is too high\", \"validate emails before sending\". Providers: waterfall. Skip when: you do not have the emails yet — use find-work-email first.",
       "version": "1.0.0",
@@ -354,7 +354,7 @@
     },
     {
       "name": "waterfall-enrichment",
-      "kind": "run-once",
+      "kind": "one-off",
       "job": "Cascade one lookup through several vendors in priority order, so a row the first source misses falls through to the next instead of being lost, powered by Cargo.",
       "description": "Cascade one lookup through several vendors in priority order, so a row the first source misses falls through to the next instead of being lost, powered by Cargo. Triggers: \"waterfall enrichment\", \"cascade through providers\", \"fallback chain\", \"my single vendor has bad coverage\", \"try another source when the first one misses\", \"improve my match rate\", \"multi-vendor fallback\". Providers: waterfall. Skip when: you want one address for one name and domain — use find-work-email, the cheaper single job; or you hold addresses and only want them checked — use verify-email-list.",
       "version": "1.0.0",
@@ -365,7 +365,7 @@
     },
     {
       "name": "zoominfo-to-cargo",
-      "kind": "run-once",
+      "kind": "one-off",
       "job": "Rebuild a ZoomInfo list on Cargo and measure the coverage you actually lose or gain before the renewal, powered by Cargo.",
       "description": "Rebuild a ZoomInfo list on Cargo and measure the coverage you actually lose or gain before the renewal, powered by Cargo. Triggers: \"ZoomInfo alternative\", \"migrate off ZoomInfo\", \"replace ZoomInfo\", \"our ZoomInfo renewal is coming up\", \"ZoomInfo is too expensive\", \"I have a ZoomInfo export\", \"cheaper than ZoomInfo\", \"Lusha alternative\", \"Cognism alternative\". Providers: waterfall. Skip when: you are porting a Clay table rather than a contact list — use clay-to-cargo; or you have no list yet and simply want contacts sourced — use find-b2b-leads.",
       "version": "1.0.0",

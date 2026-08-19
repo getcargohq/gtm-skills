@@ -6,7 +6,7 @@ compatibility: "Requires @cargo-ai/cli (npm) and a Cargo workspace. No LinkedIn 
 homepage: https://github.com/getcargohq/gtm-skills/tree/main/tam-building
 metadata:
   author: getcargo
-  source: cdk-example
+  source: cookbook
   openclaw:
     requires:
       bins:

@@ -40,7 +40,7 @@ npx skills add getcargohq/gtm-skills/<skill-name>
 | [`waterfall-enrichment`](waterfall-enrichment/SKILL.md)           | Run a waterfall across several providers so a record one vendor misses is caught by the next.                                     |
 | [`crm-enrichment`](crm-enrichment/SKILL.md)                       | Fill the blank fields in your CRM records, contacts and companies alike.                                                          |
 
-**Two of them carry a CDK example instead of a command.** `tam-building` and `account-scoring`
+**Two of them are cookbooks rather than one-off jobs.** `tam-building` and `account-scoring`
 are the same jobs as a deployed pipeline that keeps running: each folder holds worked CDK
 resources written for some other company, and your agent adapts them into your project and
 deploys them. Every such folder is self-contained (its own models, connectors and folders; no

@@ -2,8 +2,8 @@
 // Builds catalog.json: every skill in this repo as one JSON record, so a site
 // or another skills repo can render the menu without parsing markdown. This is
 // the ONE place markdown is turned into data, next to the validators that
-// guarantee the shape (validate.ts for run-once skills, check-cdk-examples.mjs
-// for the ones that carry a CDK example). Consumers fetch
+// guarantee the shape (validate.ts for one-off skills, check-cookbooks.mjs
+// for the cookbooks). Consumers fetch
 //   https://raw.githubusercontent.com/getcargohq/gtm-skills/main/catalog.json
 // and never clone.
 //
@@ -84,10 +84,10 @@ for (const name of readdirSync(root).sort()) {
   const body = text.slice(end + 4);
   const description = fm.description ?? "";
   const job = description.split(/\.\s+Triggers:/)[0] + ".";
-  const isCdk = fm.metadata?.source === "cdk-example";
+  const isCookbook = fm.metadata?.source === "cookbook";
   const rec = {
     name,
-    kind: isCdk ? "cdk-example" : "run-once",
+    kind: isCookbook ? "cookbook" : "one-off",
     job,
     description,
     version: fm.version ?? null,
@@ -98,7 +98,7 @@ for (const name of readdirSync(root).sort()) {
       .map((b) => b.replace(/`/g, "").split(/[:\s]/)[0])
       .filter(Boolean),
   };
-  if (isCdk) {
+  if (isCookbook) {
     const a = approvals[name] ?? {};
     Object.assign(rec, {
       state: a.state ?? "to-be-approved",
