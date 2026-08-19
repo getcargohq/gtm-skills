@@ -1,12 +1,12 @@
 #!/usr/bin/env node
-// Validates the skills that carry a CDK example: the folders with models/,
+// Validates the cookbooks: the skills that carry a worked cookbook: the folders with models/,
 // plays/, agents/ and so on beside their SKILL.md.
-// The run-once skills are validated by validate.ts (slugs, prices, playbooks);
-// this owns everything a CDK example adds on top. Both run under `npm run validate`.
+// The one-off skills are validated by validate.ts (slugs, prices, playbooks);
+// this owns everything a cookbook adds on top. Both run under `npm run validate`.
 //
 // Mechanically: a root folder that carries resource code (models/, plays/,
 // agents/, ...). It becomes a skill when it carries a SKILL.md whose
-// frontmatter says `metadata.source: cdk-example`; until then it is reported
+// frontmatter says `metadata.source: cookbook`; until then it is reported
 // as still-to-convert, never failed, so the rollout stays visible on every run.
 //
 // Every such folder is ISOLATED: it carries every model, connector and folder
@@ -156,9 +156,9 @@ for (const name of exampleFolders) {
     errors.push(
       `${name}/SKILL.md frontmatter name is "${fm.name}", expected "${name}"`,
     );
-  if (fm.metadata?.source !== "cdk-example") {
+  if (fm.metadata?.source !== "cookbook") {
     errors.push(
-      `${name}/SKILL.md carries resource code, so its frontmatter needs metadata.source: cdk-example (validate.ts skips it and this script owns it)`,
+      `${name}/SKILL.md carries resource code, so its frontmatter needs metadata.source: cookbook (validate.ts skips it and this script owns it)`,
     );
   }
   const d = fm.description ?? "";
@@ -261,9 +261,7 @@ for (const name of exampleFolders) {
 // approvals.json must not name a folder that is not an engine
 for (const name of Object.keys(approvals)) {
   if (!exampleFolders.includes(name))
-    errors.push(
-      `approvals.json names "${name}", which is not a CDK-example folder here`,
-    );
+    errors.push(`approvals.json names "${name}", which is not a cookbook here`);
 }
 
 // A run-once skill's "## Part of" section may name engines; they must exist.
@@ -275,16 +273,14 @@ for (const name of allSkillFolders) {
   for (const m of part[1].matchAll(/`([a-z0-9-]+)`/g)) {
     if (!exampleFolders.includes(m[1]))
       errors.push(
-        `${name}/SKILL.md says it is part of \`${m[1]}\`, which is not a CDK-example folder here`,
+        `${name}/SKILL.md says it is part of \`${m[1]}\`, which is not a cookbook here`,
       );
   }
 }
 
 if (errors.length) {
-  console.error("CDK-example skills are out of sync:");
+  console.error("cookbooks are out of sync:");
   for (const e of errors) console.error(`  - ${e}`);
   process.exit(1);
 }
-console.log(
-  `ok: ${exampleFolders.length} CDK-example skills, every one self-contained`,
-);
+console.log(`ok: ${exampleFolders.length} cookbooks, every one self-contained`);

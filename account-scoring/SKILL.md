@@ -6,7 +6,7 @@ compatibility: "Requires @cargo-ai/cli (npm), a Cargo workspace, and a CRM crede
 homepage: https://github.com/getcargohq/gtm-skills/tree/main/account-scoring
 metadata:
   author: getcargo
-  source: cdk-example
+  source: cookbook
   openclaw:
     requires:
       bins:

@@ -1,8 +1,8 @@
-// Routing evals for the standalone micro-skills — generated from the
-// `triggers` in micro-skills/manifest.ts. Every trigger phrase must route
-// to its own skill; if two micro-skills drift into each other's vocabulary
+// Routing evals for every skill here, one-off and cookbook alike. Every
+// trigger phrase must route to its own skill; if two drift into each other's
+// vocabulary
 // this is what catches it.
-// Regenerate: node .github/scripts/generate-micro-skills.ts
+// Add a case whenever you change a description.
 {"prompt":"find 50 VPs of Sales at fintech companies","expect":"find-b2b-leads"}
 {"prompt":"build me a list of leads","expect":"find-b2b-leads"}
 {"prompt":"who are the heads of engineering at Series B startups","expect":"find-b2b-leads"}
@@ -60,11 +60,12 @@
 {"prompt":"list the companies in this accelerator batch","expect":"find-portfolio-companies"}
 {"prompt":"portfolio companies of","expect":"find-portfolio-companies"}
 
-// --- CDK-example skills: the run-once / deployed seam ----------------------------
-// tam-building and account-scoring carry a worked CDK example and deploy a
-// pipeline. build-tam-list and score-leads do the same job once, in a turn. The
+// --- cookbooks: the one-off / deployed seam ----------------------------------------
+// tam-building and account-scoring are cookbooks: a worked CDK example that
+// deploys a pipeline. build-tam-list and score-leads are one-offs: the same
+// job once, in a turn. The
 // same words describe both, so these cases pin which way each phrasing goes;
-// a CDK-example skill that starts winning the one-off prompts has stolen them.
+// a cookbook that starts winning the one-off prompts has stolen them.
 {"prompt": "Our TAM is a stale CSV, I want it to stay current", "expect": "tam-building", "why": "The standing tell, in the user's words: keep it current."}
 {"prompt": "The Sales Navigator search has way more companies than it will let me export", "expect": "tam-building", "why": "The extraction-cap problem is what this skill exists for."}
 {"prompt": "Build our account universe and keep loading new companies into it", "expect": "tam-building"}

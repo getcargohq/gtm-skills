@@ -6,7 +6,7 @@ compatibility: Requires @cargo-ai/cli (npm). Sign in or create an account with `
 homepage: https://github.com/getcargohq/gtm-skills
 metadata:
   author: getcargo
-  source: micro-skill
+  source: one-off
   openclaw:
     requires:
       bins:

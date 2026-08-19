@@ -37,16 +37,16 @@ jobs:
       # customer's project shell comes from `cargo-ai cdk init --template blank`.
       - run: npm ci --ignore-scripts
 
-      - name: Validate the run-once skills against the Cargo playbooks
+      - name: Validate the one-off skills against the Cargo playbooks
         env:
           CARGO_SKILLS_REF: ${{ inputs.ref || 'main' }}
         run: node scripts/validate.ts
 
-      # The skills that carry a CDK example: frontmatter parses, the contract
-      # sections exist, no relative import escapes the folder, and the
-      # to-be-approved banner follows .github/data/approvals.json.
-      - name: Validate the CDK-example skills
-        run: node scripts/check-cdk-examples.mjs
+      # The cookbooks (skills that carry a worked CDK example): frontmatter
+      # parses, the contract sections exist, no relative import escapes the
+      # folder, and the to-be-approved banner follows .github/data/approvals.json.
+      - name: Validate the cookbooks
+        run: node scripts/check-cookbooks.mjs
 
       - name: Check llms.txt is in sync with the skill tree
         run: node scripts/generate-llms-txt.ts --check

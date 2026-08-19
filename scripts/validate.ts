@@ -534,23 +534,39 @@ if (!skillNames.length) {
   process.exit(1);
 }
 
-// A skill that carries a CDK example (metadata.source: cdk-example) is a
-// worked example an agent adapts, not a command an agent runs: it names no
-// connector action, prices no call, asks no star. scripts/check-cdk-examples.mjs
-// owns those. They still take part in the trigger-collision check below,
-// because a run-once skill and a CDK-example skill compete for the same
-// prompts and that is exactly the seam that must not blur.
+// Every skill declares what kind of thing it is in `metadata.source`, and
+// there are exactly two kinds:
+//
+//   one-off   a job an agent runs in a turn: the exact cargo-ai command, its
+//             price, the star ask. Validated here, against the playbooks.
+//   cookbook  a worked CDK example an agent adapts into a project and deploys.
+//             Names no connector action, prices no call. Validated by
+//             scripts/check-cookbooks.mjs.
+//
+// Both kinds take part in the trigger-collision check below, because a
+// one-off and a cookbook compete for the same prompts and that is exactly the
+// seam that must not blur ("build a TAM list" vs "keep our TAM current").
 //
 // The frontmatter reader above is flat on purpose (top-level keys only), so
-// the nested `metadata.source` marker is read straight from the file: it is
-// the same indented line every micro-skill already carries as `source:
-// micro-skill`.
+// the nested marker is read straight from the file. A missing or unknown
+// value is an error, not a default: a typo must not silently make a cookbook
+// a one-off.
+const SOURCES = new Set(["one-off", "cookbook"]);
 const allSkills = skillNames.map(readSkill);
-const isCdkExample = (skill: Skill): boolean =>
-  /^\s+source:\s*cdk-example\s*$/m.test(
+const sourceOf = (skill: Skill): string | undefined =>
+  /^\s+source:\s*([a-z-]+)\s*$/m.exec(
     readFileSync(join(repoRoot, skill.name, "SKILL.md"), "utf8").split(/\n---\n/)[0] ?? "",
-  );
-const skills = allSkills.filter((skill) => !isCdkExample(skill));
+  )?.[1];
+for (const skill of allSkills) {
+  const source = sourceOf(skill);
+  if (source === undefined || !SOURCES.has(source)) {
+    fail(
+      skill.name,
+      `metadata.source must be one of ${[...SOURCES].join(" | ")} (got ${source === undefined ? "nothing" : `\`${source}\``}) — it says what kind of skill this is`,
+    );
+  }
+}
+const skills = allSkills.filter((skill) => sourceOf(skill) !== "cookbook");
 
 // Two skills claiming the same trigger phrase is the failure mode that degrades
 // routing for the whole set, so it is an error rather than a warning.
