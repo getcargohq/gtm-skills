@@ -7,7 +7,7 @@ the validators tell them apart by one frontmatter line:
 | Kind     | Marker                      | What the folder holds                                                                                               | Validated by                                                         |
 | -------- | --------------------------- | ------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
 | one-off  | `metadata.source: one-off`  | `SKILL.md`: a job an agent runs in a turn, with the exact `cargo-ai` command and its price                          | `scripts/validate.ts` (slugs and prices against the Cargo playbooks) |
-| cookbook | `metadata.source: cookbook` | `SKILL.md` plus worked CDK resources (`models/`, `plays/`, `agents/`, …) an agent adapts into a project and deploys | `scripts/check-cdk-examples.mjs`                                     |
+| cookbook | `metadata.source: cookbook` | `SKILL.md` plus worked CDK resources (`models/`, `plays/`, `agents/`, …) an agent adapts into a project and deploys | `scripts/check-cookbooks.mjs`                                        |
 
 `metadata.source` must be exactly one of those two values; a missing or
 unknown one fails `validate.ts`, so a typo cannot silently make a cookbook a

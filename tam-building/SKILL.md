@@ -66,8 +66,9 @@ this is enough.
    is the floor, and you derive before you ask. If you are asking more than about four questions
    you have skipped lookups. Record what you changed and why under a `## Decisions` section in
    your copy of this file.
-4. **Plan, then stop.** `npm run typecheck && cargo-ai cdk plan`. Show the diff. Deploy only on
-   an explicit yes: `cargo-ai cdk deploy`. Never `cdk init --force` into a non-empty directory.
+4. **Plan, then stop.** `npm run check && cargo-ai cdk plan` (`check` validates the resource tree
+   offline; the blank template ships it). Show the diff. Deploy only on an explicit yes:
+   `cargo-ai cdk deploy`. Never `cdk init --force` into a non-empty directory.
 5. **Verify.** Walk _Done when_ line by line and report each with evidence. Deployed cleanly and
    produced nothing is the normal failure.
 

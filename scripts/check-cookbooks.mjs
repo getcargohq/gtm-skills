@@ -34,7 +34,7 @@
 //   - no relative import escapes the folder: isolation is the contract, and a
 //     stray `../../other/...` is the one way to break it silently.
 //   - the inline procedure section is present: each skill carries its own
-//     "Put it in your project", the way every run-once skill here carries its
+//     "Put it in your project", the way every one-off skill here carries its
 //     own Setup. There is no shared procedure skill to depend on.
 //   - approved needs its evidence: a fresh-workspace date AND two
 //     implementations. The banner must be present exactly while the state is
@@ -190,25 +190,12 @@ for (const name of exampleFolders) {
     );
   }
 
-  // Requires: every folder named must exist here.
-  // Requires: the section names its dependencies as `slug` at the start of a
-  // sentence or list item ("`base-gtm`: the shared ..."). Backticks later in
-  // the prose are model and connector names, not folders.
-  const req = body.match(/\n## Requires\n([\s\S]*?)(?=\n## )/);
-  if (req) {
-    for (const m of req[1].matchAll(
-      /(?:^|\n|,\s*|and\s+)`([a-z0-9-]+)`(?=\s*[:(,]|\s+and\s|\s*$)/g,
-    )) {
-      const dep = m[1];
-      if (
-        !existsSync(join(root, dep, "README.md")) &&
-        !existsSync(join(root, dep, "SKILL.md"))
-      ) {
-        errors.push(
-          `${name}/SKILL.md requires \`${dep}\`, which is not a folder in this repo`,
-        );
-      }
-    }
+  // A `## Requires` section contradicts isolation: a cookbook carries what it
+  // needs, and the agent reconciles duplicates against the project. Refuse it.
+  if (/\n## Requires\n/.test(body)) {
+    errors.push(
+      `${name}/SKILL.md carries a "## Requires" section: cookbooks are self-contained, and what the project already has is reconciled by the agent, not declared here`,
+    );
   }
 
   // Isolation: no relative import may leave the folder.
@@ -264,7 +251,7 @@ for (const name of Object.keys(approvals)) {
     errors.push(`approvals.json names "${name}", which is not a cookbook here`);
 }
 
-// A run-once skill's "## Part of" section may name engines; they must exist.
+// A one-off skill's "## Part of" section may name cookbooks; they must exist.
 for (const name of allSkillFolders) {
   if (exampleFolders.includes(name)) continue;
   const text = readFileSync(join(root, name, "SKILL.md"), "utf8");
