@@ -45,9 +45,8 @@ are the same jobs as a deployed pipeline that keeps running: each folder holds w
 resources written for some other company, and your agent adapts them into your project and
 deploys them. Every such folder is self-contained (its own models, connectors and folders; no
 shared foundation, no requires graph), so the agent reconciles it with whatever your project
-already declares. The other sixteen folders with resource code (`contact-sourcing`,
-`signal-based-tam`, `ai-sdr`, `rep-cockpit`, …) are on their way: the code is there, the skill
-that carries it is not yet.
+already declares. More are on their way (`contact-sourcing`, `signal-based-tam`, `ai-sdr`,
+`rep-cockpit`, …); each lands here the day its skill is written, not before.
 
 | Skill                                         | Deploys                                                                                                                                  |
 | --------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
