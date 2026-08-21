@@ -23,7 +23,9 @@ Walk every line. A checked template without an evidence-backed consumer adaptati
   values, including numeric zero.
 - Provider success writes the approved mappings, `enrichment_status`, and `last_enriched_at`.
 - Provider or CRM connector errors remain failed workflow runs.
-- The play filter encodes approved eligibility, remains disabled, and limits the pilot to 15.
+- The play filter requires an identifier and `last_enriched_at` null or older than six months.
+- The disabled play evaluates daily, creates runs only for rows added to its managed segment, uses
+  `noConcurrency`, and limits the pilot to 15.
 - No standalone `defineSegment` exists.
 - `cargo-ai cdk types`, `cargo-ai cdk check`, and `cargo-ai cdk plan` pass in the consumer project.
 

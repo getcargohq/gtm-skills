@@ -138,7 +138,8 @@
         "Keep the play on the concrete CRM model and the global Account as the unified downstream view.",
         "Keep one paid route per row, LinkedIn URL first and domain second.",
         "Keep a verified fill-blank guard, placeholder guards, and the disabled 15-row pilot.",
-        "Keep the play filter as the managed backing segment."
+        "Keep the play filter as the managed backing segment.",
+        "Keep daily evaluation, the null-or-six-month freshness rule, and `changeKinds: [\"added\"]`."
       ],
       "doneWhen": [
         "the audit contracts and chat summary agree on every count",
@@ -149,7 +150,7 @@
         "LinkedIn and domain route counts are mutually exclusive and reproduce the credit estimate"
       ],
       "cost": "The LinkedIn URL route costs 0.25 credits per eligible CRM row. The mutually exclusive domain\nfallback costs 0.5 credits per eligible CRM row. Preview exactly\n`linkedin_url_path * 0.25 + domain_path * 0.5`.\n\nThis simple play runs on CRM rows, so duplicates can produce more than one paid call for the same\nreal company. Report that cost honestly. Account deduplication follows enrichment because the new\nmatching keys improve duplicate detection.",
-      "composesInto": "- Run `account-deduplication` after matching keys are complete.\n- Feed the unified Account into scoring, segmentation, and people enrichment.\n- Add an approved recurring freshness rule after the pilot."
+      "composesInto": "- Run `account-deduplication` after matching keys are complete.\n- Feed the unified Account into scoring, segmentation, and people enrichment.\n- Enable the preconfigured daily freshness schedule after the pilot is approved."
     },
     {
       "name": "crm-enrichment",

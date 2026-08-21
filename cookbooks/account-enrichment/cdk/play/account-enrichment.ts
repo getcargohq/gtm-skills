@@ -248,11 +248,29 @@ export const enrichAccounts = definePlay("enrich_accounts", {
           },
         ],
       },
+      {
+        // A row is added to the managed segment when it has never been
+        // enriched or when its successful enrichment becomes six months old.
+        conjonction: "or",
+        conditions: [
+          {
+            kind: "date",
+            columnSlug: crmAccounts.columns[crmFields.last_enriched_at],
+            operator: "isNull",
+          },
+          {
+            kind: "date",
+            columnSlug: crmAccounts.columns[crmFields.last_enriched_at],
+            operator: "lowerThan",
+            value: "6 months",
+          },
+        ],
+      },
     ],
   },
   limit: 15,
   isEnabled: false,
   runCreationRule: "noConcurrency",
-  changeKinds: ["added", "updated"],
-  schedule: { type: "cron", cron: "0 6 * * 1" },
+  changeKinds: ["added"],
+  schedule: { type: "cron", cron: "0 6 * * *" },
 });

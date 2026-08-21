@@ -32,14 +32,16 @@ In this repository run `npm run check:templates`. In the consumer project:
 4. Show the operator target counts, mappings, exact credits, and the disabled 15-row limit.
 5. Deploy or enable only after explicit approval.
 
-After a successful pilot, offer a recurring rule intersecting the approved population with new
-Accounts, changed identifiers, missing selected fields, or a successful enrichment older than six
-months. Re-preview costs before enabling the schedule.
+The managed segment intersects the approved population with rows whose `last_enriched_at` is null
+or older than six months. Evaluate it daily and create runs only for rows added to that segment.
+After a successful write, the freshness timestamp removes the row until it becomes six months old
+again. Re-preview costs before enabling the preconfigured daily schedule.
 
 ## Complete when
 
 - the consumer file contains only the selected CRM action shapes
 - the play model is the concrete CRM Account model
 - the tool uses a CRM-native blank-only update flag or an explicit fresh-read guard
-- `isEnabled: false`, `limit: 15`, and `runCreationRule: noConcurrency` remain in the first plan
+- `isEnabled: false`, `limit: 15`, `runCreationRule: noConcurrency`, daily scheduling, and
+  `changeKinds: ["added"]` remain in the first plan
 - no credential, customer data, or deploy command appears in the committed template

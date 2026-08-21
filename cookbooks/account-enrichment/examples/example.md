@@ -11,7 +11,8 @@ This is a repository walkthrough, not a live CRM session.
    the generated Salesforce or Attio types.
 4. Replace every `crmFields` placeholder with an approved property. Keep fill-blanks for the base
    pilot and leave provider-schema-untyped fields out.
-5. Adapt the play filter to the approved population. Keep LinkedIn URL first, domain fallback
-   second, `isEnabled: false`, and `limit: 15`.
+5. Intersect the play filter with the approved population. Keep the null-or-six-month freshness
+   group, daily schedule, `changeKinds: ["added"]`, LinkedIn URL first, domain fallback second,
+   `isEnabled: false`, and `limit: 15`.
 6. Run `cargo-ai cdk types`, `cargo-ai cdk check`, and `cargo-ai cdk plan` in the consumer project.
    Show the operator the exact mappings, row counts, and credits. Stop before deploy.

@@ -71,6 +71,8 @@ CRM population.
   available. Otherwise reread the live CRM row and preserve existing values, including numeric
   zero.
 - Write `last_enriched_at` and `enrichment_status` only after the provider succeeds.
+- Define the managed segment as approved rows whose `last_enriched_at` is null or older than six
+  months. Evaluate it daily and create runs only for rows added to the segment.
 - Keep the first play disabled, limited to 15 rows, and configured with `noConcurrency`.
 - Keep credentials, deployment commands, and customer data out of this repository.
 
@@ -84,7 +86,7 @@ Derive everything available from the workspace before asking.
 | Property candidates             | derived  | Live names, types, fill counts, and semantics                 |
 | Approved destinations           | operator | Recommended primary property for each selected provider field |
 | Target population               | operator | Counts by identifier route, percentage, and exact credits     |
-| Recurring schedule              | operator | Offered only after the disabled pilot passes                  |
+| Daily schedule activation       | operator | Enabled only after the disabled pilot passes                  |
 
 Refreshing populated business fields is outside the base template. If requested, present the
 exact replacements, obtain field-level approval, and add a consumer-specific optimistic
@@ -96,7 +98,7 @@ comparison against a fresh CRM read.
 | ------------------------- | ------------------------------------------------------------------- |
 | CRM                       | Replace connector, extractor, row columns, and CRM action payloads  |
 | Selected fields           | Change the result schema, destinations, and both provider mappings  |
-| Eligibility               | Add approved lifecycle, tier, ownership, gap, or freshness filters  |
+| Eligibility               | Intersect approved lifecycle, tier, ownership, or gap filters       |
 | Existing project models   | Replace example declarations with imports from the consumer project |
 | Approved refresh behavior | Add previewed fields plus an optimistic live-value comparison       |
 
@@ -107,6 +109,7 @@ comparison against a fresh CRM read.
 - Keep one paid route per row, LinkedIn URL first and domain second.
 - Keep a verified fill-blank guard, placeholder guards, and the disabled 15-row pilot.
 - Keep the play filter as the managed backing segment.
+- Keep daily evaluation, the null-or-six-month freshness rule, and `changeKinds: ["added"]`.
 
 ## Done when
 
@@ -132,4 +135,4 @@ matching keys improve duplicate detection.
 
 - Run `account-deduplication` after matching keys are complete.
 - Feed the unified Account into scoring, segmentation, and people enrichment.
-- Add an approved recurring freshness rule after the pilot.
+- Enable the preconfigured daily freshness schedule after the pilot is approved.

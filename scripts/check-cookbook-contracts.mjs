@@ -52,6 +52,10 @@ if (hasEnrichment) {
   assert.match(enrichmentPlay, /isEnabled:\s*false/);
   assert.match(enrichmentPlay, /limit:\s*15/);
   assert.match(enrichmentPlay, /runCreationRule:\s*"noConcurrency"/);
+  assert.match(enrichmentPlay, /changeKinds:\s*\["added"\]/);
+  assert.match(enrichmentPlay, /value:\s*"6 months"/);
+  assert.match(enrichmentPlay, /cron:\s*"0 6 \* \* \*"/);
+  assert.doesNotMatch(enrichmentPlay, /changeKinds:\s*\[[^\]]*"updated"/);
   assert.doesNotMatch(enrichmentPlay, /accountEnrichmentTargets/);
   assert.doesNotMatch(enrichmentPlay, /accountSourceIdClaims/);
   assert.doesNotMatch(enrichmentPlay, /defineSegment/);
