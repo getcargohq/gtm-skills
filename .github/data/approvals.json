@@ -1,4 +1,10 @@
 {
+  "account-enrichment": {
+    "state": "to-be-approved",
+    "chain": 3,
+    "demoWorkspace": null,
+    "implementations": []
+  },
   "account-scoring": {
     "state": "to-be-approved",
     "chain": 1,

@@ -4,15 +4,15 @@
 // The one-off skills are validated by validate.ts (slugs, prices, playbooks);
 // this owns everything a cookbook adds on top. Both run under `npm run validate`.
 //
-// Mechanically: a root folder that carries resource code (models/, plays/,
-// agents/, ...). It becomes a skill when it carries a SKILL.md whose
+// Mechanically: a discovered skill folder that carries resource code (models/,
+// plays/, agents/, or cdk/). It becomes a cookbook when it carries a SKILL.md whose
 // frontmatter says `metadata.source: cookbook`; until then it is reported
 // as still-to-convert, never failed, so the rollout stays visible on every run.
 //
-// Every such folder is ISOLATED: it carries every model, connector and folder
-// it imports, and no relative import may escape it. There is no shared
-// foundation and no requires graph; the agent placing the example reconciles
-// it with whatever the target project already declares.
+// Every such folder is ISOLATED: no relative import may escape it. A cookbook
+// may declare consumer prerequisites when duplicating a global model, connector,
+// or importer would be unsafe. The agent verifies and rewires those resources
+// in the target project without importing another cookbook.
 //
 // SKILL.md is customer-facing: `skills add` installs it and an agent loads it.
 // So it carries the standard skill frontmatter and the contract, and nothing
@@ -63,6 +63,8 @@ const RESOURCE_DIRS = new Set([
   "capacities",
   "folders",
   "workers",
+  "templates",
+  "cdk",
 ]);
 const REQUIRED_SECTIONS = [
   "## Put it in your project",
@@ -103,26 +105,33 @@ const walk = (dir) => {
   return out;
 };
 
-const isExampleFolder = (name) => {
-  const dir = join(root, name);
-  if (
-    !statSync(dir).isDirectory() ||
-    name.startsWith(".") ||
-    name === "node_modules"
-  )
-    return false;
-  return readdirSync(dir).some(
-    (f) => RESOURCE_DIRS.has(f) && statSync(join(dir, f)).isDirectory(),
+const skillFolders = (dir = root, prefix = "") =>
+  readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
+    if (
+      !entry.isDirectory() ||
+      entry.name.startsWith(".") ||
+      entry.name === "node_modules"
+    )
+      return [];
+    const relative = join(prefix, entry.name);
+    const absolute = join(dir, entry.name);
+    if (existsSync(join(absolute, "SKILL.md"))) return [relative];
+    return skillFolders(absolute, relative);
+  });
+const allSkillFolders = skillFolders().sort();
+const duplicateNames = allSkillFolders
+  .map((folder) => folder.split("/").at(-1))
+  .filter((name, index, names) => names.indexOf(name) !== index);
+if (duplicateNames.length > 0) {
+  errors.push(
+    `duplicate skill leaf names: ${[...new Set(duplicateNames)].join(", ")}`,
   );
-};
-
-const exampleFolders = readdirSync(root).filter(isExampleFolder).sort();
-const allSkillFolders = readdirSync(root).filter(
-  (d) =>
-    !d.startsWith(".") &&
-    statSync(join(root, d)).isDirectory() &&
-    existsSync(join(root, d, "SKILL.md")),
-);
+}
+const isExampleFolder = (name) =>
+  readdirSync(join(root, name)).some(
+    (f) => RESOURCE_DIRS.has(f) && statSync(join(root, name, f)).isDirectory(),
+  );
+const exampleFolders = allSkillFolders.filter(isExampleFolder);
 
 for (const name of exampleFolders) {
   const skillPath = join(root, name, "SKILL.md");
@@ -135,13 +144,14 @@ for (const name of exampleFolders) {
     );
     continue;
   }
-  if (!(name in approvals)) {
+  const approvalName = name.split("/").at(-1);
+  if (!(approvalName in approvals)) {
     errors.push(
       `${name} carries resource code but has no entry in .github/data/approvals.json`,
     );
     continue;
   }
-  const record = approvals[name];
+  const record = approvals[approvalName];
   const {
     data: fm,
     body,
@@ -152,9 +162,9 @@ for (const name of exampleFolders) {
     continue;
   }
 
-  if (fm.name !== name)
+  if (fm.name !== name.split("/").at(-1))
     errors.push(
-      `${name}/SKILL.md frontmatter name is "${fm.name}", expected "${name}"`,
+      `${name}/SKILL.md frontmatter name is "${fm.name}", expected "${name.split("/").at(-1)}"`,
     );
   if (fm.metadata?.source !== "cookbook") {
     errors.push(
@@ -194,7 +204,7 @@ for (const name of exampleFolders) {
   // needs, and the agent reconciles duplicates against the project. Refuse it.
   if (/\n## Requires\n/.test(body)) {
     errors.push(
-      `${name}/SKILL.md carries a "## Requires" section: cookbooks are self-contained, and what the project already has is reconciled by the agent, not declared here`,
+      `${name}/SKILL.md carries a "## Requires" section: state consumer prerequisites in compatibility and project steps, without an inter-cookbook dependency`,
     );
   }
 
@@ -210,7 +220,7 @@ for (const name of exampleFolders) {
       const tgt = resolve(dirname(dp), m[1]);
       if (!tgt.startsWith(join(root, name) + "/")) {
         errors.push(
-          `${name}/${dp.slice(root.length + name.length + 2)} imports ${m[1]}, which escapes the folder: every skill is self-contained`,
+          `${name}/${dp.slice(root.length + name.length + 2)} imports ${m[1]}, which escapes the folder: every cookbook must be folder-isolated`,
         );
       }
     }
@@ -247,7 +257,11 @@ for (const name of exampleFolders) {
 
 // approvals.json must not name a folder that is not an engine
 for (const name of Object.keys(approvals)) {
-  if (!exampleFolders.includes(name))
+  if (
+    !exampleFolders.some(
+      (folder) => folder === name || folder.endsWith(`/${name}`),
+    )
+  )
     errors.push(`approvals.json names "${name}", which is not a cookbook here`);
 }
 
@@ -258,7 +272,11 @@ for (const name of allSkillFolders) {
   const part = text.match(/\n## Part of\n([\s\S]*?)(?=\n## |$)/);
   if (!part) continue;
   for (const m of part[1].matchAll(/`([a-z0-9-]+)`/g)) {
-    if (!exampleFolders.includes(m[1]))
+    if (
+      !exampleFolders.some(
+        (folder) => folder.endsWith(`/${m[1]}`) || folder === m[1],
+      )
+    )
       errors.push(
         `${name}/SKILL.md says it is part of \`${m[1]}\`, which is not a cookbook here`,
       );
@@ -270,4 +288,6 @@ if (errors.length) {
   for (const e of errors) console.error(`  - ${e}`);
   process.exit(1);
 }
-console.log(`ok: ${exampleFolders.length} cookbooks, every one self-contained`);
+console.log(
+  `ok: ${exampleFolders.length} cookbooks, every one folder-isolated`,
+);

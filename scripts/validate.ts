@@ -26,7 +26,7 @@
 
 import { execFileSync } from "node:child_process";
 import { readFileSync, readdirSync, existsSync, statSync } from "node:fs";
-import { join, dirname, resolve } from "node:path";
+import { basename, join, dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
@@ -98,8 +98,8 @@ interface Skill {
   quoted: Map<string, number>;
 }
 
-function readSkill(name: string): Skill {
-  const source = readFileSync(join(repoRoot, name, "SKILL.md"), "utf8");
+function readSkill(name: string, path = name): Skill {
+  const source = readFileSync(join(repoRoot, path, "SKILL.md"), "utf8");
   const match = /^---\n([\s\S]*?)\n---\n([\s\S]*)$/.exec(source);
   if (!match) {
     fail(name, "SKILL.md has no frontmatter block");
@@ -335,6 +335,50 @@ async function checkPluginChannel(skillNames: string[]): Promise<void> {
     }
   }
 
+  // Plugin skill discovery is shallow for explicit skill roots. Nested cookbook
+  // leaves therefore need their own manifest paths in addition to the repo root.
+  // Validate the actual component inventory instead of trusting a description
+  // count that can stay correct while the plugin silently exposes fewer skills.
+  for (const [label, manifest] of [
+    [".claude-plugin/plugin.json", claude],
+    [".codex-plugin/plugin.json", codex],
+    [".cursor-plugin/plugin.json", cursor],
+  ] as const) {
+    if (!manifest) continue;
+    const declared = Array.isArray(manifest.skills)
+      ? manifest.skills
+      : [manifest.skills];
+    const discovered = new Set<string>();
+    for (const relative of declared) {
+      if (typeof relative !== "string") {
+        fail("plugin", `${label} has a non-string skill path`);
+        continue;
+      }
+      const absolute = resolve(repoRoot, relative);
+      if (!existsSync(absolute)) {
+        fail("plugin", `${label} skill path does not exist: ${relative}`);
+        continue;
+      }
+      if (existsSync(join(absolute, "SKILL.md"))) {
+        discovered.add(basename(absolute));
+        continue;
+      }
+      for (const entry of readdirSync(absolute, { withFileTypes: true })) {
+        if (
+          entry.isDirectory() &&
+          existsSync(join(absolute, entry.name, "SKILL.md"))
+        )
+          discovered.add(entry.name);
+      }
+    }
+    const missing = skillNames.filter((name) => !discovered.has(name));
+    const extra = [...discovered].filter((name) => !skillNames.includes(name));
+    if (missing.length > 0)
+      fail("plugin", `${label} does not expose ${missing.join(", ")}`);
+    if (extra.length > 0)
+      fail("plugin", `${label} exposes unknown skills: ${extra.join(", ")}`);
+  }
+
   // Every hook a manifest wires must exist and be executable. A plugin that
   // points at a missing or non-executable script fails at session start, on the
   // user's machine, with no output anyone sees.
@@ -423,18 +467,44 @@ async function checkPluginChannel(skillNames: string[]): Promise<void> {
   const readme = readFileSync(join(repoRoot, "README.md"), "utf8");
   for (const [what, pattern] of [
     ["the skills.sh badge", /skills\.sh-(\d+)%20skills/],
-    ["the opening line", /(\d+) standalone agent skills/],
+    ["the opening line", /(\d+) agent skills/],
   ] as const) {
     const found = pattern.exec(readme);
     if (!found) {
-      fail("plugin", `README.md no longer contains ${what} — the count check cannot run`);
+      fail("plugin", `README.md no longer contains ${what}: the count check cannot run`);
     } else if (Number(found[1]) !== count) {
       fail("plugin", `${what} says ${found[1]} skills, but there are ${count}`);
     }
   }
 
   // Same count, spelled out, in the description every plugin listing displays.
-  const WORDS = "zero one two three four five six seven eight nine ten eleven twelve thirteen fourteen fifteen sixteen seventeen eighteen nineteen twenty".split(" ");
+  const WORDS = [
+    "zero",
+    "one",
+    "two",
+    "three",
+    "four",
+    "five",
+    "six",
+    "seven",
+    "eight",
+    "nine",
+    "ten",
+    "eleven",
+    "twelve",
+    "thirteen",
+    "fourteen",
+    "fifteen",
+    "sixteen",
+    "seventeen",
+    "eighteen",
+    "nineteen",
+    "twenty",
+    "twenty-one",
+    "twenty-two",
+    "twenty-three",
+    "twenty-four",
+  ];
   const spelled = WORDS[count];
   for (const [label, manifest] of [
     [".claude-plugin/plugin.json", claude],
@@ -446,9 +516,9 @@ async function checkPluginChannel(skillNames: string[]): Promise<void> {
   ] as const) {
     if (!manifest) continue;
     const text = JSON.stringify(manifest);
-    const spoken = /\b([a-z]+) one-job GTM skills/i.exec(text);
+    const spoken = /\b([a-z]+(?:-[a-z]+)?) routed GTM skills/i.exec(text);
     if (spoken && spelled && spoken[1].toLowerCase() !== spelled) {
-      fail("plugin", `${label} says "${spoken[1]} one-job GTM skills" but there are ${count} (${spelled})`);
+      fail("plugin", `${label} says "${spoken[1]} routed GTM skills" but there are ${count} (${spelled})`);
     }
   }
 
@@ -521,13 +591,32 @@ async function checkPluginChannel(skillNames: string[]): Promise<void> {
  * Main
  * ------------------------------------------------------------------ */
 
-const skillNames = readdirSync(repoRoot)
-  .filter(
-    (entry) =>
-      statSync(join(repoRoot, entry), { throwIfNoEntry: false })?.isDirectory() &&
-      existsSync(join(repoRoot, entry, "SKILL.md")),
-  )
-  .sort();
+const skillEntries = (function walk(
+  dir = repoRoot,
+  prefix = "",
+): { name: string; path: string }[] {
+  return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
+    if (
+      !entry.isDirectory() ||
+      entry.name.startsWith(".") ||
+      entry.name === "node_modules"
+    )
+      return [];
+    const path = join(prefix, entry.name);
+    const absolute = join(dir, entry.name);
+    return existsSync(join(absolute, "SKILL.md"))
+      ? [{ name: entry.name, path }]
+      : walk(absolute, path);
+  });
+})().sort((a, b) => a.name.localeCompare(b.name));
+const skillNames = skillEntries.map((entry) => entry.name);
+const duplicateNames = skillNames.filter(
+  (name, index) => skillNames.indexOf(name) !== index,
+);
+if (duplicateNames.length > 0) {
+  console.error(`Duplicate skill leaf names: ${[...new Set(duplicateNames)].join(", ")}`);
+  process.exit(1);
+}
 
 if (!skillNames.length) {
   console.error("No skills found — expected <name>/SKILL.md directories at the repo root.");
@@ -552,10 +641,16 @@ if (!skillNames.length) {
 // value is an error, not a default: a typo must not silently make a cookbook
 // a one-off.
 const SOURCES = new Set(["one-off", "cookbook"]);
-const allSkills = skillNames.map(readSkill);
+const allSkills = skillEntries.map(({ name, path }) => readSkill(name, path));
+const skillPathByName = new Map(
+  skillEntries.map(({ name, path }) => [name, path]),
+);
 const sourceOf = (skill: Skill): string | undefined =>
   /^\s+source:\s*([a-z-]+)\s*$/m.exec(
-    readFileSync(join(repoRoot, skill.name, "SKILL.md"), "utf8").split(/\n---\n/)[0] ?? "",
+    readFileSync(
+      join(repoRoot, skillPathByName.get(skill.name) ?? skill.name, "SKILL.md"),
+      "utf8",
+    ).split(/\n---\n/)[0] ?? "",
   )?.[1];
 for (const skill of allSkills) {
   const source = sourceOf(skill);

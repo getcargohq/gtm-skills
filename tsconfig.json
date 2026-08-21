@@ -9,7 +9,7 @@
     "noEmit": true,
     "types": []
   },
-  "include": ["*/**/*.ts", ".cargo-ai/**/*.d.ts"],
+  "include": ["**/*.ts", ".cargo-ai/**/*.d.ts"],
   "exclude": [
     "node_modules",
     "dist",
