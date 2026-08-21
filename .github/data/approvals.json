@@ -1,4 +1,10 @@
 {
+  "account-deduplication": {
+    "state": "to-be-approved",
+    "chain": 4,
+    "demoWorkspace": null,
+    "implementations": []
+  },
   "account-scoring": {
     "state": "to-be-approved",
     "chain": 1,

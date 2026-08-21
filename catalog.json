@@ -117,6 +117,90 @@
       "partOf": []
     },
     {
+      "name": "account-deduplication",
+      "kind": "cookbook",
+      "job": "Build a governed Account deduplication foundation: audit CRM duplicate identity, classify candidates, and emit proposal-only duplicate clusters.",
+      "description": "Build a governed Account deduplication foundation: audit CRM duplicate identity, classify candidates, and emit proposal-only duplicate clusters. Triggers: \"deduplicate our CRM accounts\", \"merge duplicate companies in HubSpot\", \"set up recurring account deduplication\", \"clean duplicate account records\". HubSpot, Salesforce, Attio, Cargo CDK. Skip when: you only need a one-time spreadsheet report with no reusable proposal workflow.",
+      "version": "0.1.0",
+      "homepage": "https://github.com/getcargohq/gtm-skills/tree/main/cookbooks/account-deduplication",
+      "group": "Make it run forever",
+      "install": "npx skills add getcargohq/gtm-skills/cookbooks/account-deduplication",
+      "partOf": [],
+      "state": "to-be-approved",
+      "chain": 4,
+      "resources": [
+        "cdk"
+      ],
+      "asked": [
+        {
+          "input": "Duplicate distribution",
+          "kind": "derived",
+          "how": "Run the audit contract against the live CRM source records.",
+          "why": "Establishes cluster size, match classes, and risk."
+        },
+        {
+          "input": "Protected business IDs",
+          "kind": "operator",
+          "how": "Present detected billing, customer, and external-system IDs.",
+          "why": "Conflicts must block a merge proposal."
+        },
+        {
+          "input": "Survivor policy overrides",
+          "kind": "operator",
+          "how": "Show the default ranking and any lifecycle or tier exceptions.",
+          "why": "Makes the winner deterministic and auditable."
+        },
+        {
+          "input": "Review owner and recurrence",
+          "kind": "operator",
+          "how": "Name the ambiguous queue owner and ask after the pilot.",
+          "why": "Review-only classes and recurring audits need ownership."
+        }
+      ],
+      "canChange": [
+        {
+          "id": "Adapt candidate evidence",
+          "when": "The selected CRM exposes different association fields.",
+          "how": "Map audited fields into the same class, conflict, and survivor contract.",
+          "cost": "No provider-credit change."
+        },
+        {
+          "id": "Extend survivor precedence",
+          "when": "A protected lifecycle, tier, or billing rule must win.",
+          "how": "Insert the rule deterministically and record its exact position.",
+          "cost": "No provider-credit change."
+        },
+        {
+          "id": "Add structured AI review",
+          "when": "Ambiguous domain evidence needs a review aid.",
+          "how": "Wire the supplied agent into the importer, never into merge authorization.",
+          "cost": "Current language-model usage, priced before activation."
+        },
+        {
+          "id": "Implement consumer merging",
+          "when": "Live rereads and protected-ID guards are proven.",
+          "how": "Add exact current CRM payloads only in the consumer project after explicit approval.",
+          "cost": "Integration-specific runtime and operational risk."
+        }
+      ],
+      "shouldNotChange": [
+        "Company name alone is never a duplicate key.",
+        "LinkedIn URL, handle, domain, parent, subsidiary, and AI-reviewed matches remain review-only.",
+        "AI never authorizes a merge.",
+        "The shipped play remains proposal-only, disabled, limited to 15, and set to `noConcurrency`.",
+        "The play owns its managed backing segment. Do not add a standalone segment."
+      ],
+      "doneWhen": [
+        "the dedup audit matches its JSON and Markdown contracts",
+        "the existing global Account model and audit importer are verified",
+        "candidate clusters include the required evidence and survivor decision",
+        "the deduplication play is disabled, uses `noConcurrency`, and is limited to 15 clusters",
+        "the selected CRM folders contain no credentials, deployment command, merge action, or customer data"
+      ],
+      "cost": "The shipped proposal play invokes no paid enrichment action, no review agent, and no CRM merge.\nIts provider-credit cost is zero per proposal. If the consumer wires the optional structured\nreview agent or a live audit source, price those actions from their current schemas before use.",
+      "composesInto": "- Run after `account-enrichment` has maximized LinkedIn ID, LinkedIn URL, and domain coverage.\n- Feed reviewed survivors into people enrichment and contact deduplication.\n- Add a consumer-only merge workflow later, after live reread and protected-ID gates are proven."
+    },
+    {
       "name": "crm-enrichment",
       "kind": "one-off",
       "job": "Backfill the empty fields on CRM records so routing, scoring and territory assignment stop failing on blanks, powered by Cargo.",
