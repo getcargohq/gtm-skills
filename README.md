@@ -1,20 +1,26 @@
 # Cargo GTM Skills
 
 [![cargo-ai cli](https://img.shields.io/npm/v/@cargo-ai/cli?label=cargo-ai%20cli&color=black)](https://www.npmjs.com/package/@cargo-ai/cli)
-[![skills.sh](https://img.shields.io/badge/skills.sh-22%20skills-black)](https://www.skills.sh)
+[![skills.sh](https://img.shields.io/badge/skills.sh-23%20skills-black)](https://www.skills.sh)
 [![License](https://img.shields.io/github/license/getcargohq/gtm-skills?color=black)](LICENSE)
 
-22 standalone agent skills, one job each. No account required to read them, and a new
+23 agent skills, each with one routed job. No account required to read them, and a new
 Cargo account starts with **100 free credits, no card**.
 
 ```bash
-npx skills add getcargohq/gtm-skills --all      # all 22
+npx skills add getcargohq/gtm-skills --all --full-depth      # all 23, including cookbooks/
 ```
 
 Each skill also installs on its own, when you want exactly one and nothing else:
 
 ```bash
 npx skills add getcargohq/gtm-skills/<skill-name>
+```
+
+Nested cookbooks install by their exact paths:
+
+```bash
+npx skills add getcargohq/gtm-skills/cookbooks/account-enrichment
 ```
 
 | Skill                                                             | Does                                                                                                                              |
@@ -40,25 +46,28 @@ npx skills add getcargohq/gtm-skills/<skill-name>
 | [`waterfall-enrichment`](waterfall-enrichment/SKILL.md)           | Run a waterfall across several providers so a record one vendor misses is caught by the next.                                     |
 | [`crm-enrichment`](crm-enrichment/SKILL.md)                       | Fill the blank fields in your CRM records, contacts and companies alike.                                                          |
 
-**Two of them are cookbooks rather than one-off jobs.** `tam-building` and `account-scoring`
+**Three of them are cookbooks rather than one-off jobs.** `tam-building`, `account-scoring`, and
+`cookbooks/account-enrichment`
 are the same jobs as a deployed pipeline that keeps running: each folder holds worked CDK
-resources written for some other company, and your agent adapts them into your project and
-deploys them. Every such folder is self-contained (its own models, connectors and folders; no
-shared foundation, no requires graph), so the agent reconciles it with whatever your project
-already declares. More are on their way (`contact-sourcing`, `signal-based-tam`, `ai-sdr`,
+resources that your agent adapts into your project. Every cookbook is folder-isolated, so its
+relative imports never leave that cookbook. Some declare explicit consumer prerequisites instead
+of duplicating an existing global model or connector. The agent reconciles those prerequisites
+with whatever your project already declares. More are on their way (`contact-sourcing`,
+`signal-based-tam`, `ai-sdr`,
 `rep-cockpit`, …); each lands here the day its skill is written, not before.
 
 | Skill                                         | Deploys                                                                                                                                  |
 | --------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
 | [`tam-building`](tam-building/SKILL.md)       | Your account universe from a Sales Navigator search, split past the extraction cap, resolved to domains, deduped into an accounts model. |
 | [`account-scoring`](account-scoring/SKILL.md) | Every account scored and tiered against your written ICP by an agent that cites its evidence, rationale on the CRM record.               |
+| [`account-enrichment`](cookbooks/account-enrichment/SKILL.md) | A governed Account enrichment foundation, from CRM audit and mapping approval to a disabled recurring play. |
 
 Works with Claude Code, Codex, Cursor, Windsurf, GitHub Copilot, and any agent that supports the
 [skills.sh](https://skills.sh) standard.
 
 ## As an agent plugin — Claude Code, Codex, Cursor
 
-The same twenty skills also install as a native **agent plugin**: one source, three targets. Take
+The same 23 skills also install as a native **agent plugin**: one source, three targets. Take
 this route when you want all of them rather than one, and when you want the two things
 `skills add` cannot deliver:
 
@@ -102,7 +111,7 @@ version is a manual, human-reviewed submission that then serves whatever was app
 node scripts/build-codex-package.mjs      # -> dist/gtm-skills-codex.zip
 ```
 
-It stages the twelve skills under `skills/`, drops the OpenClaw `metadata` block OpenAI rejects,
+It stages the 23 skills under `skills/`, drops the OpenClaw `metadata` block OpenAI rejects,
 writes the directory manifest, and asserts every documented limit — description lengths, the
 30-char display fields, square icons, archive shape — against the finished zip rather than the
 staging directory. Skills only: the hooks are wired with `${CLAUDE_PLUGIN_ROOT}`, which nothing
@@ -152,7 +161,7 @@ for the same prompts.
 version, every hook they wire must exist and be executable, `cli-version` must be a real version,
 `skills.sh.json` must group every skill exactly once, the skill list embedded in
 [`hooks/skill-loads.sh`](hooks/skill-loads.sh) must match the directory tree, and
-`hooks/approve-cli.sh` must be byte-identical to the pack's. Adding a thirteenth skill therefore
+`hooks/approve-cli.sh` must be byte-identical to the pack's. Adding a new skill therefore
 means adding it in three places, and the build will tell you which one you missed.
 
 ```bash

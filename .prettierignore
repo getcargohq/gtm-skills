@@ -19,6 +19,10 @@ plugin.json
 skills.sh.json
 hooks/
 evals/
+!cookbooks/account-enrichment/evals/
+!cookbooks/account-deduplication/evals/
+!cookbooks/account-enrichment/**/*.md
+!cookbooks/account-deduplication/**/*.md
 */apps/*/**
 */workers/*/**
 scripts/build-codex-package.mjs

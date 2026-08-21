@@ -85,7 +85,7 @@ const LIMITS = {
 const SKILL_DESCRIPTION_LIMIT = LIMITS.skillDescription;
 
 // Rewrites for skills whose repo description exceeds OpenAI's limit. Empty on
-// purpose: every description here currently fits, and the twelve are deliberately
+// purpose: every description here currently fits, and the skills are deliberately
 // short. Kept as the mechanism rather than deleted, because the alternative when
 // one does go long is a silent truncation into a rejected upload — anything over
 // the limit without an entry here fails the build. Rewrites, never truncations:
@@ -179,13 +179,22 @@ if (typeof version !== "string" || /^\d+\.\d+\.\d+$/.test(version) === false) {
   die(`.claude-plugin/plugin.json has no usable semver version (got ${version})`);
 }
 
-// A skill is any top-level directory holding a SKILL.md — the same rule
-// scripts/validate.ts uses, so the two can never disagree.
-const skillDirs = readdirSync(repoRoot, { withFileTypes: true })
-  .filter((e) => e.isDirectory())
-  .map((e) => e.name)
-  .filter((name) => existsSync(join(repoRoot, name, "SKILL.md")))
-  .sort();
+// Discover root skills and nested cookbooks. The package stays flat because
+// OpenAI loads each skill from skills/<name>/SKILL.md.
+const findSkillDirs = (dir = repoRoot, prefix = "") =>
+  readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
+    if (!entry.isDirectory() || entry.name.startsWith(".") || entry.name === "node_modules") return [];
+    const relative = join(prefix, entry.name);
+    const absolute = join(dir, entry.name);
+    return existsSync(join(absolute, "SKILL.md")) ? [{ name: entry.name, path: relative }] : findSkillDirs(absolute, relative);
+  });
+const skillDirs = findSkillDirs().sort((a, b) => a.name.localeCompare(b.name));
+const duplicateNames = skillDirs.filter(
+  (entry, index) => skillDirs.findIndex((candidate) => candidate.name === entry.name) !== index,
+);
+if (duplicateNames.length > 0) {
+  die(`duplicate skill leaf names cannot be flattened: ${[...new Set(duplicateNames.map((entry) => entry.name))].join(", ")}`);
+}
 
 if (skillDirs.length === 0) {
   die("found no skill directories at the repo root");
@@ -197,8 +206,8 @@ mkdirSync(join(stageDir, "skills"), { recursive: true });
 
 const descriptionErrors = [];
 
-for (const name of skillDirs) {
-  cpSync(join(repoRoot, name), join(stageDir, "skills", name), {
+for (const { name, path } of skillDirs) {
+  cpSync(join(repoRoot, path), join(stageDir, "skills", name), {
     recursive: true,
     dereference: true,
   });
@@ -266,7 +275,7 @@ const manifest = {
   name: "cargo-gtm-skills",
   version,
   description:
-    "Twelve one-job go-to-market skills over the Cargo CLI, installed one at a time or together: research accounts and buying committees, build a total-addressable-market list, enrich companies and LinkedIn profiles, find and verify business email addresses from licensed data providers, and track buying signals (job changes, funding rounds, tech and hiring intent). Business-to-business professional identities only. Every skill samples before it spends and reports the credit cost. These skills send no messages: they produce reviewed, filtered lists for the user's own CRM and sequencer, under that sequencer's limits and the user's own domains — bulk unsolicited messaging, purchased or scraped lists, and consumer targeting are out of scope.",
+    "Twenty-three routed go-to-market skills over the Cargo CLI, including reusable CDK cookbooks such as account enrichment. Install one skill or the full bundle to research accounts, build markets, enrich professional company and contact data, verify business emails, score accounts, and monitor buying signals. Business-to-business professional identities only. Skills preview spend before paid calls. They send no messages. Bulk unsolicited messaging, purchased or scraped lists, and consumer targeting are out of scope.",
   author: { name: "getcargo" },
   homepage: "https://getcargo.ai",
   repository: "https://github.com/getcargohq/gtm-skills",
@@ -287,7 +296,7 @@ const manifest = {
   interface: {
     displayName: "Cargo GTM Skills",
     // 30 chars in the directory, not the 240 the uploader accepts.
-    shortDescription: "One-job GTM skills for agents",
+    shortDescription: "GTM skills and CDK cookbooks",
     composerIcon: "./assets/icon.png",
     logo: "./assets/icon.png",
     capabilities: ["Read", "Write"],
@@ -334,7 +343,7 @@ for (const [field, limit] of [
 for (const url of [manifest.homepage, manifest.repository]) {
   check(url.startsWith("https://"), `${url} must be HTTPS`);
 }
-for (const name of skillDirs) {
+for (const { name } of skillDirs) {
   const identity = `${manifest.name}:${name}`;
   check(
     identity.length <= LIMITS.skillIdentity,

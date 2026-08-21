@@ -117,6 +117,42 @@
       "partOf": []
     },
     {
+      "name": "account-enrichment",
+      "kind": "cookbook",
+      "job": "Build a governed Account enrichment foundation: audit CRM identity, define the global Account model, map standard company enrichment fields, and run a disabled enrichment play.",
+      "description": "Build a governed Account enrichment foundation: audit CRM identity, define the global Account model, map standard company enrichment fields, and run a disabled enrichment play. Triggers: \"set up account enrichment foundations\", \"audit our CRM account enrichment\", \"keep company data fresh in our CRM\", \"build a recurring account enrichment play\". HubSpot, Salesforce, Attio, Cargo CDK. Skip when: no reusable CRM foundation is needed; use enrich-company-data.",
+      "version": "0.1.0",
+      "homepage": "https://github.com/getcargohq/gtm-skills/tree/main/cookbooks/account-enrichment",
+      "group": "Make it run forever",
+      "install": "npx skills add getcargohq/gtm-skills/cookbooks/account-enrichment",
+      "partOf": [],
+      "state": "to-be-approved",
+      "chain": 3,
+      "resources": [
+        "cdk"
+      ],
+      "asked": [],
+      "canChange": [],
+      "shouldNotChange": [
+        "Keep one agent-edited CDK template rather than parallel CRM variants.",
+        "Keep the play on the concrete CRM model and the global Account as the unified downstream view.",
+        "Keep one paid route per row, LinkedIn URL first and domain second.",
+        "Keep a verified fill-blank guard, placeholder guards, and the disabled 15-row pilot.",
+        "Keep the play filter as the managed backing segment.",
+        "Keep daily evaluation, the null-or-six-month freshness rule, and `changeKinds: [\"added\"]`."
+      ],
+      "doneWhen": [
+        "the audit contracts and chat summary agree on every count",
+        "the CRM model feeds the one native Account unification",
+        "`account_enrichment` uses the actual CRM write shape and fill-blank semantics generated in the consumer project",
+        "selected provider fields and CRM destinations agree in meaning and type",
+        "the play targets the CRM model, uses its row ID, is disabled, and limits the pilot to 15",
+        "LinkedIn and domain route counts are mutually exclusive and reproduce the credit estimate"
+      ],
+      "cost": "The LinkedIn URL route costs 0.25 credits per eligible CRM row. The mutually exclusive domain\nfallback costs 0.5 credits per eligible CRM row. Preview exactly\n`linkedin_url_path * 0.25 + domain_path * 0.5`.\n\nThis simple play runs on CRM rows, so duplicates can produce more than one paid call for the same\nreal company. Report that cost honestly. Account deduplication follows enrichment because the new\nmatching keys improve duplicate detection.",
+      "composesInto": "- Run `account-deduplication` after matching keys are complete.\n- Feed the unified Account into scoring, segmentation, and people enrichment.\n- Enable the preconfigured daily freshness schedule after the pilot is approved."
+    },
+    {
       "name": "crm-enrichment",
       "kind": "one-off",
       "job": "Backfill the empty fields on CRM records so routing, scoring and territory assignment stop failing on blanks, powered by Cargo.",
@@ -131,7 +167,7 @@
       "name": "enrich-company-data",
       "kind": "one-off",
       "job": "Enrich a list of companies with firmographics — industry, size, geography, founding year, and headquarters, powered by Cargo.",
-      "description": "Enrich a list of companies with firmographics — industry, size, geography, founding year, and headquarters, powered by Cargo. Triggers: \"enrich these companies\", \"add company size and industry to my list\", \"get firmographics for these domains\", \"fill in company data\", \"company enrichment\", \"enrich companies\", \"what sector is this business in\", \"how big is this organisation\". Providers: cargo. Skip when: you want funding history — use track-funding-rounds; or tech stack — use find-companies-using-tech.",
+      "description": "Enrich a list of companies with firmographics — industry, size, geography, founding year, and headquarters, powered by Cargo. Triggers: \"enrich these companies\", \"add company size and industry to my list\", \"get firmographics for these domains\", \"enrich a supplied spreadsheet of company domains once\", \"fill in company data\", \"company enrichment\", \"enrich companies\", \"what sector is this business in\", \"how big is this organisation\". Providers: cargo. Skip when: you want funding history — use track-funding-rounds; or tech stack — use find-companies-using-tech.",
       "version": "1.1.0",
       "homepage": "https://github.com/getcargohq/gtm-skills",
       "group": "Get the contact data",

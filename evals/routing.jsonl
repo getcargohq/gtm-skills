@@ -76,3 +76,7 @@
 {"prompt": "Our lead scoring is a spreadsheet nobody trusts", "expect": "account-scoring"}
 {"prompt": "Why is this account tier A?", "expect": "account-scoring", "why": "Only the deployed scorer writes a rationale anyone can read back."}
 {"prompt": "Score this list of 200 companies against our ICP and rank them", "expect": "score-leads", "why": "A supplied list, scored once: the one-off, not the deployed scorer."}
+{"prompt": "Set up account enrichment foundations in our CRM and keep company fields fresh", "expect": "account-enrichment"}
+{"prompt": "Audit our CRM account enrichment before we run a recurring enrichment play", "expect": "account-enrichment"}
+{"prompt": "Enrich this supplied spreadsheet of 50 company domains once", "expect": "enrich-company-data", "why": "A one-off list should not route to the recurring account-enrichment foundation."}
+{"prompt": "Fill the missing company fields in our CRM once today", "expect": "crm-enrichment", "why": "A one-time CRM job should not route to the recurring cookbook."}

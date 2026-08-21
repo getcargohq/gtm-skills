@@ -1,8 +1,8 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "cargo",
-  "version": "1.3.0",
-  "description": "Standalone Cargo GTM agent skills \u2014 one job each: leads, TAM, enrichment, work emails, verification, and buying signals via the cargo-ai CLI.",
+  "version": "1.4.0",
+  "description": "Twenty-three routed Cargo GTM skills: one-off CLI jobs plus CDK cookbooks including account enrichment.",
   "author": {
     "name": "Cargo",
     "url": "https://getcargo.ai"

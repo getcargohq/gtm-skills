@@ -45,6 +45,8 @@ const RESOURCE_DIRS = new Set([
   "capacities",
   "folders",
   "workers",
+  "templates",
+  "cdk",
 ]);
 
 const section = (body, heading) => {
@@ -63,21 +65,44 @@ const tableRows = (text) =>
         .slice(1, -1)
         .map((c) => c.trim().replace(/^`|`$/g, "")),
     );
-const bullets = (text) =>
-  (text ?? "")
-    .split("\n")
-    .filter((l) => l.startsWith("- "))
-    .map((l) => l.slice(2).trim());
+const bullets = (text) => {
+  const items = [];
+  for (const line of (text ?? "").split("\n")) {
+    if (line.startsWith("- ")) items.push(line.slice(2).trim());
+    else if (/^\s{2,}\S/.test(line) && items.length > 0)
+      items[items.length - 1] += ` ${line.trim()}`;
+  }
+  return items;
+};
 
 const skills = [];
-for (const name of readdirSync(root).sort()) {
-  const dir = join(root, name);
-  if (
-    name.startsWith(".") ||
-    !statSync(dir).isDirectory() ||
-    !existsSync(join(dir, "SKILL.md"))
-  )
-    continue;
+const skillFolders = (dir = root, prefix = "") =>
+  readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
+    if (
+      !entry.isDirectory() ||
+      entry.name.startsWith(".") ||
+      entry.name === "node_modules"
+    )
+      return [];
+    const relative = join(prefix, entry.name);
+    const absolute = join(dir, entry.name);
+    return existsSync(join(absolute, "SKILL.md"))
+      ? [relative]
+      : skillFolders(absolute, relative);
+  });
+const discoveredSkillFolders = skillFolders().sort();
+const leafNames = new Map();
+for (const path of discoveredSkillFolders) {
+  const leaf = path.split("/").at(-1);
+  if (leafNames.has(leaf)) {
+    throw new Error(
+      `duplicate skill name "${leaf}" in ${leafNames.get(leaf)} and ${path}`,
+    );
+  }
+  leafNames.set(leaf, path);
+}
+for (const path of discoveredSkillFolders) {
+  const dir = join(root, path);
   const text = readFileSync(join(dir, "SKILL.md"), "utf8");
   const end = text.indexOf("\n---", 3);
   const fm = parseYaml(text.slice(4, end));
@@ -85,6 +110,7 @@ for (const name of readdirSync(root).sort()) {
   const description = fm.description ?? "";
   const job = description.split(/\.\s+Triggers:/)[0] + ".";
   const isCookbook = fm.metadata?.source === "cookbook";
+  const name = fm.name;
   const rec = {
     name,
     kind: isCookbook ? "cookbook" : "one-off",
@@ -93,7 +119,7 @@ for (const name of readdirSync(root).sort()) {
     version: fm.version ?? null,
     homepage: fm.homepage ?? null,
     group: groupOf(name),
-    install: `npx skills add getcargohq/gtm-skills/${name}`,
+    install: `npx skills add getcargohq/gtm-skills/${path}`,
     partOf: bullets(section(body, "Part of"))
       .map((b) => b.replace(/`/g, "").split(/[:\s]/)[0])
       .filter(Boolean),
