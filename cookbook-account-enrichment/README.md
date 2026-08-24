@@ -8,7 +8,7 @@ This cookbook helps an agent:
 - connect the CRM Account model to Cargo's global Account identity
 - populate approved matching keys and firmographics without overwriting existing values
 - track enrichment status and freshness
-- keep coverage current by evaluating newly eligible segment rows every day
+- run one play over newly eligible native Account segment rows every day
 
 The result is a reviewed, disabled 15-row pilot with exact target counts, credit estimates, and
 field mappings. Nothing deploys, calls a paid provider, or writes customer data from this
@@ -37,9 +37,10 @@ flowchart LR
 | `evals/acceptance.md`         | Acceptance criteria                           |
 | `examples/example.md`         | Worked adaptation                             |
 
-The play targets the concrete CRM model because CRM write actions require a real CRM record ID.
-That model feeds Cargo's native Account unification for downstream use. The global Account ID is
-never sent back to a CRM action.
+The play targets Cargo's native unified Account model. Its reusable tool reads the selected CRM
+record ID from the Account `ids` source map before writeback, so the canonical Account ID is never
+sent to a CRM action. A lookup column projects the CRM freshness timestamp onto the native Account
+segment.
 
 Do not declare a standalone segment. The play's filter is its managed backing segment. Nothing in
 this cookbook deploys resources or accesses customer data by itself.

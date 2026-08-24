@@ -10,6 +10,7 @@ JSON contract:
 {
   "generated_at": "ISO-8601 timestamp",
   "crm": "hubspot|salesforce|attio",
+  "crm_source_key": "dataset_slug__model_slug",
   "total_accounts": 0,
   "properties": [
     {
@@ -33,6 +34,19 @@ JSON contract:
     "missing_linkedin_url": 0,
     "missing_linkedin_id": 0,
     "missing_company_relationship": 0
+  },
+  "pricing": {
+    "fetched_at": "ISO-8601 timestamp",
+    "cli_version": "cargo-ai version",
+    "integration_slug": "linkedin",
+    "linkedin_url_action": {
+      "slug": "enrichCompany",
+      "unit_credits": 0
+    },
+    "domain_action": {
+      "slug": "enrichCompanyFromDomain",
+      "unit_credits": 0
+    }
   },
   "target_preview": {
     "eligible_accounts": 0,
@@ -70,9 +84,13 @@ If no compatible operational property exists, propose the exact property and pau
 Use generic outcomes: `pending`, `succeeded`, `failed`, `identity_conflict`, and
 `skipped_no_identifier`.
 
-Credit math is exact: `linkedin_url_path * 0.25 + domain_path * 0.5`. The route counts are mutually
-exclusive and count CRM rows, not unified companies. Ask whether to narrow the population after
-showing the preview.
+Before calculating credits, run `cargo-ai connection integration get linkedin`. Read the current,
+applicable costs from `integration.actions.enrichCompany.credits.costs` and
+`integration.actions.enrichCompanyFromDomain.credits.costs`; stop if the relevant entry is missing
+or ambiguous. Credit math is
+`linkedin_url_path * linkedin_url_unit_credits + domain_path * domain_unit_credits`. The route
+counts are mutually exclusive and count eligible native Accounts with the selected CRM source
+key. Ask whether to narrow the population after showing the preview.
 
 ## Complete when
 

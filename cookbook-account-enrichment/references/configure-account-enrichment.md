@@ -22,9 +22,10 @@ In `infra/account-enrichment.ts`, edit these together:
 
 - `crm`: the adopted CRM connector
 - `crmAccounts`: the live extractor and Account object configuration
+- `crmSourceKey`: the exact CRM key observed in the unified Account `ids` map
 - `crmFields`: exact approved destination properties
 - `enrichAccountWorkflow`: the CRM record-write payload and fill-blank guard
-- `enrichAccountRow`: actual CRM model column slugs
+- `accounts`: the source-ID computed column and CRM freshness lookup
 
 The checked repository example uses HubSpot's `updateRecords` action and its native
 `skipIfExist` mapping flag. For Salesforce or Attio, replace that action from generated consumer
@@ -39,8 +40,12 @@ The base template is fill-blanks only. HubSpot enforces this per property with
 `getRecord` output. Refreshing populated fields requires a separate field-level approval, a
 proposed-change preview, and an optimistic comparison against a fresh CRM read.
 
-The URL action costs 0.25 credits. The mutually exclusive domain fallback costs 0.5 credits and
-also returns `confident_score`. Keep LinkedIn URL first, then domain.
+Fetch current pricing with `cargo-ai connection integration get linkedin` immediately before the
+preview. Read the applicable entries under
+`integration.actions.enrichCompany.credits.costs` and
+`integration.actions.enrichCompanyFromDomain.credits.costs`. Record the lookup timestamp, CLI
+version, action slugs, and unit costs in the audit. Keep the LinkedIn action first and the domain
+action as the mutually exclusive fallback.
 
 ## Complete when
 

@@ -16,8 +16,29 @@ const crm = defineConnector("crm", {
   adopt: true,
 });
 
-// The play runs on the concrete CRM model so its row ID is safe to send back
-// to that CRM. The native Account model unifies this source for downstream use.
+// Replace this key with the audited key from the native Account `ids` object.
+// Cargo formats it as "<dataset_slug>__<model_slug>".
+const crmSourceKey = "PLACEHOLDER_CRM_DATASET_AND_MODEL_SLUG";
+
+// The agent replaces every placeholder with an audited CRM property. The
+// workflow exits before a paid call while any placeholder remains.
+const crmFields = {
+  company_id: "PLACEHOLDER_LINKEDIN_COMPANY_ID_PROPERTY",
+  company_name: "PLACEHOLDER_COMPANY_NAME_PROPERTY",
+  domain: "PLACEHOLDER_DOMAIN_PROPERTY",
+  website: "PLACEHOLDER_WEBSITE_PROPERTY",
+  linkedin_url: "PLACEHOLDER_LINKEDIN_URL_PROPERTY",
+  employee_count: "PLACEHOLDER_EMPLOYEE_COUNT_PROPERTY",
+  last_enriched_at: "PLACEHOLDER_LAST_ENRICHED_AT_PROPERTY",
+  enrichment_status: "PLACEHOLDER_ENRICHMENT_STATUS_PROPERTY",
+} as const;
+
+const hasPlaceholderFields =
+  crmSourceKey.startsWith("PLACEHOLDER_") ||
+  Object.values(crmFields).some((field) => field.startsWith("PLACEHOLDER_"));
+
+// The CRM model supplies Account identity, the writeback target, and the live
+// freshness value projected onto the unified Account below.
 export const crmAccounts = defineModel("crm_accounts", {
   connector: crm,
   extractSlug: "fetchRecords",
@@ -39,6 +60,40 @@ export const accounts = defineModel("accounts", {
     twitterHandle: "none",
     salesNavigatorId: "none",
   },
+  // `additionalColumns` is authoritative. Before deployment, merge every
+  // existing Account additional column into this list and require the plan to
+  // show no unrelated column removals.
+  additionalColumns: [
+    {
+      kind: "computed",
+      slug: "crm_record_id",
+      type: "string",
+      label: "CRM record ID",
+      description:
+        "Original CRM record ID selected from the unified Account source map.",
+      expression: {
+        kind: "jsExpression",
+        instructTo: "none",
+        expression: `{{ ids?.[${JSON.stringify(crmSourceKey)}] ?? null }}`,
+        fromRecipe: false,
+      },
+      columnsUsed: ["ids"],
+    },
+    {
+      kind: "lookup",
+      slug: "crm_last_enriched_at",
+      type: "date",
+      label: "CRM last enriched at",
+      description:
+        "Live CRM freshness used by the Account play's managed segment.",
+      join: {
+        model: crmAccounts,
+        fromColumnSlug: "computed__crm_record_id",
+        toColumnSlug: "id",
+      },
+      extractColumnSlug: crmFields.last_enriched_at,
+    },
+  ],
 });
 
 const linkedin = defineConnector("linkedin", {
@@ -46,26 +101,10 @@ const linkedin = defineConnector("linkedin", {
   adopt: true,
 });
 
-// The agent replaces every placeholder with an audited CRM property. The
-// workflow exits before a paid call while any placeholder remains.
-const crmFields = {
-  company_id: "PLACEHOLDER_LINKEDIN_COMPANY_ID_PROPERTY",
-  company_name: "PLACEHOLDER_COMPANY_NAME_PROPERTY",
-  domain: "PLACEHOLDER_DOMAIN_PROPERTY",
-  website: "PLACEHOLDER_WEBSITE_PROPERTY",
-  linkedin_url: "PLACEHOLDER_LINKEDIN_URL_PROPERTY",
-  employee_count: "PLACEHOLDER_EMPLOYEE_COUNT_PROPERTY",
-  last_enriched_at: "PLACEHOLDER_LAST_ENRICHED_AT_PROPERTY",
-  enrichment_status: "PLACEHOLDER_ENRICHMENT_STATUS_PROPERTY",
-} as const;
-
-const hasPlaceholderFields = Object.values(crmFields).some((field) =>
-  field.startsWith("PLACEHOLDER_"),
-);
-
 const enrichmentResult = z.object({
   status: z.enum([
     "written",
+    "skipped_no_crm_record",
     "skipped_no_identifier",
     "skipped_unconfigured_fields",
   ]),
@@ -81,28 +120,30 @@ const enrichAccountWorkflow = defineWorkflow(
   "account_enrichment",
   {
     input: z.object({
-      crmRecordId: z.string().trim().min(1),
-      linkedinUrl: z.string().optional(),
+      sourceIds: z.record(z.string(), z.string()),
+      linkedinHandle: z.string().optional(),
       domain: z.string().optional(),
     }),
     output: enrichmentResult,
     uses: { crm, linkedin },
-    imports: { crmFields, hasPlaceholderFields },
+    imports: { crmFields, crmSourceKey, hasPlaceholderFields },
   },
   ({ input, uses }) => {
     if (hasPlaceholderFields)
       return { status: "skipped_unconfigured_fields" as const };
-    if (!input.linkedinUrl && !input.domain)
+    const crmRecordId = input.sourceIds[crmSourceKey];
+    if (!crmRecordId) return { status: "skipped_no_crm_record" as const };
+    if (!input.linkedinHandle && !input.domain)
       return { status: "skipped_no_identifier" as const };
 
-    if (input.linkedinUrl) {
+    if (input.linkedinHandle) {
       const result = uses.linkedin.enrichCompany({
-        linkedinUrl: input.linkedinUrl,
+        linkedinUrl: `https://www.linkedin.com/company/${input.linkedinHandle}`,
       });
       uses.crm.updateRecords({
         objectType: "companies",
         matchingPropertyName: "hs_object_id",
-        matchingValue: input.crmRecordId,
+        matchingValue: crmRecordId,
         mappings: [
           {
             propertyName: crmFields.company_id,
@@ -154,7 +195,7 @@ const enrichAccountWorkflow = defineWorkflow(
       uses.crm.updateRecords({
         objectType: "companies",
         matchingPropertyName: "hs_object_id",
-        matchingValue: input.crmRecordId,
+        matchingValue: crmRecordId,
         mappings: [
           {
             propertyName: crmFields.company_id,
@@ -210,42 +251,51 @@ export const accountEnrichment = defineTool("account_enrichment", {
 const enrichAccountRow = defineWorkflow(
   "enrich_account_row",
   {
-    // Replace these sample HubSpot columns with the audited CRM model columns.
+    // These are native unified Account columns, including the source ID map.
     input: z.object({
-      id: z.string().trim().min(1),
       domain: z.string().optional(),
-      linkedin_company_page: z.string().optional(),
+      linkedin_handle: z.string().optional(),
+      ids: z.record(z.string(), z.string()),
     }),
     output: enrichmentResult,
     uses: { accountEnrichment },
   },
   ({ input, uses }) =>
     uses.accountEnrichment({
-      crmRecordId: input.id,
+      sourceIds: input.ids,
       domain: input.domain,
-      linkedinUrl: input.linkedin_company_page,
+      linkedinHandle: input.linkedin_handle,
     }),
 );
 
 export const enrichAccounts = definePlay("enrich_accounts", {
-  model: crmAccounts,
+  model: accounts,
   workflow: enrichAccountRow,
   filter: {
     conjonction: "and",
     groups: [
       {
-        // Replace these sample HubSpot identifier columns when adapting this
-        // template to another CRM or property schema.
+        // Only enrich unified Accounts that map back to the selected CRM model.
+        conjonction: "and",
+        conditions: [
+          {
+            kind: "string",
+            columnSlug: accounts.columns.computed__crm_record_id,
+            operator: "isNotEmpty",
+          },
+        ],
+      },
+      {
         conjonction: "or",
         conditions: [
           {
             kind: "string",
-            columnSlug: crmAccounts.columns.domain,
+            columnSlug: accounts.columns.domain,
             operator: "isNotEmpty",
           },
           {
             kind: "string",
-            columnSlug: crmAccounts.columns.linkedin_company_page,
+            columnSlug: accounts.columns.linkedin_handle,
             operator: "isNotEmpty",
           },
         ],
@@ -257,12 +307,12 @@ export const enrichAccounts = definePlay("enrich_accounts", {
         conditions: [
           {
             kind: "date",
-            columnSlug: crmAccounts.columns[crmFields.last_enriched_at],
+            columnSlug: accounts.columns.lookup__crm_last_enriched_at,
             operator: "isNull",
           },
           {
             kind: "date",
-            columnSlug: crmAccounts.columns[crmFields.last_enriched_at],
+            columnSlug: accounts.columns.lookup__crm_last_enriched_at,
             operator: "lowerThan",
             value: "6 months",
           },

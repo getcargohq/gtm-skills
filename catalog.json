@@ -119,8 +119,8 @@
     {
       "name": "cookbook-account-enrichment",
       "kind": "cookbook",
-      "job": "Build a governed Account enrichment foundation: audit CRM identity, define the global Account model, map standard company enrichment fields, and run a disabled enrichment play.",
-      "description": "Build a governed Account enrichment foundation: audit CRM identity, define the global Account model, map standard company enrichment fields, and run a disabled enrichment play. Triggers: \"set up account enrichment foundations\", \"audit our CRM account enrichment\", \"keep company data fresh in our CRM\", \"build a recurring account enrichment play\". HubSpot, Salesforce, Attio, Cargo CDK. Skip when: no reusable CRM foundation is needed; use enrich-company-data.",
+      "job": "Build a governed Account enrichment foundation: audit CRM identity, unify the global Account model, map standard company enrichment fields, and run one disabled native Account play with a reusable tool.",
+      "description": "Build a governed Account enrichment foundation: audit CRM identity, unify the global Account model, map standard company enrichment fields, and run one disabled native Account play with a reusable tool. Triggers: \"set up account enrichment foundations\", \"audit our CRM account enrichment\", \"keep company data fresh in our CRM\", \"build a recurring account enrichment play\". HubSpot, Salesforce, Attio, Cargo CDK. Skip when: no reusable CRM foundation is needed; use enrich-company-data.",
       "version": "0.1.0",
       "homepage": "https://github.com/getcargohq/gtm-skills/tree/main/cookbook-account-enrichment",
       "group": "Make it run forever",
@@ -153,7 +153,7 @@
         {
           "input": "target_population",
           "kind": "operator",
-          "how": "Review counts by identifier route, percentage, and exact credits",
+          "how": "Review counts by identifier route, percentage, and current action credits",
           "why": "The operator controls scope and spend before any paid call"
         },
         {
@@ -189,6 +189,12 @@
           "cost": "Incorrect reuse can create collisions or split Account identity"
         },
         {
+          "id": "crm_source_key",
+          "when": "The CRM model uses another dataset or model slug",
+          "how": "Replace the audited `<dataset_slug>__<model_slug>` key and recheck lookups",
+          "cost": "A wrong key prevents CRM writeback and segment eligibility"
+        },
+        {
           "id": "approved_refresh_behavior",
           "when": "Populated fields must be refreshed after explicit approval",
           "how": "Add previewed fields plus an optimistic comparison against a fresh read",
@@ -197,7 +203,7 @@
       ],
       "shouldNotChange": [
         "Keep one agent-edited CDK template rather than parallel CRM variants.",
-        "Keep the play on the concrete CRM model and the global Account as the unified downstream view.",
+        "Keep the play on the native unified Account model and resolve CRM writeback IDs from `ids`.",
         "Keep one paid route per row, LinkedIn URL first and domain second.",
         "Keep a verified fill-blank guard, placeholder guards, and the disabled 15-row pilot.",
         "Keep the play filter as the managed backing segment.",
@@ -208,10 +214,10 @@
         "the CRM model feeds the one native Account unification",
         "`account_enrichment` uses the actual CRM write shape and fill-blank semantics generated in the consumer project",
         "selected provider fields and CRM destinations agree in meaning and type",
-        "the play targets the CRM model, uses its row ID, is disabled, and limits the pilot to 15",
+        "the play targets the native unified Account model, resolves the CRM source ID, is disabled, and limits the pilot to 15",
         "LinkedIn and domain route counts are mutually exclusive and reproduce the credit estimate"
       ],
-      "cost": "The LinkedIn URL route costs 0.25 credits per eligible CRM row. The mutually exclusive domain\nfallback costs 0.5 credits per eligible CRM row. Preview exactly\n`linkedin_url_path * 0.25 + domain_path * 0.5`.\n\nThis simple play runs on CRM rows, so duplicates can produce more than one paid call for the same\nreal company. Report that cost honestly. Account deduplication follows enrichment because the new\nmatching keys improve duplicate detection.",
+      "cost": "Immediately before every preview, run `cargo-ai connection integration get linkedin`. Read the\napplicable current entries from `integration.actions.enrichCompany.credits.costs` and\n`integration.actions.enrichCompanyFromDomain.credits.costs`. Record the CLI version, lookup time,\naction slugs, and selected unit costs. Then preview\n`linkedin_url_path * linkedin_url_unit_credits + domain_path * domain_unit_credits`.\n\nThis play runs on eligible native Account rows and updates the one CRM source selected by\n`crmSourceKey`. Report the segment count and any unmapped CRM records separately. Account\ndeduplication follows enrichment because the new matching keys improve duplicate detection.",
       "composesInto": "- Feed the unified Account into scoring, segmentation, and people enrichment.\n- Enable the preconfigured daily freshness schedule after the pilot is approved."
     },
     {
