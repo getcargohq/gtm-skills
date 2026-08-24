@@ -8,7 +8,7 @@
   },
   "scripts": {
     "validate": "node scripts/validate.ts && node scripts/check-cookbooks.mjs && node scripts/check-cookbook-templates.mjs && node scripts/check-cookbook-contracts.mjs && node scripts/generate-llms-txt.ts --check && node scripts/build-catalog.mjs --check",
-    "validate:routing": "node scripts/validate-routing.mjs",
+    "validate:routing": "node .cargo-skills/.github/scripts/routing-eval.ts --skills-root . 2>/dev/null || node ../cargo-skills/.github/scripts/routing-eval.ts --skills-root .",
     "types": "cargo-cdk types",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "format": "prettier --write .",

@@ -8,7 +8,7 @@
 Cargo account starts with **100 free credits, no card**.
 
 ```bash
-npx skills add getcargohq/gtm-skills --all --full-depth      # all 23, including cookbooks/
+npx skills add getcargohq/gtm-skills --all      # all 23
 ```
 
 Each skill also installs on its own, when you want exactly one and nothing else:
@@ -17,10 +17,10 @@ Each skill also installs on its own, when you want exactly one and nothing else:
 npx skills add getcargohq/gtm-skills/<skill-name>
 ```
 
-Nested cookbooks install by their exact paths:
+Install the account enrichment cookbook directly:
 
 ```bash
-npx skills add getcargohq/gtm-skills/cookbooks/account-enrichment
+npx skills add getcargohq/gtm-skills/cookbook-account-enrichment
 ```
 
 | Skill                                                             | Does                                                                                                                              |
@@ -47,7 +47,7 @@ npx skills add getcargohq/gtm-skills/cookbooks/account-enrichment
 | [`crm-enrichment`](crm-enrichment/SKILL.md)                       | Fill the blank fields in your CRM records, contacts and companies alike.                                                          |
 
 **Three of them are cookbooks rather than one-off jobs.** `tam-building`, `account-scoring`, and
-`cookbooks/account-enrichment`
+`cookbook-account-enrichment`
 are the same jobs as a deployed pipeline that keeps running: each folder holds worked CDK
 resources that your agent adapts into your project. Every cookbook is folder-isolated, so its
 relative imports never leave that cookbook. Some declare explicit consumer prerequisites instead
@@ -56,11 +56,11 @@ with whatever your project already declares. More are on their way (`contact-sou
 `signal-based-tam`, `ai-sdr`,
 `rep-cockpit`, …); each lands here the day its skill is written, not before.
 
-| Skill                                         | Deploys                                                                                                                                  |
-| --------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| [`tam-building`](tam-building/SKILL.md)       | Your account universe from a Sales Navigator search, split past the extraction cap, resolved to domains, deduped into an accounts model. |
-| [`account-scoring`](account-scoring/SKILL.md) | Every account scored and tiered against your written ICP by an agent that cites its evidence, rationale on the CRM record.               |
-| [`account-enrichment`](cookbooks/account-enrichment/SKILL.md) | A governed Account enrichment foundation, from CRM audit and mapping approval to a disabled recurring play. |
+| Skill                                                                     | Deploys                                                                                                                                  |
+| ------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| [`tam-building`](tam-building/SKILL.md)                                   | Your account universe from a Sales Navigator search, split past the extraction cap, resolved to domains, deduped into an accounts model. |
+| [`account-scoring`](account-scoring/SKILL.md)                             | Every account scored and tiered against your written ICP by an agent that cites its evidence, rationale on the CRM record.               |
+| [`cookbook-account-enrichment`](cookbook-account-enrichment/SKILL.md)     | A governed Account enrichment foundation, from CRM audit and mapping approval to a disabled recurring play.                              |
 
 Works with Claude Code, Codex, Cursor, Windsurf, GitHub Copilot, and any agent that supports the
 [skills.sh](https://skills.sh) standard.
@@ -174,7 +174,7 @@ CI also runs this weekly on a cron. Upstream pricing can change without anyone t
 repo, and that is exactly the drift nobody would otherwise notice.
 
 `evals/routing.jsonl` holds one case per trigger phrase, graded in CI by the pack's ranker
-(`.github/scripts/routing-eval.ts --skills-root .`). It currently scores 56/56, which is a
+(`.github/scripts/routing-eval.ts --skills-root .`). It currently scores 72/72, which is a
 ceiling effect rather than a result: every case was generated from the trigger phrases it
 grades, so it proves the triggers do not collide, not that the descriptions route. Real cases
 have to come from real sessions.

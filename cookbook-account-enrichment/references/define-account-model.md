@@ -1,13 +1,14 @@
 # Define the Account model
 
-Use the two model declarations in `cdk/play/account-enrichment.ts` as one adaptation surface.
+Use the two model declarations in `infra/account-enrichment.ts` as one adaptation surface.
 
 ## Reuse first
 
-Inspect the consumer project. Reuse its authenticated CRM connector, CRM-backed Account model,
-and native `accounts` model when they exist. Replace the example declarations with imports that
-match the consumer project's folder conventions. Deploying a second global Account model creates
-a resource collision and splits identity.
+Inspect the consumer project. Reuse its authenticated CRM connector and CRM-backed Account model
+when they exist. If the native `accounts` model already exists and is configured, import and reuse
+it, then remove the fallback native model declaration and configuration from the copied template.
+Deploying or reconfiguring a second global Account model creates a resource collision and can
+split identity.
 
 ## CRM model
 

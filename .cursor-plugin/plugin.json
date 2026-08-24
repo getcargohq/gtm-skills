@@ -7,9 +7,6 @@
   },
   "homepage": "https://github.com/getcargohq/gtm-skills",
   "logo": "assets/logo.svg",
-  "skills": [
-    "./",
-    "./cookbooks/account-enrichment"
-  ],
+  "skills": ["./"],
   "hooks": "./hooks/cursor-hooks.json"
 }

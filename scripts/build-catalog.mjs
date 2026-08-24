@@ -45,8 +45,7 @@ const RESOURCE_DIRS = new Set([
   "capacities",
   "folders",
   "workers",
-  "templates",
-  "cdk",
+  "infra",
 ]);
 
 const section = (body, heading) => {
@@ -76,33 +75,14 @@ const bullets = (text) => {
 };
 
 const skills = [];
-const skillFolders = (dir = root, prefix = "") =>
-  readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
-    if (
-      !entry.isDirectory() ||
-      entry.name.startsWith(".") ||
-      entry.name === "node_modules"
-    )
-      return [];
-    const relative = join(prefix, entry.name);
-    const absolute = join(dir, entry.name);
-    return existsSync(join(absolute, "SKILL.md"))
-      ? [relative]
-      : skillFolders(absolute, relative);
-  });
-const discoveredSkillFolders = skillFolders().sort();
-const leafNames = new Map();
-for (const path of discoveredSkillFolders) {
-  const leaf = path.split("/").at(-1);
-  if (leafNames.has(leaf)) {
-    throw new Error(
-      `duplicate skill name "${leaf}" in ${leafNames.get(leaf)} and ${path}`,
-    );
-  }
-  leafNames.set(leaf, path);
-}
-for (const path of discoveredSkillFolders) {
-  const dir = join(root, path);
+for (const name of readdirSync(root).sort()) {
+  const dir = join(root, name);
+  if (
+    name.startsWith(".") ||
+    !statSync(dir).isDirectory() ||
+    !existsSync(join(dir, "SKILL.md"))
+  )
+    continue;
   const text = readFileSync(join(dir, "SKILL.md"), "utf8");
   const end = text.indexOf("\n---", 3);
   const fm = parseYaml(text.slice(4, end));
@@ -110,22 +90,21 @@ for (const path of discoveredSkillFolders) {
   const description = fm.description ?? "";
   const job = description.split(/\.\s+Triggers:/)[0] + ".";
   const isCookbook = fm.metadata?.source === "cookbook";
-  const name = fm.name;
   const rec = {
-    name,
+    name: fm.name,
     kind: isCookbook ? "cookbook" : "one-off",
     job,
     description,
     version: fm.version ?? null,
     homepage: fm.homepage ?? null,
-    group: groupOf(name),
-    install: `npx skills add getcargohq/gtm-skills/${path}`,
+    group: groupOf(fm.name),
+    install: `npx skills add getcargohq/gtm-skills/${name}`,
     partOf: bullets(section(body, "Part of"))
       .map((b) => b.replace(/`/g, "").split(/[:\s]/)[0])
       .filter(Boolean),
   };
   if (isCookbook) {
-    const a = approvals[name] ?? {};
+    const a = approvals[fm.name] ?? {};
     Object.assign(rec, {
       state: a.state ?? "to-be-approved",
       chain: a.chain ?? null,

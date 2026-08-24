@@ -1,89 +1,36 @@
 #!/usr/bin/env node
+// Checks the single executable template shipped by cookbook-account-enrichment.
 import { execFileSync } from "node:child_process";
-import {
-  cpSync,
-  existsSync,
-  mkdirSync,
-  mkdtempSync,
-  readdirSync,
-  readFileSync,
-  rmSync,
-  symlinkSync,
-  writeFileSync,
-} from "node:fs";
-import { tmpdir } from "node:os";
+import { existsSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const cargoCdk = join(root, "node_modules", ".bin", "cargo-cdk");
-const enrichmentTemplate = join(
-  root,
-  "cookbooks",
-  "account-enrichment",
-  "cdk",
-  "play",
-);
+const cookbook = join(root, "cookbook-account-enrichment");
+const templateDir = join(cookbook, "infra");
 
-if (existsSync(join(root, "cookbooks", "account-enrichment", "SKILL.md"))) {
-  execFileSync(cargoCdk, ["check", "--dir", enrichmentTemplate], {
+if (!existsSync(join(cookbook, "SKILL.md"))) process.exit(0);
+
+try {
+  execFileSync(cargoCdk, ["check", "--dir", templateDir], {
     stdio: "pipe",
   });
-  process.stdout.write("ok: account-enrichment/template\n");
-}
-
-const variants = [
-  ["account-deduplication", "hubspot"],
-  ["account-deduplication", "salesforce"],
-  ["account-deduplication", "attio"],
-].filter(([cookbook]) =>
-  existsSync(join(root, "cookbooks", cookbook, "SKILL.md")),
-);
-
-for (const [cookbook, crm] of variants) {
-  const stage = mkdtempSync(join(tmpdir(), "gtm-skills-template-check-"));
-  try {
-    symlinkSync(join(root, "node_modules"), join(stage, "node_modules"), "dir");
-    // Deduplication keeps one play per CRM because the candidate cluster
-    // models are executable examples, not an agent-rewritten template.
-    const target = join(stage, cookbook, crm);
-    mkdirSync(target, { recursive: true });
-    for (const resource of [
-      "connectors",
-      "models",
-      "tools",
-      "agents",
-      "plays",
-      "context",
-    ]) {
-      const resourceRoot = join(root, "cookbooks", cookbook, "cdk", resource);
-      if (!existsSync(resourceRoot)) continue;
-      for (const entry of readdirSync(resourceRoot, { withFileTypes: true })) {
-        if (entry.isFile() && entry.name.endsWith(".ts"))
-          cpSync(join(resourceRoot, entry.name), join(target, entry.name));
-      }
-      const crmRoot = join(resourceRoot, crm);
-      if (!existsSync(crmRoot)) continue;
-      for (const filename of readdirSync(crmRoot)) {
-        cpSync(join(crmRoot, filename), join(target, filename));
-      }
-    }
-    for (const filename of readdirSync(target).filter((name) =>
-      name.endsWith(".ts"),
-    )) {
-      const path = join(target, filename);
-      const source = readFileSync(path, "utf8")
-        .replaceAll(`../../tools/${crm}/`, "./")
-        .replaceAll(`../../models/${crm}/`, "./");
-      writeFileSync(path, source);
-    }
-    execFileSync(cargoCdk, ["check", "--dir", target], { stdio: "pipe" });
-    process.stdout.write(`ok: ${cookbook}/${crm}\n`);
-  } catch (error) {
-    process.stderr.write(error.stdout?.toString() ?? "");
-    process.stderr.write(error.stderr?.toString() ?? "");
-    process.exitCode = 1;
-  } finally {
-    rmSync(stage, { recursive: true, force: true });
+  const plan = JSON.parse(
+    execFileSync(cargoCdk, ["plan", "--dir", templateDir, "--json"], {
+      encoding: "utf8",
+    }),
+  );
+  if (!Array.isArray(plan.errors) || plan.errors.length > 0) {
+    throw new Error(
+      `cargo-cdk plan returned errors: ${JSON.stringify(plan.errors)}`,
+    );
   }
+  process.stdout.write("ok: cookbook-account-enrichment/template\n");
+} catch (error) {
+  process.stderr.write(error.stdout?.toString() ?? "");
+  process.stderr.write(error.stderr?.toString() ?? "");
+  if (!error.stdout && !error.stderr)
+    process.stderr.write(`${error.message ?? String(error)}\n`);
+  process.exitCode = 1;
 }

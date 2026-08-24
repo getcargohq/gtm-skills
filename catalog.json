@@ -117,22 +117,84 @@
       "partOf": []
     },
     {
-      "name": "account-enrichment",
+      "name": "cookbook-account-enrichment",
       "kind": "cookbook",
       "job": "Build a governed Account enrichment foundation: audit CRM identity, define the global Account model, map standard company enrichment fields, and run a disabled enrichment play.",
       "description": "Build a governed Account enrichment foundation: audit CRM identity, define the global Account model, map standard company enrichment fields, and run a disabled enrichment play. Triggers: \"set up account enrichment foundations\", \"audit our CRM account enrichment\", \"keep company data fresh in our CRM\", \"build a recurring account enrichment play\". HubSpot, Salesforce, Attio, Cargo CDK. Skip when: no reusable CRM foundation is needed; use enrich-company-data.",
       "version": "0.1.0",
-      "homepage": "https://github.com/getcargohq/gtm-skills/tree/main/cookbooks/account-enrichment",
+      "homepage": "https://github.com/getcargohq/gtm-skills/tree/main/cookbook-account-enrichment",
       "group": "Make it run forever",
-      "install": "npx skills add getcargohq/gtm-skills/cookbooks/account-enrichment",
+      "install": "npx skills add getcargohq/gtm-skills/cookbook-account-enrichment",
       "partOf": [],
       "state": "to-be-approved",
       "chain": 3,
       "resources": [
-        "cdk"
+        "infra"
       ],
-      "asked": [],
-      "canChange": [],
+      "asked": [
+        {
+          "input": "crm_connector_and_account_model",
+          "kind": "derived",
+          "how": "Inspect authenticated connectors and existing CDK resources",
+          "why": "Reusing them prevents duplicate connectors and Account models"
+        },
+        {
+          "input": "property_candidates",
+          "kind": "derived",
+          "how": "Read live names, types, fill counts, and semantics",
+          "why": "The most-filled compatible property should remain authoritative"
+        },
+        {
+          "input": "approved_destinations",
+          "kind": "operator",
+          "how": "Review the recommended primary property for each provider field",
+          "why": "CRM writes need explicit, type-compatible destinations"
+        },
+        {
+          "input": "target_population",
+          "kind": "operator",
+          "how": "Review counts by identifier route, percentage, and exact credits",
+          "why": "The operator controls scope and spend before any paid call"
+        },
+        {
+          "input": "daily_schedule_activation",
+          "kind": "operator",
+          "how": "Approve only after the disabled pilot passes",
+          "why": "A checked schedule must remain disabled until its evidence is trusted"
+        }
+      ],
+      "canChange": [
+        {
+          "id": "crm",
+          "when": "The consumer uses Salesforce or Attio instead of HubSpot",
+          "how": "Replace connector, extractor, row columns, and CRM action payloads",
+          "cost": "Live generated types must be rechecked for the selected CRM"
+        },
+        {
+          "id": "selected_fields",
+          "when": "The operator approves a different firmographic contract",
+          "how": "Change the result schema, destinations, and both provider mappings",
+          "cost": "Each added field expands mapping and type-review surface"
+        },
+        {
+          "id": "eligibility",
+          "when": "Only a governed subset should be enriched",
+          "how": "Intersect approved lifecycle, tier, ownership, or gap filters",
+          "cost": "Narrower scope reduces coverage and paid calls"
+        },
+        {
+          "id": "existing_project_models",
+          "when": "The consumer already declares the connector or models",
+          "how": "Replace example declarations with imports from the consumer project",
+          "cost": "Incorrect reuse can create collisions or split Account identity"
+        },
+        {
+          "id": "approved_refresh_behavior",
+          "when": "Populated fields must be refreshed after explicit approval",
+          "how": "Add previewed fields plus an optimistic comparison against a fresh read",
+          "cost": "Refresh can overwrite CRM-authoritative values if guards are wrong"
+        }
+      ],
       "shouldNotChange": [
         "Keep one agent-edited CDK template rather than parallel CRM variants.",
         "Keep the play on the concrete CRM model and the global Account as the unified downstream view.",
@@ -150,7 +212,7 @@
         "LinkedIn and domain route counts are mutually exclusive and reproduce the credit estimate"
       ],
       "cost": "The LinkedIn URL route costs 0.25 credits per eligible CRM row. The mutually exclusive domain\nfallback costs 0.5 credits per eligible CRM row. Preview exactly\n`linkedin_url_path * 0.25 + domain_path * 0.5`.\n\nThis simple play runs on CRM rows, so duplicates can produce more than one paid call for the same\nreal company. Report that cost honestly. Account deduplication follows enrichment because the new\nmatching keys improve duplicate detection.",
-      "composesInto": "- Run `account-deduplication` after matching keys are complete.\n- Feed the unified Account into scoring, segmentation, and people enrichment.\n- Enable the preconfigured daily freshness schedule after the pilot is approved."
+      "composesInto": "- Feed the unified Account into scoring, segmentation, and people enrichment.\n- Enable the preconfigured daily freshness schedule after the pilot is approved."
     },
     {
       "name": "crm-enrichment",

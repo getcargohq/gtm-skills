@@ -48,7 +48,11 @@
     {
       "title": "Make it run forever",
       "description": "The same jobs as a deployed pipeline: each skill carries a worked CDK example your agent adapts into your project and deploys.",
-      "skills": ["tam-building", "account-scoring", "account-enrichment"]
+      "skills": [
+        "tam-building",
+        "account-scoring",
+        "cookbook-account-enrichment"
+      ]
     }
   ]
 }

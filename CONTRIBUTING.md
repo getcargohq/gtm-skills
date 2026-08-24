@@ -1,8 +1,7 @@
 # Contributing
 
-Every root skill and every `cookbooks/<name>/` folder is one skill, installed on its own with
-`npx skills add getcargohq/gtm-skills/<name>` or
-`npx skills add getcargohq/gtm-skills/cookbooks/<name>`. Two kinds live side by side and
+Every folder at the root of this repo is one skill, installed on its own with
+`npx skills add getcargohq/gtm-skills/<name>`. Two kinds live side by side and
 the validators tell them apart by one frontmatter line:
 
 | Kind     | Marker                      | What the folder holds                                                                                               | Validated by                                                         |
@@ -38,11 +37,11 @@ comes from `cargo-ai cdk init --template blank`; a skill is a folder they copy.
 | `node scripts/validate.ts`                  | one-off skills: every slug and price against `getcargohq/cargo-skills` playbooks, plus the plugin channel                                                                      |
 | `node scripts/check-cookbooks.mjs`          | cookbooks: frontmatter parses as YAML, the contract sections exist, **no relative import escapes the folder**, the to-be-approved banner follows `.github/data/approvals.json` |
 | `npm run typecheck`                         | repository TypeScript, including cookbook resource examples                                                                                                                    |
-| `npm run check:templates`                   | every cookbook CDK template in isolation with `cargo-cdk check`                                                                                                                |
+| `npm run check:templates`                   | the account enrichment CDK template in isolation with `cargo-cdk check` and `cargo-cdk plan`                                                                                   |
 | `npm run check:contracts`                   | deterministic cookbook safety contracts                                                                                                                                        |
 | `node scripts/generate-llms-txt.ts --check` | `llms.txt` in sync                                                                                                                                                             |
 | `node scripts/build-catalog.mjs --check`    | `catalog.json` in sync (the one machine-readable view of the whole repo)                                                                                                       |
-| `npx prettier --check .`                    | the CDK example code and repo scripts                                                                                                                                          |
+| `npx prettier --check .`                    | the CDK example code and repo files, except the three generated or legacy scripts listed in `.prettierignore`                                                                  |
 | routing evals                               | CI checks out `getcargohq/cargo-skills` and runs its `routing-eval.ts --skills-root .`                                                                                         |
 
 ## Adding a one-off skill
@@ -59,8 +58,7 @@ of its own resources or declare an explicit consumer prerequisite when duplicati
 connector, or importer would be unsafe. It must never import that prerequisite from another
 cookbook. The agent verifies and rewires prerequisites in the consumer project before planning.
 
-1. `<name>/` or `cookbooks/<name>/` with the resource code (`models/`, `plays/`, `agents/`, or a
-   resource-grouped `cdk/` tree) and a
+1. `<name>/` with the resource code (`models/`, `plays/`, `agents/`, or `infra/`) and a
    `README.md` that explains why the design is the way it is. Every value that
    must be edited before deploy carries a `PLACEHOLDER` comment.
 2. `<name>/SKILL.md` with `metadata.source: cookbook` and the standard
@@ -95,11 +93,10 @@ cookbook. The agent verifies and rewires prerequisites in the consumer project b
 5. At least two routing cases in `evals/routing.jsonl`: one that should reach
    this skill, one that must reach the one-off sibling instead.
 6. `npm run typecheck`, `npm run validate`, and `npm run format:check`, then a PR against `main`.
-   Whole-repository discovery must use `npx skills add getcargohq/gtm-skills --all --full-depth`
-   when the installer does not recurse.
 
-**A skill leaf folder without a `SKILL.md` is not a skill.** Repository containers such as
-`cookbooks/` may group nested skill leaf folders.
+**A folder without a `SKILL.md` is not a skill and does not belong at the root.** A cookbook has
+one root `SKILL.md`; supporting agent instructions belong in `references/`, never in nested
+skills.
 Sixteen cookbooks (`contact-sourcing`, `signal-based-tam`, `ai-sdr`,
 `rep-cockpit`, …) were written before their skills and are kept in history, not
 in the tree: restore one with `git checkout 305cd88 -- <name>`, write its

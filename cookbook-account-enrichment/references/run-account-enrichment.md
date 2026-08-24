@@ -1,6 +1,6 @@
 # Run account enrichment
 
-Adapt the single template at `cdk/play/account-enrichment.ts`. It is a disabled 15-row pilot and
+Adapt the single template at `infra/account-enrichment.ts`. It is a disabled 15-row pilot and
 does not deploy from this repository.
 
 ## Tool and play boundary
@@ -35,7 +35,9 @@ In this repository run `npm run check:templates`. In the consumer project:
 The managed segment intersects the approved population with rows whose `last_enriched_at` is null
 or older than six months. Evaluate it daily and create runs only for rows added to that segment.
 After a successful write, the freshness timestamp removes the row until it becomes six months old
-again. Re-preview costs before enabling the preconfigured daily schedule.
+again. Replace `crmFields.last_enriched_at` with the audited CRM property in the same edit as the
+write mapping so both filter conditions resolve the real extracted column. Re-preview costs before
+enabling the preconfigured daily schedule.
 
 ## Complete when
 

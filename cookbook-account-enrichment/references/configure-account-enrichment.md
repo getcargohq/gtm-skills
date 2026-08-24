@@ -18,7 +18,7 @@ were verified on 2026-08-21. Treat current live schemas as authoritative.
 | Founding             | `year_founded`                                                                                                                                                                  | provider-schema-untyped                                                                                              |
 | Domain fallback only | `confident_score`                                                                                                                                                               | string                                                                                                               |
 
-In `cdk/play/account-enrichment.ts`, edit these together:
+In `infra/account-enrichment.ts`, edit these together:
 
 - `crm`: the adopted CRM connector
 - `crmAccounts`: the live extractor and Account object configuration

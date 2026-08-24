@@ -234,6 +234,8 @@ export const enrichAccounts = definePlay("enrich_accounts", {
     conjonction: "and",
     groups: [
       {
+        // Replace these sample HubSpot identifier columns when adapting this
+        // template to another CRM or property schema.
         conjonction: "or",
         conditions: [
           {

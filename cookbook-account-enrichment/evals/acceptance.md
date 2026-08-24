@@ -12,7 +12,7 @@ Walk every line. A checked template without an evidence-backed consumer adaptati
 
 ## CDK template
 
-- `cdk/play/account-enrichment.ts` is the only cookbook CDK source file.
+- `infra/account-enrichment.ts` is the only cookbook infrastructure source file.
 - The consumer file contains only the selected CRM connector and action shapes.
 - The concrete CRM Account model declares integration unification and is the play model.
 - Exactly one native global Account model exists in the consumer project.
@@ -31,6 +31,8 @@ Walk every line. A checked template without an evidence-backed consumer adaptati
 
 ## Repository isolation
 
+- The cookbook is one root skill. Its supporting Markdown files live under `references/`, and no
+  nested `SKILL.md` exists.
 - No CRM-specific template directories remain.
 - The template contains no credential, deployment command, or customer data.
 - No relative import leaves the cookbook.

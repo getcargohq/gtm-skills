@@ -6,10 +6,7 @@
     "name": "getcargo"
   },
   "homepage": "https://github.com/getcargohq/gtm-skills",
-  "skills": [
-    "./",
-    "./cookbooks/account-enrichment"
-  ],
+  "skills": "./",
   "hooks": "./hooks/codex-hooks.json",
   "interface": {
     "displayName": "Cargo GTM",

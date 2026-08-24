@@ -51,7 +51,7 @@ jobs:
       - name: Typecheck the cookbook resources
         run: npm run typecheck
 
-      - name: Check every cookbook template in isolation
+      - name: Check the account enrichment template in isolation
         run: npm run check:templates
 
       - name: Check deterministic cookbook contracts
@@ -63,7 +63,8 @@ jobs:
       - name: Check catalog.json is in sync with the skill tree
         run: node scripts/build-catalog.mjs --check
 
-      # Prettier covers the example TypeScript and repository scripts.
+      # Prettier covers the example TypeScript and repository files except the
+      # three generated or legacy scripts listed in .prettierignore.
       - name: Format check
         run: npx prettier --check .
 

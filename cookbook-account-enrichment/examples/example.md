@@ -6,7 +6,7 @@ This is a repository walkthrough, not a live CRM session.
    native global Account model when present.
 2. Audit live Account properties and fill rates for domain, website, LinkedIn URL, LinkedIn ID,
    last-enrichment, and enrichment-status fields.
-3. Copy `cdk/play/account-enrichment.ts`. The checked source is HubSpot-shaped. Keep it for HubSpot
+3. Copy `infra/account-enrichment.ts`. The checked source is HubSpot-shaped. Keep it for HubSpot
    or replace its connector, extractor, record-write action, fill-blank guard, and row columns with
    the generated Salesforce or Attio types.
 4. Replace every `crmFields` placeholder with an approved property. Keep fill-blanks for the base

@@ -4,8 +4,8 @@
 // The one-off skills are validated by validate.ts (slugs, prices, playbooks);
 // this owns everything a cookbook adds on top. Both run under `npm run validate`.
 //
-// Mechanically: a discovered skill folder that carries resource code (models/,
-// plays/, agents/, or cdk/). It becomes a cookbook when it carries a SKILL.md whose
+// Mechanically: a root folder that carries resource code (models/, plays/,
+// agents/, infra/, and so on). It becomes a cookbook when it carries a SKILL.md whose
 // frontmatter says `metadata.source: cookbook`; until then it is reported
 // as still-to-convert, never failed, so the rollout stays visible on every run.
 //
@@ -63,8 +63,7 @@ const RESOURCE_DIRS = new Set([
   "capacities",
   "folders",
   "workers",
-  "templates",
-  "cdk",
+  "infra",
 ]);
 const REQUIRED_SECTIONS = [
   "## Put it in your project",
@@ -105,33 +104,26 @@ const walk = (dir) => {
   return out;
 };
 
-const skillFolders = (dir = root, prefix = "") =>
-  readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
-    if (
-      !entry.isDirectory() ||
-      entry.name.startsWith(".") ||
-      entry.name === "node_modules"
-    )
-      return [];
-    const relative = join(prefix, entry.name);
-    const absolute = join(dir, entry.name);
-    if (existsSync(join(absolute, "SKILL.md"))) return [relative];
-    return skillFolders(absolute, relative);
-  });
-const allSkillFolders = skillFolders().sort();
-const duplicateNames = allSkillFolders
-  .map((folder) => folder.split("/").at(-1))
-  .filter((name, index, names) => names.indexOf(name) !== index);
-if (duplicateNames.length > 0) {
-  errors.push(
-    `duplicate skill leaf names: ${[...new Set(duplicateNames)].join(", ")}`,
+const isExampleFolder = (name) => {
+  const dir = join(root, name);
+  if (
+    !statSync(dir).isDirectory() ||
+    name.startsWith(".") ||
+    name === "node_modules"
+  )
+    return false;
+  return readdirSync(dir).some(
+    (f) => RESOURCE_DIRS.has(f) && statSync(join(dir, f)).isDirectory(),
   );
-}
-const isExampleFolder = (name) =>
-  readdirSync(join(root, name)).some(
-    (f) => RESOURCE_DIRS.has(f) && statSync(join(root, name, f)).isDirectory(),
-  );
-const exampleFolders = allSkillFolders.filter(isExampleFolder);
+};
+
+const exampleFolders = readdirSync(root).filter(isExampleFolder).sort();
+const allSkillFolders = readdirSync(root).filter(
+  (d) =>
+    !d.startsWith(".") &&
+    statSync(join(root, d)).isDirectory() &&
+    existsSync(join(root, d, "SKILL.md")),
+);
 
 for (const name of exampleFolders) {
   const skillPath = join(root, name, "SKILL.md");
@@ -144,14 +136,13 @@ for (const name of exampleFolders) {
     );
     continue;
   }
-  const approvalName = name.split("/").at(-1);
-  if (!(approvalName in approvals)) {
+  if (!(name in approvals)) {
     errors.push(
       `${name} carries resource code but has no entry in .github/data/approvals.json`,
     );
     continue;
   }
-  const record = approvals[approvalName];
+  const record = approvals[name];
   const {
     data: fm,
     body,
@@ -162,9 +153,9 @@ for (const name of exampleFolders) {
     continue;
   }
 
-  if (fm.name !== name.split("/").at(-1))
+  if (fm.name !== name)
     errors.push(
-      `${name}/SKILL.md frontmatter name is "${fm.name}", expected "${name.split("/").at(-1)}"`,
+      `${name}/SKILL.md frontmatter name is "${fm.name}", expected "${name}"`,
     );
   if (fm.metadata?.source !== "cookbook") {
     errors.push(
@@ -205,6 +196,23 @@ for (const name of exampleFolders) {
   if (/\n## Requires\n/.test(body)) {
     errors.push(
       `${name}/SKILL.md carries a "## Requires" section: state consumer prerequisites in compatibility and project steps, without an inter-cookbook dependency`,
+    );
+  }
+
+  const nestedSkillFiles = [];
+  const findNestedSkills = (dir) => {
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      if (!entry.isDirectory() || entry.name === "node_modules") continue;
+      const child = join(dir, entry.name);
+      if (existsSync(join(child, "SKILL.md")))
+        nestedSkillFiles.push(join(child, "SKILL.md"));
+      findNestedSkills(child);
+    }
+  };
+  findNestedSkills(join(root, name));
+  for (const nested of nestedSkillFiles) {
+    errors.push(
+      `${nested.slice(root.length + 1)} is nested inside cookbook ${name}: supporting instructions belong in references/, not another skill`,
     );
   }
 
@@ -257,11 +265,7 @@ for (const name of exampleFolders) {
 
 // approvals.json must not name a folder that is not an engine
 for (const name of Object.keys(approvals)) {
-  if (
-    !exampleFolders.some(
-      (folder) => folder === name || folder.endsWith(`/${name}`),
-    )
-  )
+  if (!exampleFolders.includes(name))
     errors.push(`approvals.json names "${name}", which is not a cookbook here`);
 }
 
@@ -272,11 +276,7 @@ for (const name of allSkillFolders) {
   const part = text.match(/\n## Part of\n([\s\S]*?)(?=\n## |$)/);
   if (!part) continue;
   for (const m of part[1].matchAll(/`([a-z0-9-]+)`/g)) {
-    if (
-      !exampleFolders.some(
-        (folder) => folder.endsWith(`/${m[1]}`) || folder === m[1],
-      )
-    )
+    if (!exampleFolders.includes(m[1]))
       errors.push(
         `${name}/SKILL.md says it is part of \`${m[1]}\`, which is not a cookbook here`,
       );

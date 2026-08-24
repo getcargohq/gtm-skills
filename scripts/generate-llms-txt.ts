@@ -34,65 +34,50 @@ interface Skill {
   description: string;
   /** First sentence of the description, without the trigger list. */
   job: string;
-  path: string;
 }
 
 function loadSkills(): Skill[] {
   const skills: Skill[] = [];
-  const walk = (dir: string, prefix = "") => {
-    for (const entry of readdirSync(dir).sort()) {
-      const absolute = join(dir, entry);
-      if (
-        !statSync(absolute, { throwIfNoEntry: false })?.isDirectory() ||
-        entry.startsWith(".") ||
-        entry === "node_modules"
-      )
-        continue;
-      const relative = join(prefix, entry);
-      const skillMd = join(absolute, "SKILL.md");
-      if (!existsSync(skillMd)) {
-        walk(absolute, relative);
-        continue;
-      }
+  for (const entry of readdirSync(repoRoot).sort()) {
+    const absolute = join(repoRoot, entry);
+    if (
+      !statSync(absolute, { throwIfNoEntry: false })?.isDirectory() ||
+      entry.startsWith(".")
+    )
+      continue;
+    const skillMd = join(absolute, "SKILL.md");
+    if (!existsSync(skillMd)) continue;
 
-      const frontmatter = /^---\n([\s\S]*?)\n---/.exec(
-        readFileSync(skillMd, "utf8"),
-      )?.[1];
-      if (!frontmatter)
-        throw new Error(`${entry}/SKILL.md has no frontmatter`);
+    const frontmatter = /^---\n([\s\S]*?)\n---/.exec(
+      readFileSync(skillMd, "utf8"),
+    )?.[1];
+    if (!frontmatter)
+      throw new Error(`${entry}/SKILL.md has no frontmatter`);
 
-      const parsed = parseYaml(frontmatter) as {
-        name?: string;
-        description?: string;
-      };
-      const name = parsed.name ?? "";
-      const description = parsed.description ?? "";
-      if (!name || !description)
-        throw new Error(`${entry}/SKILL.md is missing name or description`);
+    const parsed = parseYaml(frontmatter) as {
+      name?: string;
+      description?: string;
+    };
+    const name = parsed.name ?? "";
+    const description = parsed.description ?? "";
+    if (!name || !description)
+      throw new Error(`${entry}/SKILL.md is missing name or description`);
 
-      skills.push({
-        name,
-        description,
-        job: description.split(/\.\s+Triggers:/)[0] + ".",
-        path: relative,
-      });
-    }
-  };
-  walk(repoRoot);
-  const duplicateNames = skills.filter(
-    (skill, index) =>
-      skills.findIndex((candidate) => candidate.name === skill.name) !== index,
-  );
-  if (duplicateNames.length > 0)
-    throw new Error(
-      `duplicate skill leaf names: ${[...new Set(duplicateNames.map((skill) => skill.name))].join(", ")}`,
-    );
+    skills.push({
+      name,
+      description,
+      job: description.split(/\.\s+Triggers:/)[0] + ".",
+    });
+  }
   return skills;
 }
 
 function render(skills: Skill[]): string {
   const lines = skills
-    .map((s) => `- [${s.name}](${repoUrl}/blob/main/${s.path}/SKILL.md): ${s.description}`)
+    .map(
+      (s) =>
+        `- [${s.name}](${repoUrl}/blob/main/${s.name}/SKILL.md): ${s.description}`,
+    )
     .join("\n");
 
   const jobs = skills.map((s) => `- **${s.name}**: ${s.job}`).join("\n");
@@ -106,7 +91,7 @@ function render(skills: Skill[]): string {
 All of them:
 
 \`\`\`bash
-npx skills add getcargohq/gtm-skills --all --full-depth
+npx skills add getcargohq/gtm-skills --all
 \`\`\`
 
 Or exactly one:
