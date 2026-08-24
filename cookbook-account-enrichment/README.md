@@ -35,7 +35,7 @@ flowchart LR
 | `references/`                 | Audit, model, mapping, and run instructions   |
 | `infra/account-enrichment.ts` | The only agent-edited infrastructure template |
 | `evals/acceptance.md`         | Acceptance criteria                           |
-| `examples/example.md`         | Worked adaptation                             |
+| `examples/example.md`         | Starter walkthrough to enrich after first use |
 
 The play targets Cargo's native unified Account model. Its reusable tool reads the selected CRM
 record ID from the Account `ids` source map before writeback, so the canonical Account ID is never

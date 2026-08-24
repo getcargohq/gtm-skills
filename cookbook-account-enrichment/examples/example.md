@@ -2,6 +2,11 @@
 
 This is a repository walkthrough, not a live CRM session.
 
+**Status: starter example.** Keep this file as the cookbook's example surface. After the first live
+cookbook implementation, enrich it with sanitized audit findings, approved property mappings, the
+adapted CRM source key, the expected CDK plan summary, the target and credit preview, and pilot
+results. Do not add customer data or credentials.
+
 1. Inspect the consumer project and authenticated CRM. Reuse its connector, CRM Account model, and
    native global Account model when present.
 2. Audit live Account properties and fill rates for domain, website, LinkedIn URL, LinkedIn ID,
