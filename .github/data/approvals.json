@@ -1,5 +1,5 @@
 {
-  "cookbook-account-enrichment": {
+  "account-enrichment": {
     "state": "to-be-approved",
     "chain": 3,
     "demoWorkspace": null,

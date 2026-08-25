@@ -17,12 +17,6 @@ Each skill also installs on its own, when you want exactly one and nothing else:
 npx skills add getcargohq/gtm-skills/<skill-name>
 ```
 
-Install the account enrichment cookbook directly:
-
-```bash
-npx skills add getcargohq/gtm-skills/cookbook-account-enrichment
-```
-
 | Skill                                                             | Does                                                                                                                              |
 | ----------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
 | [`clay-to-cargo`](clay-to-cargo/SKILL.md)                         | Rebuild a Clay table on Cargo: map every enrichment column to its provider action, cost it before it runs, and keep it as code.   |
@@ -47,20 +41,19 @@ npx skills add getcargohq/gtm-skills/cookbook-account-enrichment
 | [`crm-enrichment`](crm-enrichment/SKILL.md)                       | Fill the blank fields in your CRM records, contacts and companies alike.                                                          |
 
 **Three of them are cookbooks rather than one-off jobs.** `tam-building`, `account-scoring`, and
-`cookbook-account-enrichment`
+`account-enrichment`
 are the same jobs as a deployed pipeline that keeps running: each folder holds worked CDK
-resources that your agent adapts into your project. Every cookbook is folder-isolated, so its
-relative imports never leave that cookbook. Some declare explicit consumer prerequisites instead
-of duplicating an existing global model or connector. The agent reconciles those prerequisites
-with whatever your project already declares. More are on their way (`contact-sourcing`,
-`signal-based-tam`, `ai-sdr`,
+resources written for some other company, and your agent adapts them into your project and
+deploys them. Every such folder is self-contained (its own models, connectors and folders; no
+shared foundation, no requires graph), so the agent reconciles it with whatever your project
+already declares. More are on their way (`contact-sourcing`, `signal-based-tam`, `ai-sdr`,
 `rep-cockpit`, …); each lands here the day its skill is written, not before.
 
-| Skill                                                                     | Deploys                                                                                                                                  |
-| ------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| [`tam-building`](tam-building/SKILL.md)                                   | Your account universe from a Sales Navigator search, split past the extraction cap, resolved to domains, deduped into an accounts model. |
-| [`account-scoring`](account-scoring/SKILL.md)                             | Every account scored and tiered against your written ICP by an agent that cites its evidence, rationale on the CRM record.               |
-| [`cookbook-account-enrichment`](cookbook-account-enrichment/SKILL.md)     | A governed Account enrichment foundation, from CRM audit and mapping approval to a disabled recurring play.                              |
+| Skill                                               | Deploys                                                                                                                                  |
+| --------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| [`tam-building`](tam-building/SKILL.md)             | Your account universe from a Sales Navigator search, split past the extraction cap, resolved to domains, deduped into an accounts model. |
+| [`account-scoring`](account-scoring/SKILL.md)       | Every account scored and tiered against your written ICP by an agent that cites its evidence, rationale on the CRM record.               |
+| [`account-enrichment`](account-enrichment/SKILL.md) | A governed Account enrichment foundation, from CRM audit and mapping approval to a disabled recurring play.                              |
 
 Works with Claude Code, Codex, Cursor, Windsurf, GitHub Copilot, and any agent that supports the
 [skills.sh](https://skills.sh) standard.

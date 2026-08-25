@@ -7,14 +7,12 @@
     "node": ">=22.18"
   },
   "scripts": {
-    "validate": "node scripts/validate.ts && node scripts/check-cookbooks.mjs && node scripts/check-cookbook-templates.mjs && node scripts/check-cookbook-contracts.mjs && node scripts/generate-llms-txt.ts --check && node scripts/build-catalog.mjs --check",
+    "validate": "node scripts/validate.ts && node scripts/check-cookbooks.mjs && node scripts/generate-llms-txt.ts --check && node scripts/build-catalog.mjs --check",
     "validate:routing": "node .cargo-skills/.github/scripts/routing-eval.ts --skills-root . 2>/dev/null || node ../cargo-skills/.github/scripts/routing-eval.ts --skills-root .",
     "types": "cargo-cdk types",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "format": "prettier --write .",
-    "format:check": "prettier --check .",
-    "check:templates": "node scripts/check-cookbook-templates.mjs",
-    "check:contracts": "node scripts/check-cookbook-contracts.mjs"
+    "format:check": "prettier --check ."
   },
   "dependencies": {
     "@cargo-ai/cdk": "^1.0.51",

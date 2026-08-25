@@ -240,6 +240,8 @@ const enrichAccountWorkflow = defineWorkflow(
         linkedin_url: result.linkedin_url,
         employee_count: result.employee_count,
       };
+    } else {
+      return { status: "skipped_no_identifier" as const };
     }
   },
 );

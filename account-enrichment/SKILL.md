@@ -1,15 +1,25 @@
 ---
-name: cookbook-account-enrichment
-description: 'Build a governed Account enrichment foundation: audit CRM identity, unify the global Account model, map standard company enrichment fields, and run one disabled native Account play with a reusable tool. Triggers: "set up account enrichment foundations", "audit our CRM account enrichment", "keep company data fresh in our CRM", "build a recurring account enrichment play". HubSpot, Salesforce, Attio, Cargo CDK. Skip when: no reusable CRM foundation is needed; use enrich-company-data.'
+name: account-enrichment
+description: 'Build a governed, recurring Account enrichment foundation that audits CRM identity quality, unifies source records, maps approved fields, and refreshes new or stale companies through one disabled Cargo CDK play. Triggers: "CRM company records are missing industry and headcount", "LinkedIn company URL properties", "old firmographics keep going stale", "every new CRM company". HubSpot, Salesforce, Attio, Cargo CDK. Skip when: you need a one-time CRM backfill; use crm-enrichment. If you hold a supplied company list, use enrich-company-data.'
 version: "0.1.0"
 compatibility: "Requires a Cargo CDK project and @cargo-ai/cdk ^1.0.51. The repository example does not deploy or access a CRM until an agent adapts it in the consumer project."
-homepage: https://github.com/getcargohq/gtm-skills/tree/main/cookbook-account-enrichment
+homepage: https://github.com/getcargohq/gtm-skills/tree/main/account-enrichment
 metadata:
   author: getcargo
   source: cookbook
+  openclaw:
+    requires:
+      bins:
+        - cargo-ai
+    install:
+      - kind: node
+        package: "@cargo-ai/cli@latest"
+        bins:
+          - cargo-ai
+    homepage: https://github.com/getcargohq/gtm-skills
 ---
 
-# Cookbook: account enrichment
+# Account enrichment
 
 **State: to-be-approved.** This is a worked CDK example, not a deployed integration. Review
 `cargo-ai cdk plan` and deploy only after explicit operator approval.
@@ -44,7 +54,7 @@ fields.
 Install this skill on its own with:
 
 ```bash
-npx skills add getcargohq/gtm-skills/cookbook-account-enrichment
+npx skills add getcargohq/gtm-skills/account-enrichment
 ```
 
 1. Inspect the existing CDK project, authenticated CRM connector, CRM Account model, global
@@ -67,26 +77,6 @@ npx skills add getcargohq/gtm-skills/cookbook-account-enrichment
    limits the pilot to 15 rows.
 6. Show the operator the exact target count, identifier routes, credit estimate, and mappings.
    Deploy or enable only after explicit approval.
-
-## Contract rules
-
-- Maintain one global Account unification. Reuse it when it already exists.
-- Preserve every existing Account additional column. The `additionalColumns` list is authoritative,
-  so the plan must show no unrelated removals.
-- Run the play on the native unified Account model. Resolve the selected CRM record ID from its
-  `ids` map and send only that source ID to CRM actions. Never send the canonical Account ID.
-- Keep one agent-edited CDK file. Do not preserve one repository copy per CRM.
-- Attempt LinkedIn URL first, then domain fallback. A row without either identifier makes no paid
-  call.
-- Replace every field placeholder before a paid call. The template exits safely while any remains.
-- Default selected business fields to fill-blanks. Use a CRM-native conditional update when
-  available. Otherwise reread the live CRM row and preserve existing values, including numeric
-  zero.
-- Write `last_enriched_at` and `enrichment_status` only after the provider succeeds.
-- Define the managed segment as approved rows whose `last_enriched_at` is null or older than six
-  months. Evaluate it daily and create runs only for rows added to the segment.
-- Keep the first play disabled, limited to 15 rows, and configured with `noConcurrency`.
-- Keep credentials, deployment commands, and customer data out of this repository.
 
 ## What you will be asked
 
@@ -117,22 +107,39 @@ comparison against a fresh CRM read.
 
 ## What should not change
 
-- Keep one agent-edited CDK template rather than parallel CRM variants.
-- Keep the play on the native unified Account model and resolve CRM writeback IDs from `ids`.
-- Keep one paid route per row, LinkedIn URL first and domain second.
-- Keep a verified fill-blank guard, placeholder guards, and the disabled 15-row pilot.
-- Keep the play filter as the managed backing segment.
-- Keep daily evaluation, the null-or-six-month freshness rule, and `changeKinds: ["added"]`.
+- Maintain one global Account unification and preserve its complete `additionalColumns` list. A
+  second unification splits identity, while a truncated list removes unrelated columns.
+- Run the play on the native unified Account model and resolve the selected CRM record ID from its
+  `ids` map. Sending the canonical Account ID to a CRM action targets the wrong identifier system.
+- Keep one agent-edited CDK file containing only the selected CRM shape. Parallel CRM variants
+  create inactive branches that drift from live generated types.
+- Attempt LinkedIn URL first, then domain fallback, with at most one paid route per row. A row
+  without either identifier must make no paid call.
+- Replace every field placeholder before a paid call. An unresolved destination can write provider
+  data into the wrong CRM property.
+- Fill approved blank fields only, using a CRM-native conditional update or a fresh CRM reread that
+  preserves populated values, including numeric zero. A stale snapshot can overwrite authoritative
+  CRM data.
+- Write `last_enriched_at` and `enrichment_status` only after the provider and CRM update succeed.
+  Earlier writes falsely mark failed records as fresh.
+- Keep the play filter as the managed backing segment for approved rows whose freshness is null or
+  older than six months. Evaluate it daily and create runs only for rows added to the segment.
+- Keep the first play disabled, limited to 15 rows, and configured with `noConcurrency`. Removing
+  those controls expands an unapproved pilot.
+- Keep credentials, deployment commands, and customer data out of this repository.
 
 ## Done when
 
 - the audit contracts and chat summary agree on every count
-- the CRM model feeds the one native Account unification
-- `account_enrichment` uses the actual CRM write shape and fill-blank semantics generated in the
-  consumer project
-- selected provider fields and CRM destinations agree in meaning and type
-- the play targets the native unified Account model, resolves the CRM source ID, is disabled, and
-  limits the pilot to 15
+- the CDK plan contains one native Account unification and removes no unrelated additional columns
+- generated consumer types confirm the selected provider fields, CRM destinations, write action,
+  and fill-blank semantics
+- no field placeholder remains and a record without an identifier exits before a paid call
+- the play targets the native unified Account model and resolves the audited CRM source ID from
+  `ids`
+- the managed segment uses the null-or-six-month freshness rule, daily evaluation, and
+  `changeKinds: ["added"]`
+- the first plan shows `isEnabled: false`, `limit: 15`, and `runCreationRule: noConcurrency`
 - LinkedIn and domain route counts are mutually exclusive and reproduce the credit estimate
 
 ## What it costs

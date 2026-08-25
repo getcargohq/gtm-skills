@@ -1,6 +1,6 @@
 {
   "name": "cargo",
-  "description": "Twenty-three routed GTM skills in Codex: one-off Cargo CLI jobs plus CDK cookbooks including account enrichment, with prompt-free approval for safe cargo-ai calls.",
+  "description": "Routed GTM skills in Codex, each focused on one job: one-off Cargo CLI workflows plus reusable CDK cookbooks, with prompt-free approval for safe cargo-ai calls.",
   "version": "1.4.0",
   "author": {
     "name": "getcargo"

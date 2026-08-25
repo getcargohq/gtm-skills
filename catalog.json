@@ -2,6 +2,116 @@
   "source": "getcargohq/gtm-skills",
   "skills": [
     {
+      "name": "account-enrichment",
+      "kind": "cookbook",
+      "job": "Build a governed, recurring Account enrichment foundation that audits CRM identity quality, unifies source records, maps approved fields, and refreshes new or stale companies through one disabled Cargo CDK play.",
+      "description": "Build a governed, recurring Account enrichment foundation that audits CRM identity quality, unifies source records, maps approved fields, and refreshes new or stale companies through one disabled Cargo CDK play. Triggers: \"CRM company records are missing industry and headcount\", \"LinkedIn company URL properties\", \"old firmographics keep going stale\", \"every new CRM company\". HubSpot, Salesforce, Attio, Cargo CDK. Skip when: you need a one-time CRM backfill; use crm-enrichment. If you hold a supplied company list, use enrich-company-data.",
+      "version": "0.1.0",
+      "homepage": "https://github.com/getcargohq/gtm-skills/tree/main/account-enrichment",
+      "group": "Make it run forever",
+      "install": "npx skills add getcargohq/gtm-skills/account-enrichment",
+      "partOf": [],
+      "state": "to-be-approved",
+      "chain": 3,
+      "resources": [
+        "infra"
+      ],
+      "asked": [
+        {
+          "input": "crm_connector_and_account_model",
+          "kind": "derived",
+          "how": "Inspect authenticated connectors and existing CDK resources",
+          "why": "Reusing them prevents duplicate connectors and Account models"
+        },
+        {
+          "input": "property_candidates",
+          "kind": "derived",
+          "how": "Read live names, types, fill counts, and semantics",
+          "why": "The most-filled compatible property should remain authoritative"
+        },
+        {
+          "input": "approved_destinations",
+          "kind": "operator",
+          "how": "Review the recommended primary property for each provider field",
+          "why": "CRM writes need explicit, type-compatible destinations"
+        },
+        {
+          "input": "target_population",
+          "kind": "operator",
+          "how": "Review counts by identifier route, percentage, and current action credits",
+          "why": "The operator controls scope and spend before any paid call"
+        },
+        {
+          "input": "daily_schedule_activation",
+          "kind": "operator",
+          "how": "Approve only after the disabled pilot passes",
+          "why": "A checked schedule must remain disabled until its evidence is trusted"
+        }
+      ],
+      "canChange": [
+        {
+          "id": "crm",
+          "when": "The consumer uses Salesforce or Attio instead of HubSpot",
+          "how": "Replace connector, extractor, row columns, and CRM action payloads",
+          "cost": "Live generated types must be rechecked for the selected CRM"
+        },
+        {
+          "id": "selected_fields",
+          "when": "The operator approves a different firmographic contract",
+          "how": "Change the result schema, destinations, and both provider mappings",
+          "cost": "Each added field expands mapping and type-review surface"
+        },
+        {
+          "id": "eligibility",
+          "when": "Only a governed subset should be enriched",
+          "how": "Intersect approved lifecycle, tier, ownership, or gap filters",
+          "cost": "Narrower scope reduces coverage and paid calls"
+        },
+        {
+          "id": "existing_project_models",
+          "when": "The consumer already declares the connector or models",
+          "how": "Replace example declarations with imports from the consumer project",
+          "cost": "Incorrect reuse can create collisions or split Account identity"
+        },
+        {
+          "id": "crm_source_key",
+          "when": "The CRM model uses another dataset or model slug",
+          "how": "Replace the audited `<dataset_slug>__<model_slug>` key and recheck lookups",
+          "cost": "A wrong key prevents CRM writeback and segment eligibility"
+        },
+        {
+          "id": "approved_refresh_behavior",
+          "when": "Populated fields must be refreshed after explicit approval",
+          "how": "Add previewed fields plus an optimistic comparison against a fresh read",
+          "cost": "Refresh can overwrite CRM-authoritative values if guards are wrong"
+        }
+      ],
+      "shouldNotChange": [
+        "Maintain one global Account unification and preserve its complete `additionalColumns` list. A second unification splits identity, while a truncated list removes unrelated columns.",
+        "Run the play on the native unified Account model and resolve the selected CRM record ID from its `ids` map. Sending the canonical Account ID to a CRM action targets the wrong identifier system.",
+        "Keep one agent-edited CDK file containing only the selected CRM shape. Parallel CRM variants create inactive branches that drift from live generated types.",
+        "Attempt LinkedIn URL first, then domain fallback, with at most one paid route per row. A row without either identifier must make no paid call.",
+        "Replace every field placeholder before a paid call. An unresolved destination can write provider data into the wrong CRM property.",
+        "Fill approved blank fields only, using a CRM-native conditional update or a fresh CRM reread that preserves populated values, including numeric zero. A stale snapshot can overwrite authoritative CRM data.",
+        "Write `last_enriched_at` and `enrichment_status` only after the provider and CRM update succeed. Earlier writes falsely mark failed records as fresh.",
+        "Keep the play filter as the managed backing segment for approved rows whose freshness is null or older than six months. Evaluate it daily and create runs only for rows added to the segment.",
+        "Keep the first play disabled, limited to 15 rows, and configured with `noConcurrency`. Removing those controls expands an unapproved pilot.",
+        "Keep credentials, deployment commands, and customer data out of this repository."
+      ],
+      "doneWhen": [
+        "the audit contracts and chat summary agree on every count",
+        "the CDK plan contains one native Account unification and removes no unrelated additional columns",
+        "generated consumer types confirm the selected provider fields, CRM destinations, write action, and fill-blank semantics",
+        "no field placeholder remains and a record without an identifier exits before a paid call",
+        "the play targets the native unified Account model and resolves the audited CRM source ID from `ids`",
+        "the managed segment uses the null-or-six-month freshness rule, daily evaluation, and `changeKinds: [\"added\"]`",
+        "the first plan shows `isEnabled: false`, `limit: 15`, and `runCreationRule: noConcurrency`",
+        "LinkedIn and domain route counts are mutually exclusive and reproduce the credit estimate"
+      ],
+      "cost": "Immediately before every preview, run `cargo-ai connection integration get linkedin`. Read the\napplicable current entries from `integration.actions.enrichCompany.credits.costs` and\n`integration.actions.enrichCompanyFromDomain.credits.costs`. Record the CLI version, lookup time,\naction slugs, and selected unit costs. Then preview\n`linkedin_url_path * linkedin_url_unit_credits + domain_path * domain_unit_credits`.\n\nThis play runs on eligible native Account rows and updates the one CRM source selected by\n`crmSourceKey`. Report the segment count and any unmapped CRM records separately. Account\ndeduplication follows enrichment because the new matching keys improve duplicate detection.",
+      "composesInto": "- Feed the unified Account into scoring, segmentation, and people enrichment.\n- Enable the preconfigured daily freshness schedule after the pilot is approved."
+    },
+    {
       "name": "account-scoring",
       "kind": "cookbook",
       "job": "Keep every account scored and tiered against your written ICP by a deployed agent that re-scores as accounts arrive and as the ICP changes, writing the rationale back to the CRM.",
@@ -115,110 +225,6 @@
       "group": "Coming from another tool",
       "install": "npx skills add getcargohq/gtm-skills/clay-to-cargo",
       "partOf": []
-    },
-    {
-      "name": "cookbook-account-enrichment",
-      "kind": "cookbook",
-      "job": "Build a governed Account enrichment foundation: audit CRM identity, unify the global Account model, map standard company enrichment fields, and run one disabled native Account play with a reusable tool.",
-      "description": "Build a governed Account enrichment foundation: audit CRM identity, unify the global Account model, map standard company enrichment fields, and run one disabled native Account play with a reusable tool. Triggers: \"set up account enrichment foundations\", \"audit our CRM account enrichment\", \"keep company data fresh in our CRM\", \"build a recurring account enrichment play\". HubSpot, Salesforce, Attio, Cargo CDK. Skip when: no reusable CRM foundation is needed; use enrich-company-data.",
-      "version": "0.1.0",
-      "homepage": "https://github.com/getcargohq/gtm-skills/tree/main/cookbook-account-enrichment",
-      "group": "Make it run forever",
-      "install": "npx skills add getcargohq/gtm-skills/cookbook-account-enrichment",
-      "partOf": [],
-      "state": "to-be-approved",
-      "chain": 3,
-      "resources": [
-        "infra"
-      ],
-      "asked": [
-        {
-          "input": "crm_connector_and_account_model",
-          "kind": "derived",
-          "how": "Inspect authenticated connectors and existing CDK resources",
-          "why": "Reusing them prevents duplicate connectors and Account models"
-        },
-        {
-          "input": "property_candidates",
-          "kind": "derived",
-          "how": "Read live names, types, fill counts, and semantics",
-          "why": "The most-filled compatible property should remain authoritative"
-        },
-        {
-          "input": "approved_destinations",
-          "kind": "operator",
-          "how": "Review the recommended primary property for each provider field",
-          "why": "CRM writes need explicit, type-compatible destinations"
-        },
-        {
-          "input": "target_population",
-          "kind": "operator",
-          "how": "Review counts by identifier route, percentage, and current action credits",
-          "why": "The operator controls scope and spend before any paid call"
-        },
-        {
-          "input": "daily_schedule_activation",
-          "kind": "operator",
-          "how": "Approve only after the disabled pilot passes",
-          "why": "A checked schedule must remain disabled until its evidence is trusted"
-        }
-      ],
-      "canChange": [
-        {
-          "id": "crm",
-          "when": "The consumer uses Salesforce or Attio instead of HubSpot",
-          "how": "Replace connector, extractor, row columns, and CRM action payloads",
-          "cost": "Live generated types must be rechecked for the selected CRM"
-        },
-        {
-          "id": "selected_fields",
-          "when": "The operator approves a different firmographic contract",
-          "how": "Change the result schema, destinations, and both provider mappings",
-          "cost": "Each added field expands mapping and type-review surface"
-        },
-        {
-          "id": "eligibility",
-          "when": "Only a governed subset should be enriched",
-          "how": "Intersect approved lifecycle, tier, ownership, or gap filters",
-          "cost": "Narrower scope reduces coverage and paid calls"
-        },
-        {
-          "id": "existing_project_models",
-          "when": "The consumer already declares the connector or models",
-          "how": "Replace example declarations with imports from the consumer project",
-          "cost": "Incorrect reuse can create collisions or split Account identity"
-        },
-        {
-          "id": "crm_source_key",
-          "when": "The CRM model uses another dataset or model slug",
-          "how": "Replace the audited `<dataset_slug>__<model_slug>` key and recheck lookups",
-          "cost": "A wrong key prevents CRM writeback and segment eligibility"
-        },
-        {
-          "id": "approved_refresh_behavior",
-          "when": "Populated fields must be refreshed after explicit approval",
-          "how": "Add previewed fields plus an optimistic comparison against a fresh read",
-          "cost": "Refresh can overwrite CRM-authoritative values if guards are wrong"
-        }
-      ],
-      "shouldNotChange": [
-        "Keep one agent-edited CDK template rather than parallel CRM variants.",
-        "Keep the play on the native unified Account model and resolve CRM writeback IDs from `ids`.",
-        "Keep one paid route per row, LinkedIn URL first and domain second.",
-        "Keep a verified fill-blank guard, placeholder guards, and the disabled 15-row pilot.",
-        "Keep the play filter as the managed backing segment.",
-        "Keep daily evaluation, the null-or-six-month freshness rule, and `changeKinds: [\"added\"]`."
-      ],
-      "doneWhen": [
-        "the audit contracts and chat summary agree on every count",
-        "the CRM model feeds the one native Account unification",
-        "`account_enrichment` uses the actual CRM write shape and fill-blank semantics generated in the consumer project",
-        "selected provider fields and CRM destinations agree in meaning and type",
-        "the play targets the native unified Account model, resolves the CRM source ID, is disabled, and limits the pilot to 15",
-        "LinkedIn and domain route counts are mutually exclusive and reproduce the credit estimate"
-      ],
-      "cost": "Immediately before every preview, run `cargo-ai connection integration get linkedin`. Read the\napplicable current entries from `integration.actions.enrichCompany.credits.costs` and\n`integration.actions.enrichCompanyFromDomain.credits.costs`. Record the CLI version, lookup time,\naction slugs, and selected unit costs. Then preview\n`linkedin_url_path * linkedin_url_unit_credits + domain_path * domain_unit_credits`.\n\nThis play runs on eligible native Account rows and updates the one CRM source selected by\n`crmSourceKey`. Report the segment count and any unmapped CRM records separately. Account\ndeduplication follows enrichment because the new matching keys improve duplicate detection.",
-      "composesInto": "- Feed the unified Account into scoring, segmentation, and people enrichment.\n- Enable the preconfigured daily freshness schedule after the pilot is approved."
     },
     {
       "name": "crm-enrichment",

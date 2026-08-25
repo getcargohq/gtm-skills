@@ -44,18 +44,13 @@ jobs:
 
       # The cookbooks (skills that carry a worked CDK example): frontmatter
       # parses, the contract sections exist, no relative import escapes the
-      # folder, and the to-be-approved banner follows .github/data/approvals.json.
+      # folder, fixed credit amounts are absent, infra templates check and plan,
+      # and the to-be-approved banner follows .github/data/approvals.json.
       - name: Validate the cookbooks
         run: node scripts/check-cookbooks.mjs
 
       - name: Typecheck the cookbook resources
         run: npm run typecheck
-
-      - name: Check the account enrichment template in isolation
-        run: npm run check:templates
-
-      - name: Check deterministic cookbook contracts
-        run: npm run check:contracts
 
       - name: Check llms.txt is in sync with the skill tree
         run: node scripts/generate-llms-txt.ts --check

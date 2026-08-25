@@ -10,7 +10,7 @@ llms.txt
 *.md
 !tam-building/**/*.md
 !account-scoring/**/*.md
-!cookbook-account-enrichment/**/*.md
+!account-enrichment/**/*.md
 !CONTRIBUTING.md
 .agents/
 .claude-plugin/

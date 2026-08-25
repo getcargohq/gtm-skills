@@ -6,7 +6,7 @@
     {
       "name": "cargo",
       "source": "./",
-      "description": "Twenty-three routed GTM skills: one-off Cargo CLI jobs plus CDK cookbooks including account enrichment."
+      "description": "Routed GTM skills, each focused on one job: one-off Cargo CLI workflows plus reusable CDK cookbooks."
     }
   ]
 }

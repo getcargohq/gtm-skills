@@ -32,17 +32,15 @@ comes from `cargo-ai cdk init --template blank`; a skill is a folder they copy.
 
 ## Checks
 
-| Command                                     | What it does                                                                                                                                                                   |
-| ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `node scripts/validate.ts`                  | one-off skills: every slug and price against `getcargohq/cargo-skills` playbooks, plus the plugin channel                                                                      |
-| `node scripts/check-cookbooks.mjs`          | cookbooks: frontmatter parses as YAML, the contract sections exist, **no relative import escapes the folder**, the to-be-approved banner follows `.github/data/approvals.json` |
-| `npm run typecheck`                         | repository TypeScript, including cookbook resource examples                                                                                                                    |
-| `npm run check:templates`                   | the account enrichment CDK template in isolation with `cargo-cdk check` and `cargo-cdk plan`                                                                                   |
-| `npm run check:contracts`                   | deterministic cookbook safety contracts                                                                                                                                        |
-| `node scripts/generate-llms-txt.ts --check` | `llms.txt` in sync                                                                                                                                                             |
-| `node scripts/build-catalog.mjs --check`    | `catalog.json` in sync (the one machine-readable view of the whole repo)                                                                                                       |
-| `npx prettier --check .`                    | the CDK example code and repo files, except the three generated or legacy scripts listed in `.prettierignore`                                                                  |
-| routing evals                               | CI checks out `getcargohq/cargo-skills` and runs its `routing-eval.ts --skills-root .`                                                                                         |
+| Command                                     | What it does                                                                                                                         |
+| ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `node scripts/validate.ts`                  | one-off skills: every slug and price against `getcargohq/cargo-skills` playbooks, plus the plugin channel                            |
+| `node scripts/check-cookbooks.mjs`          | cookbooks: frontmatter and sections, folder isolation, no fixed credit amounts, isolated `infra/` CDK check and plan, approval state |
+| `npm run typecheck`                         | repository TypeScript, including cookbook resource examples                                                                          |
+| `node scripts/generate-llms-txt.ts --check` | `llms.txt` in sync                                                                                                                   |
+| `node scripts/build-catalog.mjs --check`    | `catalog.json` in sync (the one machine-readable view of the whole repo)                                                             |
+| `npx prettier --check .`                    | the CDK example code and repo files, except the three generated or legacy scripts listed in `.prettierignore`                        |
+| routing evals                               | CI checks out `getcargohq/cargo-skills` and runs its `routing-eval.ts --skills-root .`                                               |
 
 ## Adding a one-off skill
 
@@ -53,10 +51,12 @@ exact command, the price, the star ask. Register it in `skills.sh.json`,
 
 ## Adding a cookbook
 
-**Every cookbook is folder-isolated.** No relative import may leave it. A cookbook may carry all
-of its own resources or declare an explicit consumer prerequisite when duplicating a global model,
-connector, or importer would be unsafe. It must never import that prerequisite from another
-cookbook. The agent verifies and rewires prerequisites in the consumer project before planning.
+**Every cookbook is isolated.** It carries every model, connector and folder
+its resources import; no relative import may leave it. There is no shared
+foundation and no requires graph. Two cookbooks in one project will both carry,
+say, an `accounts` model, and that is fine: the agent placing the second one
+sees the first and rewires to it. Isolation is what lets a customer install
+exactly one skill and get exactly one working thing.
 
 1. `<name>/` with the resource code (`models/`, `plays/`, `agents/`, or `infra/`) and a
    `README.md` that explains why the design is the way it is. Every value that

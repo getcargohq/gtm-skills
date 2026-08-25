@@ -27,7 +27,7 @@ separately rather than stamping a successful status.
 
 ## Verification
 
-In this repository run `npm run check:templates`. In the consumer project:
+In this repository run `npm run validate`. In the consumer project:
 
 1. Run `cargo-ai cdk types` after selecting the live CRM connector.
 2. Run `cargo-ai cdk check`.

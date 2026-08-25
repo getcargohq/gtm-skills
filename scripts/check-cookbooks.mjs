@@ -9,10 +9,10 @@
 // frontmatter says `metadata.source: cookbook`; until then it is reported
 // as still-to-convert, never failed, so the rollout stays visible on every run.
 //
-// Every such folder is ISOLATED: no relative import may escape it. A cookbook
-// may declare consumer prerequisites when duplicating a global model, connector,
-// or importer would be unsafe. The agent verifies and rewires those resources
-// in the target project without importing another cookbook.
+// Every such folder is ISOLATED: it carries every model, connector and folder
+// it imports, and no relative import may escape it. There is no shared
+// foundation and no requires graph; the agent placing the example reconciles
+// it with whatever the target project already declares.
 //
 // SKILL.md is customer-facing: `skills add` installs it and an agent loads it.
 // So it carries the standard skill frontmatter and the contract, and nothing
@@ -33,6 +33,10 @@
 //     adaptation model half written.
 //   - no relative import escapes the folder: isolation is the contract, and a
 //     stray `../../other/...` is the one way to break it silently.
+//   - no numeric credit amount appears in cookbook Markdown: provider prices
+//     are fetched when the cookbook runs, while unrelated decimals remain valid.
+//   - every `infra/` template passes `cargo-cdk check` and `plan`: executable
+//     examples are discovered by structure rather than a hard-coded skill name.
 //   - the inline procedure section is present: each skill carries its own
 //     "Put it in your project", the way every one-off skill here carries its
 //     own Setup. There is no shared procedure skill to depend on.
@@ -40,6 +44,7 @@
 //     implementations. The banner must be present exactly while the state is
 //     to-be-approved, and absent once approved, so approving in the data file
 //     and forgetting the customer file is a red build.
+import { execFileSync } from "node:child_process";
 import { readFileSync, existsSync, readdirSync, statSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -47,6 +52,11 @@ import { parse as parseYaml } from "yaml";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const errors = [];
+const cargoCdk = join(root, "node_modules", ".bin", "cargo-cdk");
+let checkedInfraTemplates = 0;
+
+const STATIC_CREDIT_AMOUNT =
+  /\b(?:0\.\d+|[1-9]\d*(?:\.\d+)?)\s*(?:credits?|cr)\b|["'`]?(?:unit[_ -]?credits?|credit[_ -]?(?:cost|price))["'`]?\s*[:=]\s*(?:0\.\d+|[1-9]\d*(?:\.\d+)?)/i;
 
 const RESOURCE_DIRS = new Set([
   "models",
@@ -100,6 +110,17 @@ const walk = (dir) => {
     if (e === "node_modules") continue;
     if (statSync(p).isDirectory()) out.push(...walk(p));
     else if (p.endsWith(".ts") && !p.endsWith(".d.ts")) out.push(p);
+  }
+  return out;
+};
+
+const walkMarkdown = (dir) => {
+  const out = [];
+  for (const e of readdirSync(dir)) {
+    const p = join(dir, e);
+    if (e === "node_modules") continue;
+    if (statSync(p).isDirectory()) out.push(...walkMarkdown(p));
+    else if (p.endsWith(".md")) out.push(p);
   }
   return out;
 };
@@ -181,6 +202,19 @@ for (const name of exampleFolders) {
     if (!body.includes(`\n${section}`))
       errors.push(`${name}/SKILL.md is missing the "${section}" section`);
   }
+
+  for (const markdownPath of walkMarkdown(join(root, name))) {
+    const relativePath = markdownPath.slice(root.length + 1);
+    for (const [index, line] of readFileSync(markdownPath, "utf8")
+      .split("\n")
+      .entries()) {
+      if (STATIC_CREDIT_AMOUNT.test(line)) {
+        errors.push(
+          `${relativePath}:${index + 1} hard-codes a credit amount: fetch current action costs when the cookbook runs`,
+        );
+      }
+    }
+  }
   if (
     /cookbook\.json|cargo\.scaffold\.json|manifest add|cdk init --from|base-gtm|crm-sync|deploy-cookbook/.test(
       body,
@@ -195,7 +229,7 @@ for (const name of exampleFolders) {
   // needs, and the agent reconciles duplicates against the project. Refuse it.
   if (/\n## Requires\n/.test(body)) {
     errors.push(
-      `${name}/SKILL.md carries a "## Requires" section: state consumer prerequisites in compatibility and project steps, without an inter-cookbook dependency`,
+      `${name}/SKILL.md carries a "## Requires" section: cookbooks are self-contained, and what the project already has is reconciled by the agent, not declared here`,
     );
   }
 
@@ -228,8 +262,48 @@ for (const name of exampleFolders) {
       const tgt = resolve(dirname(dp), m[1]);
       if (!tgt.startsWith(join(root, name) + "/")) {
         errors.push(
-          `${name}/${dp.slice(root.length + name.length + 2)} imports ${m[1]}, which escapes the folder: every cookbook must be folder-isolated`,
+          `${name}/${dp.slice(root.length + name.length + 2)} imports ${m[1]}, which escapes the folder: every skill is self-contained`,
         );
+      }
+    }
+  }
+
+  const infraDir = join(root, name, "infra");
+  if (existsSync(infraDir)) {
+    const templateFiles = walk(infraDir);
+    if (templateFiles.length === 0) {
+      errors.push(`${name}/infra contains no TypeScript template`);
+    } else if (!existsSync(cargoCdk)) {
+      errors.push(
+        `${name}/infra cannot be checked because node_modules/.bin/cargo-cdk is missing`,
+      );
+    } else {
+      try {
+        execFileSync(cargoCdk, ["check", "--dir", infraDir], {
+          stdio: "pipe",
+        });
+        const plan = JSON.parse(
+          execFileSync(cargoCdk, ["plan", "--dir", infraDir, "--json"], {
+            encoding: "utf8",
+          }),
+        );
+        if (!Array.isArray(plan.errors) || plan.errors.length > 0) {
+          throw new Error(
+            `cargo-cdk plan returned errors: ${JSON.stringify(plan.errors)}`,
+          );
+        }
+        checkedInfraTemplates += 1;
+      } catch (error) {
+        const detail = [
+          error.stdout?.toString(),
+          error.stderr?.toString(),
+          error.message,
+        ]
+          .filter(Boolean)
+          .join(" ")
+          .trim()
+          .replace(/\s+/g, " ");
+        errors.push(`${name}/infra fails cargo-cdk validation: ${detail}`);
       }
     }
   }
@@ -289,5 +363,5 @@ if (errors.length) {
   process.exit(1);
 }
 console.log(
-  `ok: ${exampleFolders.length} cookbooks, every one folder-isolated`,
+  `ok: ${exampleFolders.length} cookbooks, every one self-contained; ${checkedInfraTemplates} infra template(s) checked and planned`,
 );

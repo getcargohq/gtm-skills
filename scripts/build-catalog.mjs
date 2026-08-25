@@ -91,20 +91,20 @@ for (const name of readdirSync(root).sort()) {
   const job = description.split(/\.\s+Triggers:/)[0] + ".";
   const isCookbook = fm.metadata?.source === "cookbook";
   const rec = {
-    name: fm.name,
+    name,
     kind: isCookbook ? "cookbook" : "one-off",
     job,
     description,
     version: fm.version ?? null,
     homepage: fm.homepage ?? null,
-    group: groupOf(fm.name),
+    group: groupOf(name),
     install: `npx skills add getcargohq/gtm-skills/${name}`,
     partOf: bullets(section(body, "Part of"))
       .map((b) => b.replace(/`/g, "").split(/[:\s]/)[0])
       .filter(Boolean),
   };
   if (isCookbook) {
-    const a = approvals[fm.name] ?? {};
+    const a = approvals[name] ?? {};
     Object.assign(rec, {
       state: a.state ?? "to-be-approved",
       chain: a.chain ?? null,
