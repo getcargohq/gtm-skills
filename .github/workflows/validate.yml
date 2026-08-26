@@ -42,11 +42,15 @@ jobs:
           CARGO_SKILLS_REF: ${{ inputs.ref || 'main' }}
         run: node scripts/validate.ts
 
-      # The cookbooks (skills that carry a worked CDK example): frontmatter
+      # The pipeline skills (folders that carry a worked CDK example): frontmatter
       # parses, the contract sections exist, no relative import escapes the
-      # folder, and the to-be-approved banner follows .github/data/approvals.json.
-      - name: Validate the cookbooks
-        run: node scripts/check-cookbooks.mjs
+      # folder, fixed credit amounts are absent, infra templates check and plan,
+      # and the to-be-approved banner follows .github/data/approvals.json.
+      - name: Validate the pipeline skills
+        run: node scripts/check-pipelines.mjs
+
+      - name: Typecheck the pipeline resources
+        run: npm run typecheck
 
       - name: Check llms.txt is in sync with the skill tree
         run: node scripts/generate-llms-txt.ts --check
@@ -54,8 +58,8 @@ jobs:
       - name: Check catalog.json is in sync with the skill tree
         run: node scripts/build-catalog.mjs --check
 
-      # Prettier covers the example .ts files. Typecheck needs generated types
-      # (`cargo-ai login` then `npm run types`) and runs locally, not here.
+      # Prettier covers the example TypeScript and repository files except the
+      # three generated or legacy scripts listed in .prettierignore.
       - name: Format check
         run: npx prettier --check .
 
@@ -85,7 +89,7 @@ jobs:
           done
 
       # The descriptions are the only text an agent sees before deciding which
-      # skill to load, and twelve deliberately-adjacent ones compete for every
+      # skill to load, and the deliberately adjacent ones compete for every
       # prompt. The ranker lives in the pack; there is no second copy to drift.
       - name: Check the descriptions still route
         uses: actions/checkout@v4
@@ -94,4 +98,4 @@ jobs:
           ref: ${{ inputs.ref || 'main' }}
           path: .cargo-skills
 
-      - run: node .cargo-skills/.github/scripts/routing-eval.ts --skills-root .
+      - run: npm run validate:routing

@@ -10,6 +10,7 @@ llms.txt
 *.md
 !tam-building/**/*.md
 !account-scoring/**/*.md
+!crm-enrichment/**/*.md
 !CONTRIBUTING.md
 !.agents/skills/**/*.md
 !.claude/skills/**/*.md

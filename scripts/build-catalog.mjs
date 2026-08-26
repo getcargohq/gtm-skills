@@ -2,8 +2,8 @@
 // Builds catalog.json: every skill in this repo as one JSON record, so a site
 // or another skills repo can render the menu without parsing markdown. This is
 // the ONE place markdown is turned into data, next to the validators that
-// guarantee the shape (validate.ts for one-off skills, check-cookbooks.mjs
-// for the cookbooks). Consumers fetch
+// guarantee the shape (validate.ts for one-off skills, check-pipelines.mjs
+// for the pipeline skills). Consumers fetch
 //   https://raw.githubusercontent.com/getcargohq/gtm-skills/main/catalog.json
 // and never clone.
 //
@@ -45,6 +45,7 @@ const RESOURCE_DIRS = new Set([
   "capacities",
   "folders",
   "workers",
+  "infra",
 ]);
 
 const section = (body, heading) => {
@@ -63,11 +64,15 @@ const tableRows = (text) =>
         .slice(1, -1)
         .map((c) => c.trim().replace(/^`|`$/g, "")),
     );
-const bullets = (text) =>
-  (text ?? "")
-    .split("\n")
-    .filter((l) => l.startsWith("- "))
-    .map((l) => l.slice(2).trim());
+const bullets = (text) => {
+  const items = [];
+  for (const line of (text ?? "").split("\n")) {
+    if (line.startsWith("- ")) items.push(line.slice(2).trim());
+    else if (/^\s{2,}\S/.test(line) && items.length > 0)
+      items[items.length - 1] += ` ${line.trim()}`;
+  }
+  return items;
+};
 
 const skills = [];
 for (const name of readdirSync(root).sort()) {

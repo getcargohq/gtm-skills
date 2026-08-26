@@ -85,7 +85,7 @@ const LIMITS = {
 const SKILL_DESCRIPTION_LIMIT = LIMITS.skillDescription;
 
 // Rewrites for skills whose repo description exceeds OpenAI's limit. Empty on
-// purpose: every description here currently fits, and the twelve are deliberately
+// purpose: every description here currently fits, and the skills are deliberately
 // short. Kept as the mechanism rather than deleted, because the alternative when
 // one does go long is a silent truncation into a rejected upload — anything over
 // the limit without an entry here fails the build. Rewrites, never truncations:
@@ -179,11 +179,11 @@ if (typeof version !== "string" || /^\d+\.\d+\.\d+$/.test(version) === false) {
   die(`.claude-plugin/plugin.json has no usable semver version (got ${version})`);
 }
 
-// A skill is any top-level directory holding a SKILL.md — the same rule
-// scripts/validate.ts uses, so the two can never disagree.
+// A skill is any top-level directory holding a SKILL.md. This matches
+// scripts/validate.ts and keeps every installable skill visible at the root.
 const skillDirs = readdirSync(repoRoot, { withFileTypes: true })
-  .filter((e) => e.isDirectory())
-  .map((e) => e.name)
+  .filter((entry) => entry.isDirectory())
+  .map((entry) => entry.name)
   .filter((name) => existsSync(join(repoRoot, name, "SKILL.md")))
   .sort();
 
@@ -266,7 +266,7 @@ const manifest = {
   name: "cargo-gtm-skills",
   version,
   description:
-    "Twelve one-job go-to-market skills over the Cargo CLI, installed one at a time or together: research accounts and buying committees, build a total-addressable-market list, enrich companies and LinkedIn profiles, find and verify business email addresses from licensed data providers, and track buying signals (job changes, funding rounds, tech and hiring intent). Business-to-business professional identities only. Every skill samples before it spends and reports the credit cost. These skills send no messages: they produce reviewed, filtered lists for the user's own CRM and sequencer, under that sequencer's limits and the user's own domains — bulk unsolicited messaging, purchased or scraped lists, and consumer targeting are out of scope.",
+    "Routed go-to-market skills over the Cargo CLI, each focused on one job, including worked CDK examples an agent adapts and deploys. Install one skill or the full bundle to research accounts, build markets, enrich professional company and contact data, verify business emails, score accounts, and monitor buying signals. Business-to-business professional identities only. Skills preview spend before paid calls. They send no messages. Bulk unsolicited messaging, purchased or scraped lists, and consumer targeting are out of scope.",
   author: { name: "getcargo" },
   homepage: "https://getcargo.ai",
   repository: "https://github.com/getcargohq/gtm-skills",
@@ -287,7 +287,7 @@ const manifest = {
   interface: {
     displayName: "Cargo GTM Skills",
     // 30 chars in the directory, not the 240 the uploader accepts.
-    shortDescription: "One-job GTM skills for agents",
+    shortDescription: "GTM skills, one job each",
     composerIcon: "./assets/icon.png",
     logo: "./assets/icon.png",
     capabilities: ["Read", "Write"],
@@ -376,6 +376,16 @@ const packagedSkills = entries.filter((e) =>
 if (packagedSkills !== skillDirs.length) {
   problems.push(
     `archive has ${packagedSkills} SKILL.md files, repo has ${skillDirs.length}`,
+  );
+}
+if (
+  !entries.includes("skills/crm-enrichment/SKILL.md") ||
+  !entries.includes(
+    "skills/crm-enrichment/infra/index.ts",
+  )
+) {
+  problems.push(
+    "archive is missing crm-enrichment or its infrastructure template",
   );
 }
 

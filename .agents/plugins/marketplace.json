@@ -1,12 +1,12 @@
 {
   "name": "gtm",
   "interface": { "displayName": "Cargo GTM" },
-  "metadata": { "description": "Standalone Cargo GTM skills for Codex — one job each" },
+  "metadata": { "description": "Cargo GTM skills for Codex" },
   "plugins": [
     {
       "name": "cargo",
       "source": { "source": "local", "path": "./" },
-      "description": "Twenty one-job GTM skills — leads, TAM, enrichment, work emails, verification, CRM enrichment, job-change, funding, hiring and tech-intent signals, plus migrations off Clay, Apollo and ZoomInfo — on the cargo-ai CLI.",
+      "description": "Routed GTM skills, each focused on one job: one-off Cargo CLI workflows plus worked CDK examples an agent adapts and deploys.",
       "policy": { "installation": "AVAILABLE", "authentication": "ON_INSTALL" }
     }
   ]
