@@ -1,12 +1,12 @@
 ---
-name: create-cargo-skill
+name: create-gtm-skill
 description: >-
-  Author a Cargo GTM skill in getcargohq/gtm-skills (one-off CLI job or
-  deployed pipeline). Use when creating, adding, scaffolding, or reviewing a
-  new skill, SKILL.md, cookbook, or pipeline folder in gtm-skills.
+  Author a GTM skill in getcargohq/gtm-skills (one-off CLI job or deployed
+  pipeline). Use when creating, adding, scaffolding, or reviewing a new
+  skill, SKILL.md, cookbook, or pipeline folder in gtm-skills.
 ---
 
-# Create a Cargo skill
+# Create a GTM skill
 
 This is an authoring skill for people writing this repo. It is not a
 customer skill and does not install with `npx skills add`. The canonical

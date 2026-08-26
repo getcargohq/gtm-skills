@@ -42,7 +42,7 @@ comes from `cargo-ai cdk init --template blank`; a skill is a folder they copy.
 | routing evals                               | CI checks out `getcargohq/cargo-skills` and runs its `routing-eval.ts --skills-root .`                                                                                         |
 
 When writing a new skill, follow
-[`.agents/skills/create-cargo-skill/SKILL.md`](.agents/skills/create-cargo-skill/SKILL.md).
+[`.agents/skills/create-gtm-skill/SKILL.md`](.agents/skills/create-gtm-skill/SKILL.md).
 That file is for authors; it is not a customer skill. Codex loads it from
 `.agents/skills`. Claude Code and Cursor load the same folder via symlink
 (`.claude/skills`, `.cursor/skills`).
