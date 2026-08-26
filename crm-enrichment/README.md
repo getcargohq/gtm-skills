@@ -5,12 +5,12 @@ worked example: copy it into a Cargo CDK project as a sibling, reconcile it with
 what is already there, adapt `infra/index.ts`, and stop at
 `cargo-ai cdk plan`.
 
-The play fills approved blank identity and size fields from LinkedIn, writes
-freshness only after a real fill, and re-enrolls a record after six months. It
-runs on `crm_accounts` — the CRM account extract — and writes back with that
-row's CRM record id. The checked example is HubSpot; Salesforce and Attio adapt
-that one file. Nothing in this folder deploys or touches customer data by
-itself.
+The agent joins the live LinkedIn and CRM schemas, presents the starting and optional field
+mappings, and waits for approval of the complete field contract. The play then fills those approved
+blank fields, writes freshness only after a real fill, and re-enrolls a record after six months. It
+runs on `crm_accounts` (the CRM account extract) and writes back with that row's CRM record id. The
+checked example is HubSpot; Salesforce and Attio adapt that one file. Nothing in this folder deploys
+or touches customer data by itself.
 
 `SKILL.md` is the procedure. Supporting depth:
 

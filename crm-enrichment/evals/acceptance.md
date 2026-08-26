@@ -4,11 +4,19 @@ Walk every line. A checked template without an evidence-backed consumer adaptati
 
 ## Audit
 
+- Before the exact target or cost preview, the agent presents the starting recommendation,
+  direct-compatible optional fields, transformation-required fields, and unsupported fields from
+  the live LinkedIn and CRM schemas.
+- The agent asks for approval of a concrete field-contract table, not whether the operator wants
+  unspecified "more fields". Silence does not approve the starting recommendation.
+- The audit records every live LinkedIn output as included or excluded, with destination, types,
+  transformation, write policy, and reason where applicable.
 - JSON, Markdown, and chat agree on property candidates, gaps, route counts, and costs.
 - Unit costs come from a current `cargo-ai connection integration get linkedin` response, with the
   lookup timestamp, CLI version, action slugs, and applicable cost entries recorded.
 - Credit math uses the fetched LinkedIn and domain unit costs.
-- Route counts are mutually exclusive and count eligible CRM accounts on `crm_accounts`.
+- Route counts are mutually exclusive and count eligible CRM accounts on `crm_accounts` after the
+  field contract is approved.
 - Primary destinations have live type and fill-rate evidence.
 - No paid provider call or CRM write occurs during audit.
 
@@ -22,6 +30,8 @@ Walk every line. A checked template without an evidence-backed consumer adaptati
 - The write matches the audited CRM record id (`hs_object_id` in the HubSpot example).
 - The workflow exits before a paid call when no identifier exists or the approved CRM
   destinations are already filled (`skipped_already_filled`).
+- The workflow input, result schema, write mappings, and play fill-state filter cover exactly the
+  approved field contract.
 - LinkedIn URL is attempted before domain fallback. A handle that is already an `http` URL is used
   as-is. A row takes at most one paid route.
 - Fill-blanks uses a CRM-native conditional update or a fresh-read guard that preserves populated
