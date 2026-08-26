@@ -1,13 +1,14 @@
 #!/usr/bin/env node
-// Validates the cookbooks: the skills that carry a worked cookbook: the folders with models/,
-// plays/, agents/ and so on beside their SKILL.md.
+// Validates the pipeline skills: folders with models/, plays/, agents/ and so
+// on beside their SKILL.md.
 // The one-off skills are validated by validate.ts (slugs, prices, playbooks);
-// this owns everything a cookbook adds on top. Both run under `npm run validate`.
+// this owns everything a pipeline skill adds on top. Both run under `npm run validate`.
 //
 // Mechanically: a root folder that carries resource code (models/, plays/,
-// agents/, infra/, and so on). It becomes a cookbook when it carries a SKILL.md whose
-// frontmatter says `metadata.source: cookbook`; until then it is reported
-// as still-to-convert, never failed, so the rollout stays visible on every run.
+// agents/, infra/, and so on). It becomes a pipeline skill when it carries a
+// SKILL.md whose frontmatter says `metadata.source: cookbook`; until then it
+// is reported as still-to-convert, never failed, so the rollout stays visible
+// on every run.
 //
 // Every such folder is ISOLATED: it carries every model, connector and folder
 // it imports, and no relative import may escape it. There is no shared
@@ -33,8 +34,8 @@
 //     adaptation model half written.
 //   - no relative import escapes the folder: isolation is the contract, and a
 //     stray `../../other/...` is the one way to break it silently.
-//   - no numeric credit amount appears in cookbook Markdown: provider prices
-//     are fetched when the cookbook runs, while unrelated decimals remain valid.
+//   - no numeric credit amount appears in pipeline Markdown: provider prices
+//     are fetched when the skill runs, while unrelated decimals remain valid.
 //   - every `infra/` template passes `cargo-cdk check` and `plan`: executable
 //     examples are discovered by structure rather than a hard-coded skill name.
 //   - the inline procedure section is present: each skill carries its own
@@ -210,7 +211,7 @@ for (const name of exampleFolders) {
       .entries()) {
       if (STATIC_CREDIT_AMOUNT.test(line)) {
         errors.push(
-          `${relativePath}:${index + 1} hard-codes a credit amount: fetch current action costs when the cookbook runs`,
+          `${relativePath}:${index + 1} hard-codes a credit amount: fetch current action costs when the skill runs`,
         );
       }
     }
@@ -221,15 +222,15 @@ for (const name of exampleFolders) {
     )
   ) {
     errors.push(
-      `${name}/SKILL.md refers to scaffold machinery (cookbook.json, cargo.scaffold.json, manifest add, cdk init --from, base-gtm, crm-sync, deploy-cookbook) that no longer exists`,
+      `${name}/SKILL.md refers to scaffold machinery (legacy manifest files, cargo.scaffold.json, manifest add, cdk init --from, base-gtm, crm-sync) that no longer exists`,
     );
   }
 
-  // A `## Requires` section contradicts isolation: a cookbook carries what it
-  // needs, and the agent reconciles duplicates against the project. Refuse it.
+  // A `## Requires` section contradicts isolation: a pipeline skill carries
+  // what it needs, and the agent reconciles duplicates against the project.
   if (/\n## Requires\n/.test(body)) {
     errors.push(
-      `${name}/SKILL.md carries a "## Requires" section: cookbooks are self-contained, and what the project already has is reconciled by the agent, not declared here`,
+      `${name}/SKILL.md carries a "## Requires" section: pipeline skills are self-contained, and what the project already has is reconciled by the agent, not declared here`,
     );
   }
 
@@ -246,7 +247,7 @@ for (const name of exampleFolders) {
   findNestedSkills(join(root, name));
   for (const nested of nestedSkillFiles) {
     errors.push(
-      `${nested.slice(root.length + 1)} is nested inside cookbook ${name}: supporting instructions belong in references/, not another skill`,
+      `${nested.slice(root.length + 1)} is nested inside ${name}: supporting instructions belong in references/, not another skill`,
     );
   }
 
@@ -340,10 +341,12 @@ for (const name of exampleFolders) {
 // approvals.json must not name a folder that is not an engine
 for (const name of Object.keys(approvals)) {
   if (!exampleFolders.includes(name))
-    errors.push(`approvals.json names "${name}", which is not a cookbook here`);
+    errors.push(
+      `approvals.json names "${name}", which is not a pipeline skill here`,
+    );
 }
 
-// A one-off skill's "## Part of" section may name cookbooks; they must exist.
+// A one-off skill's "## Part of" section may name pipeline skills; they must exist.
 for (const name of allSkillFolders) {
   if (exampleFolders.includes(name)) continue;
   const text = readFileSync(join(root, name, "SKILL.md"), "utf8");
@@ -352,16 +355,16 @@ for (const name of allSkillFolders) {
   for (const m of part[1].matchAll(/`([a-z0-9-]+)`/g)) {
     if (!exampleFolders.includes(m[1]))
       errors.push(
-        `${name}/SKILL.md says it is part of \`${m[1]}\`, which is not a cookbook here`,
+        `${name}/SKILL.md says it is part of \`${m[1]}\`, which is not a pipeline skill here`,
       );
   }
 }
 
 if (errors.length) {
-  console.error("cookbooks are out of sync:");
+  console.error("pipeline skills are out of sync:");
   for (const e of errors) console.error(`  - ${e}`);
   process.exit(1);
 }
 console.log(
-  `ok: ${exampleFolders.length} cookbooks, every one self-contained; ${checkedInfraTemplates} infra template(s) checked and planned`,
+  `ok: ${exampleFolders.length} pipeline skills, every one self-contained; ${checkedInfraTemplates} infra template(s) checked and planned`,
 );

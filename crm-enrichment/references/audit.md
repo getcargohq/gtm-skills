@@ -1,20 +1,20 @@
-# Audit the CRM
+# Audit
 
 Produce the audit before editing the CDK template. Re-read live CRM properties. Do not assume
-property names, universal provider output paths, or that every CRM Account is in scope.
+property names, universal provider output paths, or that every CRM account is in scope.
 
-Write `account-enrichment-audit-YYYY-MM-DD.json` and a matching Markdown report with this minimum
+Write `crm-enrichment-audit-YYYY-MM-DD.json` and a matching Markdown report with this minimum
 JSON contract:
 
 ```json
 {
   "generated_at": "ISO-8601 timestamp",
   "crm": "hubspot|salesforce|attio",
-  "crm_source_key": "dataset_slug__model_slug",
+  "record_id_field": "hs_object_id",
   "total_accounts": 0,
   "properties": [
     {
-      "semantic_key": "domain|website|linkedin_url|linkedin_id|last_enriched_at|enrichment_status",
+      "semantic_key": "record_id|domain|website|linkedin_url|linkedin_id|employee_count|last_enriched_at|enrichment_status",
       "candidates": [
         {
           "label": "CRM label",
@@ -77,8 +77,8 @@ the recommended primary properties, largest gaps, eligible population, and exact
 Do not invent a CRM health score. Report field-level evidence.
 
 Recommend the most filled type-compatible property, preferring a CRM-native property on a tie.
-Inspect Cargo's native source-record details before proposing another provenance property. Do not
-delete or rename CRM properties during audit.
+The HubSpot example uses `hs_object_id` as `record_id_field`; Salesforce uses `Id`; Attio uses
+the record id. Do not delete or rename CRM properties during audit.
 
 If no compatible operational property exists, propose the exact property and pause for approval.
 Use generic outcomes: `pending`, `succeeded`, `failed`, `identity_conflict`, and
@@ -89,8 +89,8 @@ applicable costs from `integration.actions.enrichCompany.credits.costs` and
 `integration.actions.enrichCompanyFromDomain.credits.costs`; stop if the relevant entry is missing
 or ambiguous. Credit math is
 `linkedin_url_path * linkedin_url_unit_credits + domain_path * domain_unit_credits`. The route
-counts are mutually exclusive and count eligible native Accounts with the selected CRM source
-key. Ask whether to narrow the population after showing the preview.
+counts are mutually exclusive and count eligible CRM accounts on the connected extract. Ask
+whether to narrow the population after showing the preview.
 
 ## Complete when
 

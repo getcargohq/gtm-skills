@@ -1,13 +1,13 @@
 {
   "name": "gtm",
   "owner": { "name": "Cargo", "url": "https://getcargo.ai" },
-  "metadata": { "description": "Cargo GTM skills and CDK cookbooks for Claude Code" },
+  "metadata": { "description": "Cargo GTM skills for Claude Code" },
   "plugins": [
     {
       "name": "cargo",
       "displayName": "Cargo GTM",
       "source": "./",
-      "description": "Routed GTM skills, each focused on one job: one-off Cargo CLI workflows plus reusable CDK cookbooks."
+      "description": "Routed GTM skills, each focused on one job: one-off Cargo CLI workflows plus worked CDK examples an agent adapts and deploys."
     }
   ]
 }

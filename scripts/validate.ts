@@ -609,7 +609,7 @@ if (!skillNames.length) {
 //             price, the star ask. Validated here, against the playbooks.
 //   cookbook  a worked CDK example an agent adapts into a project and deploys.
 //             Names no connector action, prices no call. Validated by
-//             scripts/check-cookbooks.mjs.
+//             scripts/check-pipelines.mjs.
 //
 // Both kinds take part in the trigger-collision check below, because a
 // one-off and a cookbook compete for the same prompts and that is exactly the

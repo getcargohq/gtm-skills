@@ -266,7 +266,7 @@ const manifest = {
   name: "cargo-gtm-skills",
   version,
   description:
-    "Routed go-to-market skills over the Cargo CLI, each focused on one job, including reusable CDK cookbooks such as account enrichment. Install one skill or the full bundle to research accounts, build markets, enrich professional company and contact data, verify business emails, score accounts, and monitor buying signals. Business-to-business professional identities only. Skills preview spend before paid calls. They send no messages. Bulk unsolicited messaging, purchased or scraped lists, and consumer targeting are out of scope.",
+    "Routed go-to-market skills over the Cargo CLI, each focused on one job, including worked CDK examples an agent adapts and deploys. Install one skill or the full bundle to research accounts, build markets, enrich professional company and contact data, verify business emails, score accounts, and monitor buying signals. Business-to-business professional identities only. Skills preview spend before paid calls. They send no messages. Bulk unsolicited messaging, purchased or scraped lists, and consumer targeting are out of scope.",
   author: { name: "getcargo" },
   homepage: "https://getcargo.ai",
   repository: "https://github.com/getcargohq/gtm-skills",
@@ -287,7 +287,7 @@ const manifest = {
   interface: {
     displayName: "Cargo GTM Skills",
     // 30 chars in the directory, not the 240 the uploader accepts.
-    shortDescription: "GTM skills and CDK cookbooks",
+    shortDescription: "GTM skills, one job each",
     composerIcon: "./assets/icon.png",
     logo: "./assets/icon.png",
     capabilities: ["Read", "Write"],
@@ -379,13 +379,13 @@ if (packagedSkills !== skillDirs.length) {
   );
 }
 if (
-  !entries.includes("skills/account-enrichment/SKILL.md") ||
+  !entries.includes("skills/crm-enrichment/SKILL.md") ||
   !entries.includes(
-    "skills/account-enrichment/infra/account-enrichment.ts",
+    "skills/crm-enrichment/infra/index.ts",
   )
 ) {
   problems.push(
-    "archive is missing account-enrichment or its infrastructure template",
+    "archive is missing crm-enrichment or its infrastructure template",
   );
 }
 

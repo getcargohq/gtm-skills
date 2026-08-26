@@ -1,5 +1,5 @@
 {
-  "account-enrichment": {
+  "crm-enrichment": {
     "state": "to-be-approved",
     "chain": 3,
     "demoWorkspace": null,

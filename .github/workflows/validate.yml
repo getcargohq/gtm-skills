@@ -42,14 +42,14 @@ jobs:
           CARGO_SKILLS_REF: ${{ inputs.ref || 'main' }}
         run: node scripts/validate.ts
 
-      # The cookbooks (skills that carry a worked CDK example): frontmatter
+      # The pipeline skills (folders that carry a worked CDK example): frontmatter
       # parses, the contract sections exist, no relative import escapes the
       # folder, fixed credit amounts are absent, infra templates check and plan,
       # and the to-be-approved banner follows .github/data/approvals.json.
-      - name: Validate the cookbooks
-        run: node scripts/check-cookbooks.mjs
+      - name: Validate the pipeline skills
+        run: node scripts/check-pipelines.mjs
 
-      - name: Typecheck the cookbook resources
+      - name: Typecheck the pipeline resources
         run: npm run typecheck
 
       - name: Check llms.txt is in sync with the skill tree

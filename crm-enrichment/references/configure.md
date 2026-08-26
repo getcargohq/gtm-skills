@@ -1,7 +1,14 @@
-# Configure account enrichment
+# Configure
 
-Re-read the live provider and CRM actions before editing the template. The LinkedIn paths below
-were verified on 2026-08-21. Treat current live schemas as authoritative.
+Reuse the consumer's CRM connector and account extract when they exist. If a
+HubSpot companies model (or the Salesforce Accounts / Attio equivalent) is
+already declared, import it as `crm_accounts` and drop the copy. Two extracts
+of the same object collide at deploy. The play runs on that extract. There is
+no native `accounts` unification in this skill.
+
+Re-read the live provider and CRM actions before editing the template. These are LinkedIn
+output paths, not CRM destinations. They were verified on 2026-08-21. Treat current live
+schemas as authoritative.
 
 | Group                | Exact output paths                                                                                                                                                              | Declared type                                                                                                        |
 | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
@@ -18,27 +25,39 @@ were verified on 2026-08-21. Treat current live schemas as authoritative.
 | Founding             | `year_founded`                                                                                                                                                                  | provider-schema-untyped                                                                                              |
 | Domain fallback only | `confident_score`                                                                                                                                                               | string                                                                                                               |
 
-In `infra/account-enrichment.ts`, edit these together:
+In `infra/index.ts`, edit these together:
 
 - `crm`: the adopted CRM connector
-- `crmAccounts`: the live extractor and Account object configuration
-- `crmSourceKey`: the exact CRM key observed in the unified Account `ids` map
-- `crmFields`: exact approved destination properties
-- `enrichAccountWorkflow`: the CRM record-write payload and fill-blank guard
-- `accounts`: the source-ID computed column and CRM freshness lookup
+- `crmAccounts`: the live account extractor
+- `enrichCrmAccount`: the write mappings, matching property, and fill-blank guard
+- `enrichAccounts`: the play filter slugs, which must be columns on `crm_accounts`
 
-The checked repository example uses HubSpot's `updateRecords` action and its native
-`skipIfExist` mapping flag. For Salesforce or Attio, replace that action from generated consumer
-types. Use an equivalent conditional update when available. Otherwise add a fresh CRM read and
-preserve populated values explicitly. Do not keep inactive CRM branches in the file.
+The checked repository example extracts HubSpot companies (`fetchRecords`,
+`objectType: "companies"`) and writes with `updateRecords` matching
+`hs_object_id` and its native `skipIfExist` mapping flag. Create
+`cargo_last_enriched_at` and `cargo_enrichment_status` on the company object if
+they are missing. Keep one CRM shape in the file. The play filter, workflow
+input, and write matching property must use the same record-id field.
+
+- **Salesforce:** generated Account update matching `Id`. There is no `skipIfExist` — read the
+  Account first and omit any field that is already populated, including numeric zero.
+- **Attio:** generated company-record update matching the record id. Same read-then-omit guard.
+  Do not copy HubSpot's flag onto Attio.
+
+The checked HubSpot write mapping is `name`, `domain`, `website`, `linkedin_company_page`, and
+`numberofemployees`, plus the stamps `cargo_last_enriched_at` and `cargo_enrichment_status`.
+Leave LinkedIn `company_id` and industry out of the base mapping. The provider returns
+`industries` as an array; most CRMs store a single enum. Add industry only as the
+`selected_fields` variation after the live types agree.
 
 Leave `year_founded` and provider-schema-untyped funding fields out until the live action declares
 stable types.
 
 The base template is fill-blanks only. HubSpot enforces this per property with
-`skipIfExist: true`, which preserves populated values without depending on the untyped
-`getRecord` output. Refreshing populated fields requires a separate field-level approval, a
-proposed-change preview, and an optimistic comparison against a fresh CRM read.
+`skipIfExist: true`. The play filter skips the paid call when domain, LinkedIn URL, and employee
+count are already populated (`skipped_already_filled`). Freshness writes only on the `written`
+path. Refreshing populated fields requires a separate field-level approval, a proposed-change
+preview, and an optimistic comparison against a fresh CRM read.
 
 Fetch current pricing with `cargo-ai connection integration get linkedin` immediately before the
 preview. Read the applicable entries under
@@ -49,7 +68,9 @@ action as the mutually exclusive fallback.
 
 ## Complete when
 
-- every placeholder has an approved live CRM destination
+- exactly one CRM account model exists (`crm_accounts` in the example) and the play uses it
+- every destination is an approved live CRM property
 - `cargo-ai cdk types` confirms the selected CRM action names and payloads
 - selected provider fields and CRM destinations agree in meaning and type
-- the tool exits before a paid call while any placeholder remains
+- the workflow exits before a paid call when identifiers are missing or the approved
+  destinations are already filled

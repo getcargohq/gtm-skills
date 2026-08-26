@@ -1,0 +1,45 @@
+# Acceptance
+
+Walk every line. A checked template without an evidence-backed consumer adaptation is incomplete.
+
+## Audit
+
+- JSON, Markdown, and chat agree on property candidates, gaps, route counts, and costs.
+- Unit costs come from a current `cargo-ai connection integration get linkedin` response, with the
+  lookup timestamp, CLI version, action slugs, and applicable cost entries recorded.
+- Credit math uses the fetched LinkedIn and domain unit costs.
+- Route counts are mutually exclusive and count eligible CRM accounts on `crm_accounts`.
+- Primary destinations have live type and fill-rate evidence.
+- No paid provider call or CRM write occurs during audit.
+
+## CDK template
+
+- `infra/index.ts` is the only infrastructure source file.
+- The consumer file contains only the selected CRM connector and action shapes.
+- Exactly one CRM account model exists (`crm_accounts` in the example). The play uses it.
+- There is no native `accounts` unification.
+- Freshness and fill-state are columns on `crm_accounts`.
+- The write matches the audited CRM record id (`hs_object_id` in the HubSpot example).
+- The workflow exits before a paid call when no identifier exists or the approved CRM
+  destinations are already filled (`skipped_already_filled`).
+- LinkedIn URL is attempted before domain fallback. A handle that is already an `http` URL is used
+  as-is. A row takes at most one paid route.
+- Fill-blanks uses a CRM-native conditional update or a fresh-read guard that preserves populated
+  values, including numeric zero.
+- `cargo_last_enriched_at` and `cargo_enrichment_status: succeeded` write only after a provider result
+  and a CRM update on the `written` path. A no-op does not stamp freshness.
+- Provider or CRM connector errors remain failed workflow runs.
+- The play filter requires an identifier and `cargo_last_enriched_at` null or older than six
+  months.
+- The disabled play evaluates daily, creates runs only for rows added to its managed segment, and
+  uses `noConcurrency`.
+- No standalone `defineSegment` exists.
+- `cargo-ai cdk types`, `cargo-ai cdk check`, and `cargo-ai cdk plan` pass in the consumer project.
+
+## Repository isolation
+
+- This is one root skill. Its supporting Markdown files live under `references/`, and no
+  nested `SKILL.md` exists.
+- No CRM-specific template directories remain.
+- The template contains no credential, deployment command, or customer data.
+- No relative import leaves the skill.
