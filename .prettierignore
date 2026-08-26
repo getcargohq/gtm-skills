@@ -12,7 +12,10 @@ llms.txt
 !account-scoring/**/*.md
 !crm-enrichment/**/*.md
 !CONTRIBUTING.md
-.agents/
+!.agents/skills/**/*.md
+!.claude/skills/**/*.md
+!.cursor/skills/**/*.md
+.agents/plugins/
 .claude-plugin/
 .codex-plugin/
 .cursor-plugin/
