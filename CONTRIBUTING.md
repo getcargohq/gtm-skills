@@ -41,6 +41,10 @@ comes from `cargo-ai cdk init --template blank`; a skill is a folder they copy.
 | `npx prettier --check .`                    | the CDK example code and repo scripts                                                                                                                                          |
 | routing evals                               | CI checks out `getcargohq/cargo-skills` and runs its `routing-eval.ts --skills-root .`                                                                                         |
 
+When writing a new skill, follow
+[`.cursor/skills/create-cargo-skill/SKILL.md`](.cursor/skills/create-cargo-skill/SKILL.md).
+That file is for authors; it is not a customer skill.
+
 ## Adding a one-off skill
 
 Unchanged: `<name>/SKILL.md` with the four-part description (job → literal

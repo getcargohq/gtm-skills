@@ -11,6 +11,7 @@ llms.txt
 !tam-building/**/*.md
 !account-scoring/**/*.md
 !CONTRIBUTING.md
+!.cursor/skills/**/*.md
 .agents/
 .claude-plugin/
 .codex-plugin/
