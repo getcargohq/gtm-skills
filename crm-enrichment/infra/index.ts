@@ -32,7 +32,9 @@ const enrichCrmAccount = defineWorkflow(
   {
     input: z.object({
       hs_object_id: z.string(),
+      name: z.string().optional(),
       domain: z.string().optional(),
+      website: z.string().optional(),
       linkedin_company_page: z.string().optional(),
       numberofemployees: z.number().optional(),
     }),
@@ -61,7 +63,9 @@ const enrichCrmAccount = defineWorkflow(
     // Numeric zero counts as filled. Freshness is the play filter, not this
     // guard: a succeeded stamp older than six months must still re-enroll.
     if (
+      input.name &&
       input.domain &&
+      input.website &&
       input.linkedin_company_page &&
       input.numberofemployees != null
     ) {
@@ -160,7 +164,17 @@ export const enrichAccounts = definePlay("enrich_accounts", {
         conditions: [
           {
             kind: "string",
+            columnSlug: crmAccounts.columns.name,
+            operator: "isEmpty",
+          },
+          {
+            kind: "string",
             columnSlug: crmAccounts.columns.domain,
+            operator: "isEmpty",
+          },
+          {
+            kind: "string",
+            columnSlug: crmAccounts.columns.website,
             operator: "isEmpty",
           },
           {

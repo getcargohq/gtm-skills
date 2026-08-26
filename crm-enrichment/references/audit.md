@@ -28,6 +28,32 @@ JSON contract:
       "reason": "type-compatible field with the highest fill rate"
     }
   ],
+  "field_selection": {
+    "status": "approved",
+    "approved_at": "ISO-8601 timestamp",
+    "candidates": [
+      {
+        "provider_path": "company_name",
+        "provider_type": "string",
+        "available_on": ["enrichCompany", "enrichCompanyFromDomain"],
+        "class": "starting_recommendation|optional_direct|requires_transformation|unsupported",
+        "crm_candidates": [
+          {
+            "internal_name": "name",
+            "type": "string",
+            "filled_count": 0,
+            "fill_rate": 0
+          }
+        ],
+        "recommended_destination": "name|null",
+        "transformation": "none|exact approved conversion|unsupported",
+        "write_policy": "fill_blanks",
+        "recommendation": "include|exclude",
+        "reason": "semantic and type compatibility, fill evidence, and operational tradeoff",
+        "operator_decision": "include|exclude"
+      }
+    ]
+  },
   "gaps": {
     "missing_domain": 0,
     "missing_website": 0,
@@ -61,7 +87,8 @@ JSON contract:
       "default": "fill_blanks",
       "fields": [
         {
-          "semantic_key": "domain",
+          "provider_path": "domain",
+          "destination": "domain",
           "eligible_writes": 0,
           "preserved_existing": 0
         }
@@ -71,10 +98,25 @@ JSON contract:
 }
 ```
 
+`field_selection.candidates` covers every live output path from both selected LinkedIn actions and
+records which routes return it. Group fields in the Markdown and chat presentation when they share
+one compatibility decision, but record each exact path in JSON. The starting recommendation is not
+pre-approved. Before operator approval, its status is `pending_operator_approval`, every candidate
+decision is `pending`, and the audit is incomplete. Do not present `target_preview` as final while
+the field selection is pending.
+
+After approval, set the status to `approved`, record `approved_at`, and give every candidate an
+`include` or `exclude` decision. Every included field has a live destination, write policy, and
+either matching types or an explicit transformation. Every excluded field has a reason. Calculate
+eligibility and write-policy counts from the included destinations only. Adding a selected field
+can add eligible rows, so recompute the entire target and credit preview after approval.
+
 The Markdown headings are `Summary`, `Duplicate properties`, `Enrichment gaps`, and `Target and
-cost preview`. Every table must reproduce the JSON counts and percentages. The chat summary names
-the recommended primary properties, largest gaps, eligible population, and exact credit estimate.
-Do not invent a CRM health score. Report field-level evidence.
+cost preview`, with a `Field selection` subsection before the target preview. Every table must
+reproduce the JSON counts and percentages. The chat summary names the approved provider fields,
+destinations and transformations, excluded candidates with reasons, recommended primary
+properties, largest gaps, eligible population, and exact credit estimate. Do not invent a CRM
+health score. Report field-level evidence.
 
 Recommend the most filled type-compatible property, preferring a CRM-native property on a tie.
 The HubSpot example uses `hs_object_id` as `record_id_field`; Salesforce uses `Id`; Attio uses
@@ -96,4 +138,6 @@ whether to narrow the population after showing the preview.
 
 - JSON, Markdown, and chat agree on every count
 - no paid provider call or CRM write occurred
+- the operator approved the complete field contract before the final target and cost preview
+- every live LinkedIn output has an include or exclude decision with evidence
 - every selected destination has a live name, type, and fill-rate justification

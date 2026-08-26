@@ -6,12 +6,12 @@ repository.
 
 ## Workflow and play boundary
 
-`enrich_crm_account` is the per-row unit. It accepts the CRM record id plus the
-optional LinkedIn handle, domain, and employee count from that same
-`crm_accounts` row. It exits before a paid call when identifiers or fill-state
-say so, calls one mutually exclusive provider route, and fills approved blank
-fields. HubSpot's example matches `hs_object_id`. Salesforce matches `Id`.
-Attio matches the record id.
+`enrich_crm_account` is the per-row unit. The checked example accepts the CRM record id plus the
+optional LinkedIn handle, domain, and employee count from that same `crm_accounts` row. Adapt its
+input, result schema, write mappings, and fill-state guard to the operator-approved field contract.
+It exits before a paid call when identifiers or fill-state say so, calls one mutually exclusive
+provider route, and fills approved blank fields. HubSpot's example matches `hs_object_id`.
+Salesforce matches `Id`. Attio matches the record id.
 
 `enrich_accounts` is orchestration. It runs that workflow over `crm_accounts`
 and owns its managed backing segment through `filter`. Do not declare a
@@ -22,11 +22,10 @@ A handle that already starts with `http` is used as the LinkedIn company URL.
 Otherwise it is prefixed as `https://www.linkedin.com/company/<handle>`. Domain
 is the fallback route.
 
-If the CRM domain, LinkedIn URL, and employee count are already populated
-(numeric zero counts as filled), the workflow returns `skipped_already_filled`
-and makes no paid call. `cargo_last_enriched_at` and
-`cargo_enrichment_status: succeeded` write only on the `written` path, after the
-provider result and the CRM update.
+If every destination in the approved field contract is already populated, the workflow returns
+`skipped_already_filled` and makes no paid call. Numeric zero counts as filled.
+`cargo_last_enriched_at` and `cargo_enrichment_status: succeeded` write only on the `written` path,
+after the provider result and the CRM update.
 
 Before every preview, run `cargo-ai connection integration get linkedin` and
 read the applicable costs from
@@ -42,8 +41,8 @@ In this repository run `npm run validate`. In the consumer project:
 2. Run `cargo-ai cdk check`.
 3. Run `cargo-ai cdk plan` and inspect every resource and action payload.
 4. Confirm the plan has one CRM account model and no native `accounts` unification.
-5. Show the operator target counts, mappings, live action costs, exact estimated
-   credits, pricing lookup time, and that the play stays disabled.
+5. Show the operator the approved field contract, exclusions, target counts, mappings, live action
+   costs, exact estimated credits, pricing lookup time, and that the play stays disabled.
 6. Deploy or enable only after explicit approval.
 
 Replace the write `matchingPropertyName` together with the workflow input and
@@ -56,6 +55,7 @@ schedule.
 - the consumer file contains only the selected CRM action shapes
 - the play model is `crm_accounts`
 - the write matches the intended CRM record id
+- the input, result schema, mappings, and fill-state filter match the approved field contract
 - a filled row exits as `skipped_already_filled` before a paid call
 - the write uses a CRM-native blank-only update flag or an explicit fresh-read
   guard

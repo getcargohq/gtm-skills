@@ -25,6 +25,34 @@ schemas as authoritative.
 | Founding             | `year_founded`                                                                                                                                                                  | provider-schema-untyped                                                                                              |
 | Domain fallback only | `confident_score`                                                                                                                                                               | string                                                                                                               |
 
+## Field-selection gate
+
+Join the current provider schema above to the live CRM property schema before querying the final
+target population. Derive the candidates first, then present one compact table with these columns:
+
+| Column                    | Required evidence                                                                         |
+| ------------------------- | ----------------------------------------------------------------------------------------- |
+| Provider field            | Exact output path, current declared type, and provider routes that return it              |
+| Class                     | `starting_recommendation`, `optional_direct`, `requires_transformation`, or `unsupported` |
+| CRM destination           | Recommended live internal name and type, or `none`                                        |
+| Current fill              | Filled count and fill rate for the destination                                            |
+| Transformation            | `none` or the exact approved conversion                                                   |
+| Recommendation and reason | Include or exclude, with the compatibility and operational tradeoff                       |
+| Operator decision         | `pending`, `include`, or `exclude`                                                        |
+
+The starting recommendation is `company_name`, `domain`, `website`, `linkedin_url`, and
+`employee_count`. It is a recommendation, not implicit approval. Include every other live LinkedIn
+output in the candidate table, grouped when several fields share the same compatibility decision.
+Recommend direct mappings when the CRM has a semantically equivalent property. Mark a field
+`requires_transformation` when its provider and CRM shapes differ. Mark it `unsupported` when the
+live provider type is absent or no safe destination or transformation exists.
+
+Show the table and ask the operator to approve the complete field contract. This is the first
+operator stop. Do not calculate the final eligible population, final credit estimate, or edit CDK
+until every candidate has an `include` or `exclude` decision. Record the approved mappings and
+exclusions under `field_selection` in the audit contract from
+[`audit.md`](audit.md). Silence does not approve the starting recommendation.
+
 In `infra/index.ts`, edit these together:
 
 - `crm`: the adopted CRM connector
@@ -44,11 +72,11 @@ input, and write matching property must use the same record-id field.
 - **Attio:** generated company-record update matching the record id. Same read-then-omit guard.
   Do not copy HubSpot's flag onto Attio.
 
-The checked HubSpot write mapping is `name`, `domain`, `website`, `linkedin_company_page`, and
+The checked HubSpot starting mapping is `name`, `domain`, `website`, `linkedin_company_page`, and
 `numberofemployees`, plus the stamps `cargo_last_enriched_at` and `cargo_enrichment_status`.
-Leave LinkedIn `company_id` and industry out of the base mapping. The provider returns
-`industries` as an array; most CRMs store a single enum. Add industry only as the
-`selected_fields` variation after the live types agree.
+Present LinkedIn `company_id`, industry, and the other provider outputs at the field-selection
+gate. The provider returns `industries` as an array; most CRMs store a single enum, so inclusion
+requires an approved transformation and destination.
 
 Leave `year_founded` and provider-schema-untyped funding fields out until the live action declares
 stable types.
@@ -71,6 +99,8 @@ action as the mutually exclusive fallback.
 - exactly one CRM account model exists (`crm_accounts` in the example) and the play uses it
 - every destination is an approved live CRM property
 - `cargo-ai cdk types` confirms the selected CRM action names and payloads
-- selected provider fields and CRM destinations agree in meaning and type
+- the operator-approved field contract records every included mapping and excluded candidate
+- selected provider fields and CRM destinations agree in meaning and type, or have an explicit
+  approved transformation
 - the workflow exits before a paid call when identifiers are missing or the approved
   destinations are already filled
