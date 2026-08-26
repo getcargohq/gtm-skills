@@ -9,7 +9,9 @@ description: >-
 # Create a Cargo skill
 
 This is an authoring skill for people writing this repo. It is not a
-customer skill and does not install with `npx skills add`.
+customer skill and does not install with `npx skills add`. The canonical
+copy lives in `.agents/skills` so Codex, Claude Code, and Cursor all load
+the same file (the last two via symlink).
 
 Read `CONTRIBUTING.md` first. That file is the contract the validators
 enforce; this file is the procedure.
