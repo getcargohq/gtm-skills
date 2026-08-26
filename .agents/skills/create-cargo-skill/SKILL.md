@@ -33,11 +33,29 @@ skills run once; some deploy a pipeline that keeps running.
 
 If the same job exists both ways, they compete for prompts. Pin the seam in
 `evals/routing.jsonl`: one case that must hit the pipeline, one that must
-hit the one-off sibling. Example: "build a TAM list" → `build-tam-list`;
-"keep our TAM current" → `tam-building`.
+hit the one-off sibling.
 
-Name the folder after the job (`tam-building`, `account-scoring`), not the
-vendor. `name` in frontmatter equals the folder name.
+Name the folder after the job, not the vendor. `name` in frontmatter equals
+the folder name. The slug is what an agent matches before it opens the file,
+so the kind has to be readable from the name:
+
+| Kind      | Shape                 | Examples                                               |
+| --------- | --------------------- | ------------------------------------------------------ |
+| one-off   | verb + object         | `enrich-company-data`, `score-leads`, `build-tam-list` |
+| pipeline  | the standing practice | `tam-building`, `account-scoring`, `crm-enrichment`    |
+| migration | `x-to-cargo`          | `clay-to-cargo`                                        |
+
+A verb says "do this once." A standing noun says "keep this running." That
+is how `build-tam-list` and `tam-building` stay apart, and why
+`score-leads` pairs with `account-scoring` rather than `score-accounts`.
+Do not give both kinds the same stem.
+
+`enrich-crm` would read as a one-off next to `enrich-company-data`. A
+pipeline that keeps CRM records filled is `crm-enrichment`. Contacts later
+stay in that same slug. Accounts that are not in a CRM, if they land, are
+`account-enrichment`. Planned pipelines stay nouns (`contact-sourcing`,
+`signal-based-tam`, `rep-cockpit`). Do not rename existing skills to force
+`-ing` vs `-ment`; the kind matters more than the suffix.
 
 ## 2. Description (the only text before load)
 
@@ -152,6 +170,9 @@ workspace + two implementations in `approvals.json`). The banner in
 
 - A new root skill that is the same job as an existing slug with extra
   words (`crm-account-enrichment` vs `crm-enrichment`)
+- A pipeline named like a one-off (`enrich-crm`, `score-accounts`,
+  `build-tam`) or a one-off named like a pipeline (`tam-building` for a
+  list today)
 - Customer-facing "cookbook"
 - Hardcoded credits in a pipeline
 - Stub walkthroughs that restate `SKILL.md`
