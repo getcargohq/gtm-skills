@@ -36,7 +36,6 @@ const enrichCompanyData = defineWorkflow(
       domain: z.string().optional(),
     }),
     output: z.object({
-      status: z.enum(["enriched", "skipped_no_identifier"]),
       company_id: z.string().optional(),
       company_name: z.string().optional(),
       domain: z.string().optional(),
@@ -47,11 +46,7 @@ const enrichCompanyData = defineWorkflow(
     uses: { linkedin },
   },
   ({ input, uses }) => {
-    // This reusable tool knows provider identifiers, not CRM record IDs.
-    if (!input.linkedinUrlOrHandle && !input.domain) {
-      return { status: "skipped_no_identifier" as const };
-    }
-
+    // The play filter guarantees an identifier before invoking this tool.
     // Normalize a LinkedIn handle to a full URL. Empty means domain fallback.
     const linkedinUrl =
       !input.linkedinUrlOrHandle || input.linkedinUrlOrHandle.startsWith("http")
@@ -67,7 +62,6 @@ const enrichCompanyData = defineWorkflow(
         });
 
     return {
-      status: "enriched" as const,
       company_id: result.company_id,
       company_name: result.company_name,
       domain: result.domain,
@@ -98,11 +92,7 @@ const enrichCrmAccount = defineWorkflow(
       numberofemployees: z.number().optional(),
     }),
     output: z.object({
-      status: z.enum([
-        "written",
-        "skipped_no_identifier",
-        "skipped_already_filled",
-      ]),
+      status: z.literal("written"),
       company_id: z.string().optional(),
       company_name: z.string().optional(),
       domain: z.string().optional(),
@@ -113,33 +103,12 @@ const enrichCrmAccount = defineWorkflow(
     uses: { crm, accountEnrichment },
   },
   ({ input, uses }) => {
-    // The play owns CRM eligibility and write policy.
-    if (!input.linkedin_company_page && !input.domain) {
-      return { status: "skipped_no_identifier" as const };
-    }
-
-    // Skip the paid tool call when every approved destination is populated.
-    // Numeric zero counts as filled. Freshness is the play filter, not this
-    // guard: a succeeded stamp older than six months must still re-enroll.
-    if (
-      input.linkedin_company_id &&
-      input.name &&
-      input.domain &&
-      input.website &&
-      input.linkedin_company_page &&
-      input.numberofemployees != null
-    ) {
-      return { status: "skipped_already_filled" as const };
-    }
-
+    // The managed segment trigger owns identifier and freshness eligibility.
+    // Per-field write policy decides fill blank versus refresh selected.
     const result = uses.accountEnrichment({
       linkedinUrlOrHandle: input.linkedin_company_page,
       domain: input.domain,
     });
-
-    if (result.status === "skipped_no_identifier") {
-      return { status: "skipped_no_identifier" as const };
-    }
 
     // Only the play workflow writes the approved result back to the CRM.
     uses.crm.updateRecords({
@@ -212,43 +181,6 @@ export const enrichAccounts = definePlay("enrich_accounts", {
             kind: "string",
             columnSlug: crmAccounts.columns.linkedin_company_page,
             operator: "isNotEmpty",
-          },
-        ],
-      },
-      {
-        // Skip the paid call when the approved destinations are already
-        // populated. Numeric zero counts as filled.
-        conjonction: "or",
-        conditions: [
-          {
-            kind: "string",
-            columnSlug: crmAccounts.columns.linkedin_company_id,
-            operator: "isEmpty",
-          },
-          {
-            kind: "string",
-            columnSlug: crmAccounts.columns.name,
-            operator: "isEmpty",
-          },
-          {
-            kind: "string",
-            columnSlug: crmAccounts.columns.domain,
-            operator: "isEmpty",
-          },
-          {
-            kind: "string",
-            columnSlug: crmAccounts.columns.website,
-            operator: "isEmpty",
-          },
-          {
-            kind: "string",
-            columnSlug: crmAccounts.columns.linkedin_company_page,
-            operator: "isEmpty",
-          },
-          {
-            kind: "number",
-            columnSlug: crmAccounts.columns.numberofemployees,
-            operator: "isNull",
           },
         ],
       },

@@ -33,10 +33,10 @@ or CRM write action.
 
 `enrich_crm_account` is the play's per-row orchestration workflow. The checked example accepts the
 CRM record id plus the current LinkedIn company ID, LinkedIn page, domain, name, website, and
-employee count from that same `crm_accounts` row. It exits before a paid tool call when identifiers
-or fill-state say so, calls `account_enrichment`, applies the approved blank-field policy, and pushes
-the returned values to the CRM. HubSpot's example matches `hs_object_id`. Salesforce matches `Id`.
-Attio matches the record id.
+employee count from that same `crm_accounts` row. The managed segment trigger has already enforced
+identifier and freshness eligibility, so the workflow starts by calling `account_enrichment`, then
+applies the approved per-field write policy and pushes the returned values to the CRM. HubSpot's
+example matches `hs_object_id`. Salesforce matches `Id`. Attio matches the record id.
 
 `enrich_accounts` is orchestration. It runs that workflow over `crm_accounts`
 and owns its managed backing segment through `filter`. Do not declare a
@@ -52,10 +52,11 @@ A handle that already starts with `http` is used as the LinkedIn company URL.
 Otherwise it is prefixed as `https://www.linkedin.com/company/<handle>`. Domain
 is the fallback route.
 
-If every destination in the approved field contract is already populated, the workflow returns
-`skipped_already_filled` and makes no paid call. Numeric zero counts as filled.
-`last_enriched_at` and `enrichment_status: succeeded` write only on the `written` path,
-after the provider result and the CRM update.
+The managed segment excludes rows without an identifier but includes populated stale rows. Do not
+add a destination fill-state condition or repeat identifier and freshness conditions as workflow
+branches. For each field, apply the approved `fill_blanks` or `refresh_selected` policy. Numeric zero
+counts as populated. `last_enriched_at` and `enrichment_status: succeeded` write only after the
+provider result and the CRM update.
 
 Before every preview, run `cargo-ai connection integration get linkedin` and
 read the applicable costs from
@@ -82,7 +83,7 @@ In this repository run `npm run validate`. In the consumer project:
 
 After the approved run completes, report:
 
-- processed, written, `skipped_no_identifier`, `skipped_already_filled`, and failed counts
+- eligible, processed, written, and failed counts
 - before-and-after filled counts and fill rates for every approved CRM destination
 - estimated credits, actual credits, and the variance
 - failure groups with the recommended remediation
@@ -105,8 +106,8 @@ schedule.
   only CRM update
 - the play model is `crm_accounts`
 - the write matches the intended CRM record id
-- the input, result schema, mappings, and fill-state filter match the approved field contract
-- a filled row exits as `skipped_already_filled` before a paid call
+- the input, result schema, mappings, and per-field write policies match the approved field contract
+- the managed segment excludes rows without an identifier and allows populated stale rows
 - the write uses a CRM-native blank-only update flag or an explicit fresh-read
   guard
 - `isEnabled: false`, `runCreationRule: noConcurrency`, daily scheduling, and

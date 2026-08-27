@@ -115,8 +115,9 @@ not present `target_preview` as final while the field selection is pending.
 After approval, set the status to `approved`, record `approved_at`, and give every candidate an
 `include` or `exclude` decision. Every included field has a live destination, write policy, and
 either matching types or an explicit transformation. Every excluded field has a reason. Calculate
-eligibility and write-policy counts from the included destinations only. Adding a selected field
-can add eligible rows, so recompute the entire target and credit preview after approval.
+the eligible population from identifier, freshness, and approved governance filters. Calculate
+write-policy counts from the included destinations. Adding a selected field changes the proposed
+writes, not segment eligibility, so recompute the write preview after approval.
 
 Class provider `company_id` as `starting_recommendation` because it is the LinkedIn company ID
 matching key. Recommend the most-filled compatible CRM property. When HubSpot has none, propose

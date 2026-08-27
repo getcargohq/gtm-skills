@@ -121,7 +121,7 @@
       "kind": "cookbook",
       "job": "Keep CRM accounts filled and refresh them when they go stale: a deployed play that fills approved blank firmographics from LinkedIn and re-enrolls a record after six months.",
       "description": "Keep CRM accounts filled and refresh them when they go stale: a deployed play that fills approved blank firmographics from LinkedIn and re-enrolls a record after six months. Triggers: \"keep our CRM accounts filled\", \"keep our CRM companies filled\", \"enrich my CRM\", \"CRM enrichment\", \"old firmographics keep going stale\", \"every new CRM account\", \"every new CRM company\", \"nobody refreshes the company records\", \"refresh stale firmographics\". HubSpot, Salesforce, Attio, Cargo CDK. Skip when: the records are not in a CRM. A supplied company list is enrich-company-data.",
-      "version": "0.6.1",
+      "version": "0.6.2",
       "homepage": "https://github.com/getcargohq/gtm-skills/tree/main/crm-enrichment",
       "group": "Make it run forever",
       "install": "cargo-ai cdk add cookbook/crm-enrichment",
@@ -175,8 +175,8 @@
         {
           "id": "selected_fields",
           "when": "The approved contract differs from the starting recommendation",
-          "how": "Present every live candidate at the field-selection gate. After approval, change the result schema, destinations, fill-state filter, and both provider mappings in `infra/index.ts`. Industry requires an approved array-to-enum transformation when the CRM destination is a single enum.",
-          "cost": "Each added field expands mapping, type-review, and the \"already filled\" filter"
+          "how": "Present every live candidate at the field-selection gate. After approval, change the result schema, destinations, per-field write policy, and both provider mappings in `infra/index.ts`. Industry requires an approved array-to-enum transformation when the CRM destination is a single enum.",
+          "cost": "Each added field expands mapping and type review"
         },
         {
           "id": "eligibility",
@@ -198,8 +198,7 @@
         "**At most one paid route per row, LinkedIn URL first.** (`infra/index.ts` `enrichCrmAccount`) A row without a handle or a domain makes no paid call. A handle that is already an `http` URL is used as-is; otherwise it is prefixed as `https://www.linkedin.com/company/<handle>`.",
         "**Destinations are live properties on the connected CRM.** (`infra/index.ts`) The HubSpot example writes `linkedin_company_id`, `name`, `domain`, `website`, `linkedin_company_page`, `numberofemployees`, `last_enriched_at`, and `enrichment_status`. Leaving another CRM's names in the file can write provider data into the wrong property.",
         "**Fill approved blanks only.** (`infra/index.ts` `skipIfExist` or the Salesforce/Attio read-then-omit guard) A stale snapshot overwrites authoritative CRM data, including numeric zero.",
-        "**Do not stamp freshness on a no-op.** (`infra/index.ts`) If every destination in the approved field contract is already populated, return `skipped_already_filled` and make no paid call. Stamping `last_enriched_at` / `enrichment_status: succeeded` on that row hides it for six months.",
-        "**The play filter is the managed segment.** (`infra/index.ts` `enrichAccounts`) Daily evaluation, `changeKinds: [\"added\"]`, freshness null or older than six months, and at least one approved blank. A standalone `defineSegment` drifts from the play.",
+        "**Eligibility and freshness live in the play trigger.** (`infra/index.ts` `enrichAccounts`) Require an identifier and freshness null or older than six months in the managed segment. Destination fill-state is not an eligibility condition: an approved refresh must be able to re-enrich populated stale fields. The row workflow starts with the reusable tool call instead of repeating trigger conditions as branches. A standalone `defineSegment` or duplicate workflow gate drifts from the play.",
         "**The first play is disabled and `noConcurrency`.** (`infra/index.ts`) Removing those expands an unapproved pilot.",
         "**No credentials, deploy commands, or customer data in this repository.**"
       ],
@@ -210,16 +209,16 @@
         "the CDK plan contains the reusable `account_enrichment` tool and disabled `enrich_accounts` play; the play calls the tool, and only the play workflow contains the CRM update",
         "generated consumer types confirm the selected provider fields, CRM destinations, write action, and fill-blank semantics",
         "every destination is a live property on the connected CRM",
-        "a record without an identifier, and a record whose approved destinations are already filled, exits before a paid call (`skipped_no_identifier` / `skipped_already_filled`)",
+        "the managed segment excludes records without an identifier but allows populated stale records; the approved per-field write policy decides fill blank versus refresh",
         "the play targets `crm_accounts` and the write matches the audited CRM record id",
-        "the managed segment uses the blank-or-six-month rule, daily evaluation, and `changeKinds: [\"added\"]`",
+        "the managed segment uses the null-or-six-month freshness rule, daily evaluation, and `changeKinds: [\"added\"]`, with no destination fill-state filter",
         "the first plan shows `isEnabled: false` and `runCreationRule: noConcurrency`",
         "LinkedIn and domain route counts are mutually exclusive and reproduce the credit estimate",
         "the phase-two handoff contains working Cargo UI links for the disabled play and tool, plus the exact target and estimated credits",
         "the operator explicitly approved the run after reviewing the links and cost",
         "the post-run report shows before-and-after fill rates, every outcome count, failures, actual credits against estimate, and one recommended next step"
       ],
-      "cost": "Immediately before every preview, run `cargo-ai connection integration get linkedin`. Read the\napplicable current entries from `integration.actions.enrichCompany.credits.costs` and\n`integration.actions.enrichCompanyFromDomain.credits.costs`. Record the CLI version, lookup time,\naction slugs, and selected unit costs. Then preview\n`linkedin_url_path * linkedin_url_unit_credits + domain_path * domain_unit_credits`.\n\nThis play runs on eligible `crm_accounts` rows and updates that same CRM record. Eligibility means\nthe row has an identifier, passes freshness and governance filters, and has at least one blank\ndestination in the approved field contract. Recompute the target and credit preview after field\napproval because adding a destination can add eligible rows. Report the segment count.\nDeduplication follows enrichment because the new matching keys improve duplicate detection.\n\nDo not enable the daily schedule until the disabled pilot has passed. Enabling is not an\ninput; it is the last yes after _Done when_.",
+      "cost": "Immediately before every preview, run `cargo-ai connection integration get linkedin`. Read the\napplicable current entries from `integration.actions.enrichCompany.credits.costs` and\n`integration.actions.enrichCompanyFromDomain.credits.costs`. Record the CLI version, lookup time,\naction slugs, and selected unit costs. Then preview\n`linkedin_url_path * linkedin_url_unit_credits + domain_path * domain_unit_credits`.\n\nThis play runs on eligible `crm_accounts` rows and updates that same CRM record. Eligibility means\nthe row has an identifier and passes freshness and governance filters. Destination fill-state does\nnot control enrollment. The approved per-field write policy decides whether populated stale values\nare preserved or refreshed. Recompute the target and credit preview after approval, then report the\nsegment count.\nDeduplication follows enrichment because the new matching keys improve duplicate detection.\n\nDo not enable the daily schedule until the disabled pilot has passed. Enabling is not an\ninput; it is the last yes after _Done when_.",
       "composesInto": "`account-scoring` (a filled book is what the scorer can cite), `find-stakeholders` (the buyers at\nevery filled account), `tam-building` (the universe these records join)."
     },
     {

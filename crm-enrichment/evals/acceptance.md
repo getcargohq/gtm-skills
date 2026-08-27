@@ -58,19 +58,20 @@ Walk every line. A checked template without an evidence-backed consumer adaptati
 - There is no native `accounts` unification.
 - Freshness and fill-state are columns on `crm_accounts`.
 - The write matches the audited CRM record id (`hs_object_id` in the HubSpot example).
-- The workflow exits before a paid call when no identifier exists or the approved CRM
-  destinations are already filled (`skipped_already_filled`).
-- The workflow input, result schema, write mappings, and play fill-state filter cover exactly the
+- The play's managed segment trigger excludes rows with no identifier and allows populated stale
+  rows. Destination fill-state is not an eligibility condition, and the row workflow does not
+  repeat identifier or freshness conditions as branches.
+- The workflow input, result schema, write mappings, and per-field write policies cover exactly the
   approved field contract.
 - LinkedIn URL is attempted before domain fallback. A handle that is already an `http` URL is used
   as-is. A row takes at most one paid route.
 - Fill-blanks uses a CRM-native conditional update or a fresh-read guard that preserves populated
   values, including numeric zero.
-- `last_enriched_at` and `enrichment_status: succeeded` write only after a provider result
-  and a CRM update on the `written` path. A no-op does not stamp freshness.
+- `last_enriched_at` and `enrichment_status: succeeded` write only after a provider result and a CRM
+  update on the `written` path. A failed provider call does not stamp freshness.
 - Provider or CRM connector errors remain failed workflow runs.
-- The play filter requires an identifier and `last_enriched_at` null or older than six
-  months.
+- The play trigger requires an identifier and `last_enriched_at` null or older than six months. It
+  contains no destination fill-state condition.
 - The disabled play evaluates daily, creates runs only for rows added to its managed segment, and
   uses `noConcurrency`.
 - No standalone `defineSegment` exists.
