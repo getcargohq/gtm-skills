@@ -1,7 +1,7 @@
 ---
 name: crm-enrichment
 description: 'Keep CRM accounts filled and refresh them when they go stale: a deployed play that fills approved blank firmographics from LinkedIn and re-enrolls a record after six months. Triggers: "keep our CRM accounts filled", "keep our CRM companies filled", "enrich my CRM", "CRM enrichment", "old firmographics keep going stale", "every new CRM account", "every new CRM company", "nobody refreshes the company records", "refresh stale firmographics". HubSpot, Salesforce, Attio, Cargo CDK. Skip when: the records are not in a CRM. A supplied company list is enrich-company-data.'
-version: "0.6.2"
+version: "0.6.3"
 compatibility: "Requires a Cargo CDK project and @cargo-ai/cdk ^1.0.51. The repository example does not deploy or access a CRM until an agent adapts it in the consumer project."
 homepage: https://github.com/getcargohq/gtm-skills/tree/main/crm-enrichment
 metadata:
@@ -87,10 +87,12 @@ checkpoint. Never end with a generic offer to help.
 2. **Disabled play and tool.** After that approval, adapt, type, check, plan, and deploy the reusable
    enrichment tool and the play with the play still disabled. The tool normalizes identifiers and
    returns provider data without CRM access. The play calls the tool, applies the approved write
-   policy, and pushes results to the CRM. Send a direct Cargo UI link for each resource. Show the
-   exact eligible population, mutually exclusive provider routes, unit prices, and total
-   estimated credits. End by asking the operator to review those links and approve the enrichment
-   run at that stated maximum cost. Do not run or enable anything without that second approval.
+   policy, and pushes results to the CRM. Inspect the compiled graph before deployment: the tool
+   starts with a Filter, and the play starts with one Tool node targeting `account_enrichment`,
+   followed by the only CRM update. Send a direct Cargo UI link for each resource. Show the exact
+   eligible population, mutually exclusive provider routes, unit prices, and total estimated
+   credits. End by asking the operator to review those links and approve the enrichment run at that
+   stated maximum cost. Do not run or enable anything without that second approval.
 3. **Enrichment and report.** Run only the approved population, monitor completion, and report the
    before-and-after fill rate for every approved property, processed and outcome counts, failures,
    actual credits against estimate, and direct Cargo links. End with a recommended next action:
@@ -127,9 +129,11 @@ this is enough.
    offer unprompted (nobody asks for a variant they do not know exists); _What you will be asked_
    is the floor, and you derive before you ask. If you are asking more than about four questions
    you have skipped lookups. Record what you changed and why under a `## Decisions` section in
-   your copy of this file. Run `cargo-ai cdk types && cargo-ai cdk check && cargo-ai cdk plan`, show
-   the diff, and deploy under the phase-one authorization with `isEnabled: false`. Never run
-   `cargo-ai cdk init --force` in a non-empty directory.
+   your copy of this file. From the copied skill folder, run
+   `node --import tsx evals/contract.mjs`, then run
+   `cargo-ai cdk types && cargo-ai cdk check && cargo-ai cdk plan`. Show the diff, and deploy under
+   the phase-one authorization with `isEnabled: false`. Never run `cargo-ai cdk init --force` in a
+   non-empty directory.
 5. **Hand off for cost approval.** Resolve the workspace, play, and tool UUIDs. Send clickable Cargo
    UI links using the patterns in [`references/run.md`](references/run.md), then show the final
    target and exact estimated credits. Stop for explicit approval of that run and maximum cost.
@@ -185,7 +189,7 @@ However far you adapt, these hold. Ask for one anyway and the agent tells you wh
 it if you still want it, and records why under `## Decisions` in your copy of this file.
 
 - **The play runs on `crm_accounts` and matches the CRM record id.** (`infra/index.ts`) HubSpot's example uses `hs_object_id`. Sending a Cargo row id, or a native `accounts` id, to a CRM action targets the wrong identifier system; the run looks successful and nothing lands.
-- **The tool enriches; the play orchestrates and writes.** (`infra/index.ts`) `account_enrichment` accepts provider identifiers, normalizes them, and returns company data without a CRM connector or write. `enrich_accounts` calls that tool from its row workflow, applies the approved blank-field policy, and owns the only CRM update. A tool that writes to the CRM is not reusable; a play that repeats the provider action bypasses the reviewed tool.
+- **The tool enriches; the play orchestrates and writes.** (`infra/index.ts`) `account_enrichment` accepts provider identifiers, normalizes them, and returns company data without a CRM connector or write. Its first non-start node is a native Filter, followed by mutually exclusive provider routes. `enrich_accounts` starts with one Tool node targeting `account_enrichment`, applies the approved per-field policy, and owns the only CRM update. A tool that writes to the CRM is not reusable; a play that repeats the provider action bypasses the reviewed tool. Run `node --import tsx evals/contract.mjs` after every adaptation to enforce this compiled graph.
 - **One CRM shape in the file.** (`infra/index.ts`) The checked example is HubSpot. Adapt that one file for Salesforce or Attio. Parallel HubSpot/Salesforce/Attio branches drift from the generated types of the CRM that is actually connected.
 - **At most one paid route per row, LinkedIn URL first.** (`infra/index.ts` `enrichCrmAccount`) A row without a handle or a domain makes no paid call. A handle that is already an `http` URL is used as-is; otherwise it is prefixed as `https://www.linkedin.com/company/<handle>`.
 - **Destinations are live properties on the connected CRM.** (`infra/index.ts`) The HubSpot example writes `linkedin_company_id`, `name`, `domain`, `website`, `linkedin_company_page`, `numberofemployees`, `last_enriched_at`, and `enrichment_status`. Leaving another CRM's names in the file can write provider data into the wrong property.
@@ -201,7 +205,9 @@ it if you still want it, and records why under `## Decisions` in your copy of th
   types, transformations, write policies, and reasons for every exclusion
 - the CDK plan contains one CRM account model (`crm_accounts`) and no native `accounts` unification
 - the CDK plan contains the reusable `account_enrichment` tool and disabled `enrich_accounts` play;
-  the play calls the tool, and only the play workflow contains the CRM update
+  the play contains one Tool node targeting `account_enrichment`, followed by the only CRM update
+- `node --import tsx evals/contract.mjs` passes against the adapted compiled graph; the tool begins
+  with a Filter and contains no CRM action, while the play contains no provider action
 - generated consumer types confirm the selected provider fields, CRM destinations, write action,
   and fill-blank semantics
 - every destination is a live property on the connected CRM

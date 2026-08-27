@@ -38,6 +38,8 @@
 //     are fetched when the skill runs, while unrelated decimals remain valid.
 //   - every `infra/` template passes `cargo-cdk check` and `plan`: executable
 //     examples are discovered by structure rather than a hard-coded skill name.
+//   - an optional `evals/contract.mjs` executes against the compiled registry:
+//     graph boundaries that CDK schema validation cannot express stay enforced.
 //   - the inline procedure section is present: each skill carries its own
 //     "Put it in your project", the way every one-off skill here carries its
 //     own Setup. There is no shared procedure skill to depend on.
@@ -55,6 +57,7 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const errors = [];
 const cargoCdk = join(root, "node_modules", ".bin", "cargo-cdk");
 let checkedInfraTemplates = 0;
+let checkedContractEvals = 0;
 
 const STATIC_CREDIT_AMOUNT =
   /\b(?:0\.\d+|[1-9]\d*(?:\.\d+)?)\s*(?:credits?|cr)\b|["'`]?(?:unit[_ -]?credits?|credit[_ -]?(?:cost|price))["'`]?\s*[:=]\s*(?:0\.\d+|[1-9]\d*(?:\.\d+)?)/i;
@@ -309,6 +312,28 @@ for (const name of exampleFolders) {
     }
   }
 
+  const contractEval = join(root, name, "evals", "contract.mjs");
+  if (existsSync(contractEval)) {
+    try {
+      execFileSync(process.execPath, ["--import", "tsx", contractEval], {
+        cwd: root,
+        stdio: "pipe",
+      });
+      checkedContractEvals += 1;
+    } catch (error) {
+      const detail = [
+        error.stdout?.toString(),
+        error.stderr?.toString(),
+        error.message,
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .trim()
+        .replace(/\s+/g, " ");
+      errors.push(`${name}/evals/contract.mjs fails: ${detail}`);
+    }
+  }
+
   // The banner follows the bookkeeping.
   const state = record.state;
   if (!["to-be-approved", "approved"].includes(state))
@@ -366,5 +391,5 @@ if (errors.length) {
   process.exit(1);
 }
 console.log(
-  `ok: ${exampleFolders.length} pipeline skills, every one self-contained; ${checkedInfraTemplates} infra template(s) checked and planned`,
+  `ok: ${exampleFolders.length} pipeline skills, every one self-contained; ${checkedInfraTemplates} infra template(s) checked and planned; ${checkedContractEvals} executable contract(s) passed`,
 );

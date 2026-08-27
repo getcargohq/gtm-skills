@@ -38,6 +38,11 @@ identifier and freshness eligibility, so the workflow starts by calling `account
 applies the approved per-field write policy and pushes the returned values to the CRM. HubSpot's
 example matches `hs_object_id`. Salesforce matches `Id`. Attio matches the record id.
 
+This is a compiled-node contract, not only a naming convention. `account_enrichment` starts with a
+native Filter and contains the provider connector routes but no CRM connector node. The play starts
+with one Tool node targeting `account_enrichment`, then runs the only CRM update. It contains no
+provider connector node.
+
 `enrich_accounts` is orchestration. It runs that workflow over `crm_accounts`
 and owns its managed backing segment through `filter`. Do not declare a
 separate segment. Do not introduce a native `accounts` unification to sit
@@ -69,14 +74,19 @@ CRM accounts with the current values and record when pricing was fetched.
 In this repository run `npm run validate`. In the consumer project:
 
 1. Run `cargo-ai cdk types` after selecting the live CRM connector.
-2. Run `cargo-ai cdk check`.
-3. Run `cargo-ai cdk plan` and inspect every resource and action payload.
-4. Confirm the plan has one CRM account model and no native `accounts` unification.
-5. Deploy only after the phase-one approval explicitly authorizes disabled resource creation.
-6. Show the operator direct Cargo UI links for the disabled play and tool, the approved field
+2. From the copied skill folder, run `node --import tsx evals/contract.mjs` after adapting
+   `infra/index.ts`. It must pass before the plan is reviewed.
+3. Run `cargo-ai cdk check`.
+4. Run `cargo-ai cdk plan` and inspect every resource and action payload.
+5. Confirm the plan has one CRM account model and no native `accounts` unification.
+6. Confirm the compiled tool starts with a Filter and contains no CRM action. Confirm the play starts
+   with one Tool node targeting `account_enrichment`, contains no provider action, and owns the only
+   CRM update.
+7. Deploy only after the phase-one approval explicitly authorizes disabled resource creation.
+8. Show the operator direct Cargo UI links for the disabled play and tool, the approved field
    contract, exclusions, target counts, mappings, live action costs, exact estimated credits,
    pricing lookup time, and that the play stays disabled.
-7. Run or enable only after the operator reviews that phase-two handoff and explicitly approves the
+9. Run or enable only after the operator reviews that phase-two handoff and explicitly approves the
    stated population and maximum cost.
 
 ## Post-enrichment report
@@ -102,8 +112,10 @@ schedule.
 
 - the consumer file contains only the selected CRM action shapes
 - `account_enrichment` is a deployed workflow-backed tool with no CRM access
-- `enrich_accounts` is the disabled play; its row workflow calls `account_enrichment` and owns the
-  only CRM update
+- the compiled `account_enrichment` graph starts with a Filter and contains no CRM connector node
+- `enrich_accounts` is the disabled play; its row workflow contains one Tool node targeting
+  `account_enrichment`, followed by the only CRM update, and contains no provider connector node
+- `node --import tsx evals/contract.mjs` passes against the adapted template
 - the play model is `crm_accounts`
 - the write matches the intended CRM record id
 - the input, result schema, mappings, and per-field write policies match the approved field contract
