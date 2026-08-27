@@ -2,6 +2,7 @@ import {
   defineConnector,
   defineModel,
   definePlay,
+  defineTool,
   defineWorkflow,
 } from "@cargo-ai/cdk";
 import { z } from "zod";
@@ -142,6 +143,13 @@ const enrichCrmAccount = defineWorkflow(
     };
   },
 );
+
+export const accountEnrichment = defineTool("account_enrichment", {
+  workflow: enrichCrmAccount,
+  name: "Account enrichment",
+  description:
+    "Fill approved blank CRM account properties from the selected company enrichment provider.",
+});
 
 export const enrichAccounts = definePlay("enrich_accounts", {
   model: crmAccounts,

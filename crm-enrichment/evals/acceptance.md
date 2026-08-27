@@ -29,10 +29,27 @@ Walk every line. A checked template without an evidence-backed consumer adaptati
 - Primary destinations have live type and fill-rate evidence.
 - No paid provider call or CRM write occurs during audit.
 
+## Guided handoff
+
+- Every substantive agent message names the current phase and ends with a `Next step` containing one
+  concrete decision or action, what it unlocks, and what remains blocked.
+- Phase one ends with the audit and enrichment recommendation, then asks for approval of the full
+  field contract and authorization to build and deploy disabled resources.
+- Phase two occurs only after that approval. The agent deploys the tool and the play with the play
+  disabled, sends a working direct Cargo UI link for each, and shows the exact eligible population,
+  route counts, unit costs, and total estimated credits.
+- Phase two ends by asking the operator to review the links and approve the run at the stated maximum
+  cost. No paid enrichment call or enablement occurs before that approval.
+- Phase three reports before-and-after fill rates per approved destination, all processed outcomes,
+  failures, actual credits against estimate, direct Cargo links, and one recommended next step.
+- In-progress messages that need no decision say `No action needed` and identify the next checkpoint.
+
 ## CDK template
 
 - `infra/index.ts` is the only infrastructure source file.
 - The consumer file contains only the selected CRM connector and action shapes.
+- `account_enrichment` is a workflow-backed Cargo tool and `enrich_accounts` is the disabled play,
+  so both phase-two UI links resolve to real deployed resources.
 - Exactly one CRM account model exists (`crm_accounts` in the example). The play uses it.
 - There is no native `accounts` unification.
 - Freshness and fill-state are columns on `crm_accounts`.
@@ -54,6 +71,8 @@ Walk every line. A checked template without an evidence-backed consumer adaptati
   uses `noConcurrency`.
 - No standalone `defineSegment` exists.
 - `cargo-ai cdk types`, `cargo-ai cdk check`, and `cargo-ai cdk plan` pass in the consumer project.
+- The play and tool are deployed disabled only after phase-one approval, and their direct Cargo UI
+  links resolve before the phase-two review request.
 
 ## Repository isolation
 

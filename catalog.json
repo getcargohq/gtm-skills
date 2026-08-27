@@ -121,7 +121,7 @@
       "kind": "cookbook",
       "job": "Keep CRM accounts filled and refresh them when they go stale: a deployed play that fills approved blank firmographics from LinkedIn and re-enrolls a record after six months.",
       "description": "Keep CRM accounts filled and refresh them when they go stale: a deployed play that fills approved blank firmographics from LinkedIn and re-enrolls a record after six months. Triggers: \"keep our CRM accounts filled\", \"keep our CRM companies filled\", \"enrich my CRM\", \"CRM enrichment\", \"old firmographics keep going stale\", \"every new CRM account\", \"every new CRM company\", \"nobody refreshes the company records\", \"refresh stale firmographics\". HubSpot, Salesforce, Attio, Cargo CDK. Skip when: the records are not in a CRM. A supplied company list is enrich-company-data.",
-      "version": "0.5.6",
+      "version": "0.6.0",
       "homepage": "https://github.com/getcargohq/gtm-skills/tree/main/crm-enrichment",
       "group": "Make it run forever",
       "install": "npx skills add getcargohq/gtm-skills/crm-enrichment",
@@ -148,13 +148,19 @@
           "input": "approved_field_contract",
           "kind": "asked",
           "how": "Review the recommended base fields, optional candidates, transformations, destinations, and exclusions",
-          "why": "It defines every write mapping and which blank rows are eligible"
+          "why": "It defines every write mapping and authorizes the disabled build"
         },
         {
           "input": "target_population",
+          "kind": "derived",
+          "how": "Count eligible rows by mutually exclusive route after field approval",
+          "why": "It makes the cost estimate reproducible"
+        },
+        {
+          "input": "approved_run",
           "kind": "asked",
-          "how": "Review counts by identifier route, percentage, and current action credits after field approval",
-          "why": "The operator controls scope and spend before any paid call"
+          "how": "Review the disabled Cargo links, target, and exact maximum credits",
+          "why": "It is the explicit gate before any enrichment call"
         }
       ],
       "canChange": [
@@ -185,6 +191,7 @@
       ],
       "shouldNotChange": [
         "**The play runs on `crm_accounts` and matches the CRM record id.** (`infra/index.ts`) HubSpot's example uses `hs_object_id`. Sending a Cargo row id, or a native `accounts` id, to a CRM action targets the wrong identifier system; the run looks successful and nothing lands.",
+        "**The tool and play share one workflow contract.** (`infra/index.ts`) `account_enrichment` exposes `enrichCrmAccount` as a reusable tool while `enrich_accounts` runs it over the managed segment. Separate mappings can drift and make the phase-two review links describe different behavior.",
         "**One CRM shape in the file.** (`infra/index.ts`) The checked example is HubSpot. Adapt that one file for Salesforce or Attio. Parallel HubSpot/Salesforce/Attio branches drift from the generated types of the CRM that is actually connected.",
         "**At most one paid route per row, LinkedIn URL first.** (`infra/index.ts` `enrichCrmAccount`) A row without a handle or a domain makes no paid call. A handle that is already an `http` URL is used as-is; otherwise it is prefixed as `https://www.linkedin.com/company/<handle>`.",
         "**Destinations are live properties on the connected CRM.** (`infra/index.ts`) The HubSpot example writes `linkedin_company_id`, `name`, `domain`, `website`, `linkedin_company_page`, `numberofemployees`, `last_enriched_at`, and `enrichment_status`. Leaving another CRM's names in the file can write provider data into the wrong property.",
@@ -198,13 +205,17 @@
         "the audit JSON, Markdown, and chat summary agree on every count",
         "the audit records an operator-approved field contract with provider paths, live CRM destinations, types, transformations, write policies, and reasons for every exclusion",
         "the CDK plan contains one CRM account model (`crm_accounts`) and no native `accounts` unification",
+        "the CDK plan contains the `account_enrichment` tool and disabled `enrich_accounts` play backed by the same workflow contract",
         "generated consumer types confirm the selected provider fields, CRM destinations, write action, and fill-blank semantics",
         "every destination is a live property on the connected CRM",
         "a record without an identifier, and a record whose approved destinations are already filled, exits before a paid call (`skipped_no_identifier` / `skipped_already_filled`)",
         "the play targets `crm_accounts` and the write matches the audited CRM record id",
         "the managed segment uses the blank-or-six-month rule, daily evaluation, and `changeKinds: [\"added\"]`",
         "the first plan shows `isEnabled: false` and `runCreationRule: noConcurrency`",
-        "LinkedIn and domain route counts are mutually exclusive and reproduce the credit estimate"
+        "LinkedIn and domain route counts are mutually exclusive and reproduce the credit estimate",
+        "the phase-two handoff contains working Cargo UI links for the disabled play and tool, plus the exact target and estimated credits",
+        "the operator explicitly approved the run after reviewing the links and cost",
+        "the post-run report shows before-and-after fill rates, every outcome count, failures, actual credits against estimate, and one recommended next step"
       ],
       "cost": "Immediately before every preview, run `cargo-ai connection integration get linkedin`. Read the\napplicable current entries from `integration.actions.enrichCompany.credits.costs` and\n`integration.actions.enrichCompanyFromDomain.credits.costs`. Record the CLI version, lookup time,\naction slugs, and selected unit costs. Then preview\n`linkedin_url_path * linkedin_url_unit_credits + domain_path * domain_unit_credits`.\n\nThis play runs on eligible `crm_accounts` rows and updates that same CRM record. Eligibility means\nthe row has an identifier, passes freshness and governance filters, and has at least one blank\ndestination in the approved field contract. Recompute the target and credit preview after field\napproval because adding a destination can add eligible rows. Report the segment count.\nDeduplication follows enrichment because the new matching keys improve duplicate detection.\n\nDo not enable the daily schedule until the disabled pilot has passed. Enabling is not an\ninput; it is the last yes after _Done when_.",
       "composesInto": "`account-scoring` (a filled book is what the scorer can cite), `find-stakeholders` (the buyers at\nevery filled account), `tam-building` (the universe these records join)."
