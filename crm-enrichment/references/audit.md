@@ -12,14 +12,15 @@ JSON contract:
   "crm": "hubspot|salesforce|attio",
   "record_id_field": "hs_object_id",
   "total_accounts": 0,
-  "properties": [
+  "duplicate_properties": [
     {
-      "semantic_key": "record_id|domain|website|linkedin_url|linkedin_id|employee_count|last_enriched_at|enrichment_status",
+      "semantic_key": "customer-managed semantic key",
       "candidates": [
         {
           "label": "CRM label",
           "internal_name": "crm_internal_name",
           "type": "CRM type",
+          "ownership": "customer_managed",
           "filled_count": 0,
           "fill_rate": 0
         }
@@ -33,6 +34,7 @@ JSON contract:
     "approved_at": "ISO-8601 timestamp",
     "candidates": [
       {
+        "provider": "live provider name or integration slug",
         "provider_path": "company_name",
         "provider_type": "string",
         "available_on": ["enrichCompany", "enrichCompanyFromDomain"],
@@ -46,6 +48,8 @@ JSON contract:
           }
         ],
         "recommended_destination": "name|null",
+        "destination_state": "existing|proposed|none",
+        "destination_type": "string|null",
         "transformation": "none|exact approved conversion|unsupported",
         "write_policy": "fill_blanks",
         "recommendation": "include|exclude",
@@ -99,17 +103,33 @@ JSON contract:
 ```
 
 `field_selection.candidates` covers every live output path from both selected LinkedIn actions and
-records which routes return it. Group fields in the Markdown and chat presentation when they share
-one compatibility decision, but record each exact path in JSON. The starting recommendation is not
-pre-approved. Before operator approval, its status is `pending_operator_approval`, every candidate
-decision is `pending`, and the audit is incomplete. Do not present `target_preview` as final while
-the field selection is pending.
+records which routes return it. Use exactly one row per exact provider path in the JSON, Markdown,
+and chat presentation. Never group multiple provider properties into one row, even when they share
+the same compatibility decision. Every row names the actual provider used so the operator knows
+where the proposed value comes from. Derive the name from the live connector and action used by the
+adapted workflow. Do not copy the checked example's `LinkedIn` label when another provider supplies
+the field. The starting recommendation is not pre-approved. Before operator approval, its status is
+`pending_operator_approval`, every candidate decision is `pending`, and the audit is incomplete. Do
+not present `target_preview` as final while the field selection is pending.
 
 After approval, set the status to `approved`, record `approved_at`, and give every candidate an
 `include` or `exclude` decision. Every included field has a live destination, write policy, and
 either matching types or an explicit transformation. Every excluded field has a reason. Calculate
 eligibility and write-policy counts from the included destinations only. Adding a selected field
 can add eligible rows, so recompute the entire target and credit preview after approval.
+
+Class provider `company_id` as `starting_recommendation` because it is the LinkedIn company ID
+matching key. Recommend the most-filled compatible CRM property. When HubSpot has none, propose
+`linkedin_company_id` with `destination_state: proposed`, type `string`, and include creation
+in the operator approval. Do not silently create it during audit.
+
+`duplicate_properties` contains only genuine duplicate groups among customer-managed CRM
+properties. Exclude CRM-managed and system-generated properties, including HubSpot `hs_*` fields.
+Also exclude generic native properties merely because they could receive a similar provider value.
+They may still appear as destination candidates under `field_selection`, but not as duplicate
+findings. Require at least two customer-managed properties with the same clear semantic purpose for
+a duplicate group. If none exist, emit an empty array and state `No duplicate properties detected`
+in Markdown and chat. Never infer ownership from fill rate alone.
 
 The Markdown headings are `Summary`, `Duplicate properties`, `Enrichment gaps`, and `Target and
 cost preview`, with a `Field selection` subsection before the target preview. Every table must
@@ -141,3 +161,5 @@ whether to narrow the population after showing the preview.
 - the operator approved the complete field contract before the final target and cost preview
 - every live LinkedIn output has an include or exclude decision with evidence
 - every selected destination has a live name, type, and fill-rate justification
+- duplicate findings contain only genuine customer-managed semantic duplicates and exclude
+  HubSpot `hs_*`, CRM-managed, system-generated, and generic native properties

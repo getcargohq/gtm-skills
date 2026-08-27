@@ -7,11 +7,11 @@ repository.
 ## Workflow and play boundary
 
 `enrich_crm_account` is the per-row unit. The checked example accepts the CRM record id plus the
-optional LinkedIn handle, domain, and employee count from that same `crm_accounts` row. Adapt its
-input, result schema, write mappings, and fill-state guard to the operator-approved field contract.
-It exits before a paid call when identifiers or fill-state say so, calls one mutually exclusive
-provider route, and fills approved blank fields. HubSpot's example matches `hs_object_id`.
-Salesforce matches `Id`. Attio matches the record id.
+current LinkedIn company ID, LinkedIn page, domain, name, website, and employee count from that same
+`crm_accounts` row. Adapt its input, result schema, write mappings, and fill-state guard to the
+operator-approved field contract. It exits before a paid call when identifiers or fill-state say
+so, calls one mutually exclusive provider route, and fills approved blank fields. HubSpot's example
+matches `hs_object_id`. Salesforce matches `Id`. Attio matches the record id.
 
 `enrich_accounts` is orchestration. It runs that workflow over `crm_accounts`
 and owns its managed backing segment through `filter`. Do not declare a
@@ -24,7 +24,7 @@ is the fallback route.
 
 If every destination in the approved field contract is already populated, the workflow returns
 `skipped_already_filled` and makes no paid call. Numeric zero counts as filled.
-`cargo_last_enriched_at` and `cargo_enrichment_status: succeeded` write only on the `written` path,
+`last_enriched_at` and `enrichment_status: succeeded` write only on the `written` path,
 after the provider result and the CRM update.
 
 Before every preview, run `cargo-ai connection integration get linkedin` and
