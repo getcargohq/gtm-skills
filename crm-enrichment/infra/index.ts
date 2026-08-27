@@ -32,6 +32,7 @@ const enrichCrmAccount = defineWorkflow(
   {
     input: z.object({
       hs_object_id: z.string(),
+      linkedin_company_id: z.string().optional(),
       name: z.string().optional(),
       domain: z.string().optional(),
       website: z.string().optional(),
@@ -63,6 +64,7 @@ const enrichCrmAccount = defineWorkflow(
     // Numeric zero counts as filled. Freshness is the play filter, not this
     // guard: a succeeded stamp older than six months must still re-enroll.
     if (
+      input.linkedin_company_id &&
       input.name &&
       input.domain &&
       input.website &&
@@ -95,6 +97,11 @@ const enrichCrmAccount = defineWorkflow(
       matchingValue: input.hs_object_id,
       mappings: [
         {
+          propertyName: "linkedin_company_id",
+          value: result.company_id,
+          skipIfExist: true,
+        },
+        {
           propertyName: "name",
           value: result.company_name,
           skipIfExist: true,
@@ -119,8 +126,8 @@ const enrichCrmAccount = defineWorkflow(
           value: result.employee_count,
           skipIfExist: true,
         },
-        { propertyName: "cargo_last_enriched_at", value: new Date() },
-        { propertyName: "cargo_enrichment_status", value: "succeeded" },
+        { propertyName: "last_enriched_at", value: new Date() },
+        { propertyName: "enrichment_status", value: "succeeded" },
       ],
     });
 
@@ -145,6 +152,11 @@ export const enrichAccounts = definePlay("enrich_accounts", {
       {
         conjonction: "or",
         conditions: [
+          {
+            kind: "string",
+            columnSlug: crmAccounts.columns.linkedin_company_id,
+            operator: "isEmpty",
+          },
           {
             kind: "string",
             columnSlug: crmAccounts.columns.domain,
@@ -194,12 +206,12 @@ export const enrichAccounts = definePlay("enrich_accounts", {
         conditions: [
           {
             kind: "date",
-            columnSlug: crmAccounts.columns.cargo_last_enriched_at,
+            columnSlug: crmAccounts.columns.last_enriched_at,
             operator: "isNull",
           },
           {
             kind: "date",
-            columnSlug: crmAccounts.columns.cargo_last_enriched_at,
+            columnSlug: crmAccounts.columns.last_enriched_at,
             operator: "lowerThan",
             value: "6 months",
           },

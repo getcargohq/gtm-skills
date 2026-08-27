@@ -9,6 +9,15 @@ Walk every line. A checked template without an evidence-backed consumer adaptati
   the live LinkedIn and CRM schemas.
 - The agent asks for approval of a concrete field-contract table, not whether the operator wants
   unspecified "more fields". Silence does not approve the starting recommendation.
+- The field-contract table contains exactly one row per exact provider property. No row groups
+  multiple fields or shares ambiguous types, routes, destinations, fill rates, or decisions.
+- Every field-contract row names the actual provider used, derived from the live connector and
+  action. The value matches the adapted workflow instead of being hard-coded from the example.
+- Duplicate-property findings contain only genuine customer-managed semantic duplicates. HubSpot
+  `hs_*`, CRM-managed, system-generated, and generic native properties are excluded; an audit with
+  no qualifying group states `No duplicate properties detected`.
+- Provider `company_id` is in the starting recommendation as the LinkedIn company ID matching key.
+  The agent reuses a compatible CRM property or proposes an exact string property for approval.
 - The audit records every live LinkedIn output as included or excluded, with destination, types,
   transformation, write policy, and reason where applicable.
 - JSON, Markdown, and chat agree on property candidates, gaps, route counts, and costs.
@@ -36,10 +45,10 @@ Walk every line. A checked template without an evidence-backed consumer adaptati
   as-is. A row takes at most one paid route.
 - Fill-blanks uses a CRM-native conditional update or a fresh-read guard that preserves populated
   values, including numeric zero.
-- `cargo_last_enriched_at` and `cargo_enrichment_status: succeeded` write only after a provider result
+- `last_enriched_at` and `enrichment_status: succeeded` write only after a provider result
   and a CRM update on the `written` path. A no-op does not stamp freshness.
 - Provider or CRM connector errors remain failed workflow runs.
-- The play filter requires an identifier and `cargo_last_enriched_at` null or older than six
+- The play filter requires an identifier and `last_enriched_at` null or older than six
   months.
 - The disabled play evaluates daily, creates runs only for rows added to its managed segment, and
   uses `noConcurrency`.

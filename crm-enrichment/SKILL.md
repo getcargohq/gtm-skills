@@ -1,7 +1,7 @@
 ---
 name: crm-enrichment
 description: 'Keep CRM accounts filled and refresh them when they go stale: a deployed play that fills approved blank firmographics from LinkedIn and re-enrolls a record after six months. Triggers: "keep our CRM accounts filled", "keep our CRM companies filled", "enrich my CRM", "CRM enrichment", "old firmographics keep going stale", "every new CRM account", "every new CRM company", "nobody refreshes the company records", "refresh stale firmographics". HubSpot, Salesforce, Attio, Cargo CDK. Skip when: the records are not in a CRM. A supplied company list is enrich-company-data.'
-version: "0.5.1"
+version: "0.5.6"
 compatibility: "Requires a Cargo CDK project and @cargo-ai/cdk ^1.0.51. The repository example does not deploy or access a CRM until an agent adapts it in the consumer project."
 homepage: https://github.com/getcargohq/gtm-skills/tree/main/crm-enrichment
 metadata:
@@ -42,14 +42,29 @@ the run looks successful and every write targets nothing. And if freshness is st
 a full row leaves the segment for six months without a single field changing — still paying
 LinkedIn first.
 
-The starting recommendation is identity and size. On HubSpot that is `name`, `domain`, `website`,
-`linkedin_company_page`, and `numberofemployees`. Before counting the target population or editing
-CDK, the agent derives the other LinkedIn fields that can map to live CRM properties and presents
-them with their type and transformation costs. The operator approves the field contract. That
-approved contract, not the repository default, controls the mappings, fill-state filter, and final
-cost preview. The audit JSON contract lives in
+The starting recommendation is identity and size. On HubSpot that is
+`linkedin_company_id`, `name`, `domain`, `website`, `linkedin_company_page`, and
+`numberofemployees`. LinkedIn company ID is the provider's `company_id` and is recommended as a
+durable matching key. Reuse the best compatible CRM property when one exists; otherwise propose
+the string property `linkedin_company_id` and wait for approval to create it. Do not prepend
+`cargo_` to proposed CRM properties. Before counting
+the target population or editing CDK, the agent derives the other LinkedIn fields that can map to
+live CRM properties and presents them with their type and transformation costs. The operator
+approves the field contract. That approved contract, not the repository default, controls the
+mappings, fill-state filter, and final cost preview. The audit JSON contract lives in
 [`references/audit.md`](references/audit.md); provider field paths and the selection gate in
 [`references/configure.md`](references/configure.md).
+
+Present exactly one row per provider property in the field-selection table. Never combine fields
+into a grouped row: each property names the actual provider used, its own type, provider-route
+availability, CRM destination, fill rate, transformation, recommendation, and operator decision.
+Derive the provider name from the live connector and action instead of hard-coding it. The checked
+example uses LinkedIn.
+
+The duplicate-property audit is about genuine customer-managed duplicates. Do not present CRM
+system properties, HubSpot `hs_*` fields, or generic native properties as duplicates merely because
+they could hold similar data. If no customer-managed duplicate group exists, say
+`No duplicate properties detected`.
 
 ## Put it in your project
 
@@ -139,9 +154,9 @@ it if you still want it, and records why under `## Decisions` in your copy of th
 - **The play runs on `crm_accounts` and matches the CRM record id.** (`infra/index.ts`) HubSpot's example uses `hs_object_id`. Sending a Cargo row id, or a native `accounts` id, to a CRM action targets the wrong identifier system; the run looks successful and nothing lands.
 - **One CRM shape in the file.** (`infra/index.ts`) The checked example is HubSpot. Adapt that one file for Salesforce or Attio. Parallel HubSpot/Salesforce/Attio branches drift from the generated types of the CRM that is actually connected.
 - **At most one paid route per row, LinkedIn URL first.** (`infra/index.ts` `enrichCrmAccount`) A row without a handle or a domain makes no paid call. A handle that is already an `http` URL is used as-is; otherwise it is prefixed as `https://www.linkedin.com/company/<handle>`.
-- **Destinations are live properties on the connected CRM.** (`infra/index.ts`) The HubSpot example writes `name`, `domain`, `website`, `linkedin_company_page`, `numberofemployees`, `cargo_last_enriched_at`, and `cargo_enrichment_status`. Leaving another CRM's names in the file can write provider data into the wrong property.
+- **Destinations are live properties on the connected CRM.** (`infra/index.ts`) The HubSpot example writes `linkedin_company_id`, `name`, `domain`, `website`, `linkedin_company_page`, `numberofemployees`, `last_enriched_at`, and `enrichment_status`. Leaving another CRM's names in the file can write provider data into the wrong property.
 - **Fill approved blanks only.** (`infra/index.ts` `skipIfExist` or the Salesforce/Attio read-then-omit guard) A stale snapshot overwrites authoritative CRM data, including numeric zero.
-- **Do not stamp freshness on a no-op.** (`infra/index.ts`) If every destination in the approved field contract is already populated, return `skipped_already_filled` and make no paid call. Stamping `cargo_last_enriched_at` / `cargo_enrichment_status: succeeded` on that row hides it for six months.
+- **Do not stamp freshness on a no-op.** (`infra/index.ts`) If every destination in the approved field contract is already populated, return `skipped_already_filled` and make no paid call. Stamping `last_enriched_at` / `enrichment_status: succeeded` on that row hides it for six months.
 - **The play filter is the managed segment.** (`infra/index.ts` `enrichAccounts`) Daily evaluation, `changeKinds: ["added"]`, freshness null or older than six months, and at least one approved blank. A standalone `defineSegment` drifts from the play.
 - **The first play is disabled and `noConcurrency`.** (`infra/index.ts`) Removing those expands an unapproved pilot.
 - **No credentials, deploy commands, or customer data in this repository.**

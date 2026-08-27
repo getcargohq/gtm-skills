@@ -32,18 +32,27 @@ target population. Derive the candidates first, then present one compact table w
 
 | Column                    | Required evidence                                                                         |
 | ------------------------- | ----------------------------------------------------------------------------------------- |
-| Provider field            | Exact output path, current declared type, and provider routes that return it              |
+| Provider                  | Actual source system from the selected live connector and action, such as `LinkedIn`      |
+| Provider property         | Exact output path, current declared type, and provider routes that return it              |
 | Class                     | `starting_recommendation`, `optional_direct`, `requires_transformation`, or `unsupported` |
-| CRM destination           | Recommended live internal name and type, or `none`                                        |
+| CRM destination           | Recommended existing or proposed internal name and type, plus its state                   |
 | Current fill              | Filled count and fill rate for the destination                                            |
 | Transformation            | `none` or the exact approved conversion                                                   |
 | Recommendation and reason | Include or exclude, with the compatibility and operational tradeoff                       |
 | Operator decision         | `pending`, `include`, or `exclude`                                                        |
 
-The starting recommendation is `company_name`, `domain`, `website`, `linkedin_url`, and
-`employee_count`. It is a recommendation, not implicit approval. Include every other live LinkedIn
-output in the candidate table, grouped when several fields share the same compatibility decision.
-Recommend direct mappings when the CRM has a semantically equivalent property. Mark a field
+The starting recommendation is `company_id`, `company_name`, `domain`, `website`, `linkedin_url`,
+and `employee_count`. LinkedIn `company_id` is a durable matching key. Reuse the most-filled
+compatible CRM property when one exists. If none exists on HubSpot, propose the string property
+`linkedin_company_id` and include its creation in the field-contract approval. Never prepend
+`cargo_` to a proposed CRM property. It is a
+recommendation, not implicit approval. Include every other live LinkedIn output in the candidate
+table. Use exactly one row per provider property, even when several properties share the same
+compatibility decision. Each row carries its own type, route availability, destination, fill rate,
+transformation, recommendation, and operator decision, and explicitly identifies the actual
+provider used. Derive that name from the selected live connector and action; do not hard-code
+`LinkedIn` when the adapted workflow uses another provider. Recommend direct mappings when the CRM
+has a semantically equivalent property. Mark a field
 `requires_transformation` when its provider and CRM shapes differ. Mark it `unsupported` when the
 live provider type is absent or no safe destination or transformation exists.
 
@@ -63,7 +72,7 @@ In `infra/index.ts`, edit these together:
 The checked repository example extracts HubSpot companies (`fetchRecords`,
 `objectType: "companies"`) and writes with `updateRecords` matching
 `hs_object_id` and its native `skipIfExist` mapping flag. Create
-`cargo_last_enriched_at` and `cargo_enrichment_status` on the company object if
+`last_enriched_at` and `enrichment_status` on the company object if
 they are missing. Keep one CRM shape in the file. The play filter, workflow
 input, and write matching property must use the same record-id field.
 
@@ -72,11 +81,13 @@ input, and write matching property must use the same record-id field.
 - **Attio:** generated company-record update matching the record id. Same read-then-omit guard.
   Do not copy HubSpot's flag onto Attio.
 
-The checked HubSpot starting mapping is `name`, `domain`, `website`, `linkedin_company_page`, and
-`numberofemployees`, plus the stamps `cargo_last_enriched_at` and `cargo_enrichment_status`.
-Present LinkedIn `company_id`, industry, and the other provider outputs at the field-selection
-gate. The provider returns `industries` as an array; most CRMs store a single enum, so inclusion
-requires an approved transformation and destination.
+The checked HubSpot starting mapping is `company_id` to `linkedin_company_id`, followed by
+`name`, `domain`, `website`, `linkedin_company_page`, and `numberofemployees`, plus the stamps
+`last_enriched_at` and `enrichment_status`. Create `linkedin_company_id` as a
+string property only when no compatible LinkedIn company ID property exists and the operator
+approves its creation. Present industry and the other provider outputs at the field-selection gate.
+The provider returns `industries` as an array; most CRMs store a single enum, so inclusion requires
+an approved transformation and destination.
 
 Leave `year_founded` and provider-schema-untyped funding fields out until the live action declares
 stable types.
