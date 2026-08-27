@@ -1,7 +1,7 @@
 ---
 name: crm-enrichment
 description: 'Keep CRM accounts filled and refresh them when they go stale: a deployed play that fills approved blank firmographics from LinkedIn and re-enrolls a record after six months. Triggers: "keep our CRM accounts filled", "keep our CRM companies filled", "enrich my CRM", "CRM enrichment", "old firmographics keep going stale", "every new CRM account", "every new CRM company", "nobody refreshes the company records", "refresh stale firmographics". HubSpot, Salesforce, Attio, Cargo CDK. Skip when: the records are not in a CRM. A supplied company list is enrich-company-data.'
-version: "0.6.1"
+version: "0.6.2"
 compatibility: "Requires a Cargo CDK project and @cargo-ai/cdk ^1.0.51. The repository example does not deploy or access a CRM until an agent adapts it in the consumer project."
 homepage: https://github.com/getcargohq/gtm-skills/tree/main/crm-enrichment
 metadata:
@@ -38,9 +38,9 @@ swap the connector, extractor, record-id field, write action, and fill-blank gua
 a second CRM branch.
 
 **Two failure modes worth knowing before you start.** If the matching record-id field is wrong,
-the run looks successful and every write targets nothing. And if freshness is stamped on a no-op,
-a full row leaves the segment for six months without a single field changing — still paying
-LinkedIn first.
+the run looks successful and every write targets nothing. If a field's approved write policy is
+lost, a refresh overwrites CRM-authoritative data or preserves the stale value it was meant to
+replace.
 
 The starting recommendation is identity and size. On HubSpot that is
 `linkedin_company_id`, `name`, `domain`, `website`, `linkedin_company_page`, and
@@ -51,7 +51,7 @@ the string property `linkedin_company_id` and wait for approval to create it. Do
 the target population or editing CDK, the agent derives the other LinkedIn fields that can map to
 live CRM properties and presents them with their type and transformation costs. The operator
 approves the field contract. That approved contract, not the repository default, controls the
-mappings, fill-state filter, and final cost preview. The audit JSON contract lives in
+mappings, per-field write policies, and final cost preview. The audit JSON contract lives in
 [`references/audit.md`](references/audit.md); provider field paths and the selection gate in
 [`references/configure.md`](references/configure.md).
 
@@ -153,8 +153,8 @@ Checked before moving on, not after the deploy:
 - `crm`: one authenticated CRM connector, and the play model is that connector's account extract
 - `approved_field_contract`: every selected provider path has a live destination, compatible type
   or explicit transformation, fill-blank policy, and recorded operator approval
-- `target_population`: eligibility uses the approved destinations; LinkedIn and domain route
-  counts are mutually exclusive and reproduce the credit estimate
+- `target_population`: eligibility uses identifier, freshness, and approved governance filters;
+  LinkedIn and domain route counts are mutually exclusive and reproduce the credit estimate
 - `approved_run`: direct Cargo UI links resolve, the play is disabled, and the operator approved
   the stated population and maximum cost
 
@@ -173,7 +173,7 @@ waiting to be asked. Every one costs something; that is what makes it a variatio
 | Variation                   | When it is right                                               | How                                                                                                                                                                                                                                                                                                                                                                                 | What it costs                                                                        |
 | --------------------------- | -------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
 | `crm`                       | The consumer uses Salesforce or Attio instead of HubSpot       | Keep one CRM shape in `infra/index.ts`. The file is the HubSpot example. **Salesforce:** generated Account update matching `Id`; there is no `skipIfExist` — read the Account first and omit any field that is already populated, including numeric zero. **Attio:** generated company-record update matching the record id; same read-then-omit guard. Do not copy HubSpot's flag. | Live generated types must be rechecked; a guessed flag writes or no-ops silently     |
-| `selected_fields`           | The approved contract differs from the starting recommendation | Present every live candidate at the field-selection gate. After approval, change the result schema, destinations, fill-state filter, and both provider mappings in `infra/index.ts`. Industry requires an approved array-to-enum transformation when the CRM destination is a single enum.                                                                                          | Each added field expands mapping, type-review, and the "already filled" filter       |
+| `selected_fields`           | The approved contract differs from the starting recommendation | Present every live candidate at the field-selection gate. After approval, change the result schema, destinations, per-field write policy, and both provider mappings in `infra/index.ts`. Industry requires an approved array-to-enum transformation when the CRM destination is a single enum.                                                                                     | Each added field expands mapping and type review                                     |
 | `eligibility`               | Only a governed subset should be enriched                      | Intersect the play filter with approved lifecycle, tier, ownership, or gap conditions (`infra/index.ts` `enrichAccounts`)                                                                                                                                                                                                                                                           | Narrower scope reduces coverage and paid calls                                       |
 | `approved_refresh_behavior` | Populated fields must be refreshed after explicit approval     | Drop `skipIfExist` / the read-then-omit guard on the approved fields only, preview the replacements, and compare against a fresh CRM read (`infra/index.ts`)                                                                                                                                                                                                                        | Refresh can overwrite CRM-authoritative values if the preview and the write disagree |
 
@@ -188,8 +188,7 @@ it if you still want it, and records why under `## Decisions` in your copy of th
 - **At most one paid route per row, LinkedIn URL first.** (`infra/index.ts` `enrichCrmAccount`) A row without a handle or a domain makes no paid call. A handle that is already an `http` URL is used as-is; otherwise it is prefixed as `https://www.linkedin.com/company/<handle>`.
 - **Destinations are live properties on the connected CRM.** (`infra/index.ts`) The HubSpot example writes `linkedin_company_id`, `name`, `domain`, `website`, `linkedin_company_page`, `numberofemployees`, `last_enriched_at`, and `enrichment_status`. Leaving another CRM's names in the file can write provider data into the wrong property.
 - **Fill approved blanks only.** (`infra/index.ts` `skipIfExist` or the Salesforce/Attio read-then-omit guard) A stale snapshot overwrites authoritative CRM data, including numeric zero.
-- **Do not stamp freshness on a no-op.** (`infra/index.ts`) If every destination in the approved field contract is already populated, return `skipped_already_filled` and make no paid call. Stamping `last_enriched_at` / `enrichment_status: succeeded` on that row hides it for six months.
-- **The play filter is the managed segment.** (`infra/index.ts` `enrichAccounts`) Daily evaluation, `changeKinds: ["added"]`, freshness null or older than six months, and at least one approved blank. A standalone `defineSegment` drifts from the play.
+- **Eligibility and freshness live in the play trigger.** (`infra/index.ts` `enrichAccounts`) Require an identifier and freshness null or older than six months in the managed segment. Destination fill-state is not an eligibility condition: an approved refresh must be able to re-enrich populated stale fields. The row workflow starts with the reusable tool call instead of repeating trigger conditions as branches. A standalone `defineSegment` or duplicate workflow gate drifts from the play.
 - **The first play is disabled and `noConcurrency`.** (`infra/index.ts`) Removing those expands an unapproved pilot.
 - **No credentials, deploy commands, or customer data in this repository.**
 
@@ -204,11 +203,11 @@ it if you still want it, and records why under `## Decisions` in your copy of th
 - generated consumer types confirm the selected provider fields, CRM destinations, write action,
   and fill-blank semantics
 - every destination is a live property on the connected CRM
-- a record without an identifier, and a record whose approved destinations are already filled,
-  exits before a paid call (`skipped_no_identifier` / `skipped_already_filled`)
+- the managed segment excludes records without an identifier but allows populated stale records;
+  the approved per-field write policy decides fill blank versus refresh
 - the play targets `crm_accounts` and the write matches the audited CRM record id
-- the managed segment uses the blank-or-six-month rule, daily evaluation, and
-  `changeKinds: ["added"]`
+- the managed segment uses the null-or-six-month freshness rule, daily evaluation, and
+  `changeKinds: ["added"]`, with no destination fill-state filter
 - the first plan shows `isEnabled: false` and `runCreationRule: noConcurrency`
 - LinkedIn and domain route counts are mutually exclusive and reproduce the credit estimate
 - the phase-two handoff contains working Cargo UI links for the disabled play and tool, plus the
@@ -226,9 +225,10 @@ action slugs, and selected unit costs. Then preview
 `linkedin_url_path * linkedin_url_unit_credits + domain_path * domain_unit_credits`.
 
 This play runs on eligible `crm_accounts` rows and updates that same CRM record. Eligibility means
-the row has an identifier, passes freshness and governance filters, and has at least one blank
-destination in the approved field contract. Recompute the target and credit preview after field
-approval because adding a destination can add eligible rows. Report the segment count.
+the row has an identifier and passes freshness and governance filters. Destination fill-state does
+not control enrollment. The approved per-field write policy decides whether populated stale values
+are preserved or refreshed. Recompute the target and credit preview after approval, then report the
+segment count.
 Deduplication follows enrichment because the new matching keys improve duplicate detection.
 
 Do not enable the daily schedule until the disabled pilot has passed. Enabling is not an

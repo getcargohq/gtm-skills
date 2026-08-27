@@ -93,10 +93,11 @@ Leave `year_founded` and provider-schema-untyped funding fields out until the li
 stable types.
 
 The base template is fill-blanks only. HubSpot enforces this per property with
-`skipIfExist: true`. The play filter skips the paid call when domain, LinkedIn URL, and employee
-count are already populated (`skipped_already_filled`). Freshness writes only on the `written`
-path. Refreshing populated fields requires a separate field-level approval, a proposed-change
-preview, and an optimistic comparison against a fresh CRM read.
+`skipIfExist: true`. Destination fill-state is not a play filter: populated stale rows remain
+eligible so an approved policy can refresh them. Keep `skipIfExist` for fields approved as
+fill-blanks, and remove it only for fields explicitly approved for refresh after a proposed-change
+preview and an optimistic comparison against a fresh CRM read. Freshness writes only after the
+provider result and CRM update.
 
 Fetch current pricing with `cargo-ai connection integration get linkedin` immediately before the
 preview. Read the applicable entries under
@@ -113,5 +114,5 @@ action as the mutually exclusive fallback.
 - the operator-approved field contract records every included mapping and excluded candidate
 - selected provider fields and CRM destinations agree in meaning and type, or have an explicit
   approved transformation
-- the workflow exits before a paid call when identifiers are missing or the approved
-  destinations are already filled
+- the managed segment trigger excludes rows with no identifier but allows populated stale rows;
+  the approved per-field policy decides fill blank versus refresh
