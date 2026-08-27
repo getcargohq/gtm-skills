@@ -26,21 +26,27 @@ disabled and make no paid enrichment call.
 
 ## Workflow and play boundary
 
-`enrich_crm_account` is the per-row unit. The checked example accepts the CRM record id plus the
-current LinkedIn company ID, LinkedIn page, domain, name, website, and employee count from that same
-`crm_accounts` row. Adapt its input, result schema, write mappings, and fill-state guard to the
-operator-approved field contract. It exits before a paid call when identifiers or fill-state say
-so, calls one mutually exclusive provider route, and fills approved blank fields. HubSpot's example
-matches `hs_object_id`. Salesforce matches `Id`. Attio matches the record id.
+`account_enrichment` is the reusable data component. Its workflow accepts a LinkedIn URL or handle
+plus a domain, normalizes the LinkedIn value, calls one mutually exclusive provider route, and
+returns the approved company-data schema. It has no CRM record id, CRM connector, fill-state policy,
+or CRM write action.
+
+`enrich_crm_account` is the play's per-row orchestration workflow. The checked example accepts the
+CRM record id plus the current LinkedIn company ID, LinkedIn page, domain, name, website, and
+employee count from that same `crm_accounts` row. It exits before a paid tool call when identifiers
+or fill-state say so, calls `account_enrichment`, applies the approved blank-field policy, and pushes
+the returned values to the CRM. HubSpot's example matches `hs_object_id`. Salesforce matches `Id`.
+Attio matches the record id.
 
 `enrich_accounts` is orchestration. It runs that workflow over `crm_accounts`
 and owns its managed backing segment through `filter`. Do not declare a
 separate segment. Do not introduce a native `accounts` unification to sit
 between the play and the CRM write.
 
-`account_enrichment` exposes the same per-row workflow as the reusable Cargo tool reviewed in phase
-two. Keep the tool and play on the same approved workflow contract. If their inputs or mappings
-diverge, stop and reconcile them before sending either UI link.
+The tool output schema and the play write mappings form one interface: every selected provider field
+returned by `account_enrichment` has its approved CRM destination in `enrich_crm_account`. The play
+must invoke the tool handle instead of duplicating provider connector calls. If the interface
+diverges, stop and reconcile it before sending either UI link.
 
 A handle that already starts with `http` is used as the LinkedIn company URL.
 Otherwise it is prefixed as `https://www.linkedin.com/company/<handle>`. Domain
@@ -94,7 +100,9 @@ schedule.
 ## Complete when
 
 - the consumer file contains only the selected CRM action shapes
-- `account_enrichment` is a deployed workflow-backed tool and `enrich_accounts` is the disabled play
+- `account_enrichment` is a deployed workflow-backed tool with no CRM access
+- `enrich_accounts` is the disabled play; its row workflow calls `account_enrichment` and owns the
+  only CRM update
 - the play model is `crm_accounts`
 - the write matches the intended CRM record id
 - the input, result schema, mappings, and fill-state filter match the approved field contract
