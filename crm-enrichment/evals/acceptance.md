@@ -48,8 +48,12 @@ Walk every line. A checked template without an evidence-backed consumer adaptati
 
 - `infra/index.ts` is the only infrastructure source file.
 - The consumer file contains only the selected CRM connector and action shapes.
-- `account_enrichment` is a workflow-backed Cargo tool and `enrich_accounts` is the disabled play,
-  so both phase-two UI links resolve to real deployed resources.
+- `account_enrichment` is a workflow-backed Cargo tool that accepts provider identifiers, normalizes
+  them, and returns enriched company data. It has no CRM connector, CRM record id, or CRM write.
+- `enrich_accounts` is the disabled play. Its row workflow invokes the `account_enrichment` tool,
+  applies the approved blank-field policy, and owns the only CRM update action.
+- The play does not duplicate the provider connector calls implemented by the tool, and the tool
+  does not duplicate the CRM write implemented by the play.
 - Exactly one CRM account model exists (`crm_accounts` in the example). The play uses it.
 - There is no native `accounts` unification.
 - Freshness and fill-state are columns on `crm_accounts`.

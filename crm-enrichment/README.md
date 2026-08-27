@@ -9,12 +9,13 @@ The agent joins the live LinkedIn and CRM schemas, presents the starting and opt
 mappings, recommends LinkedIn company ID as a durable matching key, and waits for approval of the
 complete field contract. After approval, it builds and deploys the tool and disabled play, sends
 direct Cargo UI links, and shows the exact target and estimated cost for a second approval. Only
-then does enrichment run. The final report compares before-and-after coverage, outcomes, failures,
-and actual credits, then recommends the next action. The play fills approved blank fields, writes
-freshness only after a real fill, and re-enrolls a record after six months. It runs on `crm_accounts`
-(the CRM account extract) and writes back with that row's CRM record id. The checked example is
-HubSpot; Salesforce and Attio adapt that one file. Nothing in this folder deploys or touches
-customer data by itself.
+then does enrichment run. The reusable tool normalizes company identifiers and returns provider
+data without touching the CRM. The play calls that tool, fills approved blank CRM fields, and owns
+writeback. The final report compares before-and-after coverage, outcomes, failures, and actual
+credits, then recommends the next action. The play writes freshness only after a real fill and
+re-enrolls a record after six months. It runs on `crm_accounts` (the CRM account extract) and writes
+back with that row's CRM record id. The checked example is HubSpot; Salesforce and Attio adapt that
+one file. Nothing in this folder deploys or touches customer data by itself.
 
 `SKILL.md` is the procedure. Supporting depth:
 

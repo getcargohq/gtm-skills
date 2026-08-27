@@ -1,7 +1,7 @@
 ---
 name: crm-enrichment
 description: 'Keep CRM accounts filled and refresh them when they go stale: a deployed play that fills approved blank firmographics from LinkedIn and re-enrolls a record after six months. Triggers: "keep our CRM accounts filled", "keep our CRM companies filled", "enrich my CRM", "CRM enrichment", "old firmographics keep going stale", "every new CRM account", "every new CRM company", "nobody refreshes the company records", "refresh stale firmographics". HubSpot, Salesforce, Attio, Cargo CDK. Skip when: the records are not in a CRM. A supplied company list is enrich-company-data.'
-version: "0.6.0"
+version: "0.6.1"
 compatibility: "Requires a Cargo CDK project and @cargo-ai/cdk ^1.0.51. The repository example does not deploy or access a CRM until an agent adapts it in the consumer project."
 homepage: https://github.com/getcargohq/gtm-skills/tree/main/crm-enrichment
 metadata:
@@ -84,9 +84,11 @@ checkpoint. Never end with a generic offer to help.
    one-row-per-property recommendation. End by asking the operator to approve the complete field
    contract and authorize building and deploying the resulting Cargo resources in a disabled state.
    No paid call or CRM write occurs in this phase.
-2. **Disabled play and tool.** After that approval, adapt, type, check, plan, and deploy the tool and
-   the play with the play still disabled. Send a direct Cargo UI link for each deployed resource. Show
-   the exact eligible population, mutually exclusive provider routes, unit prices, and total
+2. **Disabled play and tool.** After that approval, adapt, type, check, plan, and deploy the reusable
+   enrichment tool and the play with the play still disabled. The tool normalizes identifiers and
+   returns provider data without CRM access. The play calls the tool, applies the approved write
+   policy, and pushes results to the CRM. Send a direct Cargo UI link for each resource. Show the
+   exact eligible population, mutually exclusive provider routes, unit prices, and total
    estimated credits. End by asking the operator to review those links and approve the enrichment
    run at that stated maximum cost. Do not run or enable anything without that second approval.
 3. **Enrichment and report.** Run only the approved population, monitor completion, and report the
@@ -181,7 +183,7 @@ However far you adapt, these hold. Ask for one anyway and the agent tells you wh
 it if you still want it, and records why under `## Decisions` in your copy of this file.
 
 - **The play runs on `crm_accounts` and matches the CRM record id.** (`infra/index.ts`) HubSpot's example uses `hs_object_id`. Sending a Cargo row id, or a native `accounts` id, to a CRM action targets the wrong identifier system; the run looks successful and nothing lands.
-- **The tool and play share one workflow contract.** (`infra/index.ts`) `account_enrichment` exposes `enrichCrmAccount` as a reusable tool while `enrich_accounts` runs it over the managed segment. Separate mappings can drift and make the phase-two review links describe different behavior.
+- **The tool enriches; the play orchestrates and writes.** (`infra/index.ts`) `account_enrichment` accepts provider identifiers, normalizes them, and returns company data without a CRM connector or write. `enrich_accounts` calls that tool from its row workflow, applies the approved blank-field policy, and owns the only CRM update. A tool that writes to the CRM is not reusable; a play that repeats the provider action bypasses the reviewed tool.
 - **One CRM shape in the file.** (`infra/index.ts`) The checked example is HubSpot. Adapt that one file for Salesforce or Attio. Parallel HubSpot/Salesforce/Attio branches drift from the generated types of the CRM that is actually connected.
 - **At most one paid route per row, LinkedIn URL first.** (`infra/index.ts` `enrichCrmAccount`) A row without a handle or a domain makes no paid call. A handle that is already an `http` URL is used as-is; otherwise it is prefixed as `https://www.linkedin.com/company/<handle>`.
 - **Destinations are live properties on the connected CRM.** (`infra/index.ts`) The HubSpot example writes `linkedin_company_id`, `name`, `domain`, `website`, `linkedin_company_page`, `numberofemployees`, `last_enriched_at`, and `enrichment_status`. Leaving another CRM's names in the file can write provider data into the wrong property.
@@ -197,8 +199,8 @@ it if you still want it, and records why under `## Decisions` in your copy of th
 - the audit records an operator-approved field contract with provider paths, live CRM destinations,
   types, transformations, write policies, and reasons for every exclusion
 - the CDK plan contains one CRM account model (`crm_accounts`) and no native `accounts` unification
-- the CDK plan contains the `account_enrichment` tool and disabled `enrich_accounts` play backed by
-  the same workflow contract
+- the CDK plan contains the reusable `account_enrichment` tool and disabled `enrich_accounts` play;
+  the play calls the tool, and only the play workflow contains the CRM update
 - generated consumer types confirm the selected provider fields, CRM destinations, write action,
   and fill-blank semantics
 - every destination is a live property on the connected CRM

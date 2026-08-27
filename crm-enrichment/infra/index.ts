@@ -28,6 +28,63 @@ const linkedin = defineConnector("linkedin", {
   adopt: true,
 });
 
+const enrichCompanyData = defineWorkflow(
+  "account_enrichment_workflow",
+  {
+    input: z.object({
+      linkedinUrlOrHandle: z.string().optional(),
+      domain: z.string().optional(),
+    }),
+    output: z.object({
+      status: z.enum(["enriched", "skipped_no_identifier"]),
+      company_id: z.string().optional(),
+      company_name: z.string().optional(),
+      domain: z.string().optional(),
+      website: z.string().optional(),
+      linkedin_url: z.string().optional(),
+      employee_count: z.number().optional(),
+    }),
+    uses: { linkedin },
+  },
+  ({ input, uses }) => {
+    // This reusable tool knows provider identifiers, not CRM record IDs.
+    if (!input.linkedinUrlOrHandle && !input.domain) {
+      return { status: "skipped_no_identifier" as const };
+    }
+
+    // Normalize a LinkedIn handle to a full URL. Empty means domain fallback.
+    const linkedinUrl =
+      !input.linkedinUrlOrHandle || input.linkedinUrlOrHandle.startsWith("http")
+        ? input.linkedinUrlOrHandle
+        : `https://www.linkedin.com/company/${input.linkedinUrlOrHandle}`;
+
+    const result = linkedinUrl
+      ? uses.linkedin.enrichCompany({
+          linkedinUrl,
+        })
+      : uses.linkedin.enrichCompanyFromDomain({
+          domain: input.domain,
+        });
+
+    return {
+      status: "enriched" as const,
+      company_id: result.company_id,
+      company_name: result.company_name,
+      domain: result.domain,
+      website: result.website,
+      linkedin_url: result.linkedin_url,
+      employee_count: result.employee_count,
+    };
+  },
+);
+
+export const accountEnrichment = defineTool("account_enrichment", {
+  workflow: enrichCompanyData,
+  name: "Account enrichment",
+  description:
+    "Normalize a company identifier and return enriched company data without writing to a CRM.",
+});
+
 const enrichCrmAccount = defineWorkflow(
   "enrich_crm_account",
   {
@@ -53,15 +110,15 @@ const enrichCrmAccount = defineWorkflow(
       linkedin_url: z.string().optional(),
       employee_count: z.number().optional(),
     }),
-    uses: { crm, linkedin },
+    uses: { crm, accountEnrichment },
   },
   ({ input, uses }) => {
-    // Skip if the account has no identifier
+    // The play owns CRM eligibility and write policy.
     if (!input.linkedin_company_page && !input.domain) {
       return { status: "skipped_no_identifier" as const };
     }
 
-    // Skip the paid call when the approved destinations are already populated.
+    // Skip the paid tool call when every approved destination is populated.
     // Numeric zero counts as filled. Freshness is the play filter, not this
     // guard: a succeeded stamp older than six months must still re-enroll.
     if (
@@ -75,23 +132,16 @@ const enrichCrmAccount = defineWorkflow(
       return { status: "skipped_already_filled" as const };
     }
 
-    // Format the LinkedIn URL. Empty string means domain fallback.
-    const linkedinUrl =
-      !input.linkedin_company_page ||
-      input.linkedin_company_page.startsWith("http")
-        ? input.linkedin_company_page
-        : `https://www.linkedin.com/company/${input.linkedin_company_page}`;
+    const result = uses.accountEnrichment({
+      linkedinUrlOrHandle: input.linkedin_company_page,
+      domain: input.domain,
+    });
 
-    // Enrich the account
-    const result = linkedinUrl
-      ? uses.linkedin.enrichCompany({
-          linkedinUrl,
-        })
-      : uses.linkedin.enrichCompanyFromDomain({
-          domain: input.domain,
-        });
+    if (result.status === "skipped_no_identifier") {
+      return { status: "skipped_no_identifier" as const };
+    }
 
-    // Update the account in the CRM
+    // Only the play workflow writes the approved result back to the CRM.
     uses.crm.updateRecords({
       objectType: "companies",
       matchingPropertyName: "hs_object_id",
@@ -144,13 +194,6 @@ const enrichCrmAccount = defineWorkflow(
   },
 );
 
-export const accountEnrichment = defineTool("account_enrichment", {
-  workflow: enrichCrmAccount,
-  name: "Account enrichment",
-  description:
-    "Fill approved blank CRM account properties from the selected company enrichment provider.",
-});
-
 export const enrichAccounts = definePlay("enrich_accounts", {
   model: crmAccounts,
   workflow: enrichCrmAccount,
@@ -160,11 +203,6 @@ export const enrichAccounts = definePlay("enrich_accounts", {
       {
         conjonction: "or",
         conditions: [
-          {
-            kind: "string",
-            columnSlug: crmAccounts.columns.linkedin_company_id,
-            operator: "isEmpty",
-          },
           {
             kind: "string",
             columnSlug: crmAccounts.columns.domain,
@@ -182,6 +220,11 @@ export const enrichAccounts = definePlay("enrich_accounts", {
         // populated. Numeric zero counts as filled.
         conjonction: "or",
         conditions: [
+          {
+            kind: "string",
+            columnSlug: crmAccounts.columns.linkedin_company_id,
+            operator: "isEmpty",
+          },
           {
             kind: "string",
             columnSlug: crmAccounts.columns.name,
