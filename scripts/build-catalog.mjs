@@ -125,7 +125,14 @@ for (const name of readdirSync(root).sort()) {
     version: fm.version ?? null,
     homepage: fm.homepage ?? null,
     group: groupOf(name),
-    install: `npx skills add getcargohq/gtm-skills/${name}`,
+    // A one-off skill is a procedure, so `skills add` installs it. A cookbook is
+    // a procedure *plus* infrastructure: its `infra/` has to land in the CDK
+    // project while the rest goes to the repo's skills layer, and only the CDK
+    // knows how to split it. `skills add` would install the whole folder as one
+    // skill, putting TypeScript resources where the loader never looks.
+    install: isCookbook
+      ? `cargo-ai cdk add cookbook/${name}`
+      : `npx skills add getcargohq/gtm-skills/${name}`,
     partOf: bullets(section(body, "Part of"))
       .map((b) => b.replace(/`/g, "").split(/[:\s]/)[0])
       .filter(Boolean),
