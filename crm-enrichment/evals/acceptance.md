@@ -51,8 +51,9 @@ Walk every line. A checked template without an evidence-backed consumer adaptati
 - The consumer file contains only the selected CRM connector and action shapes.
 - `account_enrichment` is a workflow-backed Cargo tool that accepts provider identifiers, normalizes
   them, and returns enriched company data. It has no CRM connector, CRM record id, or CRM write.
-- The compiled `account_enrichment` graph starts with a native Filter. Its mutually exclusive
-  provider routes follow that Filter, and it contains no CRM connector node.
+- The compiled `account_enrichment` graph starts with a code-generated Branch that ends rows with no
+  identifier. A second Branch selects one mutually exclusive provider route, and the tool contains
+  no CRM connector node.
 - `enrich_accounts` is the disabled play. Its row workflow starts with exactly one Tool node
   targeting `account_enrichment`, applies the approved per-field write policy, and owns the only CRM
   update action.

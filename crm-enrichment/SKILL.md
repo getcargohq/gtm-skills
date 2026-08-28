@@ -88,8 +88,8 @@ checkpoint. Never end with a generic offer to help.
    enrichment tool and the play with the play still disabled. The tool normalizes identifiers and
    returns provider data without CRM access. The play calls the tool, applies the approved write
    policy, and pushes results to the CRM. Inspect the compiled graph before deployment: the tool
-   starts with a Filter, and the play starts with one Tool node targeting `account_enrichment`,
-   followed by the only CRM update. Send a direct Cargo UI link for each resource. Show the exact
+   starts with an identifier Branch, and the play starts with one Tool node targeting
+   `account_enrichment`, followed by the only CRM update. Send a direct Cargo UI link for each resource. Show the exact
    eligible population, mutually exclusive provider routes, unit prices, and total estimated
    credits. End by asking the operator to review those links and approve the enrichment run at that
    stated maximum cost. Do not run or enable anything without that second approval.
@@ -198,7 +198,7 @@ However far you adapt, these hold. Ask for one anyway and the agent tells you wh
 it if you still want it, and records why under `## Decisions` in your copy of this file.
 
 - **The play runs on `crm_accounts` and matches the CRM record id.** (`infra/index.ts`) HubSpot's example uses `hs_object_id`. Sending a Cargo row id, or a native `accounts` id, to a CRM action targets the wrong identifier system; the run looks successful and nothing lands.
-- **The tool enriches; the play orchestrates and writes.** (`infra/index.ts`) `account_enrichment` accepts provider identifiers, normalizes them, and returns company data without a CRM connector or write. Its first non-start node is a native Filter, followed by mutually exclusive provider routes. `enrich_accounts` starts with one Tool node targeting `account_enrichment`, applies the approved per-field policy, and owns the only CRM update. A tool that writes to the CRM is not reusable; a play that repeats the provider action bypasses the reviewed tool. Run `node --import tsx evals/contract.mjs` after every adaptation to enforce this compiled graph.
+- **The tool enriches; the play orchestrates and writes.** (`infra/index.ts`) `account_enrichment` accepts provider identifiers, normalizes them, and returns company data without a CRM connector or write. Its `defineWorkflow` body first branches around rows with no identifier, then routes each eligible row to exactly one provider action. `enrich_accounts` starts with one Tool node targeting `account_enrichment`, applies the approved per-field policy, and owns the only CRM update. A tool that writes to the CRM is not reusable; a play that repeats the provider action bypasses the reviewed tool. Run `node --import tsx evals/contract.mjs` after every adaptation to enforce this compiled graph.
 - **One CRM shape in the file.** (`infra/index.ts`) The checked example is HubSpot. Adapt that one file for Salesforce or Attio. Parallel HubSpot/Salesforce/Attio branches drift from the generated types of the CRM that is actually connected.
 - **At most one paid route per row, LinkedIn URL first.** (`infra/index.ts` `enrichCrmAccount`) A row without a handle or a domain makes no paid call. A handle that is already an `http` URL is used as-is; otherwise it is prefixed as `https://www.linkedin.com/company/<handle>`.
 - **Destinations are live properties on the connected CRM.** (`infra/index.ts`) The HubSpot example writes `linkedin_company_id`, `name`, `domain`, `website`, `linkedin_company_page`, `numberofemployees`, `cargo_last_enriched_at`, and `cargo_enrichment_status`. Provider-derived business properties keep neutral names; Cargo-owned operational stamps use the `cargo_` prefix. Leaving another CRM's names in the file can write provider data into the wrong property.
@@ -217,7 +217,7 @@ it if you still want it, and records why under `## Decisions` in your copy of th
 - the CDK plan contains the reusable `account_enrichment` tool and disabled `enrich_accounts` play;
   the play contains one Tool node targeting `account_enrichment`, followed by the only CRM update
 - `node --import tsx evals/contract.mjs` passes against the adapted compiled graph; the tool begins
-  with a Filter and contains no CRM action, while the play contains no provider action
+  with an identifier Branch and contains no CRM action, while the play contains no provider action
 - generated consumer types confirm the selected provider fields, CRM destinations, write action,
   and fill-blank semantics
 - every destination is a live property on the connected CRM

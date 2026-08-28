@@ -38,10 +38,11 @@ identifier and freshness eligibility, so the workflow starts by calling `account
 applies the approved per-field write policy and pushes the returned values to the CRM. HubSpot's
 example matches `hs_object_id`. Salesforce matches `Id`. Attio matches the record id.
 
-This is a compiled-node contract, not only a naming convention. `account_enrichment` starts with a
-native Filter and contains the provider connector routes but no CRM connector node. The play starts
-with one Tool node targeting `account_enrichment`, then runs the only CRM update. It contains no
-provider connector node.
+This is a compiled-node contract, not only a naming convention. `account_enrichment` uses
+`defineWorkflow`: its first generated Branch ends rows with no identifier, and its next Branch sends
+each eligible row to exactly one provider connector route. It contains no CRM connector node. The
+play starts with one Tool node targeting `account_enrichment`, then runs the only CRM update. It
+contains no provider connector node.
 
 `enrich_accounts` is orchestration. It runs that workflow over `crm_accounts`
 and owns its managed backing segment through `filter`. Do not declare a
@@ -79,9 +80,9 @@ In this repository run `npm run validate`. In the consumer project:
 3. Run `cargo-ai cdk check`.
 4. Run `cargo-ai cdk plan` and inspect every resource and action payload.
 5. Confirm the plan has one CRM account model and no native `accounts` unification.
-6. Confirm the compiled tool starts with a Filter and contains no CRM action. Confirm the play starts
-   with one Tool node targeting `account_enrichment`, contains no provider action, and owns the only
-   CRM update.
+6. Confirm the compiled tool starts with an identifier Branch and contains no CRM action. Confirm
+   the play starts with one Tool node targeting `account_enrichment`, contains no provider action,
+   and owns the only CRM update.
 7. Deploy only after the phase-one approval explicitly authorizes disabled resource creation.
 8. Show the operator direct Cargo UI links for the disabled play and tool, the approved field
    contract, exclusions, target counts, mappings, live action costs, exact estimated credits,
@@ -112,7 +113,8 @@ schedule.
 
 - the consumer file contains only the selected CRM action shapes
 - `account_enrichment` is a deployed workflow-backed tool with no CRM access
-- the compiled `account_enrichment` graph starts with a Filter and contains no CRM connector node
+- the compiled `account_enrichment` graph starts with an identifier Branch and contains no CRM
+  connector node
 - `enrich_accounts` is the disabled play; its row workflow contains one Tool node targeting
   `account_enrichment`, followed by the only CRM update, and contains no provider connector node
 - `node --import tsx evals/contract.mjs` passes against the adapted template

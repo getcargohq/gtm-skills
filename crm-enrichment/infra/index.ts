@@ -4,7 +4,6 @@ import {
   definePlay,
   defineTool,
   defineWorkflow,
-  defineWorkflowFromNodes,
 } from "@cargo-ai/cdk";
 import { z } from "zod";
 
@@ -29,177 +28,61 @@ const linkedin = defineConnector("linkedin", {
   adopt: true,
 });
 
-type EnrichmentInput = {
-  linkedinUrlOrHandle?: string;
-  domain?: string;
-};
+const enrichCompanyData = defineWorkflow(
+  "account_enrichment_workflow",
+  {
+    input: z.object({
+      linkedinUrlOrHandle: z.string().optional(),
+      domain: z.string().optional(),
+    }),
+    output: z.object({
+      company_id: z.string().optional(),
+      company_name: z.string().optional(),
+      domain: z.string().optional(),
+      website: z.string().optional(),
+      linkedin_url: z.string().optional(),
+      employee_count: z.number().optional(),
+    }),
+    uses: { linkedin },
+  },
+  ({ input, uses }) => {
+    // Keep the reusable tool safe when called outside the play. The play's
+    // managed segment already excludes rows without either identifier.
+    if (!input.linkedinUrlOrHandle && !input.domain) {
+      return {};
+    }
 
-type EnrichmentOutput = {
-  company_id?: string;
-  company_name?: string;
-  domain?: string;
-  website?: string;
-  linkedin_url?: string;
-  employee_count?: number;
-};
+    if (input.linkedinUrlOrHandle) {
+      const result = uses.linkedin.enrichCompany({
+        linkedinUrl: input.linkedinUrlOrHandle.startsWith("http")
+          ? input.linkedinUrlOrHandle
+          : `https://www.linkedin.com/company/${input.linkedinUrlOrHandle}`,
+      });
 
-const expression = (value: string) => ({
-  kind: "templateExpression" as const,
-  expression: value,
-  instructTo: "none",
-  fromRecipe: false,
-});
+      return {
+        company_id: result.company_id,
+        company_name: result.company_name,
+        domain: result.domain,
+        website: result.website,
+        linkedin_url: result.linkedin_url,
+        employee_count: result.employee_count,
+      };
+    }
 
-const outputVariables = (nodeSlug: string) => [
-  {
-    name: "company_id",
-    type: "string",
-    value: expression(`{{nodes.${nodeSlug}.company_id}}`),
-  },
-  {
-    name: "company_name",
-    type: "string",
-    value: expression(`{{nodes.${nodeSlug}.company_name}}`),
-  },
-  {
-    name: "domain",
-    type: "string",
-    value: expression(`{{nodes.${nodeSlug}.domain}}`),
-  },
-  {
-    name: "website",
-    type: "string",
-    value: expression(`{{nodes.${nodeSlug}.website}}`),
-  },
-  {
-    name: "linkedin_url",
-    type: "string",
-    value: expression(`{{nodes.${nodeSlug}.linkedin_url}}`),
-  },
-  {
-    name: "employee_count",
-    type: "number",
-    value: expression(`{{nodes.${nodeSlug}.employee_count}}`),
-  },
-];
+    const result = uses.linkedin.enrichCompanyFromDomain({
+      domain: input.domain,
+    });
 
-// Deliberate raw graph: the current defineWorkflow API has no Filter helper,
-// and its JavaScript conditionals compile to Branch nodes. This preserves the
-// required native Filter as the first gate while keeping provider calls exclusive.
-const enrichCompanyData = defineWorkflowFromNodes<
-  EnrichmentInput,
-  EnrichmentOutput
->("account_enrichment_workflow", {
-  formFields: [
-    {
-      slug: "linkedinUrlOrHandle",
-      name: "LinkedIn URL or handle",
-      kind: "string",
-      isRequired: false,
-    },
-    {
-      slug: "domain",
-      name: "Domain",
-      kind: "string",
-      isRequired: false,
-    },
-  ],
-  nodes: [
-    {
-      uuid: "10000000-0000-4000-8000-000000000001",
-      slug: "start",
-      kind: "native",
-      actionSlug: "start",
-      config: {},
-      childrenUuids: ["10000000-0000-4000-8000-000000000002"],
-      fallbackOnFailure: false,
-      position: { x: 0, y: 0 },
-    },
-    {
-      uuid: "10000000-0000-4000-8000-000000000002",
-      slug: "has_identifier",
-      name: "Has LinkedIn or domain identifier",
-      kind: "native",
-      actionSlug: "filter",
-      config: {
-        filter: expression(
-          '{{(nodes.start.linkedinUrlOrHandle !== undefined && nodes.start.linkedinUrlOrHandle !== null && nodes.start.linkedinUrlOrHandle !== "") || (nodes.start.domain !== undefined && nodes.start.domain !== null && nodes.start.domain !== "")}}',
-        ),
-      },
-      childrenUuids: ["10000000-0000-4000-8000-000000000003"],
-      fallbackOnFailure: false,
-      position: { x: 0, y: 166 },
-    },
-    {
-      uuid: "10000000-0000-4000-8000-000000000003",
-      slug: "prefer_linkedin",
-      name: "Prefer LinkedIn URL",
-      kind: "native",
-      actionSlug: "branch",
-      config: {
-        condition: expression(
-          '{{nodes.start.linkedinUrlOrHandle !== undefined && nodes.start.linkedinUrlOrHandle !== null && nodes.start.linkedinUrlOrHandle !== ""}}',
-        ),
-      },
-      childrenUuids: [
-        "10000000-0000-4000-8000-000000000004",
-        "10000000-0000-4000-8000-000000000005",
-      ],
-      fallbackOnFailure: false,
-      position: { x: 0, y: 332 },
-    },
-    {
-      uuid: "10000000-0000-4000-8000-000000000004",
-      slug: "enrich_by_linkedin",
-      name: "Enrich company from LinkedIn",
-      kind: "connector",
-      integrationSlug: "linkedin",
-      actionSlug: "enrichCompany",
-      connectorUuid: linkedin.uuid as unknown as string,
-      config: {
-        linkedinUrl: expression(
-          '{{nodes.start.linkedinUrlOrHandle.startsWith("http") ? nodes.start.linkedinUrlOrHandle : `https://www.linkedin.com/company/${nodes.start.linkedinUrlOrHandle}`}}',
-        ),
-      },
-      childrenUuids: ["10000000-0000-4000-8000-000000000006"],
-      fallbackOnFailure: false,
-      position: { x: -220, y: 498 },
-    },
-    {
-      uuid: "10000000-0000-4000-8000-000000000005",
-      slug: "enrich_by_domain",
-      name: "Enrich company from domain",
-      kind: "connector",
-      integrationSlug: "linkedin",
-      actionSlug: "enrichCompanyFromDomain",
-      connectorUuid: linkedin.uuid as unknown as string,
-      config: { domain: expression("{{nodes.start.domain}}") },
-      childrenUuids: ["10000000-0000-4000-8000-000000000007"],
-      fallbackOnFailure: false,
-      position: { x: 220, y: 498 },
-    },
-    {
-      uuid: "10000000-0000-4000-8000-000000000006",
-      slug: "end_linkedin",
-      kind: "native",
-      actionSlug: "end",
-      config: { variables: outputVariables("enrich_by_linkedin") },
-      childrenUuids: [],
-      fallbackOnFailure: false,
-      position: { x: -220, y: 664 },
-    },
-    {
-      uuid: "10000000-0000-4000-8000-000000000007",
-      slug: "end_domain",
-      kind: "native",
-      actionSlug: "end",
-      config: { variables: outputVariables("enrich_by_domain") },
-      childrenUuids: [],
-      fallbackOnFailure: false,
-      position: { x: 220, y: 664 },
-    },
-  ],
-});
+    return {
+      company_id: result.company_id,
+      company_name: result.company_name,
+      domain: result.domain,
+      website: result.website,
+      linkedin_url: result.linkedin_url,
+      employee_count: result.employee_count,
+    };
+  },
+);
 
 export const accountEnrichment = defineTool("account_enrichment", {
   workflow: enrichCompanyData,

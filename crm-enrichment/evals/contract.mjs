@@ -22,29 +22,56 @@ const findOne = (nodes, predicate, message) => {
 const child = (nodes, node) =>
   nodes.find((candidate) => candidate.uuid === node.childrenUuids[0]);
 
+const children = (nodes, node) =>
+  node.childrenUuids.map((uuid) =>
+    nodes.find((candidate) => candidate.uuid === uuid),
+  );
+
 const toolNodes = nodesFor("tool:account_enrichment");
 const toolStart = findOne(
   toolNodes,
   (node) => node.kind === "native" && node.actionSlug === "start",
   "account_enrichment must have one start node",
 );
-const identifierFilter = child(toolNodes, toolStart);
+const identifierGate = child(toolNodes, toolStart);
 assert.equal(
-  identifierFilter?.kind,
+  identifierGate?.kind,
   "native",
   "the tool's first node must be native",
 );
 assert.equal(
-  identifierFilter?.actionSlug,
-  "filter",
-  "the tool's first node must be a Filter",
+  identifierGate?.actionSlug,
+  "branch",
+  "the tool's first node must branch on identifier availability",
+);
+assert.match(
+  identifierGate.config.condition.expression,
+  /linkedinUrlOrHandle/,
+  "the identifier gate must inspect the LinkedIn input",
+);
+assert.match(
+  identifierGate.config.condition.expression,
+  /domain/,
+  "the identifier gate must inspect the domain input",
 );
 
-const providerBranch = child(toolNodes, identifierFilter);
+const identifierRoutes = children(toolNodes, identifierGate);
+const providerBranch = findOne(
+  identifierRoutes,
+  (node) => node?.kind === "native" && node.actionSlug === "branch",
+  "the identifier gate must continue to one provider-routing Branch",
+);
+findOne(
+  identifierRoutes,
+  (node) => node?.kind === "native" && node.actionSlug === "end",
+  "the identifier gate must end without a provider call when both identifiers are absent",
+);
 assert.equal(
-  providerBranch?.actionSlug,
-  "branch",
-  "provider routing must follow the identifier Filter",
+  toolNodes.some(
+    (node) => node.kind === "native" && node.actionSlug === "filter",
+  ),
+  false,
+  "the defineWorkflow tool must express its gates as code-generated Branch nodes",
 );
 
 const providerNodes = toolNodes.filter(
@@ -148,5 +175,5 @@ assert.equal(
 );
 
 console.log(
-  "ok: account_enrichment is a Filter-first provider tool; enrich_accounts calls it before the only CRM write",
+  "ok: account_enrichment is a Branch-gated provider tool; enrich_accounts calls it before the only CRM write",
 );
