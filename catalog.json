@@ -124,7 +124,7 @@
       "version": "0.1.0",
       "homepage": "https://github.com/getcargohq/gtm-skills/tree/main/crm-dedup",
       "group": "Make it run forever",
-      "install": "npx skills add getcargohq/gtm-skills/crm-dedup",
+      "install": "cargo-ai cdk add cookbook/crm-dedup",
       "partOf": [],
       "state": "to-be-approved",
       "chain": 4,
