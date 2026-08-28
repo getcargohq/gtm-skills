@@ -2,16 +2,17 @@
 
 Use this branch after enrichment has produced healthy LinkedIn company ID, LinkedIn URL, and domain
 coverage, or immediately for a deduplication-only request when the live audit already proves that
-coverage. The checked pipeline audits and proposes. It never merges CRM records.
+coverage. The build is one disabled play directly on the existing CRM account model. It does not
+create a candidate or staging model.
 
 ## Contents
 
 - [Audit contract](#audit-contract)
-- [Classification](#classification)
-- [Survivor policy](#survivor-policy)
-- [Candidate materialization](#candidate-materialization)
-- [Proposal play](#proposal-play)
-- [Consumer-only merge contracts](#consumer-only-merge-contracts)
+- [Candidate classes](#candidate-classes)
+- [Build the CRM-model play](#build-the-crm-model-play)
+- [Score and survivor policy](#score-and-survivor-policy)
+- [Merge and manual-review gates](#merge-and-manual-review-gates)
+- [Pilot and report](#pilot-and-report)
 - [Complete when](#complete-when)
 
 ## Audit contract
@@ -25,7 +26,6 @@ cluster once, and rank its survivor deterministically. Write
 {
   "generated_at": "ISO-8601 timestamp",
   "crm": "hubspot|salesforce|attio",
-  "audit_run_id": "stable identifier for this approved audit",
   "source_model_slug": "crm_accounts",
   "record_id_field": "hs_object_id",
   "total_accounts": 0,
@@ -52,6 +52,12 @@ cluster once, and rank its survivor deterministically. Write
   "policy": {
     "status": "pending_operator_approval|approved",
     "protected_id_fields": [],
+    "score": {
+      "linkedin_company_id": 60,
+      "linkedin_url": 25,
+      "non_generic_domain": 15
+    },
+    "automatic_merge_class": "exact_unique_linkedin_without_conflict",
     "survivor_precedence": [
       "protected_id",
       "customer",
@@ -63,39 +69,81 @@ cluster once, and rank its survivor deterministically. Write
       "created_at",
       "record_id"
     ],
-    "review_owner": "operator-approved owner"
+    "review_owner": "operator-approved owner",
+    "review_channel": "operator-approved Slack channel"
   }
 }
 ```
 
 Markdown headings are `Summary`, `Identifier coverage`, `Match classes`, `Conflicts and
-exclusions`, `Survivor policy`, and `Sample review queue`. JSON, Markdown, and chat must agree on
-every count. Every table reports count, percentage of audited accounts, and sampled CRM record IDs.
-Keep duplicate account clusters separate from the `duplicate_properties` schema audit in
-[`audit.md`](audit.md). Similar field names are a schema concern; multiple CRM rows for one company
-are a record-identity concern.
+exclusions`, `Score and automatic gate`, `Survivor policy`, and `Sample review queue`. JSON,
+Markdown, and chat must agree on every count. Every table reports count, percentage of audited
+accounts, and sampled CRM record IDs. Keep duplicate account clusters separate from the
+`duplicate_properties` schema audit in [`audit.md`](audit.md). Similar field names are a schema
+concern; multiple CRM rows for one company are a record-identity concern.
 
-## Classification
+## Candidate classes
 
-Use only normalized LinkedIn company ID, LinkedIn URL or handle, and domain as candidate keys.
-Company name alone is not a candidate key.
+Use only normalized LinkedIn company ID, LinkedIn URL or handle, and non-generic domain as candidate
+keys. Company name alone is not a candidate key.
 
-| Candidate                                                                                        | Result                                                                                 |
-| ------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------- |
-| Exact LinkedIn company ID on every record, with no conflicting non-null identity or protected ID | Future automatic class only after a fresh live reread and consumer-side merge approval |
-| LinkedIn URL or handle only                                                                      | Review only                                                                            |
-| Domain only                                                                                      | Review only                                                                            |
-| Junk or shared domain                                                                            | Review only                                                                            |
-| Parent, subsidiary, brand, division, or regional entity                                          | Review only                                                                            |
-| Conflicting identity or protected ID                                                             | Exclude or review                                                                      |
-| AI-assisted judgement                                                                            | Review evidence only                                                                   |
+| Candidate                                                                                                                | Execution path                                                  |
+| ------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------- |
+| Exact LinkedIn company ID on every record, with no conflicting identity, protected ID, or parent-subsidiary relationship | Automatic merge after score and fresh CRM search                |
+| LinkedIn URL or handle only                                                                                              | Human Review                                                    |
+| Domain only                                                                                                              | Human Review                                                    |
+| Junk or shared domain                                                                                                    | Exclude unless another supported key matches, then Human Review |
+| Parent, subsidiary, brand, division, or regional entity                                                                  | Human Review                                                    |
+| Conflicting identity or protected ID                                                                                     | Human Review or decline                                         |
+| AI-assisted judgement                                                                                                    | Evidence for Human Review only                                  |
 
 The class slugs are mutually exclusive. Count `identity_conflict` and `protected_id_conflict`
 separately because one conflict cluster can carry both flags.
 
-## Survivor policy
+## Build the CRM-model play
 
-The default precedence in `selectSurvivor` is:
+Reuse `crm_accounts` as `deduplicate_accounts.model`. Remove any `account_duplicate_candidates`
+resource. The play's filter requires the audited CRM record ID and at least one supported identifier.
+Keep `isEnabled: false`, `runCreationRule: noConcurrency`, `limit: 15`, and a daily schedule.
+
+For the checked HubSpot shape, verify the live integration before adaptation:
+
+```sh
+cargo-ai connection integration get hubspot
+```
+
+The checked graph uses these live actions:
+
+| Node                     | HubSpot action | Purpose                                                 | Required payload                                            |
+| ------------------------ | -------------- | ------------------------------------------------------- | ----------------------------------------------------------- |
+| Find duplicate companies | `findRecords`  | Search live companies using non-empty identity criteria | `objectType`, `criterias[]` with `propertyName` and `value` |
+| Merge exact cluster      | `mergeRecords` | Merge automatically approved child records              | `objectType`, `primaryId`, `idsToMerge`                     |
+| Merge reviewed cluster   | `mergeRecords` | Merge only after Human Review approval                  | `objectType`, `primaryId`, `idsToMerge`                     |
+
+`findRecords` skips empty criterion values. Pass LinkedIn company ID, LinkedIn company page, and
+domain. Retain the source CRM row exactly once in the cluster, normalize all candidate values, and
+reject a generic-domain-only match. The search is the fresh CRM reread for that run. Do not replace
+it with an audit snapshot.
+
+Add one adopted Slack connector for Cargo's native Human Review node. Set connector cache duration
+to 15 days. Replace `PLACEHOLDER_REVIEW_CHANNEL_ID` with the approved channel before planning. If no
+review connector and channel can be resolved, keep the play disabled and stop before a pilot.
+
+## Score and survivor policy
+
+The compiled graph contains one native Scoring node after candidate preparation:
+
+| Evidence                                                | Score |
+| ------------------------------------------------------- | ----: |
+| Exact LinkedIn company ID across the cluster            |    60 |
+| Exact LinkedIn company URL or handle across the cluster |    25 |
+| Exact non-generic domain across the cluster             |    15 |
+
+The score explains confidence. It does not replace the conflict gate. A score of at least 60 can
+merge automatically only when exact LinkedIn company ID is present across the cluster and every
+conflict flag is false. A LinkedIn URL plus domain score remains manual even when both agree.
+
+The default survivor precedence in `selectSurvivor` and `selectDuplicateSurvivorScript` is:
 
 1. record with a protected business ID
 2. customer record
@@ -108,80 +156,60 @@ The default precedence in `selectSurvivor` is:
 9. lexicographically smallest CRM record ID
 
 Present detected billing, customer, and external-system IDs before asking for policy approval.
-Record every approved override and its exact precedence. The candidate materialization orders CRM
-record IDs with the selected survivor first and writes the same ID to `survivor_id`.
+Map the approved protected-ID and parent-company properties into the checked workflow fields. Update
+both survivor implementations together when the operator changes precedence.
 
-## Candidate materialization
+## Merge and manual-review gates
 
-Materialize candidates only after the operator approves the refreshed audit and a maximum
-15-cluster proposal run. Every `account_duplicate_candidates` row contains:
+The automatic branch requires all of these:
 
-- non-empty `audit_run_id` matching the approved audit artifact
-- non-empty `cluster_id`
-- `source_model_slug: crm_accounts`
-- at least two distinct `ordered_record_ids`, with the survivor first
-- non-empty `survivor_id`
-- one exact `match_class`
-- normalized LinkedIn company ID when applicable
-- identity and protected-ID conflict flags
-- `stale: false` from the final live reread
+- at least one other CRM record remains after removing the source row
+- duplicate score is at least 60
+- every record has the same non-empty normalized LinkedIn company ID
+- no non-null LinkedIn ID, LinkedIn URL, or domain conflicts
+- no protected business ID conflict
+- no parent-subsidiary relationship inside the cluster
 
-Reject a row when cluster membership, identity values, protected IDs, or the survivor changed after
-approval. Do not encode Attio record IDs as a string. Preserve the ordered array.
+The yes path calls `mergeRecords` with the deterministic survivor as `primaryId` and every other CRM
+record ID as `idsToMerge`. The no path enters native Human Review. The review message shows the
+score, survivor, and child IDs. Approval calls the same merge action. Decline or timeout ends with
+`review_declined_or_timed_out` and makes no CRM write.
 
-Resolve the candidate model UUID from `cargo.state.json`, then run
-`cargo-ai storage model get-ddl <modelUuid>` before any write. Query the exact table for the approved
-`audit_run_id`; stop if rows already exist, because bulk create is not an idempotent retry. Re-read
-the live Cargo API schema, then insert the approved rows with `POST /storage/records/createBulk`:
+Run `node --import tsx evals/contract.mjs` after every adaptation. It checks the direct CRM-model
+binding, absence of a staging model, CRM search, native score, automatic gate, Human Review routes,
+merge nodes, classifier, normalization, survivor precedence, and pilot controls.
 
-```json
-{
-  "modelUuid": "resolved candidate model UUID",
-  "records": [
-    { "data": { "audit_run_id": "approved audit", "cluster_id": "cluster" } }
-  ]
-}
-```
+## Pilot and report
 
-Send the full approved candidate contract in each `data` object. Verify the response count and
-query the model again before running proposals. A count mismatch is a blocker, not a partial pilot.
+The disabled play can mutate CRM records when a pilot runs. After deployment, send the direct play
+URL and ask the operator to approve all of these in one concrete gate:
 
-## Proposal play
+- maximum 15 enrolled CRM rows
+- exact automatic-merge class and score
+- protected-ID and parent-subsidiary guards
+- deterministic survivor precedence
+- Slack review connector, channel, owner, and timeout
+- current CRM, Slack, and optional AI action costs
 
-`deduplicate_accounts` consumes the native candidate model and emits a reasoned review proposal. It
-is disabled, uses `noConcurrency`, and is limited to 15 clusters. The compiled workflow is
-deterministic and contains native nodes only. Every outcome returns `approvedForMerge: false`.
-
-Run `node --import tsx evals/contract.mjs` after every adaptation. It checks the candidate schema,
-proposal-only graph, disabled pilot controls, classifier, normalization, and survivor precedence.
-
-Structured AI review is optional. Add it only after the operator approves its current model cost,
-and keep the result as evidence. It never changes `approvedForMerge` or selects the survivor.
-
-## Consumer-only merge contracts
-
-The checked pipeline contains no merge action. If a consumer later implements merge execution,
-re-read the live integration schema and require a fresh CRM reread plus protected-ID guards before
-every pair:
-
-| CRM        | Action         | Payload shape to verify live                         |
-| ---------- | -------------- | ---------------------------------------------------- |
-| HubSpot    | `mergeRecords` | `{ objectType, primaryId, idsToMerge }`              |
-| Salesforce | `mergeRecords` | `{ objectType, masterId, idToMerge }`                |
-| Attio      | `mergeRecords` | `{ objectType, primaryRecordId, secondaryRecordId }` |
-
-For Attio, validate each response and use its replacement record ID as the next primary ID. Fetch
-the current action limit before implementation. These details belong in a consumer-only merge
-workflow after separate operator approval, never in this repository example.
+Do not run the pilot on field-contract approval alone. After the approved run, report every
+`no_duplicates`, `source_missing_or_changed`, `merged_automatically`, `merged_after_review`, and
+`review_declined_or_timed_out` outcome. Include source IDs, survivor ID, score, conflict flags,
+reviewer when present, CRM response, failures, and the direct play link. Re-read the surviving CRM
+record and confirm every child ID no longer resolves as an independent company.
 
 ## Complete when
 
 - identifier coverage and candidate counts agree across JSON, Markdown, and chat
-- every cluster has at least two distinct CRM record IDs and one deterministic survivor
-- classification uses the exact mutually exclusive slugs and records both conflict flags
-- the operator approved protected IDs, survivor precedence, review ownership, and the exact pilot
-- the candidate model contains only fresh, approved clusters from `crm_accounts`
-- the disabled proposal play is limited to 15 clusters, uses `noConcurrency`, and contains no merge
-  or paid action
-- every output keeps `approvedForMerge: false`
-- the report names every proposal, conflict, exclusion, and direct Cargo link
+- the CDK plan contains one CRM account model and no candidate or staging model
+- `deduplicate_accounts` runs directly on `crm_accounts`
+- the compiled path is CRM search, evidence preparation, native Scoring, deterministic survivor
+  selection, automatic gate, then CRM merge or native Human Review
+- company name never creates or scores a candidate
+- the automatic path requires exact shared LinkedIn company ID and every conflict guard
+- deterministic survivor selection agrees between the audit and workflow script
+- Human Review approval reaches `merge_after_review`; decline and timeout reach the no-write end
+- the play is disabled, uses `noConcurrency`, and limits the pilot to 15 CRM rows
+- current CRM and review action schemas and costs were checked before pilot approval
+- the operator approved the exact pilot and merge policy before execution
+- the final report accounts for every search, score, review decision, merge, decline, timeout,
+  survivor, exclusion, and failure

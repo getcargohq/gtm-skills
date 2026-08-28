@@ -69,8 +69,9 @@ In `infra/index.ts`, edit these together:
 - `crmAccounts`: the live account extractor
 - `enrichCrmAccount`: the write mappings, matching property, and fill-blank guard
 - `enrichAccounts`: the play filter slugs, which must be columns on `crm_accounts`
-- `accountDuplicateCandidates`: the approved proposal schema sourced from the same CRM record IDs
-- `deduplicateAccounts`: the disabled, proposal-only play over classified candidate clusters
+- `manualReviewConnector` and `manualReviewChannelId`: the approved Slack review destination
+- `deduplicateCrmAccount`: CRM search fields, score, conflict guards, survivor fields, and merge actions
+- `deduplicateAccounts`: the disabled play directly on `crm_accounts`
 
 The checked repository example extracts HubSpot companies (`fetchRecords`,
 `objectType: "companies"`) and writes with `updateRecords` matching
@@ -112,18 +113,19 @@ action as the mutually exclusive fallback.
 
 ## Deduplication resources
 
-The duplicate audit reads `crm_accounts` directly and uses the pure normalizers, classifier, and
-survivor ranking in `infra/index.ts`. It materializes only operator-approved clusters into the
-native `account_duplicate_candidates` model. Each row sets `source_model_slug` to `crm_accounts`,
-names the approved `audit_run_id`, keeps CRM record IDs as an ordered array with the survivor first,
-and carries the same survivor ID, match class, normalized LinkedIn company ID, conflict flags, and
-fresh-reread state shown in the audit.
+The duplicate audit and `deduplicate_accounts` both use `crm_accounts`. Do not create a native
+candidate model. The play searches the live CRM for each enrolled row, retains that source row
+exactly once, normalizes candidate identity, scores the cluster, and then selects the survivor
+before the merge gate.
 
-`deduplicate_accounts` consumes that candidate model. It is not a second CRM extract and does not
-call the CRM connector. Keep the generic proposal schema when adapting HubSpot to Salesforce or
-Attio; only the record ID field used by the audit changes. Follow
-[`deduplicate.md`](deduplicate.md) for classification, survivor precedence, operator approval, and
-consumer-only merge contracts.
+The HubSpot example uses `findRecords` with `linkedin_company_id`, `linkedin_company_page`, and
+`domain`, then `mergeRecords` with `{ objectType, primaryId, idsToMerge }`. Re-read live generated
+types before adapting Salesforce or Attio; replace the search and merge action payloads in the same
+file. Map the audited protected business ID and parent-company properties into
+`prepareDuplicateEvidenceScript`. Replace `PLACEHOLDER_REVIEW_CHANNEL_ID` with the approved Slack
+channel. Keep the native Scoring and Human Review nodes when changing CRM. Follow
+[`deduplicate.md`](deduplicate.md) for classification, score, survivor precedence, automatic merge,
+manual review, and pilot approval.
 
 ## Complete when
 
@@ -135,5 +137,7 @@ consumer-only merge contracts.
   approved transformation
 - the managed segment trigger excludes rows with no identifier but allows populated stale rows;
   the approved per-field policy decides fill blank versus refresh
-- every deduplication candidate contains fresh CRM record IDs from `crm_accounts`, and the selected
-  CRM shape does not introduce another connector or account extract
+- `deduplicate_accounts` runs directly on `crm_accounts`, and the selected CRM shape introduces no
+  candidate or staging model
+- the CRM search, score, conflict guards, survivor fields, merge action, and Human Review destination
+  match the approved live schemas and policy

@@ -1,7 +1,7 @@
 ---
 name: crm-enrichment
-description: 'Keep CRM accounts complete, current, and duplicate-safe: enrich approved blank or stale firmographics, then audit and emit proposal-only duplicate clusters. Triggers: "keep our CRM accounts filled", "keep our CRM companies filled", "enrich my CRM", "CRM enrichment", "old firmographics keep going stale", "every new CRM account", "refresh stale firmographics", "deduplicate our CRM accounts", "merge duplicate companies in HubSpot", "set up recurring account deduplication", "clean duplicate account records". HubSpot, Salesforce, Attio, LinkedIn, Cargo CDK. Skip when: the records are not in a CRM. A supplied company list is enrich-company-data.'
-version: "0.7.0"
+description: 'Keep CRM accounts complete, current, and duplicate-safe: enrich approved blank or stale firmographics, then find, score, and merge duplicate CRM companies with a manual-review fallback. Triggers: "keep our CRM accounts filled", "keep our CRM companies filled", "enrich my CRM", "CRM enrichment", "old firmographics keep going stale", "every new CRM account", "refresh stale firmographics", "deduplicate our CRM accounts", "merge duplicate companies in HubSpot", "set up recurring account deduplication", "clean duplicate account records". HubSpot, Salesforce, Attio, LinkedIn, Cargo CDK. Skip when: the records are not in a CRM. A supplied company list is enrich-company-data.'
+version: "0.8.0"
 compatibility: "Requires the cargo-cdk skill, a Cargo CDK project, and @cargo-ai/cdk ^1.0.51. The repository example does not deploy or access a CRM until an agent adapts it in the consumer project."
 homepage: https://github.com/getcargohq/gtm-skills/tree/main/crm-enrichment
 metadata:
@@ -32,13 +32,15 @@ successful fill is older than six months comes back. The play runs on `crm_accou
 account extract — and writes back with that row's CRM record id. It does not overwrite a value
 that is already there.
 
-The same pipeline audits duplicate CRM account identity after matching-key coverage is healthy. It
-normalizes LinkedIn company ID, LinkedIn URL or handle, and domain; ranks one deterministic
-survivor; and emits disabled, non-destructive review proposals. The checked resources never merge
-CRM records. A deduplication-only request may start at the deduplication audit in
-[`references/deduplicate.md`](references/deduplicate.md). If the audit finds weak identifier
-coverage, present enrichment as the recommended prerequisite instead of manufacturing confidence
-from names or domains alone.
+The same pipeline deduplicates the source CRM after matching-key coverage is healthy. One disabled
+play runs directly on `crm_accounts`, searches the CRM for companies sharing LinkedIn company ID,
+LinkedIn URL, or non-generic domain, scores the cluster, selects one survivor, and either merges or
+pauses for manual validation. Exact shared LinkedIn company ID with no identity, protected-ID, or
+parent-subsidiary conflict is the only automatic class. Every other class reaches Cargo's native
+Human Review node; approval merges and decline or timeout keeps the records separate. A
+deduplication-only request may start at [`references/deduplicate.md`](references/deduplicate.md).
+If the audit finds weak identifier coverage, present enrichment as the recommended prerequisite
+instead of manufacturing confidence from names alone.
 
 The checked example in `infra/index.ts` is HubSpot (`hs_object_id`, companies
 object, `updateRecords` + `skipIfExist`). Salesforce and Attio are the same file adapted:
@@ -81,7 +83,7 @@ flowchart LR
   audit["1. Audit and enrichment recommendation"] -->|"Approve fields and disabled build"| build["2. Build disabled play and tool"]
   build -->|"Review Cargo links and approve cost"| run["3. Run enrichment"]
   run --> report["Enrichment report"]
-  report -->|"Matching-key coverage is healthy"| dedup["4. Deduplication audit and proposal review"]
+  report -->|"Matching-key coverage is healthy"| dedup["4. Deduplication build and guarded merge"]
 ```
 
 Every substantive message starts with the current phase and ends with a `Next step` section. Give
@@ -106,13 +108,15 @@ checkpoint. Never end with a generic offer to help.
    before-and-after fill rate for every approved property, processed and outcome counts, failures,
    actual credits against estimate, and direct Cargo links. End with a recommended next action:
    remediate failures, approve recurring daily coverage, or move to account deduplication.
-4. **Deduplication audit and proposal review.** Re-audit the current `crm_accounts` records, derive
-   matching-key coverage and mutually exclusive candidate classes, and present protected-ID and
-   survivor-policy evidence. Ask the operator to approve the deduplication policy and a maximum
-   15-cluster proposal run. Materialize only the approved candidates into
-   `account_duplicate_candidates`, run the disabled `deduplicate_accounts` play, and report every
-   proposal, conflict, exclusion, and direct Cargo link. The phase ends at review proposals. CRM
-   merge execution remains outside this checked pipeline.
+4. **Deduplication build and guarded merge.** Re-audit `crm_accounts`, derive matching-key coverage
+   and mutually exclusive candidate classes, and present the protected-ID fields, survivor policy,
+   60/25/15 evidence score, automatic-merge class, and Slack review destination. After approval,
+   adapt and deploy one disabled `deduplicate_accounts` play on `crm_accounts`. Its compiled graph is
+   CRM `findRecords` -> deterministic evidence preparation -> native Scoring -> deterministic
+   survivor selection -> automatic-merge Branch -> CRM `mergeRecords` or native Human Review. Send
+   the play link and exact 15-record pilot population. Run only after the operator explicitly
+   approves the automatic merge policy, manual review destination, and pilot. Report every
+   automatic merge, approved merge, decline, timeout, conflict, exclusion, and surviving CRM record.
 
 ## Put it in your project
 
@@ -166,9 +170,10 @@ before audit or template work if the skill cannot be installed or read.
    maximum cost.
 6. **Run and report.** Execute enrichment only after the second approval. Monitor the approved scope
    and return the result report from [`references/run.md`](references/run.md). When deduplication is
-   in scope, refresh its audit after enrichment and stop again for approval of the exact candidate
-   population before materializing or running proposals. Walk _Done when_ line by line. Deployed
-   cleanly and produced nothing is the normal failure.
+   in scope, refresh its audit after enrichment, adapt the direct CRM-model play, and stop again for
+   approval of the exact pilot, automatic-merge policy, and manual-review destination before any
+   merge-capable run. Walk _Done when_ line by line. Deployed cleanly and produced nothing is the
+   normal failure.
 
 ## What you will be asked
 
@@ -183,8 +188,9 @@ _asked_ genuinely live in the operator's head.
 | `target_population`       | derived | Count eligible rows by mutually exclusive route after field approval                                   | It makes the cost estimate reproducible                              |
 | `approved_run`            | asked   | Review the disabled Cargo links, target, and exact maximum credits                                     | It is the explicit gate before any enrichment call                   |
 | `deduplication_evidence`  | derived | Normalize live CRM identifiers, classify candidate clusters, and rank survivors                        | It exposes key coverage, conflicts, and review risk                  |
-| `approved_dedup_policy`   | asked   | Review protected IDs, survivor exceptions, and the queue owner from audited evidence                   | It governs proposal generation without authorizing a merge           |
-| `approved_dedup_run`      | asked   | Review the refreshed cluster counts and approve at most 15 proposal clusters                           | It is the gate before candidate materialization and proposal runs    |
+| `approved_dedup_policy`   | asked   | Review protected IDs, survivor exceptions, automatic-merge class, and 60/25/15 score                   | It governs which clusters can merge without a human                  |
+| `manual_review`           | asked   | Select the Slack connector, channel, owner, and timeout for native Human Review                        | Every non-automatic cluster needs an accountable decision path       |
+| `approved_dedup_run`      | asked   | Review the disabled play link and approve at most 15 CRM rows for the merge-capable pilot              | It is the explicit gate before any CRM merge can execute             |
 
 Checked before moving on, not after the deploy:
 
@@ -195,10 +201,12 @@ Checked before moving on, not after the deploy:
   LinkedIn and domain route counts are mutually exclusive and reproduce the credit estimate
 - `approved_run`: direct Cargo UI links resolve, the play is disabled, and the operator approved
   the stated population and maximum cost
-- `approved_dedup_policy`: exact matching classes, protected-ID conflicts, survivor precedence,
-  and review ownership are recorded
-- `approved_dedup_run`: the candidate model and deduplication play links resolve, the play is
-  disabled, and the operator approved the stated cluster population
+- `approved_dedup_policy`: exact matching classes, 60/25/15 score, protected-ID conflicts,
+  survivor precedence, and the automatic-merge class are recorded
+- `manual_review`: the Slack connector and channel resolve, and approval, decline, and timeout paths
+  are visible in the compiled graph
+- `approved_dedup_run`: the deduplication play link resolves, the play is disabled, and the operator
+  approved the stated CRM-row population and merge policy
 
 The first operator question comes after the field candidates are derived. Do not ask whether they
 want "more fields" without showing the choices. Present a concise field-contract table and ask
@@ -218,8 +226,8 @@ waiting to be asked. Every one costs something; that is what makes it a variatio
 | `selected_fields`           | The approved contract differs from the starting recommendation  | Present every live candidate at the field-selection gate. After approval, change the result schema, destinations, per-field write policy, and both provider mappings in `infra/index.ts`. Industry requires an approved array-to-enum transformation when the CRM destination is a single enum.                                                                                     | Each added field expands mapping and type review                                     |
 | `eligibility`               | Only a governed subset should be enriched                       | Intersect the play filter with approved lifecycle, tier, ownership, or gap conditions (`infra/index.ts` `enrichAccounts`)                                                                                                                                                                                                                                                           | Narrower scope reduces coverage and paid calls                                       |
 | `approved_refresh_behavior` | Populated fields must be refreshed after explicit approval      | Drop `skipIfExist` / the read-then-omit guard on the approved fields only, preview the replacements, and compare against a fresh CRM read (`infra/index.ts`)                                                                                                                                                                                                                        | Refresh can overwrite CRM-authoritative values if the preview and the write disagree |
-| `survivor_precedence`       | A protected lifecycle, tier, billing, or customer rule must win | Insert the rule deterministically in `selectSurvivor`, record its exact precedence, and refresh all affected candidates before review                                                                                                                                                                                                                                               | A policy change can select a different survivor for every cluster                    |
-| `structured_ai_review`      | Ambiguous domain evidence needs a review aid                    | Add a structured reviewer only after pricing the selected model. Keep its result as evidence and outside `approvedForMerge`                                                                                                                                                                                                                                                         | Adds current language-model usage and a non-deterministic review surface             |
+| `survivor_precedence`       | A protected lifecycle, tier, billing, or customer rule must win | Update both `selectSurvivor` and `selectDuplicateSurvivorScript`, record the exact precedence, and refresh all affected CRM rows before review                                                                                                                                                                                                                                      | A policy change can select a different survivor for every cluster                    |
+| `structured_ai_review`      | Ambiguous domain evidence needs a review aid                    | Add structured AI evidence before Human Review only after pricing the selected model. AI cannot enter the automatic-merge condition or select the survivor                                                                                                                                                                                                                          | Adds current language-model usage and a non-deterministic review surface             |
 
 ## What should not change
 
@@ -234,16 +242,22 @@ it if you still want it, and records why under `## Decisions` in your copy of th
 - **Fill approved blanks only.** (`infra/index.ts` `skipIfExist` or the Salesforce/Attio read-then-omit guard) A stale snapshot overwrites authoritative CRM data, including numeric zero.
 - **Eligibility and freshness live in the play trigger.** (`infra/index.ts` `enrichAccounts`) Require an identifier and freshness null or older than six months in the managed segment. Destination fill-state is not an eligibility condition: an approved refresh must be able to re-enrich populated stale fields. The row workflow starts with the reusable tool call instead of repeating trigger conditions as branches. A standalone `defineSegment` or duplicate workflow gate drifts from the play.
 - **The first play is disabled and `noConcurrency`.** (`infra/index.ts`) Removing those expands an unapproved pilot.
-- **Deduplication consumes classified clusters from `crm_accounts`.** (`infra/index.ts`) The
-  `account_duplicate_candidates` model carries the approved audit run ID, ordered CRM record IDs,
-  and the audited survivor. Running the proposal play on individual CRM rows loses cluster evidence
-  and makes survivor selection depend on input order.
-- **Deduplication remains proposal-only.** (`infra/index.ts`) Every shipped outcome keeps
-  `approvedForMerge: false`; `deduplicate_accounts` contains no CRM, provider, tool, agent, or merge
-  action. Company name alone never creates a candidate. LinkedIn URL, domain, parent or subsidiary,
-  conflict, and AI-assisted classes stay review-only.
-- **The deduplication pilot is disabled, `noConcurrency`, and limited to 15 clusters.**
-  (`infra/index.ts`) A wider or concurrent run expands an unapproved review surface.
+- **Deduplication runs directly on `crm_accounts`.** (`infra/index.ts`) `deduplicate_accounts` uses
+  the same CRM extract as enrichment and begins with a fresh CRM `findRecords` search. A staging
+  model duplicates the source, adds materialization work, and cannot perform the requested merge.
+- **Search, score, then decide.** (`infra/index.ts`) After CRM search, deterministic evidence
+  preparation retains the fresh source exactly once and normalizes candidate keys. One native
+  Scoring node scores the cluster, then a deterministic script selects the survivor before the
+  merge gate. The checked 100-point score is LinkedIn company ID 60, LinkedIn URL 25, and
+  non-generic domain 15. Company name alone never creates or scores a candidate.
+- **Only the narrow automatic class bypasses review.** (`infra/index.ts`) The automatic branch
+  requires an exact shared LinkedIn company ID, score at least 60, and no identity, protected-ID, or
+  parent-subsidiary conflict. Every other candidate reaches native Human Review. Approval runs the
+  reviewed CRM merge; decline or timeout keeps records separate. AI evidence cannot authorize a
+  merge or choose the survivor.
+- **The deduplication pilot is disabled, `noConcurrency`, and limited to 15 CRM rows.**
+  (`infra/index.ts`) A wider or concurrent run can enqueue overlapping clusters and duplicate merge
+  attempts.
 - **No credentials, deploy commands, or customer data in this repository.**
 
 ## Done when
@@ -274,12 +288,15 @@ it if you still want it, and records why under `## Decisions` in your copy of th
   credits against estimate, and one recommended next step
 - the deduplication audit reports identifier coverage, mutually exclusive match classes, conflicts,
   protected IDs, and the deterministic survivor for every candidate cluster
-- `account_duplicate_candidates` carries the approved audit run ID and ordered CRM record IDs from
-  `crm_accounts`, and `deduplicate_accounts` is disabled, `noConcurrency`, and limited to 15 clusters
-- the compiled deduplication workflow contains no connector, tool, agent, provider, or merge action;
-  every proposal keeps `approvedForMerge: false`
-- the operator approved the exact candidate population before proposal generation, and the final
-  report includes every proposal, conflict, exclusion, and direct Cargo link
+- `deduplicate_accounts` runs on `crm_accounts`; no candidate or staging model exists
+- its compiled workflow contains one CRM `findRecords` search, one native Scoring node, a guarded
+  automatic branch, native Human Review, and CRM merge actions only on automatic or approved paths
+- the 60/25/15 score and exact-ID conflict guards match the approved policy, and deterministic
+  survivor selection is identical in the audit and workflow script
+- the Slack review connector and channel resolve; approve reaches `merge_after_review`, while decline
+  and timeout reach `review_declined` without a CRM write
+- the operator approved the exact 15-row maximum pilot and merge policy before execution, and the
+  final report includes every merge, review decision, conflict, exclusion, survivor, and direct link
 
 ## What it costs
 
@@ -296,9 +313,11 @@ are preserved or refreshed. Recompute the target and credit preview after approv
 segment count.
 Deduplication follows enrichment because the new matching keys improve duplicate detection.
 
-The checked deduplication proposal play invokes no provider, AI, or CRM action, so it has no
-provider-credit charge. If the consumer adds structured AI review or a live CRM action, fetch and
-present the current cost before activation. A proposal is never approval to merge.
+The checked deduplication play uses CRM search and merge actions plus Slack Human Review. The live
+HubSpot schema currently reports no Cargo credit cost for `findRecords` or `mergeRecords`, but
+re-read the selected CRM and Slack action metadata before every pilot and report any current charge.
+If the consumer adds structured AI evidence, price it separately. Human approval authorizes only
+the cluster shown in that review message.
 
 Do not enable the daily schedule until the disabled pilot has passed. Enabling is not an
 input; it is the last yes after _Done when_.

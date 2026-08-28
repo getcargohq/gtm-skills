@@ -87,5 +87,5 @@
 {"prompt": "Every new CRM company should get standard identity and firmographics, then be refreshed when it goes stale", "expect": "crm-enrichment"}
 {"prompt": "Deduplicate our CRM accounts and keep the ambiguous company matches in review", "expect": "crm-enrichment"}
 {"prompt": "Set up recurring account deduplication in Cargo", "expect": "crm-enrichment"}
-{"prompt": "Merge duplicate companies in HubSpot, but show me safe proposals before changing records", "expect": "crm-enrichment"}
+{"prompt": "Merge duplicate companies in HubSpot automatically when confidence is high, and ask me to review uncertain matches", "expect": "crm-enrichment"}
 {"prompt": "Our CRM has duplicate account records sharing LinkedIn company IDs and domains", "expect": "crm-enrichment"}

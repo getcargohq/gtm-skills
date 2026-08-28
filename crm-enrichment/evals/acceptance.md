@@ -43,10 +43,12 @@ Walk every line. A checked template without an evidence-backed consumer adaptati
 - Phase three reports before-and-after fill rates per approved destination, all processed outcomes,
   failures, actual credits against estimate, direct Cargo links, and one recommended next step.
 - Phase four refreshes the duplicate-account audit after enrichment, presents identifier coverage,
-  candidate classes, conflicts, protected IDs, and survivor precedence, then asks for approval of
-  at most 15 proposal clusters.
-- Phase four ends with proposal, conflict, exclusion, and survivor evidence plus direct Cargo links.
-  It never asks for or implies approval to merge CRM records.
+  candidate classes, conflicts, protected IDs, 60/25/15 score, survivor precedence, automatic-merge
+  class, and Slack review destination.
+- Phase four deploys one disabled deduplication play directly on `crm_accounts`, sends its Cargo
+  link, and asks for explicit approval of at most 15 CRM rows plus the merge-capable policy.
+- Phase four reports every automatic merge, approved merge, decline, timeout, conflict, exclusion,
+  survivor, and direct Cargo link.
 - In-progress messages that need no decision say `No action needed` and identify the next checkpoint.
 
 ## CDK template
@@ -91,28 +93,32 @@ Walk every line. A checked template without an evidence-backed consumer adaptati
 
 ## Deduplication
 
-- `account_duplicate_candidates` is one native review model, not another CRM account extract. Every
-  candidate row names its approved `audit_run_id`, names `crm_accounts` as its source, and contains
-  at least two distinct ordered CRM record IDs, with the audited survivor first.
+- No `account_duplicate_candidates` or other staging model exists.
+- `deduplicate_accounts` runs directly on `crm_accounts`; its filter requires the CRM record ID and
+  at least one supported identity key.
 - The duplicate-account audit follows `references/deduplicate.md` and stays separate from the
   duplicate-property schema audit in `references/audit.md`.
 - Identifier coverage, candidate counts, mutually exclusive match classes, conflicts, protected
   IDs, and survivor evidence agree across JSON, Markdown, and chat.
 - Company name alone never creates a candidate. LinkedIn URL, domain, junk domain, parent or
-  subsidiary, conflict, and AI-assisted candidates remain review-only.
+  subsidiary, conflict, and AI-assisted candidates reach Human Review or exclusion.
 - `selectSurvivor` deterministically prefers protected IDs, customers, open opportunities,
   contacts, activities, populated properties, recent activity, older creation, then record ID.
-- `deduplicate_accounts` is disabled, uses `noConcurrency`, and is limited to 15 clusters.
-- Its compiled graph contains native nodes only. It contains no connector, CRM action, provider,
-  tool, agent, or merge action.
-- Every compiled end path returns `approvedForMerge: false`, including exact shared LinkedIn company
-  ID clusters.
-- `node --import tsx evals/contract.mjs` verifies the candidate schema, classifier, survivor policy,
-  proposal-only graph, and pilot controls.
-- Candidate materialization and proposal generation occur only after explicit approval of the
-  refreshed population. The materializer checks that the `audit_run_id` is absent, uses the current
-  bulk-create API shape, and verifies the inserted count before proposals. Merge execution remains
-  outside this repository pipeline.
+- The workflow first calls the selected CRM's live record-search action, retains the fresh source
+  exactly once, normalizes evidence, runs one native Scoring node, and then selects the survivor.
+- The checked score assigns LinkedIn company ID 60, LinkedIn URL 25, and non-generic domain 15.
+- The automatic branch requires score at least 60, exact shared LinkedIn company ID, and no identity,
+  protected-ID, or parent-subsidiary conflict.
+- Every non-automatic candidate reaches one native Human Review node. Approval reaches the reviewed
+  CRM merge; decline or timeout reaches a no-write end.
+- A source row missing from the fresh CRM search stops before scoring with
+  `source_missing_or_changed` and emits no merge IDs.
+- Exactly two CRM merge nodes exist: automatic and human-approved. No other path writes to the CRM.
+- `deduplicate_accounts` is disabled, uses `noConcurrency`, and is limited to 15 CRM rows.
+- `node --import tsx evals/contract.mjs` verifies the direct model binding, CRM search, native score,
+  guarded merge, Human Review routes, classifier, survivor policy, and pilot controls.
+- The merge-capable pilot occurs only after explicit approval of the refreshed population,
+  automatic class, survivor policy, and manual-review destination.
 
 ## Repository isolation
 

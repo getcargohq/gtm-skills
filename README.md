@@ -51,7 +51,7 @@ already declares. More are on their way (`contact-sourcing`, `signal-based-tam`,
 | ---------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
 | [`tam-building`](tam-building/SKILL.md)                    | Your account universe from a Sales Navigator search, split past the extraction cap, resolved to domains, deduped into an accounts model. |
 | [`account-scoring`](account-scoring/SKILL.md)              | Every account scored and tiered against your written ICP by an agent that cites its evidence, rationale on the CRM record.               |
-| [`crm-enrichment`](crm-enrichment/SKILL.md)                | CRM accounts stay complete, current, and duplicate-safe through approved enrichment and proposal-only duplicate review.                  |
+| [`crm-enrichment`](crm-enrichment/SKILL.md)                | CRM accounts stay complete, current, and duplicate-safe through approved enrichment plus scored automatic or human-reviewed merges.      |
 
 Works with Claude Code, Codex, Cursor, Windsurf, GitHub Copilot, and any agent that supports the
 [skills.sh](https://skills.sh) standard.

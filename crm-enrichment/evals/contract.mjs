@@ -22,6 +22,18 @@ const findOne = (nodes, predicate, message) => {
 const child = (nodes, node) =>
   nodes.find((candidate) => candidate.uuid === node.childrenUuids[0]);
 
+for (const connectorId of [
+  "connector:crm",
+  "connector:linkedin",
+  "connector:manual_review",
+]) {
+  assert.equal(
+    byId.get(connectorId)?.spec.cacheTtlMilliseconds,
+    15 * 24 * 60 * 60 * 1000,
+    `${connectorId} must keep the maximum 15-day cache duration`,
+  );
+}
+
 const toolNodes = nodesFor("tool:account_enrichment");
 const toolStart = findOne(
   toolNodes,
@@ -147,68 +159,243 @@ assert.equal(
   "the play must not duplicate provider connector actions",
 );
 
-const candidateModel = byId.get("model:account_duplicate_candidates");
-assert.ok(candidateModel, "account_duplicate_candidates must exist");
 assert.equal(
-  candidateModel.spec.datasetUuid,
-  "native",
-  "duplicate candidates must use one native review model",
-);
-assert.deepEqual(
-  new Set(candidateModel.spec.config.columns.map((column) => column.slug)),
-  new Set([
-    "audit_run_id",
-    "cluster_id",
-    "source_model_slug",
-    "ordered_record_ids",
-    "survivor_id",
-    "match_class",
-    "normalized_linkedin_id",
-    "identity_conflict",
-    "protected_id_conflict",
-    "stale",
-  ]),
-  "the candidate model must carry the complete proposal evidence",
+  byId.has("model:account_duplicate_candidates"),
+  false,
+  "deduplication must not deploy a duplicate-candidate staging model",
 );
 
 const dedupNodes = nodesFor("play:deduplicate_accounts");
+const dedupResource = byId.get("play:deduplicate_accounts");
 assert.equal(
-  dedupNodes.some(
-    (node) =>
-      node.kind === "connector" || node.kind === "tool" || node.kind === "agent",
-  ),
-  false,
-  "deduplicate_accounts must be a deterministic proposal workflow",
+  dedupResource.spec.modelUuid.resourceId,
+  "model:crm_accounts",
+  "deduplicate_accounts must run directly on the CRM account model",
+);
+
+const duplicateSearch = findOne(
+  dedupNodes,
+  (node) =>
+    node.kind === "connector" &&
+    node.connectorUuid?.resourceId === "connector:crm" &&
+    node.actionSlug === "findRecords",
+  "deduplicate_accounts must search the CRM with one findRecords node",
+);
+const duplicateScore = findOne(
+  dedupNodes,
+  (node) => node.kind === "native" && node.actionSlug === "scoring",
+  "deduplicate_accounts must score duplicate evidence with one native Scoring node",
+);
+assert.deepEqual(
+  duplicateScore.config.criterias.map(({ name, score }) => [name, score]),
+  [
+    ["Exact LinkedIn company ID", 60],
+    ["Exact LinkedIn company URL", 25],
+    ["Exact non-generic domain", 15],
+  ],
+  "the native duplicate score must preserve the approved 60/25/15 policy",
+);
+const manualReview = findOne(
+  dedupNodes,
+  (node) => node.kind === "native" && node.actionSlug === "humanReview",
+  "uncertain duplicate evidence must reach one native Human review node",
 );
 assert.equal(
-  dedupNodes.some((node) => /merge/i.test(node.actionSlug ?? "")),
-  false,
-  "deduplicate_accounts must contain no merge action",
+  manualReview.config.connectorUuid.resourceId,
+  "connector:manual_review",
+  "human review must use the declared manual-review connector",
 );
-const proposalEnds = dedupNodes.filter(
-  (node) => node.kind === "native" && node.actionSlug === "end",
+
+const mergeNodes = dedupNodes.filter(
+  (node) =>
+    node.kind === "connector" &&
+    node.connectorUuid?.resourceId === "connector:crm" &&
+    node.actionSlug === "mergeRecords",
 );
-assert.ok(proposalEnds.length > 0, "deduplicate_accounts must emit proposals");
-for (const end of proposalEnds) {
-  const approval = end.config.variables.find(
-    (variable) => variable.name === "approvedForMerge",
+assert.equal(
+  mergeNodes.length,
+  2,
+  "deduplicate_accounts must expose automatic and human-approved CRM merge paths",
+);
+const automaticMergeGate = findOne(
+  dedupNodes,
+  (node) => node.slug === "automatic_merge_gate",
+  "deduplicate_accounts must branch on the guarded automatic-merge policy",
+);
+assert.match(
+  automaticMergeGate.config.condition.expression,
+  /duplicate_score\.score >= 60.*autoEligible === true/,
+  "automatic merge must require both the score threshold and exact-ID conflict guard",
+);
+assert.equal(
+  child(dedupNodes, automaticMergeGate)?.slug,
+  "merge_automatically",
+  "the guarded yes path must merge automatically",
+);
+assert.equal(
+  dedupNodes.find(
+    (node) => node.uuid === automaticMergeGate.childrenUuids[1],
+  )?.uuid,
+  manualReview.uuid,
+  "the guarded no path must request human review",
+);
+assert.equal(
+  dedupNodes.find((node) => node.uuid === manualReview.childrenUuids[0])?.slug,
+  "merge_after_review",
+  "human approval must execute the reviewed merge",
+);
+assert.equal(
+  dedupNodes.find((node) => node.uuid === manualReview.childrenUuids[1])?.slug,
+  "review_declined",
+  "human decline or timeout must keep records separate",
+);
+assert.equal(
+  child(dedupNodes, duplicateSearch)?.slug,
+  "prepare_duplicate_evidence",
+  "CRM candidate search must continue into deterministic evidence preparation",
+);
+assert.equal(
+  child(dedupNodes, duplicateScore)?.slug,
+  "select_survivor",
+  "duplicate scoring must feed deterministic survivor selection",
+);
+const survivorSelection = child(dedupNodes, duplicateScore);
+assert.equal(
+  survivorSelection.actionSlug,
+  "script",
+  "survivor selection must use the checked deterministic script",
+);
+assert.equal(
+  survivorSelection.childrenUuids[0],
+  automaticMergeGate.uuid,
+  "survivor selection must feed the automatic merge gate",
+);
+for (const mergeNode of mergeNodes) {
+  assert.match(
+    mergeNode.config.primaryId.expression,
+    /select_survivor\.result\.primaryId/,
+    "every CRM merge must use the scored cluster's selected survivor",
   );
-  const auditRun = end.config.variables.find(
-    (variable) => variable.name === "auditRunId",
-  );
-  assert.equal(
-    approval?.value?.expression,
-    "{{ false }}",
-    "every shipped deduplication outcome must keep approvedForMerge false",
-  );
-  assert.equal(
-    auditRun?.value?.expression,
-    "{{ nodes.start.audit_run_id }}",
-    "every proposal must preserve the approved audit run ID",
+  assert.match(
+    mergeNode.config.idsToMerge.expression,
+    /select_survivor\.result\.idsToMerge/,
+    "every CRM merge must use the selected non-survivor IDs",
   );
 }
+assert.match(
+  manualReview.config.content.expression,
+  /Identity conflict:.*Protected ID conflict:.*Parent\/subsidiary warning:.*Evidence:/,
+  "manual review must show the score, conflicts, and candidate evidence",
+);
 
-const dedupResource = byId.get("play:deduplicate_accounts");
+const evidenceNode = child(dedupNodes, duplicateSearch);
+assert.equal(
+  evidenceNode.actionSlug,
+  "script",
+  "duplicate evidence preparation must use the checked deterministic script",
+);
+const prepareEvidence = new Function("nodes", evidenceNode.config.script);
+const crmRecord = (id, properties = {}) => ({
+  id,
+  properties: {
+    linkedin_company_id: "123",
+    linkedin_company_page: "https://www.linkedin.com/company/acme",
+    domain: "acme.com",
+    lifecyclestage: "lead",
+    hs_num_open_deals: 0,
+    num_associated_contacts: 0,
+    hs_num_engagements: 0,
+    createdate: "2024-01-01T00:00:00.000Z",
+    ...properties,
+  },
+});
+const exactEvidence = prepareEvidence({
+  start: { hs_object_id: "source" },
+  find_duplicate_companies: [
+    crmRecord("source"),
+    crmRecord("customer", { lifecyclestage: "customer" }),
+  ],
+});
+assert.equal(exactEvidence.sourceFound, true, "the fresh source must be kept");
+assert.equal(
+  exactEvidence.autoEligible,
+  true,
+  "an exact shared LinkedIn ID without conflicts must reach the automatic gate",
+);
+assert.equal(
+  exactEvidence.duplicateCount,
+  1,
+  "the evidence script must retain the duplicate candidate",
+);
+const selectSurvivor = new Function("nodes", survivorSelection.config.script);
+const exactSurvivor = selectSurvivor({
+  prepare_duplicate_evidence: { result: exactEvidence },
+});
+assert.equal(
+  exactSurvivor.primaryId,
+  "customer",
+  "survivor selection must apply deterministic precedence after scoring",
+);
+assert.deepEqual(
+  exactSurvivor.idsToMerge,
+  ["source"],
+  "survivor selection must return every non-survivor ID",
+);
+
+const conflictEvidence = prepareEvidence({
+  start: { hs_object_id: "source" },
+  find_duplicate_companies: [
+    crmRecord("source"),
+    crmRecord("conflict", { domain: "other.example" }),
+  ],
+});
+assert.equal(
+  conflictEvidence.identityConflict,
+  true,
+  "conflicting non-null identity must be visible to the merge gate",
+);
+assert.equal(
+  conflictEvidence.autoEligible,
+  false,
+  "an identity conflict must require human review",
+);
+
+const genericDomainEvidence = prepareEvidence({
+  start: { hs_object_id: "source" },
+  find_duplicate_companies: [
+    crmRecord("source", {
+      linkedin_company_id: "",
+      linkedin_company_page: "",
+      domain: "google.com",
+    }),
+    crmRecord("other", {
+      linkedin_company_id: "",
+      linkedin_company_page: "",
+      domain: "google.com",
+    }),
+  ],
+});
+assert.equal(
+  genericDomainEvidence.duplicateCount,
+  0,
+  "a generic domain alone must never create a duplicate candidate",
+);
+
+const staleSourceEvidence = prepareEvidence({
+  start: { hs_object_id: "already-merged" },
+  find_duplicate_companies: [crmRecord("survivor")],
+});
+assert.equal(
+  staleSourceEvidence.sourceFound,
+  false,
+  "an already-merged or changed source must stop before scoring",
+);
+assert.deepEqual(
+  staleSourceEvidence.cluster,
+  [],
+  "a missing fresh source must never emit a mergeable cluster",
+);
+
 assert.equal(dedupResource.spec.isEnabled, false, "dedup play must be disabled");
 assert.equal(dedupResource.spec.limit, 15, "dedup pilot must be limited to 15");
 assert.equal(
@@ -268,7 +455,7 @@ assert.equal(
     candidate("two", { linkedinId: "456" }),
   ]).matchClass,
   "conflict",
-  "conflicting LinkedIn company IDs must never become proposals",
+  "conflicting LinkedIn company IDs must never merge automatically",
 );
 assert.throws(
   () => infra.classifyCluster([candidate("same"), candidate("same")]),
@@ -277,5 +464,5 @@ assert.throws(
 );
 
 console.log(
-  "ok: enrichment keeps its tool/play boundary; deduplication emits deterministic proposal-only clusters",
+  "ok: enrichment keeps its tool/play boundary; deduplication searches and scores CRM rows before guarded merge or human review",
 );

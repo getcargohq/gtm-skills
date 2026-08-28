@@ -11,15 +11,15 @@ the evidence the operator needs, one concrete approval request, what approval un
 remains blocked. An in-progress update says `No action needed` and names the next checkpoint.
 
 After field-contract and deduplication-policy approval plus explicit authorization to deploy
-disabled resources, deploy the tool, native candidate model, and both plays with each play set to
-`isEnabled: false`. Resolve `workspaceUuid` from `cargo-ai whoami` (`workspace.uuid`) and resolve
+disabled resources, deploy the tool and both plays with each play set to `isEnabled: false`. Reuse
+the existing CRM account model; do not deploy a candidate model. Resolve `workspaceUuid` from
+`cargo-ai whoami` (`workspace.uuid`) and resolve
 resource UUIDs from `cargo.state.json` or the matching get/list command. Send a clickable URL for
 every deployed resource:
 
 - Enrichment play: `https://app.getcargo.io/workspaces/<workspaceUuid>/plays/<enrichmentPlayUuid>`
 - Tool: `https://app.getcargo.io/workspaces/<workspaceUuid>/tools/<toolUuid>`
 - Deduplication play: `https://app.getcargo.io/workspaces/<workspaceUuid>/plays/<deduplicationPlayUuid>`
-- Candidate model: `https://app.getcargo.io/workspaces/<workspaceUuid>/models/<modelUuid>`
 
 Do not ask for phase-two approval when either deployed resource link is missing or does not resolve.
 The same message includes the approved fields, eligible population, route counts, current unit
@@ -69,16 +69,17 @@ after the provider result and the CRM update.
 ## Deduplication boundary
 
 The read-only audit classifies duplicate clusters from `crm_accounts` with the deterministic helpers
-in `infra/index.ts`. After operator approval, it materializes at most 15 fresh clusters into
-`account_duplicate_candidates`. That native model is a review surface, not a second CRM account
-extract. Every row carries the approved `audit_run_id`; the materializer stops if that audit already
-has rows and verifies the inserted count before proposals.
+in `infra/index.ts`. `deduplicate_accounts` runs on that same model. For each enrolled row, it calls
+the live CRM `findRecords` action, retains the source exactly once, normalizes identifiers, feeds one
+native Scoring node, and then selects the survivor. It does not materialize candidates elsewhere.
 
-`deduplicate_accounts` consumes one complete cluster per row. It contains native decision nodes
-only, returns `approvedForMerge: false` on every path, and does not call the CRM, enrichment tool,
-provider, or an agent. Run `node --import tsx evals/contract.mjs` to verify that boundary. Follow
-[`deduplicate.md`](deduplicate.md) for the audit contract, classification, survivor policy, and
-separate consumer-only merge gate.
+The score is LinkedIn company ID 60, LinkedIn URL 25, and non-generic domain 15. The automatic path
+requires score at least 60, exact LinkedIn company ID on every record, and no identity,
+protected-ID, or parent-subsidiary conflict. Every other cluster reaches native Human Review.
+Approval calls the CRM merge action; decline or timeout ends without a write. Run
+`node --import tsx evals/contract.mjs` to verify the graph. Follow
+[`deduplicate.md`](deduplicate.md) for the audit contract, score, survivor policy, merge gates, and
+pilot approval.
 
 Before every preview, run `cargo-ai connection integration get linkedin` and
 read the applicable costs from
@@ -105,10 +106,12 @@ In this repository run `npm run validate`. In the consumer project:
    pricing lookup time, and that the play stays disabled.
 9. Run or enable only after the operator reviews that phase-two handoff and explicitly approves the
    stated population and maximum cost.
-10. When deduplication is in scope, refresh its audit after enrichment. Show the candidate model and
-    deduplication play links, exact cluster counts, match classes, conflicts, and survivor policy.
-11. Materialize and run at most 15 proposal clusters only after the operator explicitly approves
-    that population. Stop at proposals. Do not add or execute a merge action.
+10. When deduplication is in scope, refresh its audit after enrichment. Show the deduplication play
+    link, exact candidate counts, match classes, score, conflicts, survivor policy, automatic gate,
+    and Human Review destination.
+11. Run at most 15 CRM rows only after the operator explicitly approves that population and the
+    merge-capable policy. Confirm every automatic merge, review decision, decline, timeout, and
+    surviving record before enabling recurring evaluation.
 
 ## Post-enrichment report
 
@@ -126,17 +129,18 @@ key coverage is healthy. Do not end the report with an open-ended offer.
 
 ## Post-deduplication report
 
-After the approved proposal run completes, report:
+After the approved deduplication pilot completes, report:
 
 - audited accounts, identifier coverage, candidate clusters, and candidate records
 - every mutually exclusive match class and both conflict counts
-- proposed survivors with their deterministic ranking evidence
-- excluded and stale clusters with reasons
-- direct Cargo UI links for the candidate model and deduplication play
+- score and deterministic survivor evidence for every candidate cluster
+- automatic merges and Human Review approvals, declines, and timeouts
+- source rows that disappeared or changed before scoring
+- excluded clusters and failed CRM actions with reasons
+- direct Cargo UI link for the deduplication play
 
-End with one recommended `Next step`: fix weak identity coverage, review ambiguous clusters, or
-design a consumer-only guarded merge workflow under separate approval. A proposal is never merge
-approval.
+End with one recommended `Next step`: fix weak identity coverage, remediate failed merges, review
+declined clusters, or approve recurring deduplication after the surviving records are verified.
 
 Replace the write `matchingPropertyName` together with the workflow input and
 play columns so the filter, the write match, and the extract all resolve the
@@ -163,10 +167,12 @@ schedule.
 - the operator approved the exact target and maximum estimated credits before execution
 - the final report includes before-and-after field coverage, all outcomes, failures, actual credit
   variance, and a recommended next step
-- the candidate model contains only approved, fresh clusters derived from `crm_accounts`
-- the deduplication play is disabled, `noConcurrency`, limited to 15 clusters, and contains no paid
-  or merge action
-- every deduplication output keeps `approvedForMerge: false`, and the report contains all proposals,
-  conflicts, exclusions, survivor evidence, and direct Cargo links
+- no candidate or staging model exists; the deduplication play runs directly on `crm_accounts`
+- the deduplication play is disabled, `noConcurrency`, and limited to 15 CRM rows
+- the compiled graph contains CRM `findRecords`, deterministic preparation, native Scoring,
+  deterministic survivor selection, the guarded automatic branch, native Human Review, and merge
+  actions only on automatic or approved paths
+- the report contains all search, score, merge, review, decline, timeout, conflict, exclusion,
+  survivor, failure, and direct-link evidence
 - no credential, customer data, or deploy command appears in the committed
   template
