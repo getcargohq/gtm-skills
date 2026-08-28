@@ -50,7 +50,8 @@
       "skills": [
         "tam-building",
         "account-scoring",
-        "crm-enrichment"
+        "crm-enrichment",
+        "crm-deduplication"
       ]
     }
   ]

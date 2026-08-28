@@ -1,4 +1,10 @@
 {
+  "crm-deduplication": {
+    "state": "to-be-approved",
+    "chain": 4,
+    "demoWorkspace": null,
+    "implementations": []
+  },
   "crm-enrichment": {
     "state": "to-be-approved",
     "chain": 3,
