@@ -1,18 +1,19 @@
 #!/usr/bin/env node
-// Validates the cookbooks: the skills that carry a worked cookbook: the folders with models/,
-// plays/, agents/ and so on beside their SKILL.md.
+// Validates the pipeline skills: folders with models/, plays/, agents/ and so
+// on beside their SKILL.md.
 // The one-off skills are validated by validate.ts (slugs, prices, playbooks);
-// this owns everything a cookbook adds on top. Both run under `npm run validate`.
+// this owns everything a pipeline skill adds on top. Both run under `npm run validate`.
 //
-// Mechanically: a discovered skill folder that carries resource code (models/,
-// plays/, agents/, or cdk/). It becomes a cookbook when it carries a SKILL.md whose
-// frontmatter says `metadata.source: cookbook`; until then it is reported
-// as still-to-convert, never failed, so the rollout stays visible on every run.
+// Mechanically: a root folder that carries resource code (models/, plays/,
+// agents/, infra/, and so on). It becomes a pipeline skill when it carries a
+// SKILL.md whose frontmatter says `metadata.source: cookbook`; until then it
+// is reported as still-to-convert, never failed, so the rollout stays visible
+// on every run.
 //
-// Every such folder is ISOLATED: no relative import may escape it. A cookbook
-// may declare consumer prerequisites when duplicating a global model, connector,
-// or importer would be unsafe. The agent verifies and rewires those resources
-// in the target project without importing another cookbook.
+// Every such folder is ISOLATED: it carries every model, connector and folder
+// it imports, and no relative import may escape it. There is no shared
+// foundation and no requires graph; the agent placing the example reconciles
+// it with whatever the target project already declares.
 //
 // SKILL.md is customer-facing: `skills add` installs it and an agent loads it.
 // So it carries the standard skill frontmatter and the contract, and nothing
@@ -33,6 +34,12 @@
 //     adaptation model half written.
 //   - no relative import escapes the folder: isolation is the contract, and a
 //     stray `../../other/...` is the one way to break it silently.
+//   - no numeric credit amount appears in pipeline Markdown: provider prices
+//     are fetched when the skill runs, while unrelated decimals remain valid.
+//   - every `infra/` template passes `cargo-cdk check` and `plan`: executable
+//     examples are discovered by structure rather than a hard-coded skill name.
+//   - an optional `evals/contract.mjs` executes against the compiled registry:
+//     graph boundaries that CDK schema validation cannot express stay enforced.
 //   - the inline procedure section is present: each skill carries its own
 //     "Put it in your project", the way every one-off skill here carries its
 //     own Setup. There is no shared procedure skill to depend on.
@@ -40,6 +47,7 @@
 //     implementations. The banner must be present exactly while the state is
 //     to-be-approved, and absent once approved, so approving in the data file
 //     and forgetting the customer file is a red build.
+import { execFileSync } from "node:child_process";
 import { readFileSync, existsSync, readdirSync, statSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -47,6 +55,12 @@ import { parse as parseYaml } from "yaml";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const errors = [];
+const cargoCdk = join(root, "node_modules", ".bin", "cargo-cdk");
+let checkedInfraTemplates = 0;
+let checkedContractEvals = 0;
+
+const STATIC_CREDIT_AMOUNT =
+  /\b(?:0\.\d+|[1-9]\d*(?:\.\d+)?)\s*(?:credits?|cr)\b|["'`]?(?:unit[_ -]?credits?|credit[_ -]?(?:cost|price))["'`]?\s*[:=]\s*(?:0\.\d+|[1-9]\d*(?:\.\d+)?)/i;
 
 const RESOURCE_DIRS = new Set([
   "models",
@@ -63,8 +77,7 @@ const RESOURCE_DIRS = new Set([
   "capacities",
   "folders",
   "workers",
-  "templates",
-  "cdk",
+  "infra",
 ]);
 const REQUIRED_SECTIONS = [
   "## Put it in your project",
@@ -105,33 +118,37 @@ const walk = (dir) => {
   return out;
 };
 
-const skillFolders = (dir = root, prefix = "") =>
-  readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
-    if (
-      !entry.isDirectory() ||
-      entry.name.startsWith(".") ||
-      entry.name === "node_modules"
-    )
-      return [];
-    const relative = join(prefix, entry.name);
-    const absolute = join(dir, entry.name);
-    if (existsSync(join(absolute, "SKILL.md"))) return [relative];
-    return skillFolders(absolute, relative);
-  });
-const allSkillFolders = skillFolders().sort();
-const duplicateNames = allSkillFolders
-  .map((folder) => folder.split("/").at(-1))
-  .filter((name, index, names) => names.indexOf(name) !== index);
-if (duplicateNames.length > 0) {
-  errors.push(
-    `duplicate skill leaf names: ${[...new Set(duplicateNames)].join(", ")}`,
+const walkMarkdown = (dir) => {
+  const out = [];
+  for (const e of readdirSync(dir)) {
+    const p = join(dir, e);
+    if (e === "node_modules") continue;
+    if (statSync(p).isDirectory()) out.push(...walkMarkdown(p));
+    else if (p.endsWith(".md")) out.push(p);
+  }
+  return out;
+};
+
+const isExampleFolder = (name) => {
+  const dir = join(root, name);
+  if (
+    !statSync(dir).isDirectory() ||
+    name.startsWith(".") ||
+    name === "node_modules"
+  )
+    return false;
+  return readdirSync(dir).some(
+    (f) => RESOURCE_DIRS.has(f) && statSync(join(dir, f)).isDirectory(),
   );
-}
-const isExampleFolder = (name) =>
-  readdirSync(join(root, name)).some(
-    (f) => RESOURCE_DIRS.has(f) && statSync(join(root, name, f)).isDirectory(),
-  );
-const exampleFolders = allSkillFolders.filter(isExampleFolder);
+};
+
+const exampleFolders = readdirSync(root).filter(isExampleFolder).sort();
+const allSkillFolders = readdirSync(root).filter(
+  (d) =>
+    !d.startsWith(".") &&
+    statSync(join(root, d)).isDirectory() &&
+    existsSync(join(root, d, "SKILL.md")),
+);
 
 for (const name of exampleFolders) {
   const skillPath = join(root, name, "SKILL.md");
@@ -144,14 +161,13 @@ for (const name of exampleFolders) {
     );
     continue;
   }
-  const approvalName = name.split("/").at(-1);
-  if (!(approvalName in approvals)) {
+  if (!(name in approvals)) {
     errors.push(
       `${name} carries resource code but has no entry in .github/data/approvals.json`,
     );
     continue;
   }
-  const record = approvals[approvalName];
+  const record = approvals[name];
   const {
     data: fm,
     body,
@@ -162,9 +178,9 @@ for (const name of exampleFolders) {
     continue;
   }
 
-  if (fm.name !== name.split("/").at(-1))
+  if (fm.name !== name)
     errors.push(
-      `${name}/SKILL.md frontmatter name is "${fm.name}", expected "${name.split("/").at(-1)}"`,
+      `${name}/SKILL.md frontmatter name is "${fm.name}", expected "${name}"`,
     );
   if (fm.metadata?.source !== "cookbook") {
     errors.push(
@@ -190,21 +206,51 @@ for (const name of exampleFolders) {
     if (!body.includes(`\n${section}`))
       errors.push(`${name}/SKILL.md is missing the "${section}" section`);
   }
+
+  for (const markdownPath of walkMarkdown(join(root, name))) {
+    const relativePath = markdownPath.slice(root.length + 1);
+    for (const [index, line] of readFileSync(markdownPath, "utf8")
+      .split("\n")
+      .entries()) {
+      if (STATIC_CREDIT_AMOUNT.test(line)) {
+        errors.push(
+          `${relativePath}:${index + 1} hard-codes a credit amount: fetch current action costs when the skill runs`,
+        );
+      }
+    }
+  }
   if (
     /cookbook\.json|cargo\.scaffold\.json|manifest add|cdk init --from|base-gtm|crm-sync|deploy-cookbook/.test(
       body,
     )
   ) {
     errors.push(
-      `${name}/SKILL.md refers to scaffold machinery (cookbook.json, cargo.scaffold.json, manifest add, cdk init --from, base-gtm, crm-sync, deploy-cookbook) that no longer exists`,
+      `${name}/SKILL.md refers to scaffold machinery (legacy manifest files, cargo.scaffold.json, manifest add, cdk init --from, base-gtm, crm-sync) that no longer exists`,
     );
   }
 
-  // A `## Requires` section contradicts isolation: a cookbook carries what it
-  // needs, and the agent reconciles duplicates against the project. Refuse it.
+  // A `## Requires` section contradicts isolation: a pipeline skill carries
+  // what it needs, and the agent reconciles duplicates against the project.
   if (/\n## Requires\n/.test(body)) {
     errors.push(
-      `${name}/SKILL.md carries a "## Requires" section: state consumer prerequisites in compatibility and project steps, without an inter-cookbook dependency`,
+      `${name}/SKILL.md carries a "## Requires" section: pipeline skills are self-contained, and what the project already has is reconciled by the agent, not declared here`,
+    );
+  }
+
+  const nestedSkillFiles = [];
+  const findNestedSkills = (dir) => {
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      if (!entry.isDirectory() || entry.name === "node_modules") continue;
+      const child = join(dir, entry.name);
+      if (existsSync(join(child, "SKILL.md")))
+        nestedSkillFiles.push(join(child, "SKILL.md"));
+      findNestedSkills(child);
+    }
+  };
+  findNestedSkills(join(root, name));
+  for (const nested of nestedSkillFiles) {
+    errors.push(
+      `${nested.slice(root.length + 1)} is nested inside ${name}: supporting instructions belong in references/, not another skill`,
     );
   }
 
@@ -220,9 +266,71 @@ for (const name of exampleFolders) {
       const tgt = resolve(dirname(dp), m[1]);
       if (!tgt.startsWith(join(root, name) + "/")) {
         errors.push(
-          `${name}/${dp.slice(root.length + name.length + 2)} imports ${m[1]}, which escapes the folder: every cookbook must be folder-isolated`,
+          `${name}/${dp.slice(root.length + name.length + 2)} imports ${m[1]}, which escapes the folder: every skill is self-contained`,
         );
       }
+    }
+  }
+
+  const infraDir = join(root, name, "infra");
+  if (existsSync(infraDir)) {
+    const templateFiles = walk(infraDir);
+    if (templateFiles.length === 0) {
+      errors.push(`${name}/infra contains no TypeScript template`);
+    } else if (!existsSync(cargoCdk)) {
+      errors.push(
+        `${name}/infra cannot be checked because node_modules/.bin/cargo-cdk is missing`,
+      );
+    } else {
+      try {
+        execFileSync(cargoCdk, ["check", "--dir", infraDir], {
+          stdio: "pipe",
+        });
+        const plan = JSON.parse(
+          execFileSync(cargoCdk, ["plan", "--dir", infraDir, "--json"], {
+            encoding: "utf8",
+          }),
+        );
+        if (!Array.isArray(plan.errors) || plan.errors.length > 0) {
+          throw new Error(
+            `cargo-cdk plan returned errors: ${JSON.stringify(plan.errors)}`,
+          );
+        }
+        checkedInfraTemplates += 1;
+      } catch (error) {
+        const detail = [
+          error.stdout?.toString(),
+          error.stderr?.toString(),
+          error.message,
+        ]
+          .filter(Boolean)
+          .join(" ")
+          .trim()
+          .replace(/\s+/g, " ");
+        errors.push(`${name}/infra fails cargo-cdk validation: ${detail}`);
+      }
+    }
+  }
+
+  const contractEval = join(root, name, "evals", "contract.mjs");
+  if (existsSync(contractEval)) {
+    try {
+      execFileSync(process.execPath, ["--import", "tsx", contractEval], {
+        cwd: root,
+        stdio: "pipe",
+      });
+      checkedContractEvals += 1;
+    } catch (error) {
+      const detail = [
+        error.stdout?.toString(),
+        error.stderr?.toString(),
+        error.message,
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .trim()
+        .replace(/\s+/g, " ");
+      errors.push(`${name}/evals/contract.mjs fails: ${detail}`);
     }
   }
 
@@ -257,37 +365,31 @@ for (const name of exampleFolders) {
 
 // approvals.json must not name a folder that is not an engine
 for (const name of Object.keys(approvals)) {
-  if (
-    !exampleFolders.some(
-      (folder) => folder === name || folder.endsWith(`/${name}`),
-    )
-  )
-    errors.push(`approvals.json names "${name}", which is not a cookbook here`);
+  if (!exampleFolders.includes(name))
+    errors.push(
+      `approvals.json names "${name}", which is not a pipeline skill here`,
+    );
 }
 
-// A one-off skill's "## Part of" section may name cookbooks; they must exist.
+// A one-off skill's "## Part of" section may name pipeline skills; they must exist.
 for (const name of allSkillFolders) {
   if (exampleFolders.includes(name)) continue;
   const text = readFileSync(join(root, name, "SKILL.md"), "utf8");
   const part = text.match(/\n## Part of\n([\s\S]*?)(?=\n## |$)/);
   if (!part) continue;
   for (const m of part[1].matchAll(/`([a-z0-9-]+)`/g)) {
-    if (
-      !exampleFolders.some(
-        (folder) => folder.endsWith(`/${m[1]}`) || folder === m[1],
-      )
-    )
+    if (!exampleFolders.includes(m[1]))
       errors.push(
-        `${name}/SKILL.md says it is part of \`${m[1]}\`, which is not a cookbook here`,
+        `${name}/SKILL.md says it is part of \`${m[1]}\`, which is not a pipeline skill here`,
       );
   }
 }
 
 if (errors.length) {
-  console.error("cookbooks are out of sync:");
+  console.error("pipeline skills are out of sync:");
   for (const e of errors) console.error(`  - ${e}`);
   process.exit(1);
 }
 console.log(
-  `ok: ${exampleFolders.length} cookbooks, every one folder-isolated`,
+  `ok: ${exampleFolders.length} pipeline skills, every one self-contained; ${checkedInfraTemplates} infra template(s) checked and planned; ${checkedContractEvals} executable contract(s) passed`,
 );

@@ -2,7 +2,7 @@
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "cargo",
   "version": "1.4.0",
-  "description": "Twenty-three routed Cargo GTM skills: one-off CLI jobs plus a proposal-only account deduplication CDK cookbook.",
+  "description": "Routed Cargo GTM skills, one job each: one-off CLI workflows and worked CDK examples an agent adapts and deploys.",
   "author": {
     "name": "Cargo",
     "url": "https://getcargo.ai"

@@ -1,26 +1,20 @@
 # Cargo GTM Skills
 
 [![cargo-ai cli](https://img.shields.io/npm/v/@cargo-ai/cli?label=cargo-ai%20cli&color=black)](https://www.npmjs.com/package/@cargo-ai/cli)
-[![skills.sh](https://img.shields.io/badge/skills.sh-23%20skills-black)](https://www.skills.sh)
+[![skills.sh](https://img.shields.io/badge/skills.sh-22%20skills-black)](https://www.skills.sh)
 [![License](https://img.shields.io/github/license/getcargohq/gtm-skills?color=black)](LICENSE)
 
-23 agent skills, each with one routed job. No account required to read them, and a new
+22 agent skills, each with one routed job. No account required to read them, and a new
 Cargo account starts with **100 free credits, no card**.
 
 ```bash
-npx skills add getcargohq/gtm-skills --all --full-depth      # all 23, including cookbooks/
+npx skills add getcargohq/gtm-skills --all      # all 22
 ```
 
 Each skill also installs on its own, when you want exactly one and nothing else:
 
 ```bash
 npx skills add getcargohq/gtm-skills/<skill-name>
-```
-
-Nested cookbooks install by their exact paths:
-
-```bash
-npx skills add getcargohq/gtm-skills/cookbooks/account-deduplication
 ```
 
 | Skill                                                             | Does                                                                                                                              |
@@ -44,30 +38,27 @@ npx skills add getcargohq/gtm-skills/cookbooks/account-deduplication
 | [`find-companies-using-tech`](find-companies-using-tech/SKILL.md) | Find companies by the technology they run or the roles they are hiring for.                                                       |
 | [`find-portfolio-companies`](find-portfolio-companies/SKILL.md)   | Find every portfolio company of an investor or accelerator, then the people inside them.                                          |
 | [`waterfall-enrichment`](waterfall-enrichment/SKILL.md)           | Run a waterfall across several providers so a record one vendor misses is caught by the next.                                     |
-| [`crm-enrichment`](crm-enrichment/SKILL.md)                       | Fill the blank fields in your CRM records, contacts and companies alike.                                                          |
 
-**Three of them are cookbooks rather than one-off jobs.** `tam-building`, `account-scoring`,
-and `cookbooks/account-deduplication`
-are the same jobs as a deployed pipeline that keeps running: each folder holds worked CDK
-resources that your agent adapts into your project. Every cookbook is folder-isolated, so its
-relative imports never leave that cookbook. Some declare explicit consumer prerequisites instead
-of duplicating an existing global model or connector. The agent reconciles those prerequisites
-with whatever your project already declares. More are on their way (`contact-sourcing`,
-`signal-based-tam`, `ai-sdr`,
+**Three of them deploy a pipeline rather than running once.** `tam-building`, `account-scoring`,
+and `crm-enrichment` are the same jobs as a standing pipeline: each folder holds worked CDK
+resources written for some other company, and your agent adapts them into your project and
+deploys them. Every such folder is self-contained (its own models, connectors and folders; no
+shared foundation, no requires graph), so the agent reconciles it with whatever your project
+already declares. More are on their way (`contact-sourcing`, `signal-based-tam`, `ai-sdr`,
 `rep-cockpit`, …); each lands here the day its skill is written, not before.
 
-| Skill                                         | Deploys                                                                                                                                  |
-| --------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| [`tam-building`](tam-building/SKILL.md)       | Your account universe from a Sales Navigator search, split past the extraction cap, resolved to domains, deduped into an accounts model. |
-| [`account-scoring`](account-scoring/SKILL.md) | Every account scored and tiered against your written ICP by an agent that cites its evidence, rationale on the CRM record.               |
-| [`account-deduplication`](cookbooks/account-deduplication/SKILL.md) | A proposal-only duplicate foundation with deterministic survivors and documented consumer merge guards. |
+| Skill                                                      | Deploys                                                                                                                                  |
+| ---------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| [`tam-building`](tam-building/SKILL.md)                    | Your account universe from a Sales Navigator search, split past the extraction cap, resolved to domains, deduped into an accounts model. |
+| [`account-scoring`](account-scoring/SKILL.md)              | Every account scored and tiered against your written ICP by an agent that cites its evidence, rationale on the CRM record.               |
+| [`crm-enrichment`](crm-enrichment/SKILL.md)                | CRM accounts stay complete, current, and duplicate-safe through approved enrichment and proposal-only duplicate review.                  |
 
 Works with Claude Code, Codex, Cursor, Windsurf, GitHub Copilot, and any agent that supports the
 [skills.sh](https://skills.sh) standard.
 
 ## As an agent plugin — Claude Code, Codex, Cursor
 
-The same 23 skills also install as a native **agent plugin**: one source, three targets. Take
+The same 22 skills also install as a native **agent plugin**: one source, three targets. Take
 this route when you want all of them rather than one, and when you want the two things
 `skills add` cannot deliver:
 
@@ -111,7 +102,7 @@ version is a manual, human-reviewed submission that then serves whatever was app
 node scripts/build-codex-package.mjs      # -> dist/gtm-skills-codex.zip
 ```
 
-It stages the 23 skills under `skills/`, drops the OpenClaw `metadata` block OpenAI rejects,
+It stages the 22 skills under `skills/`, drops the OpenClaw `metadata` block OpenAI rejects,
 writes the directory manifest, and asserts every documented limit — description lengths, the
 30-char display fields, square icons, archive shape — against the finished zip rather than the
 staging directory. Skills only: the hooks are wired with `${CLAUDE_PLUGIN_ROOT}`, which nothing
@@ -174,7 +165,7 @@ CI also runs this weekly on a cron. Upstream pricing can change without anyone t
 repo, and that is exactly the drift nobody would otherwise notice.
 
 `evals/routing.jsonl` holds one case per trigger phrase, graded in CI by the pack's ranker
-(`.github/scripts/routing-eval.ts --skills-root .`). It currently scores 56/56, which is a
+(`.github/scripts/routing-eval.ts --skills-root .`). It currently scores 72/72, which is a
 ceiling effect rather than a result: every case was generated from the trigger phrases it
 grades, so it proves the triggers do not collide, not that the descriptions route. Real cases
 have to come from real sessions.

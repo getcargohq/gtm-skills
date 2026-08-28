@@ -1,7 +1,7 @@
 {
-  "account-deduplication": {
+  "crm-enrichment": {
     "state": "to-be-approved",
-    "chain": 4,
+    "chain": 3,
     "demoWorkspace": null,
     "implementations": []
   },

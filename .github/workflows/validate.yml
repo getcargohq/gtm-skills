@@ -42,20 +42,15 @@ jobs:
           CARGO_SKILLS_REF: ${{ inputs.ref || 'main' }}
         run: node scripts/validate.ts
 
-      # The cookbooks (skills that carry a worked CDK example): frontmatter
+      # The pipeline skills (folders that carry a worked CDK example): frontmatter
       # parses, the contract sections exist, no relative import escapes the
-      # folder, and the to-be-approved banner follows .github/data/approvals.json.
-      - name: Validate the cookbooks
-        run: node scripts/check-cookbooks.mjs
+      # folder, fixed credit amounts are absent, infra templates check and plan,
+      # and the to-be-approved banner follows .github/data/approvals.json.
+      - name: Validate the pipeline skills
+        run: node scripts/check-pipelines.mjs
 
-      - name: Typecheck the cookbook resources
+      - name: Typecheck the pipeline resources
         run: npm run typecheck
-
-      - name: Check every cookbook CRM variant in isolation
-        run: npm run check:templates
-
-      - name: Check deterministic cookbook contracts
-        run: npm run check:contracts
 
       - name: Check llms.txt is in sync with the skill tree
         run: node scripts/generate-llms-txt.ts --check
@@ -63,7 +58,8 @@ jobs:
       - name: Check catalog.json is in sync with the skill tree
         run: node scripts/build-catalog.mjs --check
 
-      # Prettier covers the example TypeScript and repository scripts.
+      # Prettier covers the example TypeScript and repository files except the
+      # three generated or legacy scripts listed in .prettierignore.
       - name: Format check
         run: npx prettier --check .
 
@@ -93,7 +89,7 @@ jobs:
           done
 
       # The descriptions are the only text an agent sees before deciding which
-      # skill to load, and 24 deliberately adjacent ones compete for every
+      # skill to load, and the deliberately adjacent ones compete for every
       # prompt. The ranker lives in the pack; there is no second copy to drift.
       - name: Check the descriptions still route
         uses: actions/checkout@v4

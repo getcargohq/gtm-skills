@@ -24,13 +24,13 @@
       ],
       "asked": [
         {
-          "input": "icp` (`context/icp.md`)",
+          "input": "icp` (`infra/context/icp.md`)",
           "kind": "generated",
           "how": "**derived**: If the workspace already has closed-won and closed-lost data, extract the industry, size, geography and stack that separate won from lost accounts and propose the ICP from it rather than asking cold.",
           "why": "The criteria ARE the prompt. There are no point weights in code, so a vague ICP produces vague scores and the disqualifiers are what cap a bad account at 20."
         },
         {
-          "input": "languageModel` (`agents/scorer.ts`)",
+          "input": "languageModel` (`infra/agents/scorer.ts`)",
           "kind": "value",
           "how": "**derived**: whichever LLM connector is already authenticated in the workspace",
           "why": "Scoring quality and per-account cost both live here."
@@ -42,7 +42,7 @@
           "why": "The play writes all four back. If they do not exist the run looks successful and the scores land nowhere, which is the failure mode that wastes a whole batch."
         },
         {
-          "input": "tierThresholds` (`segments/tiers.ts`)",
+          "input": "tierThresholds` (`infra/segments/tiers.ts`)",
           "kind": "value",
           "how": "**asked**",
           "why": "The agent emits A, B and C but the skill ships segments for A and C only. Tier B accounts land in no segment unless you add one."
@@ -52,27 +52,27 @@
         {
           "id": "deterministic-scoring",
           "when": "You need fixed cost and exact reproducibility, or an LLM judgement is not acceptable to your team",
-          "how": "Swap the agent call for the native `scoring` node, with criteria as {name, value, score} booleans in the workflow (`agents/scorer.ts`, `plays/score-accounts.ts`)",
+          "how": "Swap the agent call for the native `scoring` node, with criteria as {name, value, score} booleans in the workflow (`infra/agents/scorer.ts`, `infra/plays/score-accounts.ts`)",
           "cost": "The criteria move out of the ICP markdown and into code, so they stop being reviewable by non-engineers, and you lose the rationale entirely"
         },
         {
           "id": "skip-crm-roundtrip",
           "when": "You want the score on the model directly and do not need it visible in the CRM",
-          "how": "Write with the platform's `native.modelUpsert({...})` in the workflow instead of going through the CRM connector (`plays/score-accounts.ts`)",
+          "how": "Write with the platform's `native.modelUpsert({...})` in the workflow instead of going through the CRM connector (`infra/plays/score-accounts.ts`)",
           "cost": "Reps lose the score and rationale where they actually work. The native's input is untyped, so confirm the field shape on the first run"
         },
         {
           "id": "no-crm-at-all",
           "when": "You have no CRM, or you do not want to hand this skill a CRM credential",
-          "how": "Take `skip-crm-roundtrip`, then delete `connectors/hubspot.ts` so no CRM connector is registered",
+          "how": "Take `skip-crm-roundtrip`, then delete `infra/connectors/hubspot.ts` so no CRM connector is registered",
           "cost": "Every other CRM-dependent skill you install later brings a CRM connector of its own; reuse one"
         }
       ],
       "shouldNotChange": [
-        "**The scorer looks the account up before judging it.** (`agents/scorer.ts`) A score guessed from the domain name is unfalsifiable and the rationale cites nothing. The evaluator exists to fail exactly this, and a book scored that way is worse than an unscored one because people trust it.",
-        "**ICP disqualifiers cap the score, they are not just negative weight.** (`agents/scorer.ts`) Without a cap, a disqualified account with many fit signals still scores high and reaches a rep. The disqualifiers are the half of an ICP that actually protects the team's time.",
-        "**`cargo_score` and `cargo_tier` are selected as columns on the accounts model.** (`segments/tiers.ts`) The tier segments filter on a column they cannot see, so they come back empty while everything upstream reports success.",
-        "**Every tier the scorer can emit is either covered by a segment or excluded on purpose.** (`segments/tiers.ts`) The shipped segments cover A and C. The agent also emits B, so tier B accounts land nowhere and quietly disappear from the book."
+        "**The scorer looks the account up before judging it.** (`infra/agents/scorer.ts`) A score guessed from the domain name is unfalsifiable and the rationale cites nothing. The evaluator exists to fail exactly this, and a book scored that way is worse than an unscored one because people trust it.",
+        "**ICP disqualifiers cap the score, they are not just negative weight.** (`infra/agents/scorer.ts`) Without a cap, a disqualified account with many fit signals still scores high and reaches a rep. The disqualifiers are the half of an ICP that actually protects the team's time.",
+        "**`cargo_score` and `cargo_tier` are selected as columns on the accounts model.** (`infra/segments/tiers.ts`) The tier segments filter on a column they cannot see, so they come back empty while everything upstream reports success.",
+        "**Every tier the scorer can emit is either covered by a segment or excluded on purpose.** (`infra/segments/tiers.ts`) The shipped segments cover A and C. The agent also emits B, so tier B accounts land nowhere and quietly disappear from the book."
       ],
       "doneWhen": [
         "a test account run shows the agent's lookups in the trace, not a score guessed from the domain name",
@@ -117,105 +117,155 @@
       "partOf": []
     },
     {
-      "name": "account-deduplication",
+      "name": "crm-enrichment",
       "kind": "cookbook",
-      "job": "Build a governed Account deduplication foundation: audit CRM duplicate identity, classify candidates, and emit proposal-only duplicate clusters.",
-      "description": "Build a governed Account deduplication foundation: audit CRM duplicate identity, classify candidates, and emit proposal-only duplicate clusters. Triggers: \"deduplicate our CRM accounts\", \"merge duplicate companies in HubSpot\", \"set up recurring account deduplication\", \"clean duplicate account records\". HubSpot, Salesforce, Attio, Cargo CDK. Skip when: you only need a one-time spreadsheet report with no reusable proposal workflow.",
-      "version": "0.1.0",
-      "homepage": "https://github.com/getcargohq/gtm-skills/tree/main/cookbooks/account-deduplication",
+      "job": "Keep CRM accounts complete, current, and duplicate-safe: enrich approved blank or stale firmographics, then audit and emit proposal-only duplicate clusters.",
+      "description": "Keep CRM accounts complete, current, and duplicate-safe: enrich approved blank or stale firmographics, then audit and emit proposal-only duplicate clusters. Triggers: \"keep our CRM accounts filled\", \"keep our CRM companies filled\", \"enrich my CRM\", \"CRM enrichment\", \"old firmographics keep going stale\", \"every new CRM account\", \"refresh stale firmographics\", \"deduplicate our CRM accounts\", \"merge duplicate companies in HubSpot\", \"set up recurring account deduplication\", \"clean duplicate account records\". HubSpot, Salesforce, Attio, LinkedIn, Cargo CDK. Skip when: the records are not in a CRM. A supplied company list is enrich-company-data.",
+      "version": "0.7.0",
+      "homepage": "https://github.com/getcargohq/gtm-skills/tree/main/crm-enrichment",
       "group": "Make it run forever",
-      "install": "npx skills add getcargohq/gtm-skills/cookbooks/account-deduplication",
+      "install": "npx skills add getcargohq/gtm-skills/crm-enrichment",
       "partOf": [],
       "state": "to-be-approved",
-      "chain": 4,
+      "chain": 3,
       "resources": [
-        "cdk"
+        "connectors",
+        "models",
+        "plays",
+        "tools"
       ],
       "asked": [
         {
-          "input": "Duplicate distribution",
+          "input": "crm",
           "kind": "derived",
-          "how": "Run the audit contract against the live CRM source records.",
-          "why": "Establishes cluster size, match classes, and risk."
+          "how": "Inspect authenticated connectors and existing CDK resources",
+          "why": "Reusing them prevents a second CRM connector and a second extract"
         },
         {
-          "input": "Protected business IDs",
-          "kind": "operator",
-          "how": "Present detected billing, customer, and external-system IDs.",
-          "why": "Conflicts must block a merge proposal."
+          "input": "field_candidates",
+          "kind": "derived",
+          "how": "Join live LinkedIn paths and types to live CRM properties, fill rates, and compatible transformations",
+          "why": "The operator should choose from evidence, not recall provider fields"
         },
         {
-          "input": "Survivor policy overrides",
-          "kind": "operator",
-          "how": "Show the default ranking and any lifecycle or tier exceptions.",
-          "why": "Makes the winner deterministic and auditable."
+          "input": "approved_field_contract",
+          "kind": "asked",
+          "how": "Review the recommended base fields, optional candidates, transformations, destinations, and exclusions",
+          "why": "It defines every write mapping and authorizes the disabled build"
         },
         {
-          "input": "Review owner and recurrence",
-          "kind": "operator",
-          "how": "Name the ambiguous queue owner and ask after the pilot.",
-          "why": "Review-only classes and recurring audits need ownership."
+          "input": "target_population",
+          "kind": "derived",
+          "how": "Count eligible rows by mutually exclusive route after field approval",
+          "why": "It makes the cost estimate reproducible"
+        },
+        {
+          "input": "approved_run",
+          "kind": "asked",
+          "how": "Review the disabled Cargo links, target, and exact maximum credits",
+          "why": "It is the explicit gate before any enrichment call"
+        },
+        {
+          "input": "deduplication_evidence",
+          "kind": "derived",
+          "how": "Normalize live CRM identifiers, classify candidate clusters, and rank survivors",
+          "why": "It exposes key coverage, conflicts, and review risk"
+        },
+        {
+          "input": "approved_dedup_policy",
+          "kind": "asked",
+          "how": "Review protected IDs, survivor exceptions, and the queue owner from audited evidence",
+          "why": "It governs proposal generation without authorizing a merge"
+        },
+        {
+          "input": "approved_dedup_run",
+          "kind": "asked",
+          "how": "Review the refreshed cluster counts and approve at most 15 proposal clusters",
+          "why": "It is the gate before candidate materialization and proposal runs"
         }
       ],
       "canChange": [
         {
-          "id": "Adapt candidate evidence",
-          "when": "The selected CRM exposes different association fields.",
-          "how": "Map audited fields into the same class, conflict, and survivor contract.",
-          "cost": "No provider-credit change."
+          "id": "crm",
+          "when": "The consumer uses Salesforce or Attio instead of HubSpot",
+          "how": "Keep one CRM shape in `infra/index.ts`. The file is the HubSpot example. **Salesforce:** generated Account update matching `Id`; there is no `skipIfExist` — read the Account first and omit any field that is already populated, including numeric zero. **Attio:** generated company-record update matching the record id; same read-then-omit guard. Do not copy HubSpot's flag.",
+          "cost": "Live generated types must be rechecked; a guessed flag writes or no-ops silently"
         },
         {
-          "id": "Extend survivor precedence",
-          "when": "A protected lifecycle, tier, or billing rule must win.",
-          "how": "Insert the rule deterministically and record its exact position.",
-          "cost": "No provider-credit change."
+          "id": "selected_fields",
+          "when": "The approved contract differs from the starting recommendation",
+          "how": "Present every live candidate at the field-selection gate. After approval, change the result schema, destinations, per-field write policy, and both provider mappings in `infra/index.ts`. Industry requires an approved array-to-enum transformation when the CRM destination is a single enum.",
+          "cost": "Each added field expands mapping and type review"
         },
         {
-          "id": "Add structured AI review",
-          "when": "Ambiguous domain evidence needs a review aid.",
-          "how": "Wire the supplied agent into the importer, never into merge authorization.",
-          "cost": "Current language-model usage, priced before activation."
+          "id": "eligibility",
+          "when": "Only a governed subset should be enriched",
+          "how": "Intersect the play filter with approved lifecycle, tier, ownership, or gap conditions (`infra/index.ts` `enrichAccounts`)",
+          "cost": "Narrower scope reduces coverage and paid calls"
         },
         {
-          "id": "Implement consumer merging",
-          "when": "Live rereads and protected-ID guards are proven.",
-          "how": "Add exact current CRM payloads only in the consumer project after explicit approval.",
-          "cost": "Integration-specific runtime and operational risk."
+          "id": "approved_refresh_behavior",
+          "when": "Populated fields must be refreshed after explicit approval",
+          "how": "Drop `skipIfExist` / the read-then-omit guard on the approved fields only, preview the replacements, and compare against a fresh CRM read (`infra/index.ts`)",
+          "cost": "Refresh can overwrite CRM-authoritative values if the preview and the write disagree"
+        },
+        {
+          "id": "survivor_precedence",
+          "when": "A protected lifecycle, tier, billing, or customer rule must win",
+          "how": "Insert the rule deterministically in `selectSurvivor`, record its exact precedence, and refresh all affected candidates before review",
+          "cost": "A policy change can select a different survivor for every cluster"
+        },
+        {
+          "id": "structured_ai_review",
+          "when": "Ambiguous domain evidence needs a review aid",
+          "how": "Add a structured reviewer only after pricing the selected model. Keep its result as evidence and outside `approvedForMerge",
+          "cost": "Adds current language-model usage and a non-deterministic review surface"
         }
       ],
       "shouldNotChange": [
-        "Company name alone is never a duplicate key.",
-        "LinkedIn URL, handle, domain, parent, subsidiary, and AI-reviewed matches remain review-only.",
-        "AI never authorizes a merge.",
-        "The shipped play remains proposal-only, disabled, limited to 15, and set to `noConcurrency`.",
-        "The play owns its managed backing segment. Do not add a standalone segment."
+        "**The play runs on `crm_accounts` and matches the CRM record id.** (`infra/index.ts`) HubSpot's example uses `hs_object_id`. Sending a Cargo row id, or a native `accounts` id, to a CRM action targets the wrong identifier system; the run looks successful and nothing lands.",
+        "**The tool enriches; the play orchestrates and writes.** (`infra/index.ts`) `account_enrichment` accepts provider identifiers, normalizes them, and returns company data without a CRM connector or write. Its first non-start node is a native Filter, followed by mutually exclusive provider routes. `enrich_accounts` starts with one Tool node targeting `account_enrichment`, applies the approved per-field policy, and owns the only CRM update. A tool that writes to the CRM is not reusable; a play that repeats the provider action bypasses the reviewed tool. Run `node --import tsx evals/contract.mjs` after every adaptation to enforce this compiled graph.",
+        "**One CRM shape in the file.** (`infra/index.ts`) The checked example is HubSpot. Adapt that one file for Salesforce or Attio. Parallel HubSpot/Salesforce/Attio branches drift from the generated types of the CRM that is actually connected.",
+        "**At most one paid route per row, LinkedIn URL first.** (`infra/index.ts` `enrichCrmAccount`) A row without a handle or a domain makes no paid call. A handle that is already an `http` URL is used as-is; otherwise it is prefixed as `https://www.linkedin.com/company/<handle>`.",
+        "**Destinations are live properties on the connected CRM.** (`infra/index.ts`) The HubSpot example writes `linkedin_company_id`, `name`, `domain`, `website`, `linkedin_company_page`, `numberofemployees`, `cargo_last_enriched_at`, and `cargo_enrichment_status`. Provider-derived business properties keep neutral names; Cargo-owned operational stamps use the `cargo_` prefix. Leaving another CRM's names in the file can write provider data into the wrong property.",
+        "**Fill approved blanks only.** (`infra/index.ts` `skipIfExist` or the Salesforce/Attio read-then-omit guard) A stale snapshot overwrites authoritative CRM data, including numeric zero.",
+        "**Eligibility and freshness live in the play trigger.** (`infra/index.ts` `enrichAccounts`) Require an identifier and freshness null or older than six months in the managed segment. Destination fill-state is not an eligibility condition: an approved refresh must be able to re-enrich populated stale fields. The row workflow starts with the reusable tool call instead of repeating trigger conditions as branches. A standalone `defineSegment` or duplicate workflow gate drifts from the play.",
+        "**The first play is disabled and `noConcurrency`.** (`infra/index.ts`) Removing those expands an unapproved pilot.",
+        "**Deduplication consumes classified clusters from `crm_accounts`.** (`infra/index.ts`) The `account_duplicate_candidates` model carries the approved audit run ID, ordered CRM record IDs, and the audited survivor. Running the proposal play on individual CRM rows loses cluster evidence and makes survivor selection depend on input order.",
+        "**Deduplication remains proposal-only.** (`infra/index.ts`) Every shipped outcome keeps `approvedForMerge: false`; `deduplicate_accounts` contains no CRM, provider, tool, agent, or merge action. Company name alone never creates a candidate. LinkedIn URL, domain, parent or subsidiary, conflict, and AI-assisted classes stay review-only.",
+        "**The deduplication pilot is disabled, `noConcurrency`, and limited to 15 clusters.** (`infra/index.ts`) A wider or concurrent run expands an unapproved review surface.",
+        "**No credentials, deploy commands, or customer data in this repository.**"
       ],
       "doneWhen": [
-        "the dedup audit matches its JSON and Markdown contracts",
-        "the existing global Account model and audit importer are verified",
-        "candidate clusters include the required evidence and survivor decision",
-        "the deduplication play is disabled, uses `noConcurrency`, and is limited to 15 clusters",
-        "the selected CRM folders contain no credentials, deployment command, merge action, or customer data"
+        "the audit JSON, Markdown, and chat summary agree on every count",
+        "the audit records an operator-approved field contract with provider paths, live CRM destinations, types, transformations, write policies, and reasons for every exclusion",
+        "the CDK plan contains one CRM account model (`crm_accounts`) and no native `accounts` unification",
+        "the agent installed and read the `cargo-cdk` skill before auditing or adapting the template",
+        "the CDK plan contains the reusable `account_enrichment` tool and disabled `enrich_accounts` play; the play contains one Tool node targeting `account_enrichment`, followed by the only CRM update",
+        "`node --import tsx evals/contract.mjs` passes against the adapted compiled graph; the tool begins with a Filter and contains no CRM action, while the play contains no provider action",
+        "generated consumer types confirm the selected provider fields, CRM destinations, write action, and fill-blank semantics",
+        "every destination is a live property on the connected CRM",
+        "the managed segment excludes records without an identifier but allows populated stale records; the approved per-field write policy decides fill blank versus refresh",
+        "the play targets `crm_accounts` and the write matches the audited CRM record id",
+        "the managed segment uses the null-or-six-month freshness rule, daily evaluation, and `changeKinds: [\"added\"]`, with no destination fill-state filter",
+        "the first plan shows `isEnabled: false` and `runCreationRule: noConcurrency`",
+        "LinkedIn and domain route counts are mutually exclusive and reproduce the credit estimate",
+        "the phase-two handoff contains working Cargo UI links for the disabled play and tool, plus the exact target and estimated credits",
+        "the operator explicitly approved the run after reviewing the links and cost",
+        "the post-run report shows before-and-after fill rates, every outcome count, failures, actual credits against estimate, and one recommended next step",
+        "the deduplication audit reports identifier coverage, mutually exclusive match classes, conflicts, protected IDs, and the deterministic survivor for every candidate cluster",
+        "`account_duplicate_candidates` carries the approved audit run ID and ordered CRM record IDs from `crm_accounts`, and `deduplicate_accounts` is disabled, `noConcurrency`, and limited to 15 clusters",
+        "the compiled deduplication workflow contains no connector, tool, agent, provider, or merge action; every proposal keeps `approvedForMerge: false`",
+        "the operator approved the exact candidate population before proposal generation, and the final report includes every proposal, conflict, exclusion, and direct Cargo link"
       ],
-      "cost": "The shipped proposal play invokes no paid enrichment action, no review agent, and no CRM merge.\nIts provider-credit cost is zero per proposal. If the consumer wires the optional structured\nreview agent or a live audit source, price those actions from their current schemas before use.",
-      "composesInto": "- Run after `account-enrichment` has maximized LinkedIn ID, LinkedIn URL, and domain coverage.\n- Feed reviewed survivors into people enrichment and contact deduplication.\n- Add a consumer-only merge workflow later, after live reread and protected-ID gates are proven."
-    },
-    {
-      "name": "crm-enrichment",
-      "kind": "one-off",
-      "job": "Backfill the empty fields on CRM records so routing, scoring and territory assignment stop failing on blanks, powered by Cargo.",
-      "description": "Backfill the empty fields on CRM records so routing, scoring and territory assignment stop failing on blanks, powered by Cargo. Triggers: \"CRM enrichment\", \"enrich my CRM\", \"my CRM records are half empty\", \"fill in missing fields in HubSpot\", \"clean up the CRM data\", \"our Salesforce contacts have no titles\", \"CRM data quality\", \"CRM hygiene\", \"backfill blank fields\". Providers: enrichCrm. Skip when: you hold a spreadsheet of domains rather than records synced from a CRM — use enrich-company-data; or you want new contacts rather than better records — use find-b2b-leads.",
-      "version": "1.0.0",
-      "homepage": "https://github.com/getcargohq/gtm-skills",
-      "group": "Get the contact data",
-      "install": "npx skills add getcargohq/gtm-skills/crm-enrichment",
-      "partOf": []
+      "cost": "Immediately before every preview, run `cargo-ai connection integration get linkedin`. Read the\napplicable current entries from `integration.actions.enrichCompany.credits.costs` and\n`integration.actions.enrichCompanyFromDomain.credits.costs`. Record the CLI version, lookup time,\naction slugs, and selected unit costs. Then preview\n`linkedin_url_path * linkedin_url_unit_credits + domain_path * domain_unit_credits`.\n\nThis play runs on eligible `crm_accounts` rows and updates that same CRM record. Eligibility means\nthe row has an identifier and passes freshness and governance filters. Destination fill-state does\nnot control enrollment. The approved per-field write policy decides whether populated stale values\nare preserved or refreshed. Recompute the target and credit preview after approval, then report the\nsegment count.\nDeduplication follows enrichment because the new matching keys improve duplicate detection.\n\nThe checked deduplication proposal play invokes no provider, AI, or CRM action, so it has no\nprovider-credit charge. If the consumer adds structured AI review or a live CRM action, fetch and\npresent the current cost before activation. A proposal is never approval to merge.\n\nDo not enable the daily schedule until the disabled pilot has passed. Enabling is not an\ninput; it is the last yes after _Done when_.",
+      "composesInto": "`account-scoring` (one current survivor is what the scorer can cite), `find-stakeholders` (the\nbuyers at every reviewed account), `tam-building` (the universe these records join)."
     },
     {
       "name": "enrich-company-data",
       "kind": "one-off",
       "job": "Enrich a list of companies with firmographics — industry, size, geography, founding year, and headquarters, powered by Cargo.",
-      "description": "Enrich a list of companies with firmographics — industry, size, geography, founding year, and headquarters, powered by Cargo. Triggers: \"enrich these companies\", \"add company size and industry to my list\", \"get firmographics for these domains\", \"fill in company data\", \"company enrichment\", \"enrich companies\", \"what sector is this business in\", \"how big is this organisation\". Providers: cargo. Skip when: you want funding history — use track-funding-rounds; or tech stack — use find-companies-using-tech.",
+      "description": "Enrich a list of companies with firmographics — industry, size, geography, founding year, and headquarters, powered by Cargo. Triggers: \"enrich these companies\", \"add company size and industry to my list\", \"get firmographics for these domains\", \"enrich a supplied spreadsheet of company domains once\", \"fill in company data\", \"company enrichment\", \"enrich companies\", \"what sector is this business in\", \"how big is this organisation\". Providers: cargo. Skip when: you want funding history — use track-funding-rounds; or tech stack — use find-companies-using-tech.",
       "version": "1.1.0",
       "homepage": "https://github.com/getcargohq/gtm-skills",
       "group": "Get the contact data",
@@ -358,13 +408,13 @@
           "why": "This is the only input that cannot be derived: it encodes who you sell to. Everything else in this skill is arithmetic on top of it."
         },
         {
-          "input": "searchUrls` (`models/salesnav-companies.ts`)",
+          "input": "searchUrls` (`infra/models/salesnav-companies.ts`)",
           "kind": "value",
           "how": "**derived**: cargo-ai orchestration action execute --action salesNavigator.searchCompanyMetrics --data '{\"url\":\"<marketSearch>\"}' returns total_results. Over the cap, split by facet (industry first, descending the LinkedIn taxonomy only where still oversized, then geography, then headcount band) and recount each sub-search until every one is under the cap.",
           "why": "A search holding 4,000 companies extracts 1,000 and tells you nothing about the missing 3,000. Splitting under the cap is the entire point of this skill."
         },
         {
-          "input": "limit` (`models/salesnav-companies.ts`)",
+          "input": "limit` (`infra/models/salesnav-companies.ts`)",
           "kind": "value",
           "how": "defaults to `1000`; ask only to change it",
           "why": "This is the upstream cost control. Promotion is 1:1 with extraction, so what you extract is what you pay to enrich."
@@ -374,26 +424,26 @@
         {
           "id": "non-linkedin-source",
           "when": "You do not want to source from LinkedIn at all, or Sales Nav does not cover your market",
-          "how": "Swap the Sales Nav connector and landing model for the Ark enrichment API (https://ai-ark.com/platform/enrichment-api), keeping `promote-to-accounts` and the `accounts` contract unchanged (`models/salesnav-companies.ts`, `connectors/sales-navigator.ts`)",
+          "how": "Swap the Sales Nav connector and landing model for the Ark enrichment API (https://ai-ark.com/platform/enrichment-api), keeping `promote-to-accounts` and the `accounts` contract unchanged (`infra/models/salesnav-companies.ts`, `infra/connectors/sales-navigator.ts`)",
           "cost": "You lose the Sales Nav facet taxonomy that makes the split tactic mechanical, and the splitting has to be redesigned around the new source's own limits"
         },
         {
           "id": "land-without-promoting",
           "when": "You want to see and filter the raw market before paying to enrich it",
-          "how": "Deploy the landing model only and leave `promote-to-accounts` out until you have decided which rows are worth promoting (`plays/promote-to-accounts.ts`)",
+          "how": "Deploy the landing model only and leave `promote-to-accounts` out until you have decided which rows are worth promoting (`infra/plays/promote-to-accounts.ts`)",
           "cost": "Nothing reaches `accounts`, so no downstream skill (scoring, contact sourcing, signals) has anything to work with until you promote"
         },
         {
           "id": "sample-first",
           "when": "The market search is large and you want to see the cost curve before committing",
-          "how": "Set `config.limit` well below the cap and start with one sub-search URL, then widen once rows land correctly (`models/salesnav-companies.ts`)",
+          "how": "Set `config.limit` well below the cap and start with one sub-search URL, then widen once rows land correctly (`infra/models/salesnav-companies.ts`)",
           "cost": "Your TAM is deliberately incomplete until you widen it, so do not score or report on coverage from a sample"
         }
       ],
       "shouldNotChange": [
-        "**Every company is resolved to a real domain before it is promoted into `accounts`.** (`plays/promote-to-accounts.ts`) The shared `accounts` model keys on `website`. A domainless account cannot be deduped, so it forks into duplicates the first time the same company appears in another list. This is why a row that cannot be resolved is dropped rather than written.",
-        "**Every search is counted before it is extracted.** (`models/salesnav-companies.ts`) Extracting blind is how you take a silently truncated list: the search holds 4,000 companies, the extractor takes 1,000, and nothing tells you the rest exist.",
-        "**No sub-search sits at or above the extraction cap.** (`models/salesnav-companies.ts`) A search returning exactly the cap is truncated. That is the failure this whole skill exists to prevent, and it is invisible unless you check the number."
+        "**Every company is resolved to a real domain before it is promoted into `accounts`.** (`infra/plays/promote-to-accounts.ts`) The shared `accounts` model keys on `website`. A domainless account cannot be deduped, so it forks into duplicates the first time the same company appears in another list. This is why a row that cannot be resolved is dropped rather than written.",
+        "**Every search is counted before it is extracted.** (`infra/models/salesnav-companies.ts`) Extracting blind is how you take a silently truncated list: the search holds 4,000 companies, the extractor takes 1,000, and nothing tells you the rest exist.",
+        "**No sub-search sits at or above the extraction cap.** (`infra/models/salesnav-companies.ts`) A search returning exactly the cap is truncated. That is the failure this whole skill exists to prevent, and it is invisible unless you check the number."
       ],
       "doneWhen": [
         "the sub-search extractions sum to roughly the count of the original whole-market search",

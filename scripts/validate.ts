@@ -98,8 +98,8 @@ interface Skill {
   quoted: Map<string, number>;
 }
 
-function readSkill(name: string, path = name): Skill {
-  const source = readFileSync(join(repoRoot, path, "SKILL.md"), "utf8");
+function readSkill(name: string): Skill {
+  const source = readFileSync(join(repoRoot, name, "SKILL.md"), "utf8");
   const match = /^---\n([\s\S]*?)\n---\n([\s\S]*)$/.exec(source);
   if (!match) {
     fail(name, "SKILL.md has no frontmatter block");
@@ -335,10 +335,8 @@ async function checkPluginChannel(skillNames: string[]): Promise<void> {
     }
   }
 
-  // Plugin skill discovery is shallow for explicit skill roots. Nested cookbook
-  // leaves therefore need their own manifest paths in addition to the repo root.
-  // Validate the actual component inventory instead of trusting a description
-  // count that can stay correct while the plugin silently exposes fewer skills.
+  // Validate the actual root component inventory instead of trusting a
+  // description count that can stay correct while a plugin exposes fewer skills.
   for (const [label, manifest] of [
     [".claude-plugin/plugin.json", claude],
     [".codex-plugin/plugin.json", codex],
@@ -591,32 +589,13 @@ async function checkPluginChannel(skillNames: string[]): Promise<void> {
  * Main
  * ------------------------------------------------------------------ */
 
-const skillEntries = (function walk(
-  dir = repoRoot,
-  prefix = "",
-): { name: string; path: string }[] {
-  return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
-    if (
-      !entry.isDirectory() ||
-      entry.name.startsWith(".") ||
-      entry.name === "node_modules"
-    )
-      return [];
-    const path = join(prefix, entry.name);
-    const absolute = join(dir, entry.name);
-    return existsSync(join(absolute, "SKILL.md"))
-      ? [{ name: entry.name, path }]
-      : walk(absolute, path);
-  });
-})().sort((a, b) => a.name.localeCompare(b.name));
-const skillNames = skillEntries.map((entry) => entry.name);
-const duplicateNames = skillNames.filter(
-  (name, index) => skillNames.indexOf(name) !== index,
-);
-if (duplicateNames.length > 0) {
-  console.error(`Duplicate skill leaf names: ${[...new Set(duplicateNames)].join(", ")}`);
-  process.exit(1);
-}
+const skillNames = readdirSync(repoRoot)
+  .filter(
+    (entry) =>
+      statSync(join(repoRoot, entry), { throwIfNoEntry: false })?.isDirectory() &&
+      existsSync(join(repoRoot, entry, "SKILL.md")),
+  )
+  .sort();
 
 if (!skillNames.length) {
   console.error("No skills found — expected <name>/SKILL.md directories at the repo root.");
@@ -630,7 +609,7 @@ if (!skillNames.length) {
 //             price, the star ask. Validated here, against the playbooks.
 //   cookbook  a worked CDK example an agent adapts into a project and deploys.
 //             Names no connector action, prices no call. Validated by
-//             scripts/check-cookbooks.mjs.
+//             scripts/check-pipelines.mjs.
 //
 // Both kinds take part in the trigger-collision check below, because a
 // one-off and a cookbook compete for the same prompts and that is exactly the
@@ -641,16 +620,12 @@ if (!skillNames.length) {
 // value is an error, not a default: a typo must not silently make a cookbook
 // a one-off.
 const SOURCES = new Set(["one-off", "cookbook"]);
-const allSkills = skillEntries.map(({ name, path }) => readSkill(name, path));
-const skillPathByName = new Map(
-  skillEntries.map(({ name, path }) => [name, path]),
-);
+const allSkills = skillNames.map(readSkill);
 const sourceOf = (skill: Skill): string | undefined =>
   /^\s+source:\s*([a-z-]+)\s*$/m.exec(
-    readFileSync(
-      join(repoRoot, skillPathByName.get(skill.name) ?? skill.name, "SKILL.md"),
-      "utf8",
-    ).split(/\n---\n/)[0] ?? "",
+    readFileSync(join(repoRoot, skill.name, "SKILL.md"), "utf8").split(
+      /\n---\n/,
+    )[0] ?? "",
   )?.[1];
 for (const skill of allSkills) {
   const source = sourceOf(skill);

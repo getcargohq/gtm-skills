@@ -1,12 +1,12 @@
 {
   "name": "gtm",
   "interface": { "displayName": "Cargo GTM" },
-  "metadata": { "description": "Cargo GTM skills and CDK cookbooks for Codex" },
+  "metadata": { "description": "Cargo GTM skills for Codex" },
   "plugins": [
     {
       "name": "cargo",
       "source": { "source": "local", "path": "./" },
-      "description": "Twenty-three routed GTM skills: one-off Cargo CLI jobs plus a proposal-only account deduplication CDK cookbook.",
+      "description": "Routed GTM skills, each focused on one job: one-off Cargo CLI workflows plus worked CDK examples an agent adapts and deploys.",
       "policy": { "installation": "AVAILABLE", "authentication": "ON_INSTALL" }
     }
   ]

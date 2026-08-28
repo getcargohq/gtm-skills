@@ -1,5 +1,5 @@
 {
-  "//": "Typechecks every skill's example resources against the CDK, from the repo root. Needs generated types: `cargo-ai login`, then `npm run types`. Nothing here ships: a consumer's tsconfig comes from `cargo-ai cdk init --template blank`.",
+  "//": "Typechecks every skill's example resources against the installed CDK package, from the repo root. Consumer projects still run `cargo-ai cdk types` after selecting live connectors. Nothing here ships: a consumer's tsconfig comes from `cargo-ai cdk init --template blank`.",
   "compilerOptions": {
     "target": "ES2022",
     "module": "ESNext",
@@ -9,7 +9,7 @@
     "noEmit": true,
     "types": []
   },
-  "include": ["**/*.ts", ".cargo-ai/**/*.d.ts"],
+  "include": ["*/**/*.ts", ".cargo-ai/**/*.d.ts"],
   "exclude": [
     "node_modules",
     "dist",

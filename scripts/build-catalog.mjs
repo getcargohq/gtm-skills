@@ -2,8 +2,8 @@
 // Builds catalog.json: every skill in this repo as one JSON record, so a site
 // or another skills repo can render the menu without parsing markdown. This is
 // the ONE place markdown is turned into data, next to the validators that
-// guarantee the shape (validate.ts for one-off skills, check-cookbooks.mjs
-// for the cookbooks). Consumers fetch
+// guarantee the shape (validate.ts for one-off skills, check-pipelines.mjs
+// for the pipeline skills). Consumers fetch
 //   https://raw.githubusercontent.com/getcargohq/gtm-skills/main/catalog.json
 // and never clone.
 //
@@ -30,24 +30,50 @@ const groupings = JSON.parse(
 ).groupings;
 const groupOf = (name) =>
   groupings.find((g) => g.skills.includes(name))?.title ?? null;
-const RESOURCE_DIRS = new Set([
-  "models",
-  "plays",
-  "agents",
-  "segments",
-  "connectors",
-  "tools",
-  "apps",
-  "mcp",
-  "context",
-  "files",
-  "territories",
-  "capacities",
-  "folders",
-  "workers",
-  "templates",
-  "cdk",
-]);
+// What a cookbook declares, read from the `define*` calls themselves rather
+// than from its directory names. Every cookbook keeps its resources in `infra/`
+// now, so counting top-level folders would answer "infra" for all of them —
+// and a cookbook is free to put everything in one `infra/index.ts` anyway.
+const RESOURCE_BY_BUILDER = {
+  defineAgent: "agents",
+  defineAlert: "alerts",
+  defineApp: "apps",
+  defineCapacity: "capacities",
+  defineConnector: "connectors",
+  defineContext: "context",
+  defineDomain: "domains",
+  defineFile: "files",
+  defineFolder: "folders",
+  defineMailbox: "mailboxes",
+  defineMcpServer: "mcp",
+  defineModel: "models",
+  definePlay: "plays",
+  defineRelationship: "relationships",
+  defineSegment: "segments",
+  defineTerritory: "territories",
+  defineTool: "tools",
+  defineWorker: "workers",
+};
+
+const tsFilesUnder = (dir) =>
+  readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
+    const full = join(dir, entry.name);
+    if (entry.isDirectory()) return tsFilesUnder(full);
+    return entry.name.endsWith(".ts") ? [full] : [];
+  });
+
+const resourcesOf = (dir) => {
+  const declared = new Set();
+  for (const file of tsFilesUnder(dir)) {
+    const source = readFileSync(file, "utf8");
+    for (const [builder, resource] of Object.entries(RESOURCE_BY_BUILDER)) {
+      if (new RegExp(`\\b${builder}\\s*\\(`).test(source)) {
+        declared.add(resource);
+      }
+    }
+  }
+  return [...declared].sort();
+};
 
 const section = (body, heading) => {
   const m = body.match(
@@ -76,33 +102,14 @@ const bullets = (text) => {
 };
 
 const skills = [];
-const skillFolders = (dir = root, prefix = "") =>
-  readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
-    if (
-      !entry.isDirectory() ||
-      entry.name.startsWith(".") ||
-      entry.name === "node_modules"
-    )
-      return [];
-    const relative = join(prefix, entry.name);
-    const absolute = join(dir, entry.name);
-    return existsSync(join(absolute, "SKILL.md"))
-      ? [relative]
-      : skillFolders(absolute, relative);
-  });
-const discoveredSkillFolders = skillFolders().sort();
-const leafNames = new Map();
-for (const path of discoveredSkillFolders) {
-  const leaf = path.split("/").at(-1);
-  if (leafNames.has(leaf)) {
-    throw new Error(
-      `duplicate skill name "${leaf}" in ${leafNames.get(leaf)} and ${path}`,
-    );
-  }
-  leafNames.set(leaf, path);
-}
-for (const path of discoveredSkillFolders) {
-  const dir = join(root, path);
+for (const name of readdirSync(root).sort()) {
+  const dir = join(root, name);
+  if (
+    name.startsWith(".") ||
+    !statSync(dir).isDirectory() ||
+    !existsSync(join(dir, "SKILL.md"))
+  )
+    continue;
   const text = readFileSync(join(dir, "SKILL.md"), "utf8");
   const end = text.indexOf("\n---", 3);
   const fm = parseYaml(text.slice(4, end));
@@ -110,7 +117,6 @@ for (const path of discoveredSkillFolders) {
   const description = fm.description ?? "";
   const job = description.split(/\.\s+Triggers:/)[0] + ".";
   const isCookbook = fm.metadata?.source === "cookbook";
-  const name = fm.name;
   const rec = {
     name,
     kind: isCookbook ? "cookbook" : "one-off",
@@ -119,7 +125,7 @@ for (const path of discoveredSkillFolders) {
     version: fm.version ?? null,
     homepage: fm.homepage ?? null,
     group: groupOf(name),
-    install: `npx skills add getcargohq/gtm-skills/${path}`,
+    install: `npx skills add getcargohq/gtm-skills/${name}`,
     partOf: bullets(section(body, "Part of"))
       .map((b) => b.replace(/`/g, "").split(/[:\s]/)[0])
       .filter(Boolean),
@@ -129,9 +135,7 @@ for (const path of discoveredSkillFolders) {
     Object.assign(rec, {
       state: a.state ?? "to-be-approved",
       chain: a.chain ?? null,
-      resources: readdirSync(dir).filter(
-        (f) => RESOURCE_DIRS.has(f) && statSync(join(dir, f)).isDirectory(),
-      ),
+      resources: resourcesOf(dir),
       asked: tableRows(section(body, "What you will be asked")).map(
         ([input, kind, how, why]) => ({ input, kind, how, why }),
       ),

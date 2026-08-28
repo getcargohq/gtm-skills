@@ -179,22 +179,13 @@ if (typeof version !== "string" || /^\d+\.\d+\.\d+$/.test(version) === false) {
   die(`.claude-plugin/plugin.json has no usable semver version (got ${version})`);
 }
 
-// Discover root skills and nested cookbooks. The package stays flat because
-// OpenAI loads each skill from skills/<name>/SKILL.md.
-const findSkillDirs = (dir = repoRoot, prefix = "") =>
-  readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
-    if (!entry.isDirectory() || entry.name.startsWith(".") || entry.name === "node_modules") return [];
-    const relative = join(prefix, entry.name);
-    const absolute = join(dir, entry.name);
-    return existsSync(join(absolute, "SKILL.md")) ? [{ name: entry.name, path: relative }] : findSkillDirs(absolute, relative);
-  });
-const skillDirs = findSkillDirs().sort((a, b) => a.name.localeCompare(b.name));
-const duplicateNames = skillDirs.filter(
-  (entry, index) => skillDirs.findIndex((candidate) => candidate.name === entry.name) !== index,
-);
-if (duplicateNames.length > 0) {
-  die(`duplicate skill leaf names cannot be flattened: ${[...new Set(duplicateNames.map((entry) => entry.name))].join(", ")}`);
-}
+// A skill is any top-level directory holding a SKILL.md. This matches
+// scripts/validate.ts and keeps every installable skill visible at the root.
+const skillDirs = readdirSync(repoRoot, { withFileTypes: true })
+  .filter((entry) => entry.isDirectory())
+  .map((entry) => entry.name)
+  .filter((name) => existsSync(join(repoRoot, name, "SKILL.md")))
+  .sort();
 
 if (skillDirs.length === 0) {
   die("found no skill directories at the repo root");
@@ -206,8 +197,8 @@ mkdirSync(join(stageDir, "skills"), { recursive: true });
 
 const descriptionErrors = [];
 
-for (const { name, path } of skillDirs) {
-  cpSync(join(repoRoot, path), join(stageDir, "skills", name), {
+for (const name of skillDirs) {
+  cpSync(join(repoRoot, name), join(stageDir, "skills", name), {
     recursive: true,
     dereference: true,
   });
@@ -275,7 +266,7 @@ const manifest = {
   name: "cargo-gtm-skills",
   version,
   description:
-    "Twenty-three routed go-to-market skills over the Cargo CLI, including a proposal-only account deduplication CDK cookbook. Install one skill or the full bundle to research accounts, build markets, enrich professional company and contact data, verify business emails, score accounts, and monitor buying signals. Business-to-business professional identities only. Skills preview spend before paid calls. They send no messages. Bulk unsolicited messaging, purchased or scraped lists, and consumer targeting are out of scope.",
+    "Routed go-to-market skills over the Cargo CLI, each focused on one job, including worked CDK examples an agent adapts and deploys. Install one skill or the full bundle to research accounts, build markets, enrich professional company and contact data, verify business emails, score accounts, and monitor buying signals. Business-to-business professional identities only. Skills preview spend before paid calls. They send no messages. Bulk unsolicited messaging, purchased or scraped lists, and consumer targeting are out of scope.",
   author: { name: "getcargo" },
   homepage: "https://getcargo.ai",
   repository: "https://github.com/getcargohq/gtm-skills",
@@ -296,7 +287,7 @@ const manifest = {
   interface: {
     displayName: "Cargo GTM Skills",
     // 30 chars in the directory, not the 240 the uploader accepts.
-    shortDescription: "GTM skills and CDK cookbooks",
+    shortDescription: "GTM skills, one job each",
     composerIcon: "./assets/icon.png",
     logo: "./assets/icon.png",
     capabilities: ["Read", "Write"],
@@ -343,7 +334,7 @@ for (const [field, limit] of [
 for (const url of [manifest.homepage, manifest.repository]) {
   check(url.startsWith("https://"), `${url} must be HTTPS`);
 }
-for (const { name } of skillDirs) {
+for (const name of skillDirs) {
   const identity = `${manifest.name}:${name}`;
   check(
     identity.length <= LIMITS.skillIdentity,
@@ -385,6 +376,16 @@ const packagedSkills = entries.filter((e) =>
 if (packagedSkills !== skillDirs.length) {
   problems.push(
     `archive has ${packagedSkills} SKILL.md files, repo has ${skillDirs.length}`,
+  );
+}
+if (
+  !entries.includes("skills/crm-enrichment/SKILL.md") ||
+  !entries.includes(
+    "skills/crm-enrichment/infra/index.ts",
+  )
+) {
+  problems.push(
+    "archive is missing crm-enrichment or its infrastructure template",
   );
 }
 

@@ -1,15 +1,12 @@
 {
   "name": "cargo",
-  "description": "Twenty-three routed GTM skills in Codex: one-off Cargo CLI jobs plus a proposal-only account deduplication CDK cookbook, with prompt-free approval for safe cargo-ai calls.",
+  "description": "Routed GTM skills in Codex, each focused on one job: one-off Cargo CLI workflows plus worked CDK examples an agent adapts and deploys, with prompt-free approval for safe cargo-ai calls.",
   "version": "1.4.0",
   "author": {
     "name": "getcargo"
   },
   "homepage": "https://github.com/getcargohq/gtm-skills",
-  "skills": [
-    "./",
-    "./cookbooks/account-deduplication"
-  ],
+  "skills": "./",
   "hooks": "./hooks/codex-hooks.json",
   "interface": {
     "displayName": "Cargo GTM",

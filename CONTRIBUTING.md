@@ -1,21 +1,20 @@
 # Contributing
 
-Every root skill and every `cookbooks/<name>/` folder is one skill, installed on its own with
-`npx skills add getcargohq/gtm-skills/<name>` or
-`npx skills add getcargohq/gtm-skills/cookbooks/<name>`. Two kinds live side by side and
+Every folder at the root of this repo is one skill, installed on its own with
+`npx skills add getcargohq/gtm-skills/<name>`. Two kinds live side by side and
 the validators tell them apart by one frontmatter line:
 
 | Kind     | Marker                      | What the folder holds                                                                                               | Validated by                                                         |
 | -------- | --------------------------- | ------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
 | one-off  | `metadata.source: one-off`  | `SKILL.md`: a job an agent runs in a turn, with the exact `cargo-ai` command and its price                          | `scripts/validate.ts` (slugs and prices against the Cargo playbooks) |
-| cookbook | `metadata.source: cookbook` | `SKILL.md` plus worked CDK resources (`models/`, `plays/`, `agents/`, …) an agent adapts into a project and deploys | `scripts/check-cookbooks.mjs`                                        |
+| cookbook | `metadata.source: cookbook` | `SKILL.md` plus worked CDK resources (`models/`, `plays/`, `agents/`, …) an agent adapts into a project and deploys | `scripts/check-pipelines.mjs`                                        |
 
 `metadata.source` must be exactly one of those two values; a missing or
 unknown one fails `validate.ts`, so a typo cannot silently make a cookbook a
 one-off.
 
 Both are graded by the same routing evals (`evals/routing.jsonl`), because a
-one-off and a cookbook compete for the same prompts and that
+one-off and a pipeline compete for the same prompts and that
 seam is the whole point: "build a TAM list" is `build-tam-list` (a list today)
 and "keep our TAM current" is `tam-building` (a pipeline that keeps producing
 it).
@@ -33,17 +32,21 @@ comes from `cargo-ai cdk init --template blank`; a skill is a folder they copy.
 
 ## Checks
 
-| Command                                     | What it does                                                                                                                                                                   |
-| ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `node scripts/validate.ts`                  | one-off skills: every slug and price against `getcargohq/cargo-skills` playbooks, plus the plugin channel                                                                      |
-| `node scripts/check-cookbooks.mjs`          | cookbooks: frontmatter parses as YAML, the contract sections exist, **no relative import escapes the folder**, the to-be-approved banner follows `.github/data/approvals.json` |
-| `npm run typecheck`                         | repository TypeScript, including cookbook resource examples                                                                                                                    |
-| `npm run check:templates`                   | every cookbook and CRM variant in isolation with `cargo-cdk check`                                                                                                             |
-| `npm run check:contracts`                   | deterministic enrichment and deduplication safety fixtures                                                                                                                     |
-| `node scripts/generate-llms-txt.ts --check` | `llms.txt` in sync                                                                                                                                                             |
-| `node scripts/build-catalog.mjs --check`    | `catalog.json` in sync (the one machine-readable view of the whole repo)                                                                                                       |
-| `npx prettier --check .`                    | the CDK example code and repo scripts                                                                                                                                          |
-| routing evals                               | CI checks out `getcargohq/cargo-skills` and runs its `routing-eval.ts --skills-root .`                                                                                         |
+| Command                                     | What it does                                                                                                                               |
+| ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| `node scripts/validate.ts`                  | one-off skills: every slug and price against `getcargohq/cargo-skills` playbooks, plus the plugin channel                                  |
+| `node scripts/check-pipelines.mjs`          | pipeline skills: frontmatter and sections, folder isolation, no fixed credit amounts, isolated `infra/` CDK check and plan, approval state |
+| `npm run typecheck`                         | repository TypeScript, including pipeline resource examples                                                                                |
+| `node scripts/generate-llms-txt.ts --check` | `llms.txt` in sync                                                                                                                         |
+| `node scripts/build-catalog.mjs --check`    | `catalog.json` in sync (the one machine-readable view of the whole repo)                                                                   |
+| `npx prettier --check .`                    | the CDK example code and repo files, except the three generated or legacy scripts listed in `.prettierignore`                              |
+| routing evals                               | CI checks out `getcargohq/cargo-skills` and runs its `routing-eval.ts --skills-root .`                                                     |
+
+When writing a new skill, follow
+[`.agents/skills/create-gtm-skill/SKILL.md`](.agents/skills/create-gtm-skill/SKILL.md).
+That file is for authors; it is not a customer skill. Codex loads it from
+`.agents/skills`. Claude Code and Cursor load the same folder via symlink
+(`.claude/skills`, `.cursor/skills`).
 
 ## Adding a one-off skill
 
@@ -52,15 +55,16 @@ quoted triggers → proper nouns → `Skip when:`), a self-contained Setup, the
 exact command, the price, the star ask. Register it in `skills.sh.json`,
 `hooks/skill-loads.sh` and the README table; `validate.ts` tells you where.
 
-## Adding a cookbook
+## Adding a pipeline skill
 
-**Every cookbook is folder-isolated.** No relative import may leave it. A cookbook may carry all
-of its own resources or declare an explicit consumer prerequisite when duplicating a global model,
-connector, or importer would be unsafe. It must never import that prerequisite from another
-cookbook. The agent verifies and rewires prerequisites in the consumer project before planning.
+**Every pipeline skill is isolated.** It carries every model, connector and folder
+its resources import; no relative import may leave it. There is no shared
+foundation and no requires graph. Two pipeline skills in one project will both carry,
+say, an `accounts` model, and that is fine: the agent placing the second one
+sees the first and rewires to it. Isolation is what lets a customer install
+exactly one skill and get exactly one working thing.
 
-1. `<name>/` or `cookbooks/<name>/` with the resource code (`models/`, `plays/`, `agents/`, or a
-   resource-grouped `cdk/` tree) and a
+1. `<name>/` with the resource code (`models/`, `plays/`, `agents/`, or `infra/`) and a
    `README.md` that explains why the design is the way it is. Every value that
    must be edited before deploy carries a `PLACEHOLDER` comment.
 2. `<name>/SKILL.md` with `metadata.source: cookbook` and the standard
@@ -95,12 +99,11 @@ cookbook. The agent verifies and rewires prerequisites in the consumer project b
 5. At least two routing cases in `evals/routing.jsonl`: one that should reach
    this skill, one that must reach the one-off sibling instead.
 6. `npm run typecheck`, `npm run validate`, and `npm run format:check`, then a PR against `main`.
-   Whole-repository discovery must use `npx skills add getcargohq/gtm-skills --all --full-depth`
-   when the installer does not recurse.
 
-**A skill leaf folder without a `SKILL.md` is not a skill.** Repository containers such as
-`cookbooks/` may group nested skill leaf folders.
-Sixteen cookbooks (`contact-sourcing`, `signal-based-tam`, `ai-sdr`,
+**A folder without a `SKILL.md` is not a skill and does not belong at the root.** A pipeline skill has
+one root `SKILL.md`; supporting agent instructions belong in `references/`, never in nested
+skills.
+Sixteen pipeline examples (`contact-sourcing`, `signal-based-tam`, `ai-sdr`,
 `rep-cockpit`, …) were written before their skills and are kept in history, not
 in the tree: restore one with `git checkout 305cd88 -- <name>`, write its
 `SKILL.md`, and it lands with the skill. The validator refuses a resource folder
@@ -108,7 +111,7 @@ that carries no skill.
 
 ## Approval
 
-Every cookbook is **to be approved** until Cargo has tested it in a
+Every pipeline skill is **to be approved** until Cargo has tested it in a
 fresh demo workspace **and** two customers or partners have implemented it.
 That state and its evidence live in `.github/data/approvals.json`, which no
 customer sees. The customer sees the banner in `SKILL.md`, and the validator
@@ -120,7 +123,7 @@ outcome claim for a skill that is not approved.
 
 ## Every resource must earn its deploy
 
-A cookbook combines several resource types, but that is a description of
+A pipeline skill combines several resource types, but that is a description of
 what real outcomes need, **not a quota to fill**. A resource nobody calls is
 weight: it deploys, it shows up in the workspace, and it rots.
 
