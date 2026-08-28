@@ -131,7 +131,8 @@
       "resources": [
         "connectors",
         "models",
-        "plays"
+        "plays",
+        "tools"
       ],
       "asked": [
         {
