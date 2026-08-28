@@ -24,13 +24,13 @@
       ],
       "asked": [
         {
-          "input": "icp` (`context/icp.md`)",
+          "input": "icp` (`infra/context/icp.md`)",
           "kind": "generated",
           "how": "**derived**: If the workspace already has closed-won and closed-lost data, extract the industry, size, geography and stack that separate won from lost accounts and propose the ICP from it rather than asking cold.",
           "why": "The criteria ARE the prompt. There are no point weights in code, so a vague ICP produces vague scores and the disqualifiers are what cap a bad account at 20."
         },
         {
-          "input": "languageModel` (`agents/scorer.ts`)",
+          "input": "languageModel` (`infra/agents/scorer.ts`)",
           "kind": "value",
           "how": "**derived**: whichever LLM connector is already authenticated in the workspace",
           "why": "Scoring quality and per-account cost both live here."
@@ -42,7 +42,7 @@
           "why": "The play writes all four back. If they do not exist the run looks successful and the scores land nowhere, which is the failure mode that wastes a whole batch."
         },
         {
-          "input": "tierThresholds` (`segments/tiers.ts`)",
+          "input": "tierThresholds` (`infra/segments/tiers.ts`)",
           "kind": "value",
           "how": "**asked**",
           "why": "The agent emits A, B and C but the skill ships segments for A and C only. Tier B accounts land in no segment unless you add one."
@@ -52,27 +52,27 @@
         {
           "id": "deterministic-scoring",
           "when": "You need fixed cost and exact reproducibility, or an LLM judgement is not acceptable to your team",
-          "how": "Swap the agent call for the native `scoring` node, with criteria as {name, value, score} booleans in the workflow (`agents/scorer.ts`, `plays/score-accounts.ts`)",
+          "how": "Swap the agent call for the native `scoring` node, with criteria as {name, value, score} booleans in the workflow (`infra/agents/scorer.ts`, `infra/plays/score-accounts.ts`)",
           "cost": "The criteria move out of the ICP markdown and into code, so they stop being reviewable by non-engineers, and you lose the rationale entirely"
         },
         {
           "id": "skip-crm-roundtrip",
           "when": "You want the score on the model directly and do not need it visible in the CRM",
-          "how": "Write with the platform's `native.modelUpsert({...})` in the workflow instead of going through the CRM connector (`plays/score-accounts.ts`)",
+          "how": "Write with the platform's `native.modelUpsert({...})` in the workflow instead of going through the CRM connector (`infra/plays/score-accounts.ts`)",
           "cost": "Reps lose the score and rationale where they actually work. The native's input is untyped, so confirm the field shape on the first run"
         },
         {
           "id": "no-crm-at-all",
           "when": "You have no CRM, or you do not want to hand this skill a CRM credential",
-          "how": "Take `skip-crm-roundtrip`, then delete `connectors/hubspot.ts` so no CRM connector is registered",
+          "how": "Take `skip-crm-roundtrip`, then delete `infra/connectors/hubspot.ts` so no CRM connector is registered",
           "cost": "Every other CRM-dependent skill you install later brings a CRM connector of its own; reuse one"
         }
       ],
       "shouldNotChange": [
-        "**The scorer looks the account up before judging it.** (`agents/scorer.ts`) A score guessed from the domain name is unfalsifiable and the rationale cites nothing. The evaluator exists to fail exactly this, and a book scored that way is worse than an unscored one because people trust it.",
-        "**ICP disqualifiers cap the score, they are not just negative weight.** (`agents/scorer.ts`) Without a cap, a disqualified account with many fit signals still scores high and reaches a rep. The disqualifiers are the half of an ICP that actually protects the team's time.",
-        "**`cargo_score` and `cargo_tier` are selected as columns on the accounts model.** (`segments/tiers.ts`) The tier segments filter on a column they cannot see, so they come back empty while everything upstream reports success.",
-        "**Every tier the scorer can emit is either covered by a segment or excluded on purpose.** (`segments/tiers.ts`) The shipped segments cover A and C. The agent also emits B, so tier B accounts land nowhere and quietly disappear from the book."
+        "**The scorer looks the account up before judging it.** (`infra/agents/scorer.ts`) A score guessed from the domain name is unfalsifiable and the rationale cites nothing. The evaluator exists to fail exactly this, and a book scored that way is worse than an unscored one because people trust it.",
+        "**ICP disqualifiers cap the score, they are not just negative weight.** (`infra/agents/scorer.ts`) Without a cap, a disqualified account with many fit signals still scores high and reaches a rep. The disqualifiers are the half of an ICP that actually protects the team's time.",
+        "**`cargo_score` and `cargo_tier` are selected as columns on the accounts model.** (`infra/segments/tiers.ts`) The tier segments filter on a column they cannot see, so they come back empty while everything upstream reports success.",
+        "**Every tier the scorer can emit is either covered by a segment or excluded on purpose.** (`infra/segments/tiers.ts`) The shipped segments cover A and C. The agent also emits B, so tier B accounts land nowhere and quietly disappear from the book."
       ],
       "doneWhen": [
         "a test account run shows the agent's lookups in the trace, not a score guessed from the domain name",
@@ -129,7 +129,9 @@
       "state": "to-be-approved",
       "chain": 3,
       "resources": [
-        "infra"
+        "connectors",
+        "models",
+        "plays"
       ],
       "asked": [
         {
@@ -356,13 +358,13 @@
           "why": "This is the only input that cannot be derived: it encodes who you sell to. Everything else in this skill is arithmetic on top of it."
         },
         {
-          "input": "searchUrls` (`models/salesnav-companies.ts`)",
+          "input": "searchUrls` (`infra/models/salesnav-companies.ts`)",
           "kind": "value",
           "how": "**derived**: cargo-ai orchestration action execute --action salesNavigator.searchCompanyMetrics --data '{\"url\":\"<marketSearch>\"}' returns total_results. Over the cap, split by facet (industry first, descending the LinkedIn taxonomy only where still oversized, then geography, then headcount band) and recount each sub-search until every one is under the cap.",
           "why": "A search holding 4,000 companies extracts 1,000 and tells you nothing about the missing 3,000. Splitting under the cap is the entire point of this skill."
         },
         {
-          "input": "limit` (`models/salesnav-companies.ts`)",
+          "input": "limit` (`infra/models/salesnav-companies.ts`)",
           "kind": "value",
           "how": "defaults to `1000`; ask only to change it",
           "why": "This is the upstream cost control. Promotion is 1:1 with extraction, so what you extract is what you pay to enrich."
@@ -372,26 +374,26 @@
         {
           "id": "non-linkedin-source",
           "when": "You do not want to source from LinkedIn at all, or Sales Nav does not cover your market",
-          "how": "Swap the Sales Nav connector and landing model for the Ark enrichment API (https://ai-ark.com/platform/enrichment-api), keeping `promote-to-accounts` and the `accounts` contract unchanged (`models/salesnav-companies.ts`, `connectors/sales-navigator.ts`)",
+          "how": "Swap the Sales Nav connector and landing model for the Ark enrichment API (https://ai-ark.com/platform/enrichment-api), keeping `promote-to-accounts` and the `accounts` contract unchanged (`infra/models/salesnav-companies.ts`, `infra/connectors/sales-navigator.ts`)",
           "cost": "You lose the Sales Nav facet taxonomy that makes the split tactic mechanical, and the splitting has to be redesigned around the new source's own limits"
         },
         {
           "id": "land-without-promoting",
           "when": "You want to see and filter the raw market before paying to enrich it",
-          "how": "Deploy the landing model only and leave `promote-to-accounts` out until you have decided which rows are worth promoting (`plays/promote-to-accounts.ts`)",
+          "how": "Deploy the landing model only and leave `promote-to-accounts` out until you have decided which rows are worth promoting (`infra/plays/promote-to-accounts.ts`)",
           "cost": "Nothing reaches `accounts`, so no downstream skill (scoring, contact sourcing, signals) has anything to work with until you promote"
         },
         {
           "id": "sample-first",
           "when": "The market search is large and you want to see the cost curve before committing",
-          "how": "Set `config.limit` well below the cap and start with one sub-search URL, then widen once rows land correctly (`models/salesnav-companies.ts`)",
+          "how": "Set `config.limit` well below the cap and start with one sub-search URL, then widen once rows land correctly (`infra/models/salesnav-companies.ts`)",
           "cost": "Your TAM is deliberately incomplete until you widen it, so do not score or report on coverage from a sample"
         }
       ],
       "shouldNotChange": [
-        "**Every company is resolved to a real domain before it is promoted into `accounts`.** (`plays/promote-to-accounts.ts`) The shared `accounts` model keys on `website`. A domainless account cannot be deduped, so it forks into duplicates the first time the same company appears in another list. This is why a row that cannot be resolved is dropped rather than written.",
-        "**Every search is counted before it is extracted.** (`models/salesnav-companies.ts`) Extracting blind is how you take a silently truncated list: the search holds 4,000 companies, the extractor takes 1,000, and nothing tells you the rest exist.",
-        "**No sub-search sits at or above the extraction cap.** (`models/salesnav-companies.ts`) A search returning exactly the cap is truncated. That is the failure this whole skill exists to prevent, and it is invisible unless you check the number."
+        "**Every company is resolved to a real domain before it is promoted into `accounts`.** (`infra/plays/promote-to-accounts.ts`) The shared `accounts` model keys on `website`. A domainless account cannot be deduped, so it forks into duplicates the first time the same company appears in another list. This is why a row that cannot be resolved is dropped rather than written.",
+        "**Every search is counted before it is extracted.** (`infra/models/salesnav-companies.ts`) Extracting blind is how you take a silently truncated list: the search holds 4,000 companies, the extractor takes 1,000, and nothing tells you the rest exist.",
+        "**No sub-search sits at or above the extraction cap.** (`infra/models/salesnav-companies.ts`) A search returning exactly the cap is truncated. That is the failure this whole skill exists to prevent, and it is invisible unless you check the number."
       ],
       "doneWhen": [
         "the sub-search extractions sum to roughly the count of the original whole-market search",
