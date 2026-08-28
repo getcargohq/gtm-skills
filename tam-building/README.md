@@ -47,11 +47,11 @@ Adds 3 resources on top of the base. Counting is a CLI call, not a deployed
 tool: you run it while designing the search, and a tool that only ever wraps one
 connector action in a workflow is ceremony, not a resource.
 
-| File                            | Resource          | Role                                                     |
-| ------------------------------- | ----------------- | -------------------------------------------------------- |
-| `connectors/sales-navigator.ts` | `defineConnector` | Sales Navigator, adopted: no key, no seat, no cookie     |
-| `models/salesnav-companies.ts`  | `defineModel`     | the landing table: one row per extracted company         |
-| `plays/promote-to-accounts.ts`  | `definePlay`      | resolve a domain, then upsert into the shared `accounts` |
+| File                                  | Resource          | Role                                                     |
+| ------------------------------------- | ----------------- | -------------------------------------------------------- |
+| `infra/connectors/sales-navigator.ts` | `defineConnector` | Sales Navigator, adopted: no key, no seat, no cookie     |
+| `infra/models/salesnav-companies.ts`  | `defineModel`     | the landing table: one row per extracted company         |
+| `infra/plays/promote-to-accounts.ts`  | `definePlay`      | resolve a domain, then upsert into the shared `accounts` |
 
 ## Why the domain resolution is not optional
 
@@ -63,7 +63,7 @@ first time it appears in another list.
 
 ## Placeholders (edit before deploy)
 
-1. **Sub-search URLs** in `models/salesnav-companies.ts` `config.urls`: your
+1. **Sub-search URLs** in `infra/models/salesnav-companies.ts` `config.urls`: your
    real, counted, under-the-cap Sales Navigator company-search URLs.
 2. **The cap** in the same file, `config.limit`: keep at or below 1,000. A search
    that returns exactly this number is truncated, which is the failure this
@@ -96,7 +96,7 @@ The promote play runs on `watch`, so it fires once per extracted row: promotion
 is **1:1 with extraction**, and the number of accounts you pay to enrich equals
 the number of rows your searches pull in. The cost control is therefore
 **upstream**, where the rows are created: the extraction cap in
-`models/salesnav-companies.ts` (`config.limit`) and how many sub-search URLs you
+`infra/models/salesnav-companies.ts` (`config.limit`) and how many sub-search URLs you
 add. To spend less, extract less. Start with one small sub-search, watch it land
 correctly, then widen. There are no API keys to buy: everything is
 credits-based.

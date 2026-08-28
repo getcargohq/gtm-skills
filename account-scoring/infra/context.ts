@@ -6,5 +6,12 @@ import { defineContext } from "@cargo-ai/cdk";
 // already has one (the gtm-knowledge-graph skill defines it, or you wrote your
 // own), move context/icp.md into that directory and delete this file: the
 // agent's `context` capability reads whatever the workspace context holds.
-// Path relative to the project root.
-export const context = defineContext({ dir: "account-scoring/context" });
+//
+// The directory is resolved from THIS file rather than from the project root,
+// the same way `defineWorker` and `defineApp` locate their bundles. A relative
+// path would be read against the process's working directory, which is wherever
+// `plan` was run from — so it would break the moment this folder is installed
+// into a project under a different prefix.
+export const context = defineContext({
+  dir: new URL("./context", import.meta.url).pathname,
+});

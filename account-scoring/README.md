@@ -7,7 +7,7 @@ markdown, and accounts re-score against it as they come due.
 ## What it does
 
 - Keeps the scoring criteria where the ICP already lives: the context repo
-  (`context/icp.md`, an example ICP; if the project already has a context repo, the ICP goes there) — versioned in git, reviewable, and
+  (`infra/context/icp.md`, an example ICP; if the project already has a context repo, the ICP goes there) — versioned in git, reviewable, and
   shared with every other agent.
 - An agent scores every account when it arrives, and re-scores stale ones (last
   scored 3+ months ago) on a weekly sweep: it looks the account up in Cargo's
@@ -34,22 +34,22 @@ Adds 4 resources on top of the base: 1 agent, 1 play (with an embedded
 workflow), and 2 segments. Carries an example ICP under `context/`; the agent scores against whatever the workspace context
 holds.
 
-| File                      | Resource                        | Role                                            |
-| ------------------------- | ------------------------------- | ----------------------------------------------- |
-| `agents/scorer.ts`        | `defineAgent`                   | judges accounts against the ICP, with evaluator |
-| `plays/score-accounts.ts` | `definePlay` + `defineWorkflow` | per-account scoring + CRM write-back            |
-| `segments/tiers.ts`       | `defineSegment`                 | tier A / C slices over `cargo_tier`             |
+| File                            | Resource                        | Role                                            |
+| ------------------------------- | ------------------------------- | ----------------------------------------------- |
+| `infra/agents/scorer.ts`        | `defineAgent`                   | judges accounts against the ICP, with evaluator |
+| `infra/plays/score-accounts.ts` | `definePlay` + `defineWorkflow` | per-account scoring + CRM write-back            |
+| `infra/segments/tiers.ts`       | `defineSegment`                 | tier A / C slices over `cargo_tier`             |
 
 ## Placeholders (edit before deploy)
 
-1. **The ICP itself** — `context/icp.md`: the criteria ARE
+1. **The ICP itself** — `infra/context/icp.md`: the criteria ARE
    the prompt; disqualifiers matter as much as fit signals.
-2. **Language model** — `agents/scorer.ts`.
+2. **Language model** — `infra/agents/scorer.ts`.
 3. **Score columns** — `cargo_score`, `cargo_tier`, `cargo_rationale`, and
    `cargo_last_updated_at` must exist as CRM properties, with `cargo_score` and
    `cargo_tier` selected on the accounts model so the segments can filter on
    them.
-4. **Tier thresholds** — `segments/tiers.ts`.
+4. **Tier thresholds** — `infra/segments/tiers.ts`.
 
 ## Done when
 
