@@ -106,6 +106,39 @@ assert.equal(
   crmWrite.uuid,
   "the CRM write must immediately consume the account_enrichment result",
 );
+
+const writeProperties = new Set(
+  crmWrite.config.mappings.map((mapping) => mapping.propertyName),
+);
+assert.equal(
+  writeProperties.has("cargo_last_enriched_at"),
+  true,
+  "the play must write the Cargo-owned freshness timestamp",
+);
+assert.equal(
+  writeProperties.has("cargo_enrichment_status"),
+  true,
+  "the play must write the Cargo-owned enrichment status",
+);
+assert.equal(
+  writeProperties.has("last_enriched_at") ||
+    writeProperties.has("enrichment_status"),
+  false,
+  "Cargo-owned operational properties must use the cargo_ prefix",
+);
+
+const playResource = byId.get("play:enrich_accounts");
+const filterConditions = playResource.spec.filter.groups.flatMap(
+  (group) => group.conditions,
+);
+const freshnessConditions = filterConditions.filter(
+  (condition) => condition.columnSlug === "cargo_last_enriched_at",
+);
+assert.deepEqual(
+  new Set(freshnessConditions.map((condition) => condition.operator)),
+  new Set(["isNull", "lowerThan"]),
+  "the play trigger must use the Cargo-owned freshness timestamp",
+);
 assert.equal(
   playNodes.some(
     (node) => node.kind === "connector" && node.integrationSlug === "linkedin",

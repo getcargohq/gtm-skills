@@ -60,8 +60,8 @@ is the fallback route.
 The managed segment excludes rows without an identifier but includes populated stale rows. Do not
 add a destination fill-state condition or repeat identifier and freshness conditions as workflow
 branches. For each field, apply the approved `fill_blanks` or `refresh_selected` policy. Numeric zero
-counts as populated. `last_enriched_at` and `enrichment_status: succeeded` write only after the
-provider result and the CRM update.
+counts as populated. `cargo_last_enriched_at` and `cargo_enrichment_status: succeeded` write only
+after the provider result and the CRM update.
 
 Before every preview, run `cargo-ai connection integration get linkedin` and
 read the applicable costs from
