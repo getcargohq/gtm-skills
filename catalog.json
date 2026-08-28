@@ -117,14 +117,14 @@
       "partOf": []
     },
     {
-      "name": "crm-dedup",
+      "name": "crm-deduplication",
       "kind": "cookbook",
       "job": "Keep CRM accounts duplicate-free: audit company identity, build a recurring deduplication play directly on the CRM model, search and score duplicate candidates, merge safe exact matches, and route uncertain clusters to manual review.",
       "description": "Keep CRM accounts duplicate-free: audit company identity, build a recurring deduplication play directly on the CRM model, search and score duplicate candidates, merge safe exact matches, and route uncertain clusters to manual review. Triggers: \"deduplicate our CRM accounts\", \"clean duplicate account records\", \"merge duplicate companies in HubSpot\", \"set up recurring account deduplication\", \"review ambiguous company duplicates\", \"our CRM has duplicate companies\". HubSpot, Salesforce, Attio, Slack, Cargo CDK, findRecords, Scoring, Human Review, mergeRecords. Skip when: the request is to add or refresh CRM firmographics rather than merge duplicate records; use crm-enrichment.",
       "version": "0.1.0",
-      "homepage": "https://github.com/getcargohq/gtm-skills/tree/main/crm-dedup",
+      "homepage": "https://github.com/getcargohq/gtm-skills/tree/main/crm-deduplication",
       "group": "Make it run forever",
-      "install": "cargo-ai cdk add cookbook/crm-dedup",
+      "install": "cargo-ai cdk add cookbook/crm-deduplication",
       "partOf": [],
       "state": "to-be-approved",
       "chain": 4,

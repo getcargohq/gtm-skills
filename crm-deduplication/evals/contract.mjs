@@ -14,7 +14,7 @@ assert.deepEqual(
     "model:crm_accounts",
     "play:deduplicate_accounts",
   ]),
-  "crm-dedup must deploy only its CRM model, connectors, and deduplication play",
+  "crm-deduplication must deploy only its CRM model, connectors, and deduplication play",
 );
 
 const nodesFor = (id) => {
@@ -346,5 +346,5 @@ assert.throws(
 );
 
 console.log(
-  "ok: crm-dedup searches and scores CRM rows before guarded merge or human review",
+  "ok: crm-deduplication searches and scores CRM rows before guarded merge or human review",
 );

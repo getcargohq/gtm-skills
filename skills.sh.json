@@ -51,7 +51,7 @@
         "tam-building",
         "account-scoring",
         "crm-enrichment",
-        "crm-dedup"
+        "crm-deduplication"
       ]
     }
   ]

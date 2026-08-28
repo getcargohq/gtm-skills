@@ -2,7 +2,7 @@
 
 ## Skill boundary
 
-- `crm-dedup` is one root pipeline skill with `SKILL.md`, `README.md`, `infra/`, `references/`, and
+- `crm-deduplication` is one root pipeline skill with `SKILL.md`, `README.md`, `infra/`, `references/`, and
   `evals/`.
 - It installs and operates without `crm-enrichment`.
 - Supporting instructions contain no nested `SKILL.md`.
@@ -48,4 +48,3 @@
   `cargo-ai cdk plan` pass in the consumer project.
 - The operator approves the exact 15-row maximum pilot before any merge-capable run.
 - The final report verifies every survivor and child ID and accounts for all terminal outcomes.
-

@@ -1,9 +1,9 @@
 ---
-name: crm-dedup
+name: crm-deduplication
 description: 'Keep CRM accounts duplicate-free: audit company identity, build a recurring deduplication play directly on the CRM model, search and score duplicate candidates, merge safe exact matches, and route uncertain clusters to manual review. Triggers: "deduplicate our CRM accounts", "clean duplicate account records", "merge duplicate companies in HubSpot", "set up recurring account deduplication", "review ambiguous company duplicates", "our CRM has duplicate companies". HubSpot, Salesforce, Attio, Slack, Cargo CDK, findRecords, Scoring, Human Review, mergeRecords. Skip when: the request is to add or refresh CRM firmographics rather than merge duplicate records; use crm-enrichment.'
 version: "0.1.0"
 compatibility: "Requires the cargo-cdk skill, a Cargo CDK project, and @cargo-ai/cdk ^1.0.51. The repository example does not deploy or access a CRM until an agent adapts it in the consumer project."
-homepage: https://github.com/getcargohq/gtm-skills/tree/main/crm-dedup
+homepage: https://github.com/getcargohq/gtm-skills/tree/main/crm-deduplication
 metadata:
   author: getcargo
   source: cookbook
@@ -43,7 +43,7 @@ adapt that one file by replacing the connector, extractor, record-ID field, sear
 action, and property slugs. Keep one CRM shape in the file.
 
 When matching-key coverage is weak, recommend `crm-enrichment` before building this play. That is a
-recommendation, not a dependency: `crm-dedup` installs and operates independently.
+recommendation, not a dependency: `crm-deduplication` installs and operates independently.
 
 ## Guide the operator through every phase
 
@@ -200,4 +200,3 @@ passes, not an initial input.
 
 - `crm-enrichment` when matching-key coverage is too weak for reliable duplicate candidates
 - `account-scoring` after duplicate records have been consolidated into authoritative survivors
-

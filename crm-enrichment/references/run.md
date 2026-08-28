@@ -101,7 +101,7 @@ After the approved run completes, report:
 - direct Cargo UI links for the play and tool
 
 End with one recommended `Next step`: remediate failures before continuing, approve recurring daily
-coverage for rows entering the managed segment, or install `crm-dedup` after matching-key coverage
+coverage for rows entering the managed segment, or install `crm-deduplication` after matching-key coverage
 is healthy. Do not end the report with an open-ended offer.
 
 Replace the write `matchingPropertyName` together with the workflow input and

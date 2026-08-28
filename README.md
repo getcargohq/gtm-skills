@@ -50,7 +50,7 @@ cargo-ai cdk add cookbook/<name>
 | [`waterfall-enrichment`](waterfall-enrichment/SKILL.md)           | Run a waterfall across several providers so a record one vendor misses is caught by the next.                                     |
 
 **Four of them deploy a pipeline rather than running once.** `tam-building`, `account-scoring`,
-`crm-enrichment`, and `crm-dedup` are standing pipelines: each folder holds worked CDK
+`crm-enrichment`, and `crm-deduplication` are standing pipelines: each folder holds worked CDK
 resources written for some other company, and your agent adapts them into your project and
 deploys them. Every such folder is self-contained (its own models, connectors and folders; no
 shared foundation, no requires graph), so the agent reconciles it with whatever your project
@@ -62,7 +62,7 @@ already declares. More are on their way (`contact-sourcing`, `signal-based-tam`,
 | [`tam-building`](tam-building/SKILL.md)                    | Your account universe from a Sales Navigator search, split past the extraction cap, resolved to domains, deduped into an accounts model. |
 | [`account-scoring`](account-scoring/SKILL.md)              | Every account scored and tiered against your written ICP by an agent that cites its evidence, rationale on the CRM record.               |
 | [`crm-enrichment`](crm-enrichment/SKILL.md)                | CRM accounts stay complete and current through approved enrichment of blank or stale firmographics.                                      |
-| [`crm-dedup`](crm-dedup/SKILL.md)                          | CRM accounts stay duplicate-free through scored exact-match merges and manual review of uncertain clusters.                             |
+| [`crm-deduplication`](crm-deduplication/SKILL.md)          | CRM accounts stay duplicate-free through scored exact-match merges and manual review of uncertain clusters.                             |
 
 Works with Claude Code, Codex, Cursor, Windsurf, GitHub Copilot, and any agent that supports the
 [skills.sh](https://skills.sh) standard.

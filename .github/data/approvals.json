@@ -1,5 +1,5 @@
 {
-  "crm-dedup": {
+  "crm-deduplication": {
     "state": "to-be-approved",
     "chain": 4,
     "demoWorkspace": null,

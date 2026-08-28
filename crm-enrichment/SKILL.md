@@ -96,7 +96,7 @@ checkpoint. Never end with a generic offer to help.
 3. **Enrichment and report.** Run only the approved population, monitor completion, and report the
    before-and-after fill rate for every approved property, processed and outcome counts, failures,
    actual credits against estimate, and direct Cargo links. End with a recommended next action:
-   remediate failures, approve recurring daily coverage, or install `crm-dedup` for account
+   remediate failures, approve recurring daily coverage, or install `crm-deduplication` for account
    deduplication.
 
 ## Put it in your project
