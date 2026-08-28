@@ -17,6 +17,16 @@ Each skill also installs on its own, when you want exactly one and nothing else:
 npx skills add getcargohq/gtm-skills/<skill-name>
 ```
 
+The three **cookbooks** at the bottom of the table install differently, because they are
+not only a procedure — each carries an `infra/` of CDK resources that has to land in your
+project's CDK directory, while the procedure goes to your repo's skills layer. `skills add`
+would install the folder whole, putting TypeScript where the CDK loader never looks, so the
+CDK does the split instead:
+
+```bash
+cargo-ai cdk add cookbook/<name>
+```
+
 | Skill                                                             | Does                                                                                                                              |
 | ----------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
 | [`clay-to-cargo`](clay-to-cargo/SKILL.md)                         | Rebuild a Clay table on Cargo: map every enrichment column to its provider action, cost it before it runs, and keep it as code.   |
