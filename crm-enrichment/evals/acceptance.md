@@ -42,13 +42,6 @@ Walk every line. A checked template without an evidence-backed consumer adaptati
   cost. No paid enrichment call or enablement occurs before that approval.
 - Phase three reports before-and-after fill rates per approved destination, all processed outcomes,
   failures, actual credits against estimate, direct Cargo links, and one recommended next step.
-- Phase four refreshes the duplicate-account audit after enrichment, presents identifier coverage,
-  candidate classes, conflicts, protected IDs, 60/25/15 score, survivor precedence, automatic-merge
-  class, and Slack review destination.
-- Phase four deploys one disabled deduplication play directly on `crm_accounts`, sends its Cargo
-  link, and asks for explicit approval of at most 15 CRM rows plus the merge-capable policy.
-- Phase four reports every automatic merge, approved merge, decline, timeout, conflict, exclusion,
-  survivor, and direct Cargo link.
 - In-progress messages that need no decision say `No action needed` and identify the next checkpoint.
 
 ## CDK template
@@ -58,8 +51,9 @@ Walk every line. A checked template without an evidence-backed consumer adaptati
 - The consumer file contains only the selected CRM connector and action shapes.
 - `account_enrichment` is a workflow-backed Cargo tool that accepts provider identifiers, normalizes
   them, and returns enriched company data. It has no CRM connector, CRM record id, or CRM write.
-- The compiled `account_enrichment` graph starts with a native Filter. Its mutually exclusive
-  provider routes follow that Filter, and it contains no CRM connector node.
+- The compiled `account_enrichment` graph starts with a code-generated Branch that ends rows with no
+  identifier. A second Branch selects one mutually exclusive provider route, and the tool contains
+  no CRM connector node.
 - `enrich_accounts` is the disabled play. Its row workflow starts with exactly one Tool node
   targeting `account_enrichment`, applies the approved per-field write policy, and owns the only CRM
   update action.
@@ -90,35 +84,6 @@ Walk every line. A checked template without an evidence-backed consumer adaptati
 - `cargo-ai cdk types`, `cargo-ai cdk check`, and `cargo-ai cdk plan` pass in the consumer project.
 - The play and tool are deployed disabled only after phase-one approval, and their direct Cargo UI
   links resolve before the phase-two review request.
-
-## Deduplication
-
-- No `account_duplicate_candidates` or other staging model exists.
-- `deduplicate_accounts` runs directly on `crm_accounts`; its filter requires the CRM record ID and
-  at least one supported identity key.
-- The duplicate-account audit follows `references/deduplicate.md` and stays separate from the
-  duplicate-property schema audit in `references/audit.md`.
-- Identifier coverage, candidate counts, mutually exclusive match classes, conflicts, protected
-  IDs, and survivor evidence agree across JSON, Markdown, and chat.
-- Company name alone never creates a candidate. LinkedIn URL, domain, junk domain, parent or
-  subsidiary, conflict, and AI-assisted candidates reach Human Review or exclusion.
-- `selectSurvivor` deterministically prefers protected IDs, customers, open opportunities,
-  contacts, activities, populated properties, recent activity, older creation, then record ID.
-- The workflow first calls the selected CRM's live record-search action, retains the fresh source
-  exactly once, normalizes evidence, runs one native Scoring node, and then selects the survivor.
-- The checked score assigns LinkedIn company ID 60, LinkedIn URL 25, and non-generic domain 15.
-- The automatic branch requires score at least 60, exact shared LinkedIn company ID, and no identity,
-  protected-ID, or parent-subsidiary conflict.
-- Every non-automatic candidate reaches one native Human Review node. Approval reaches the reviewed
-  CRM merge; decline or timeout reaches a no-write end.
-- A source row missing from the fresh CRM search stops before scoring with
-  `source_missing_or_changed` and emits no merge IDs.
-- Exactly two CRM merge nodes exist: automatic and human-approved. No other path writes to the CRM.
-- `deduplicate_accounts` is disabled, uses `noConcurrency`, and is limited to 15 CRM rows.
-- `node --import tsx evals/contract.mjs` verifies the direct model binding, CRM search, native score,
-  guarded merge, Human Review routes, classifier, survivor policy, and pilot controls.
-- The merge-capable pilot occurs only after explicit approval of the refreshed population,
-  automatic class, survivor policy, and manual-review destination.
 
 ## Repository isolation
 

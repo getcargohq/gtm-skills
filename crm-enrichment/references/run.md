@@ -10,16 +10,13 @@ Every message names the current phase and ends with `Next step`. A phase-boundar
 the evidence the operator needs, one concrete approval request, what approval unlocks, and what
 remains blocked. An in-progress update says `No action needed` and names the next checkpoint.
 
-After field-contract and deduplication-policy approval plus explicit authorization to deploy
-disabled resources, deploy the tool and both plays with each play set to `isEnabled: false`. Reuse
-the existing CRM account model; do not deploy a candidate model. Resolve `workspaceUuid` from
-`cargo-ai whoami` (`workspace.uuid`) and resolve
-resource UUIDs from `cargo.state.json` or the matching get/list command. Send a clickable URL for
-every deployed resource:
+After field-contract approval and explicit authorization to deploy disabled resources, deploy the
+tool and the play with the play set to `isEnabled: false`. Resolve `workspaceUuid` from `cargo-ai whoami`
+(`workspace.uuid`) and resolve resource UUIDs from `cargo.state.json` or the matching get/list
+command. Send both clickable URLs:
 
-- Enrichment play: `https://app.getcargo.io/workspaces/<workspaceUuid>/plays/<enrichmentPlayUuid>`
+- Play: `https://app.getcargo.io/workspaces/<workspaceUuid>/plays/<playUuid>`
 - Tool: `https://app.getcargo.io/workspaces/<workspaceUuid>/tools/<toolUuid>`
-- Deduplication play: `https://app.getcargo.io/workspaces/<workspaceUuid>/plays/<deduplicationPlayUuid>`
 
 Do not ask for phase-two approval when either deployed resource link is missing or does not resolve.
 The same message includes the approved fields, eligible population, route counts, current unit
@@ -41,10 +38,11 @@ identifier and freshness eligibility, so the workflow starts by calling `account
 applies the approved per-field write policy and pushes the returned values to the CRM. HubSpot's
 example matches `hs_object_id`. Salesforce matches `Id`. Attio matches the record id.
 
-This is a compiled-node contract, not only a naming convention. `account_enrichment` starts with a
-native Filter and contains the provider connector routes but no CRM connector node. The play starts
-with one Tool node targeting `account_enrichment`, then runs the only CRM update. It contains no
-provider connector node.
+This is a compiled-node contract, not only a naming convention. `account_enrichment` uses
+`defineWorkflow`: its first generated Branch ends rows with no identifier, and its next Branch sends
+each eligible row to exactly one provider connector route. It contains no CRM connector node. The
+play starts with one Tool node targeting `account_enrichment`, then runs the only CRM update. It
+contains no provider connector node.
 
 `enrich_accounts` is orchestration. It runs that workflow over `crm_accounts`
 and owns its managed backing segment through `filter`. Do not declare a
@@ -66,21 +64,6 @@ branches. For each field, apply the approved `fill_blanks` or `refresh_selected`
 counts as populated. `cargo_last_enriched_at` and `cargo_enrichment_status: succeeded` write only
 after the provider result and the CRM update.
 
-## Deduplication boundary
-
-The read-only audit classifies duplicate clusters from `crm_accounts` with the deterministic helpers
-in `infra/index.ts`. `deduplicate_accounts` runs on that same model. For each enrolled row, it calls
-the live CRM `findRecords` action, retains the source exactly once, normalizes identifiers, feeds one
-native Scoring node, and then selects the survivor. It does not materialize candidates elsewhere.
-
-The score is LinkedIn company ID 60, LinkedIn URL 25, and non-generic domain 15. The automatic path
-requires score at least 60, exact LinkedIn company ID on every record, and no identity,
-protected-ID, or parent-subsidiary conflict. Every other cluster reaches native Human Review.
-Approval calls the CRM merge action; decline or timeout ends without a write. Run
-`node --import tsx evals/contract.mjs` to verify the graph. Follow
-[`deduplicate.md`](deduplicate.md) for the audit contract, score, survivor policy, merge gates, and
-pilot approval.
-
 Before every preview, run `cargo-ai connection integration get linkedin` and
 read the applicable costs from
 `integration.actions.enrichCompany.credits.costs` and
@@ -97,21 +80,15 @@ In this repository run `npm run validate`. In the consumer project:
 3. Run `cargo-ai cdk check`.
 4. Run `cargo-ai cdk plan` and inspect every resource and action payload.
 5. Confirm the plan has one CRM account model and no native `accounts` unification.
-6. Confirm the compiled tool starts with a Filter and contains no CRM action. Confirm the play starts
-   with one Tool node targeting `account_enrichment`, contains no provider action, and owns the only
-   CRM update.
+6. Confirm the compiled tool starts with an identifier Branch and contains no CRM action. Confirm
+   the play starts with one Tool node targeting `account_enrichment`, contains no provider action,
+   and owns the only CRM update.
 7. Deploy only after the phase-one approval explicitly authorizes disabled resource creation.
 8. Show the operator direct Cargo UI links for the disabled play and tool, the approved field
    contract, exclusions, target counts, mappings, live action costs, exact estimated credits,
    pricing lookup time, and that the play stays disabled.
 9. Run or enable only after the operator reviews that phase-two handoff and explicitly approves the
    stated population and maximum cost.
-10. When deduplication is in scope, refresh its audit after enrichment. Show the deduplication play
-    link, exact candidate counts, match classes, score, conflicts, survivor policy, automatic gate,
-    and Human Review destination.
-11. Run at most 15 CRM rows only after the operator explicitly approves that population and the
-    merge-capable policy. Confirm every automatic merge, review decision, decline, timeout, and
-    surviving record before enabling recurring evaluation.
 
 ## Post-enrichment report
 
@@ -124,23 +101,8 @@ After the approved run completes, report:
 - direct Cargo UI links for the play and tool
 
 End with one recommended `Next step`: remediate failures before continuing, approve recurring daily
-coverage for rows entering the managed segment, or proceed to account deduplication after matching
-key coverage is healthy. Do not end the report with an open-ended offer.
-
-## Post-deduplication report
-
-After the approved deduplication pilot completes, report:
-
-- audited accounts, identifier coverage, candidate clusters, and candidate records
-- every mutually exclusive match class and both conflict counts
-- score and deterministic survivor evidence for every candidate cluster
-- automatic merges and Human Review approvals, declines, and timeouts
-- source rows that disappeared or changed before scoring
-- excluded clusters and failed CRM actions with reasons
-- direct Cargo UI link for the deduplication play
-
-End with one recommended `Next step`: fix weak identity coverage, remediate failed merges, review
-declined clusters, or approve recurring deduplication after the surviving records are verified.
+coverage for rows entering the managed segment, or install `crm-dedup` after matching-key coverage
+is healthy. Do not end the report with an open-ended offer.
 
 Replace the write `matchingPropertyName` together with the workflow input and
 play columns so the filter, the write match, and the extract all resolve the
@@ -151,7 +113,8 @@ schedule.
 
 - the consumer file contains only the selected CRM action shapes
 - `account_enrichment` is a deployed workflow-backed tool with no CRM access
-- the compiled `account_enrichment` graph starts with a Filter and contains no CRM connector node
+- the compiled `account_enrichment` graph starts with an identifier Branch and contains no CRM
+  connector node
 - `enrich_accounts` is the disabled play; its row workflow contains one Tool node targeting
   `account_enrichment`, followed by the only CRM update, and contains no provider connector node
 - `node --import tsx evals/contract.mjs` passes against the adapted template
@@ -167,12 +130,5 @@ schedule.
 - the operator approved the exact target and maximum estimated credits before execution
 - the final report includes before-and-after field coverage, all outcomes, failures, actual credit
   variance, and a recommended next step
-- no candidate or staging model exists; the deduplication play runs directly on `crm_accounts`
-- the deduplication play is disabled, `noConcurrency`, and limited to 15 CRM rows
-- the compiled graph contains CRM `findRecords`, deterministic preparation, native Scoring,
-  deterministic survivor selection, the guarded automatic branch, native Human Review, and merge
-  actions only on automatic or approved paths
-- the report contains all search, score, merge, review, decline, timeout, conflict, exclusion,
-  survivor, failure, and direct-link evidence
 - no credential, customer data, or deploy command appears in the committed
   template

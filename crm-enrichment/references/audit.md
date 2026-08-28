@@ -3,11 +3,6 @@
 Produce the audit before editing the CDK template. Re-read live CRM properties. Do not assume
 property names, universal provider output paths, or that every CRM account is in scope.
 
-This file audits enrichment fields and duplicate CRM property definitions. It does not classify
-duplicate account records. When account deduplication is in scope, run the identity audit in
-[`deduplicate.md`](deduplicate.md) against the same `crm_accounts` extract and keep its counts in a
-separate artifact.
-
 Write `crm-enrichment-audit-YYYY-MM-DD.json` and a matching Markdown report with this minimum
 JSON contract:
 

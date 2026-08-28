@@ -69,9 +69,6 @@ In `infra/index.ts`, edit these together:
 - `crmAccounts`: the live account extractor
 - `enrichCrmAccount`: the write mappings, matching property, and fill-blank guard
 - `enrichAccounts`: the play filter slugs, which must be columns on `crm_accounts`
-- `manualReviewConnector` and `manualReviewChannelId`: the approved Slack review destination
-- `deduplicateCrmAccount`: CRM search fields, score, conflict guards, survivor fields, and merge actions
-- `deduplicateAccounts`: the disabled play directly on `crm_accounts`
 
 The checked repository example extracts HubSpot companies (`fetchRecords`,
 `objectType: "companies"`) and writes with `updateRecords` matching
@@ -111,22 +108,6 @@ preview. Read the applicable entries under
 version, action slugs, and unit costs in the audit. Keep the LinkedIn action first and the domain
 action as the mutually exclusive fallback.
 
-## Deduplication resources
-
-The duplicate audit and `deduplicate_accounts` both use `crm_accounts`. Do not create a native
-candidate model. The play searches the live CRM for each enrolled row, retains that source row
-exactly once, normalizes candidate identity, scores the cluster, and then selects the survivor
-before the merge gate.
-
-The HubSpot example uses `findRecords` with `linkedin_company_id`, `linkedin_company_page`, and
-`domain`, then `mergeRecords` with `{ objectType, primaryId, idsToMerge }`. Re-read live generated
-types before adapting Salesforce or Attio; replace the search and merge action payloads in the same
-file. Map the audited protected business ID and parent-company properties into
-`prepareDuplicateEvidenceScript`. Replace `PLACEHOLDER_REVIEW_CHANNEL_ID` with the approved Slack
-channel. Keep the native Scoring and Human Review nodes when changing CRM. Follow
-[`deduplicate.md`](deduplicate.md) for classification, score, survivor precedence, automatic merge,
-manual review, and pilot approval.
-
 ## Complete when
 
 - exactly one CRM account model exists (`crm_accounts` in the example) and the play uses it
@@ -137,7 +118,3 @@ manual review, and pilot approval.
   approved transformation
 - the managed segment trigger excludes rows with no identifier but allows populated stale rows;
   the approved per-field policy decides fill blank versus refresh
-- `deduplicate_accounts` runs directly on `crm_accounts`, and the selected CRM shape introduces no
-  candidate or staging model
-- the CRM search, score, conflict guards, survivor fields, merge action, and Human Review destination
-  match the approved live schemas and policy

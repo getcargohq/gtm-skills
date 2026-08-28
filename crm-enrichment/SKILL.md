@@ -1,7 +1,7 @@
 ---
 name: crm-enrichment
-description: 'Keep CRM accounts complete, current, and duplicate-safe: enrich approved blank or stale firmographics, then find, score, and merge duplicate CRM companies with a manual-review fallback. Triggers: "keep our CRM accounts filled", "keep our CRM companies filled", "enrich my CRM", "CRM enrichment", "old firmographics keep going stale", "every new CRM account", "refresh stale firmographics", "deduplicate our CRM accounts", "merge duplicate companies in HubSpot", "set up recurring account deduplication", "clean duplicate account records". HubSpot, Salesforce, Attio, LinkedIn, Cargo CDK. Skip when: the records are not in a CRM. A supplied company list is enrich-company-data.'
-version: "0.8.0"
+description: 'Keep CRM accounts filled and refresh them when they go stale: a deployed play that fills approved blank firmographics from LinkedIn and re-enrolls a record after six months. Triggers: "keep our CRM accounts filled", "keep our CRM companies filled", "enrich my CRM", "CRM enrichment", "old firmographics keep going stale", "every new CRM account", "every new CRM company", "nobody refreshes the company records", "refresh stale firmographics". HubSpot, Salesforce, Attio, Cargo CDK. Skip when: the records are not in a CRM. A supplied company list is enrich-company-data.'
+version: "0.6.4"
 compatibility: "Requires the cargo-cdk skill, a Cargo CDK project, and @cargo-ai/cdk ^1.0.51. The repository example does not deploy or access a CRM until an agent adapts it in the consumer project."
 homepage: https://github.com/getcargohq/gtm-skills/tree/main/crm-enrichment
 metadata:
@@ -31,16 +31,6 @@ CRM accounts stay filled. New records get approved blanks written from LinkedIn;
 successful fill is older than six months comes back. The play runs on `crm_accounts` — the CRM
 account extract — and writes back with that row's CRM record id. It does not overwrite a value
 that is already there.
-
-The same pipeline deduplicates the source CRM after matching-key coverage is healthy. One disabled
-play runs directly on `crm_accounts`, searches the CRM for companies sharing LinkedIn company ID,
-LinkedIn URL, or non-generic domain, scores the cluster, selects one survivor, and either merges or
-pauses for manual validation. Exact shared LinkedIn company ID with no identity, protected-ID, or
-parent-subsidiary conflict is the only automatic class. Every other class reaches Cargo's native
-Human Review node; approval merges and decline or timeout keeps the records separate. A
-deduplication-only request may start at [`references/deduplicate.md`](references/deduplicate.md).
-If the audit finds weak identifier coverage, present enrichment as the recommended prerequisite
-instead of manufacturing confidence from names alone.
 
 The checked example in `infra/index.ts` is HubSpot (`hs_object_id`, companies
 object, `updateRecords` + `skipIfExist`). Salesforce and Attio are the same file adapted:
@@ -82,8 +72,7 @@ they could hold similar data. If no customer-managed duplicate group exists, say
 flowchart LR
   audit["1. Audit and enrichment recommendation"] -->|"Approve fields and disabled build"| build["2. Build disabled play and tool"]
   build -->|"Review Cargo links and approve cost"| run["3. Run enrichment"]
-  run --> report["Enrichment report"]
-  report -->|"Matching-key coverage is healthy"| dedup["4. Deduplication build and guarded merge"]
+  run --> report["Results report and recommended next step"]
 ```
 
 Every substantive message starts with the current phase and ends with a `Next step` section. Give
@@ -99,24 +88,16 @@ checkpoint. Never end with a generic offer to help.
    enrichment tool and the play with the play still disabled. The tool normalizes identifiers and
    returns provider data without CRM access. The play calls the tool, applies the approved write
    policy, and pushes results to the CRM. Inspect the compiled graph before deployment: the tool
-   starts with a Filter, and the play starts with one Tool node targeting `account_enrichment`,
-   followed by the only CRM update. Send a direct Cargo UI link for each resource. Show the exact
+   starts with an identifier Branch, and the play starts with one Tool node targeting
+   `account_enrichment`, followed by the only CRM update. Send a direct Cargo UI link for each resource. Show the exact
    eligible population, mutually exclusive provider routes, unit prices, and total estimated
    credits. End by asking the operator to review those links and approve the enrichment run at that
    stated maximum cost. Do not run or enable anything without that second approval.
 3. **Enrichment and report.** Run only the approved population, monitor completion, and report the
    before-and-after fill rate for every approved property, processed and outcome counts, failures,
    actual credits against estimate, and direct Cargo links. End with a recommended next action:
-   remediate failures, approve recurring daily coverage, or move to account deduplication.
-4. **Deduplication build and guarded merge.** Re-audit `crm_accounts`, derive matching-key coverage
-   and mutually exclusive candidate classes, and present the protected-ID fields, survivor policy,
-   60/25/15 evidence score, automatic-merge class, and Slack review destination. After approval,
-   adapt and deploy one disabled `deduplicate_accounts` play on `crm_accounts`. Its compiled graph is
-   CRM `findRecords` -> deterministic evidence preparation -> native Scoring -> deterministic
-   survivor selection -> automatic-merge Branch -> CRM `mergeRecords` or native Human Review. Send
-   the play link and exact 15-record pilot population. Run only after the operator explicitly
-   approves the automatic merge policy, manual review destination, and pilot. Report every
-   automatic merge, approved merge, decline, timeout, conflict, exclusion, and surviving CRM record.
+   remediate failures, approve recurring daily coverage, or install `crm-dedup` for account
+   deduplication.
 
 ## Put it in your project
 
@@ -147,12 +128,9 @@ before audit or template work if the skill cannot be installed or read.
 3. **Audit and recommend.** Re-read the live provider output and CRM property schemas. Follow the
    field-selection gate in [`references/configure.md`](references/configure.md): present the CRM
    gaps, duplicate-property result, starting recommendation, optional fields, transformations, and
-   unsupported fields with reasons. When deduplication is in scope, also follow
-   [`references/deduplicate.md`](references/deduplicate.md) to audit identity coverage, candidate
-   classes, protected IDs, and the survivor policy. Stop for approval of the complete field
-   contract, deduplication policy, and explicit authorization to deploy the resulting resources
-   disabled. Do not calculate the final enrichment target, edit CDK, deploy, make a paid call, or
-   write to the CRM while approval is pending.
+   unsupported fields with reasons. Stop for approval of the complete field contract and explicit
+   authorization to deploy the resulting resources disabled. Do not calculate the final target,
+   edit CDK, deploy, make a paid call, or write to the CRM while approval is pending.
 4. **Adapt and deploy disabled.** After approval, work the sections below in order: _What should not
    change_ is what you argue back
    about (say what breaks, then do it if they still want it); _What you can change_ is what you
@@ -164,16 +142,12 @@ before audit or template work if the skill cannot be installed or read.
    `cargo-ai cdk types && cargo-ai cdk check && cargo-ai cdk plan`. Show the diff, and deploy under
    the phase-one authorization with `isEnabled: false`. Never run `cargo-ai cdk init --force` in a
    non-empty directory.
-5. **Hand off for cost approval.** Resolve the workspace, model, play, and tool UUIDs. Send clickable
-   Cargo UI links using the patterns in [`references/run.md`](references/run.md), then show the final
-   enrichment target and exact estimated credits. Stop for explicit approval of that run and
-   maximum cost.
-6. **Run and report.** Execute enrichment only after the second approval. Monitor the approved scope
-   and return the result report from [`references/run.md`](references/run.md). When deduplication is
-   in scope, refresh its audit after enrichment, adapt the direct CRM-model play, and stop again for
-   approval of the exact pilot, automatic-merge policy, and manual-review destination before any
-   merge-capable run. Walk _Done when_ line by line. Deployed cleanly and produced nothing is the
-   normal failure.
+5. **Hand off for cost approval.** Resolve the workspace, play, and tool UUIDs. Send clickable Cargo
+   UI links using the patterns in [`references/run.md`](references/run.md), then show the final
+   target and exact estimated credits. Stop for explicit approval of that run and maximum cost.
+6. **Run and report.** Execute only after the second approval. Monitor the approved scope and return
+   the result report from [`references/run.md`](references/run.md). Walk _Done when_ line by line.
+   Deployed cleanly and produced nothing is the normal failure.
 
 ## What you will be asked
 
@@ -187,10 +161,6 @@ _asked_ genuinely live in the operator's head.
 | `approved_field_contract` | asked   | Review the recommended base fields, optional candidates, transformations, destinations, and exclusions | It defines every write mapping and authorizes the disabled build     |
 | `target_population`       | derived | Count eligible rows by mutually exclusive route after field approval                                   | It makes the cost estimate reproducible                              |
 | `approved_run`            | asked   | Review the disabled Cargo links, target, and exact maximum credits                                     | It is the explicit gate before any enrichment call                   |
-| `deduplication_evidence`  | derived | Normalize live CRM identifiers, classify candidate clusters, and rank survivors                        | It exposes key coverage, conflicts, and review risk                  |
-| `approved_dedup_policy`   | asked   | Review protected IDs, survivor exceptions, automatic-merge class, and 60/25/15 score                   | It governs which clusters can merge without a human                  |
-| `manual_review`           | asked   | Select the Slack connector, channel, owner, and timeout for native Human Review                        | Every non-automatic cluster needs an accountable decision path       |
-| `approved_dedup_run`      | asked   | Review the disabled play link and approve at most 15 CRM rows for the merge-capable pilot              | It is the explicit gate before any CRM merge can execute             |
 
 Checked before moving on, not after the deploy:
 
@@ -201,12 +171,6 @@ Checked before moving on, not after the deploy:
   LinkedIn and domain route counts are mutually exclusive and reproduce the credit estimate
 - `approved_run`: direct Cargo UI links resolve, the play is disabled, and the operator approved
   the stated population and maximum cost
-- `approved_dedup_policy`: exact matching classes, 60/25/15 score, protected-ID conflicts,
-  survivor precedence, and the automatic-merge class are recorded
-- `manual_review`: the Slack connector and channel resolve, and approval, decline, and timeout paths
-  are visible in the compiled graph
-- `approved_dedup_run`: the deduplication play link resolves, the play is disabled, and the operator
-  approved the stated CRM-row population and merge policy
 
 The first operator question comes after the field candidates are derived. Do not ask whether they
 want "more fields" without showing the choices. Present a concise field-contract table and ask
@@ -220,14 +184,12 @@ Refreshing populated business fields is outside the base template. If requested,
 The code is a worked example. These reshapes are expected, and the agent offers them rather than
 waiting to be asked. Every one costs something; that is what makes it a variation and not the default.
 
-| Variation                   | When it is right                                                | How                                                                                                                                                                                                                                                                                                                                                                                 | What it costs                                                                        |
-| --------------------------- | --------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
-| `crm`                       | The consumer uses Salesforce or Attio instead of HubSpot        | Keep one CRM shape in `infra/index.ts`. The file is the HubSpot example. **Salesforce:** generated Account update matching `Id`; there is no `skipIfExist` — read the Account first and omit any field that is already populated, including numeric zero. **Attio:** generated company-record update matching the record id; same read-then-omit guard. Do not copy HubSpot's flag. | Live generated types must be rechecked; a guessed flag writes or no-ops silently     |
-| `selected_fields`           | The approved contract differs from the starting recommendation  | Present every live candidate at the field-selection gate. After approval, change the result schema, destinations, per-field write policy, and both provider mappings in `infra/index.ts`. Industry requires an approved array-to-enum transformation when the CRM destination is a single enum.                                                                                     | Each added field expands mapping and type review                                     |
-| `eligibility`               | Only a governed subset should be enriched                       | Intersect the play filter with approved lifecycle, tier, ownership, or gap conditions (`infra/index.ts` `enrichAccounts`)                                                                                                                                                                                                                                                           | Narrower scope reduces coverage and paid calls                                       |
-| `approved_refresh_behavior` | Populated fields must be refreshed after explicit approval      | Drop `skipIfExist` / the read-then-omit guard on the approved fields only, preview the replacements, and compare against a fresh CRM read (`infra/index.ts`)                                                                                                                                                                                                                        | Refresh can overwrite CRM-authoritative values if the preview and the write disagree |
-| `survivor_precedence`       | A protected lifecycle, tier, billing, or customer rule must win | Update both `selectSurvivor` and `selectDuplicateSurvivorScript`, record the exact precedence, and refresh all affected CRM rows before review                                                                                                                                                                                                                                      | A policy change can select a different survivor for every cluster                    |
-| `structured_ai_review`      | Ambiguous domain evidence needs a review aid                    | Add structured AI evidence before Human Review only after pricing the selected model. AI cannot enter the automatic-merge condition or select the survivor                                                                                                                                                                                                                          | Adds current language-model usage and a non-deterministic review surface             |
+| Variation                   | When it is right                                               | How                                                                                                                                                                                                                                                                                                                                                                                | What it costs                                                                        |
+| --------------------------- | -------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| `crm`                       | The consumer uses Salesforce or Attio instead of HubSpot       | Keep one CRM shape in `infra/index.ts`. The file is the HubSpot example. **Salesforce:** generated Account update matching `Id`; there is no `skipIfExist`. Read the Account first and omit any field that is already populated, including numeric zero. **Attio:** generated company-record update matching the record id; same read-then-omit guard. Do not copy HubSpot's flag. | Live generated types must be rechecked; a guessed flag writes or no-ops silently     |
+| `selected_fields`           | The approved contract differs from the starting recommendation | Present every live candidate at the field-selection gate. After approval, change the result schema, destinations, per-field write policy, and both provider mappings in `infra/index.ts`. Industry requires an approved array-to-enum transformation when the CRM destination is a single enum.                                                                                    | Each added field expands mapping and type review                                     |
+| `eligibility`               | Only a governed subset should be enriched                      | Intersect the play filter with approved lifecycle, tier, ownership, or gap conditions (`infra/index.ts` `enrichAccounts`)                                                                                                                                                                                                                                                          | Narrower scope reduces coverage and paid calls                                       |
+| `approved_refresh_behavior` | Populated fields must be refreshed after explicit approval     | Drop `skipIfExist` / the read-then-omit guard on the approved fields only, preview the replacements, and compare against a fresh CRM read (`infra/index.ts`)                                                                                                                                                                                                                       | Refresh can overwrite CRM-authoritative values if the preview and the write disagree |
 
 ## What should not change
 
@@ -235,29 +197,13 @@ However far you adapt, these hold. Ask for one anyway and the agent tells you wh
 it if you still want it, and records why under `## Decisions` in your copy of this file.
 
 - **The play runs on `crm_accounts` and matches the CRM record id.** (`infra/index.ts`) HubSpot's example uses `hs_object_id`. Sending a Cargo row id, or a native `accounts` id, to a CRM action targets the wrong identifier system; the run looks successful and nothing lands.
-- **The tool enriches; the play orchestrates and writes.** (`infra/index.ts`) `account_enrichment` accepts provider identifiers, normalizes them, and returns company data without a CRM connector or write. Its first non-start node is a native Filter, followed by mutually exclusive provider routes. `enrich_accounts` starts with one Tool node targeting `account_enrichment`, applies the approved per-field policy, and owns the only CRM update. A tool that writes to the CRM is not reusable; a play that repeats the provider action bypasses the reviewed tool. Run `node --import tsx evals/contract.mjs` after every adaptation to enforce this compiled graph.
+- **The tool enriches; the play orchestrates and writes.** (`infra/index.ts`) `account_enrichment` accepts provider identifiers, normalizes them, and returns company data without a CRM connector or write. Its `defineWorkflow` body first branches around rows with no identifier, then routes each eligible row to exactly one provider action. `enrich_accounts` starts with one Tool node targeting `account_enrichment`, applies the approved per-field policy, and owns the only CRM update. A tool that writes to the CRM is not reusable; a play that repeats the provider action bypasses the reviewed tool. Run `node --import tsx evals/contract.mjs` after every adaptation to enforce this compiled graph.
 - **One CRM shape in the file.** (`infra/index.ts`) The checked example is HubSpot. Adapt that one file for Salesforce or Attio. Parallel HubSpot/Salesforce/Attio branches drift from the generated types of the CRM that is actually connected.
 - **At most one paid route per row, LinkedIn URL first.** (`infra/index.ts` `enrichCrmAccount`) A row without a handle or a domain makes no paid call. A handle that is already an `http` URL is used as-is; otherwise it is prefixed as `https://www.linkedin.com/company/<handle>`.
 - **Destinations are live properties on the connected CRM.** (`infra/index.ts`) The HubSpot example writes `linkedin_company_id`, `name`, `domain`, `website`, `linkedin_company_page`, `numberofemployees`, `cargo_last_enriched_at`, and `cargo_enrichment_status`. Provider-derived business properties keep neutral names; Cargo-owned operational stamps use the `cargo_` prefix. Leaving another CRM's names in the file can write provider data into the wrong property.
 - **Fill approved blanks only.** (`infra/index.ts` `skipIfExist` or the Salesforce/Attio read-then-omit guard) A stale snapshot overwrites authoritative CRM data, including numeric zero.
 - **Eligibility and freshness live in the play trigger.** (`infra/index.ts` `enrichAccounts`) Require an identifier and freshness null or older than six months in the managed segment. Destination fill-state is not an eligibility condition: an approved refresh must be able to re-enrich populated stale fields. The row workflow starts with the reusable tool call instead of repeating trigger conditions as branches. A standalone `defineSegment` or duplicate workflow gate drifts from the play.
 - **The first play is disabled and `noConcurrency`.** (`infra/index.ts`) Removing those expands an unapproved pilot.
-- **Deduplication runs directly on `crm_accounts`.** (`infra/index.ts`) `deduplicate_accounts` uses
-  the same CRM extract as enrichment and begins with a fresh CRM `findRecords` search. A staging
-  model duplicates the source, adds materialization work, and cannot perform the requested merge.
-- **Search, score, then decide.** (`infra/index.ts`) After CRM search, deterministic evidence
-  preparation retains the fresh source exactly once and normalizes candidate keys. One native
-  Scoring node scores the cluster, then a deterministic script selects the survivor before the
-  merge gate. The checked 100-point score is LinkedIn company ID 60, LinkedIn URL 25, and
-  non-generic domain 15. Company name alone never creates or scores a candidate.
-- **Only the narrow automatic class bypasses review.** (`infra/index.ts`) The automatic branch
-  requires an exact shared LinkedIn company ID, score at least 60, and no identity, protected-ID, or
-  parent-subsidiary conflict. Every other candidate reaches native Human Review. Approval runs the
-  reviewed CRM merge; decline or timeout keeps records separate. AI evidence cannot authorize a
-  merge or choose the survivor.
-- **The deduplication pilot is disabled, `noConcurrency`, and limited to 15 CRM rows.**
-  (`infra/index.ts`) A wider or concurrent run can enqueue overlapping clusters and duplicate merge
-  attempts.
 - **No credentials, deploy commands, or customer data in this repository.**
 
 ## Done when
@@ -270,7 +216,7 @@ it if you still want it, and records why under `## Decisions` in your copy of th
 - the CDK plan contains the reusable `account_enrichment` tool and disabled `enrich_accounts` play;
   the play contains one Tool node targeting `account_enrichment`, followed by the only CRM update
 - `node --import tsx evals/contract.mjs` passes against the adapted compiled graph; the tool begins
-  with a Filter and contains no CRM action, while the play contains no provider action
+  with an identifier Branch and contains no CRM action, while the play contains no provider action
 - generated consumer types confirm the selected provider fields, CRM destinations, write action,
   and fill-blank semantics
 - every destination is a live property on the connected CRM
@@ -286,17 +232,6 @@ it if you still want it, and records why under `## Decisions` in your copy of th
 - the operator explicitly approved the run after reviewing the links and cost
 - the post-run report shows before-and-after fill rates, every outcome count, failures, actual
   credits against estimate, and one recommended next step
-- the deduplication audit reports identifier coverage, mutually exclusive match classes, conflicts,
-  protected IDs, and the deterministic survivor for every candidate cluster
-- `deduplicate_accounts` runs on `crm_accounts`; no candidate or staging model exists
-- its compiled workflow contains one CRM `findRecords` search, one native Scoring node, a guarded
-  automatic branch, native Human Review, and CRM merge actions only on automatic or approved paths
-- the 60/25/15 score and exact-ID conflict guards match the approved policy, and deterministic
-  survivor selection is identical in the audit and workflow script
-- the Slack review connector and channel resolve; approve reaches `merge_after_review`, while decline
-  and timeout reach `review_declined` without a CRM write
-- the operator approved the exact 15-row maximum pilot and merge policy before execution, and the
-  final report includes every merge, review decision, conflict, exclusion, survivor, and direct link
 
 ## What it costs
 
@@ -313,16 +248,10 @@ are preserved or refreshed. Recompute the target and credit preview after approv
 segment count.
 Deduplication follows enrichment because the new matching keys improve duplicate detection.
 
-The checked deduplication play uses CRM search and merge actions plus Slack Human Review. The live
-HubSpot schema currently reports no Cargo credit cost for `findRecords` or `mergeRecords`, but
-re-read the selected CRM and Slack action metadata before every pilot and report any current charge.
-If the consumer adds structured AI evidence, price it separately. Human approval authorizes only
-the cluster shown in that review message.
-
 Do not enable the daily schedule until the disabled pilot has passed. Enabling is not an
 input; it is the last yes after _Done when_.
 
 ## Composes into
 
-`account-scoring` (one current survivor is what the scorer can cite), `find-stakeholders` (the
-buyers at every reviewed account), `tam-building` (the universe these records join).
+`account-scoring` (a filled book is what the scorer can cite), `find-stakeholders` (the buyers at
+every filled account), `tam-building` (the universe these records join).
