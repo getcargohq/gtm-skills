@@ -17,6 +17,16 @@ re-enrolls a record after six months. It runs on `crm_accounts` (the CRM account
 back with that row's CRM record id. The checked example is HubSpot; Salesforce and Attio adapt that
 one file. Nothing in this folder deploys or touches customer data by itself.
 
+This pipeline requires the `cargo-cdk` authoring skill. Install it before adapting the worked
+example:
+
+```sh
+npx skills add getcargohq/cargo-skills --skill cargo-cdk
+```
+
+The agent reads `.agents/skills/cargo-cdk/SKILL.md` directly after installation and follows its CDK
+bootstrap, authoring, state, plan, and deployment rules.
+
 `SKILL.md` is the procedure. Supporting depth:
 
 | Path                      | Purpose                                            |

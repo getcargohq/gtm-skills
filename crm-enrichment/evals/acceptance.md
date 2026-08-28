@@ -46,6 +46,7 @@ Walk every line. A checked template without an evidence-backed consumer adaptati
 
 ## CDK template
 
+- The agent installed and read `cargo-cdk` before auditing or adapting the template.
 - `infra/index.ts` is the only infrastructure source file.
 - The consumer file contains only the selected CRM connector and action shapes.
 - `account_enrichment` is a workflow-backed Cargo tool that accepts provider identifiers, normalizes
@@ -71,11 +72,11 @@ Walk every line. A checked template without an evidence-backed consumer adaptati
   as-is. A row takes at most one paid route.
 - Fill-blanks uses a CRM-native conditional update or a fresh-read guard that preserves populated
   values, including numeric zero.
-- `last_enriched_at` and `enrichment_status: succeeded` write only after a provider result and a CRM
-  update on the `written` path. A failed provider call does not stamp freshness.
+- `cargo_last_enriched_at` and `cargo_enrichment_status: succeeded` write only after a provider
+  result and a CRM update on the `written` path. A failed provider call does not stamp freshness.
 - Provider or CRM connector errors remain failed workflow runs.
-- The play trigger requires an identifier and `last_enriched_at` null or older than six months. It
-  contains no destination fill-state condition.
+- The play trigger requires an identifier and `cargo_last_enriched_at` null or older than six
+  months. It contains no destination fill-state condition.
 - The disabled play evaluates daily, creates runs only for rows added to its managed segment, and
   uses `noConcurrency`.
 - No standalone `defineSegment` exists.

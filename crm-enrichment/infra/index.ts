@@ -83,8 +83,9 @@ const outputVariables = (nodeSlug: string) => [
   },
 ];
 
-// A raw node graph keeps the first gate as Cargo's native Filter node. The
-// ordinary defineWorkflow conditional compiler emits a Branch node instead.
+// Deliberate raw graph: the current defineWorkflow API has no Filter helper,
+// and its JavaScript conditionals compile to Branch nodes. This preserves the
+// required native Filter as the first gate while keeping provider calls exclusive.
 const enrichCompanyData = defineWorkflowFromNodes<
   EnrichmentInput,
   EnrichmentOutput
@@ -274,8 +275,8 @@ const enrichCrmAccount = defineWorkflow(
           value: result.employee_count,
           skipIfExist: true,
         },
-        { propertyName: "last_enriched_at", value: new Date() },
-        { propertyName: "enrichment_status", value: "succeeded" },
+        { propertyName: "cargo_last_enriched_at", value: new Date() },
+        { propertyName: "cargo_enrichment_status", value: "succeeded" },
       ],
     });
 
@@ -317,12 +318,12 @@ export const enrichAccounts = definePlay("enrich_accounts", {
         conditions: [
           {
             kind: "date",
-            columnSlug: crmAccounts.columns.last_enriched_at,
+            columnSlug: crmAccounts.columns.cargo_last_enriched_at,
             operator: "isNull",
           },
           {
             kind: "date",
-            columnSlug: crmAccounts.columns.last_enriched_at,
+            columnSlug: crmAccounts.columns.cargo_last_enriched_at,
             operator: "lowerThan",
             value: "6 months",
           },

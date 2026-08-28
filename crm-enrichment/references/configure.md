@@ -45,7 +45,8 @@ The starting recommendation is `company_id`, `company_name`, `domain`, `website`
 and `employee_count`. LinkedIn `company_id` is a durable matching key. Reuse the most-filled
 compatible CRM property when one exists. If none exists on HubSpot, propose the string property
 `linkedin_company_id` and include its creation in the field-contract approval. Never prepend
-`cargo_` to a proposed CRM property. It is a
+`cargo_` to a provider-derived business property. Reserve that prefix for Cargo-owned operational
+metadata such as enrichment timestamps and statuses. It is a
 recommendation, not implicit approval. Include every other live LinkedIn output in the candidate
 table. Use exactly one row per provider property, even when several properties share the same
 compatibility decision. Each row carries its own type, route availability, destination, fill rate,
@@ -72,8 +73,9 @@ In `infra/index.ts`, edit these together:
 The checked repository example extracts HubSpot companies (`fetchRecords`,
 `objectType: "companies"`) and writes with `updateRecords` matching
 `hs_object_id` and its native `skipIfExist` mapping flag. Create
-`last_enriched_at` and `enrichment_status` on the company object if
-they are missing. Keep one CRM shape in the file. The play filter, workflow
+`cargo_last_enriched_at` as a datetime and `cargo_enrichment_status` as a string on the company
+object if they are missing, and include both creations in the field-contract approval. Keep one CRM
+shape in the file. The play filter, workflow
 input, and write matching property must use the same record-id field.
 
 - **Salesforce:** generated Account update matching `Id`. There is no `skipIfExist` — read the
@@ -83,7 +85,7 @@ input, and write matching property must use the same record-id field.
 
 The checked HubSpot starting mapping is `company_id` to `linkedin_company_id`, followed by
 `name`, `domain`, `website`, `linkedin_company_page`, and `numberofemployees`, plus the stamps
-`last_enriched_at` and `enrichment_status`. Create `linkedin_company_id` as a
+`cargo_last_enriched_at` and `cargo_enrichment_status`. Create `linkedin_company_id` as a
 string property only when no compatible LinkedIn company ID property exists and the operator
 approves its creation. Present industry and the other provider outputs at the field-selection gate.
 The provider returns `industries` as an array; most CRMs store a single enum, so inclusion requires

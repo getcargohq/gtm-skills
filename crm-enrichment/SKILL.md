@@ -1,8 +1,8 @@
 ---
 name: crm-enrichment
 description: 'Keep CRM accounts filled and refresh them when they go stale: a deployed play that fills approved blank firmographics from LinkedIn and re-enrolls a record after six months. Triggers: "keep our CRM accounts filled", "keep our CRM companies filled", "enrich my CRM", "CRM enrichment", "old firmographics keep going stale", "every new CRM account", "every new CRM company", "nobody refreshes the company records", "refresh stale firmographics". HubSpot, Salesforce, Attio, Cargo CDK. Skip when: the records are not in a CRM. A supplied company list is enrich-company-data.'
-version: "0.6.3"
-compatibility: "Requires a Cargo CDK project and @cargo-ai/cdk ^1.0.51. The repository example does not deploy or access a CRM until an agent adapts it in the consumer project."
+version: "0.6.4"
+compatibility: "Requires the cargo-cdk skill, a Cargo CDK project, and @cargo-ai/cdk ^1.0.51. The repository example does not deploy or access a CRM until an agent adapts it in the consumer project."
 homepage: https://github.com/getcargohq/gtm-skills/tree/main/crm-enrichment
 metadata:
   author: getcargo
@@ -102,8 +102,17 @@ checkpoint. Never end with a generic offer to help.
 
 This folder is a **worked example**: real CDK resources written for some other company. The job
 is to end up with the code your company would have written, in your project, and an agent does the
-adapting. If the `cargo-cdk` skill is in your session it carries the long form of this; if not,
-this is enough.
+adapting.
+
+**Install the required authoring skill first.** If `cargo-cdk` is absent, run:
+
+```sh
+npx skills add getcargohq/cargo-skills --skill cargo-cdk
+```
+
+Then read `.agents/skills/cargo-cdk/SKILL.md` directly; no session reload is needed. Complete its
+bootstrap and use its authoring, state, plan, and deployment rules throughout this pipeline. Stop
+before audit or template work if the skill cannot be installed or read.
 
 1. **Install it — the CLI does the copy.** From inside the CDK project,
    `cargo-ai cdk add cookbook/crm-enrichment` writes this example to `infra/crm-enrichment/` and
@@ -192,7 +201,7 @@ it if you still want it, and records why under `## Decisions` in your copy of th
 - **The tool enriches; the play orchestrates and writes.** (`infra/index.ts`) `account_enrichment` accepts provider identifiers, normalizes them, and returns company data without a CRM connector or write. Its first non-start node is a native Filter, followed by mutually exclusive provider routes. `enrich_accounts` starts with one Tool node targeting `account_enrichment`, applies the approved per-field policy, and owns the only CRM update. A tool that writes to the CRM is not reusable; a play that repeats the provider action bypasses the reviewed tool. Run `node --import tsx evals/contract.mjs` after every adaptation to enforce this compiled graph.
 - **One CRM shape in the file.** (`infra/index.ts`) The checked example is HubSpot. Adapt that one file for Salesforce or Attio. Parallel HubSpot/Salesforce/Attio branches drift from the generated types of the CRM that is actually connected.
 - **At most one paid route per row, LinkedIn URL first.** (`infra/index.ts` `enrichCrmAccount`) A row without a handle or a domain makes no paid call. A handle that is already an `http` URL is used as-is; otherwise it is prefixed as `https://www.linkedin.com/company/<handle>`.
-- **Destinations are live properties on the connected CRM.** (`infra/index.ts`) The HubSpot example writes `linkedin_company_id`, `name`, `domain`, `website`, `linkedin_company_page`, `numberofemployees`, `last_enriched_at`, and `enrichment_status`. Leaving another CRM's names in the file can write provider data into the wrong property.
+- **Destinations are live properties on the connected CRM.** (`infra/index.ts`) The HubSpot example writes `linkedin_company_id`, `name`, `domain`, `website`, `linkedin_company_page`, `numberofemployees`, `cargo_last_enriched_at`, and `cargo_enrichment_status`. Provider-derived business properties keep neutral names; Cargo-owned operational stamps use the `cargo_` prefix. Leaving another CRM's names in the file can write provider data into the wrong property.
 - **Fill approved blanks only.** (`infra/index.ts` `skipIfExist` or the Salesforce/Attio read-then-omit guard) A stale snapshot overwrites authoritative CRM data, including numeric zero.
 - **Eligibility and freshness live in the play trigger.** (`infra/index.ts` `enrichAccounts`) Require an identifier and freshness null or older than six months in the managed segment. Destination fill-state is not an eligibility condition: an approved refresh must be able to re-enrich populated stale fields. The row workflow starts with the reusable tool call instead of repeating trigger conditions as branches. A standalone `defineSegment` or duplicate workflow gate drifts from the play.
 - **The first play is disabled and `noConcurrency`.** (`infra/index.ts`) Removing those expands an unapproved pilot.
@@ -204,6 +213,7 @@ it if you still want it, and records why under `## Decisions` in your copy of th
 - the audit records an operator-approved field contract with provider paths, live CRM destinations,
   types, transformations, write policies, and reasons for every exclusion
 - the CDK plan contains one CRM account model (`crm_accounts`) and no native `accounts` unification
+- the agent installed and read the `cargo-cdk` skill before auditing or adapting the template
 - the CDK plan contains the reusable `account_enrichment` tool and disabled `enrich_accounts` play;
   the play contains one Tool node targeting `account_enrichment`, followed by the only CRM update
 - `node --import tsx evals/contract.mjs` passes against the adapted compiled graph; the tool begins
