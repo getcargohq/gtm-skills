@@ -6,8 +6,8 @@ older than six months comes back.
 
 ## What it does
 
-- **Fills approved blanks** from LinkedIn — name, domain, website, LinkedIn
-  page, employee count, and LinkedIn company ID as a durable matching key.
+- **Fills approved blanks** from LinkedIn: name, domain, website, LinkedIn page,
+  employee count, and LinkedIn company ID as a durable matching key.
 - **Re-enrolls stale records** after six months, so firmographics stay current
   without manual refreshes.
 - **Never overwrites** a populated value. The CRM stays authoritative.
@@ -49,21 +49,21 @@ filter is its segment; there is no standalone segment.
 
 ## Placeholders (edit before deploy)
 
-1. **CRM connector and record ID** (`infra/index.ts`) — the example is HubSpot
+1. **CRM connector and record ID** (`infra/index.ts`): the example is HubSpot
    (`hs_object_id`); Salesforce uses `Id`, Attio its record id. The wrong field
    targets nothing while the run still looks successful.
-2. **Field mappings** (`infra/index.ts`) — every destination must be a live
+2. **Field mappings** (`infra/index.ts`): every destination must be a live
    property on the connected CRM.
-3. **Freshness fields** — `cargo_last_enriched_at` and
-   `cargo_enrichment_status` must exist on the CRM object.
-4. **`linkedin_company_id`** — propose it if no equivalent property exists.
+3. **Freshness fields**: `cargo_last_enriched_at` and `cargo_enrichment_status`
+   must exist on the CRM object.
+4. **`linkedin_company_id`**: propose it if no equivalent property exists.
 
 ## Cost
 
 The audit makes no paid call: it reads schemas and counts eligibility, so the
 cost preview lands before any approval.
 
-Enrichment is one LinkedIn call per eligible row, priced by route —
+Enrichment is one LinkedIn call per eligible row, priced by route:
 `enrichCompany` for a LinkedIn URL, `enrichCompanyFromDomain` as the fallback.
 Run `cargo-ai connection integration get linkedin` for current unit prices. A
 row with no identifier never calls; an already-filled row exits as
