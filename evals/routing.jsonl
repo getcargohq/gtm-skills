@@ -89,3 +89,9 @@
 {"prompt": "Set up recurring account deduplication in Cargo", "expect": "crm-deduplication"}
 {"prompt": "Merge duplicate companies in HubSpot automatically when confidence is high, and ask me to review uncertain matches", "expect": "crm-deduplication"}
 {"prompt": "Our CRM has duplicate account records sharing LinkedIn company IDs and domains", "expect": "crm-deduplication"}
+{"prompt": "Clean duplicate contact records in HubSpot and keep low-confidence people matches in review", "expect": "crm-deduplication"}
+{"prompt": "Set up recurring contact deduplication in Cargo", "expect": "crm-deduplication"}
+{"prompt": "Our CRM has duplicate people with the same LinkedIn profile and phone number", "expect": "crm-deduplication"}
+{"prompt": "Merge duplicate CRM contacts when the LinkedIn person ID matches exactly", "expect": "crm-deduplication"}
+{"prompt": "Fill missing contact fields", "expect": "crm-enrichment", "why": "Filling fields is enrichment, not duplicate merging."}
+{"prompt": "Verify these emails", "expect": "verify-email-list", "why": "Email validation is the one-off verifier, not CRM contact deduplication."}

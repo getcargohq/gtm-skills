@@ -16,7 +16,7 @@
   },
   "dependencies": {
     "@cargo-ai/cdk": "^1.0.51",
-    "zod": "^4.4.3"
+    "zod": "4.4.3"
   },
   "devDependencies": {
     "prettier": "^3.4.2",
