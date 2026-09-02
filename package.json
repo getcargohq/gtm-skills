@@ -1,7 +1,7 @@
 {
   "name": "gtm-skills",
   "private": true,
-  "description": "Repo tooling only. Nothing here ships to a customer: skills are installed folder by folder with `npx skills add`, and the CDK project shell comes from `cargo-ai cdk init --template blank`.",
+  "description": "Repo tooling only. Nothing here ships to a customer: one-off skills are installed with `npx skills add`, cookbooks with `cargo-ai cdk add cookbook/<name>`, and the CDK project shell comes from `cargo-ai cdk init`.",
   "type": "module",
   "engines": {
     "node": ">=22.18"

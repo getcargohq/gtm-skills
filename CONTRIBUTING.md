@@ -28,7 +28,7 @@ npm run typecheck      # the CDK examples against the installed package types
 ```
 
 Nothing in the root `package.json` ships to anyone. A customer's project shell
-comes from `cargo-ai cdk init --template blank`; a skill is a folder they copy.
+comes from `cargo-ai cdk init`; a skill is a folder the CLI copies in for them.
 
 ## Checks
 
@@ -75,11 +75,13 @@ exactly one skill and get exactly one working thing.
 3. The body opens with the honest banner, `**State: to-be-approved.**`, and
    carries these sections in this order; the validator checks each exists:
    - `## The outcome`
-   - `## Put it in your project`: the compact procedure. Look at the repo,
-     `cdk init --template blank` if there is no project, copy the folder in as
-     a sibling and reconcile with what is already declared, adapt, plan and
-     stop, deploy on a yes, verify. Copy it from `tam-building/SKILL.md`; each
-     skill carries its own, the way every one-off skill carries its own Setup.
+   - `## Put it in your project`: the compact procedure. `cdk add cookbook/<name>`
+     (or `cdk init --cookbook <name>` when there is no project) is the copy step,
+     then reconcile with what is already declared, adapt, plan and stop, deploy
+     on a yes, verify. Copy it from `tam-building/SKILL.md`; each skill carries
+     its own, the way every one-off skill carries its own Setup. Say early that
+     a reader who found this in a project's `.claude/skills/` is past the copy —
+     the section is also what the CLI hands an agent after installing.
    - `## What you will be asked`: a table of inputs, **derive before ask**.
      An input that can be looked up (which connector is authenticated, what
      the CRM schema holds) is marked _derived_; if more than about four rows
