@@ -22,35 +22,28 @@ than six months comes back.
 
 ## How it works
 
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                           CRM account extract                               │
-│                     (crm_accounts: HubSpot, Salesforce, Attio)              │
-└──────────────────────────────────┬──────────────────────────────────────────┘
-                                   │
-                                   ▼
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                        Managed segment trigger                              │
-│         • Has identifier (LinkedIn URL or domain)                           │
-│         • Freshness null OR older than 6 months                             │
-│         • At least one approved blank                                       │
-└──────────────────────────────────┬──────────────────────────────────────────┘
-                                   │
-                                   ▼
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                        account_enrichment tool                              │
-│         • LinkedIn URL route (preferred) or domain route                    │
-│         • Returns provider data, no CRM write                               │
-└──────────────────────────────────┬──────────────────────────────────────────┘
-                                   │
-                                   ▼
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                          enrich_accounts play                               │
-│         • Calls the tool                                                    │
-│         • Fills approved blank fields only (skipIfExist)                    │
-│         • Writes cargo_last_enriched_at + cargo_enrichment_status           │
-│         • Disabled on first deploy, noConcurrency                           │
-└─────────────────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TD
+    subgraph CRM["CRM Account Extract"]
+        model["crm_accounts<br/><small>HubSpot · Salesforce · Attio</small>"]
+    end
+
+    subgraph Trigger["Managed Segment Trigger"]
+        filter["Has identifier<br/>Freshness null or > 6 months<br/>At least one approved blank"]
+    end
+
+    subgraph Tool["account_enrichment Tool"]
+        enrich["LinkedIn URL route <small>(preferred)</small><br/>or domain route<br/><small>Returns provider data, no CRM write</small>"]
+    end
+
+    subgraph Play["enrich_accounts Play"]
+        write["Fills approved blanks only<br/>Writes freshness fields<br/><small>Disabled on first deploy</small>"]
+    end
+
+    model --> filter
+    filter --> enrich
+    enrich --> write
+    write -->|"writes back with CRM record ID"| model
 ```
 
 1. **Audit and recommend.** The agent joins live LinkedIn fields and CRM
