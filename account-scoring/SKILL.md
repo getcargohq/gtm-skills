@@ -44,15 +44,18 @@ is to end up with the code your company would have written, in your project, and
 adapting. If the `cargo-cdk` skill is in your session it carries the long form of this; if not,
 this is enough.
 
-1. **Look first.** `grep -l '@cargo-ai/cdk' package.json` says whether a CDK project already
-   lives here; `ls */models/*.ts */connectors/*.ts` says what it already declares. If there is no
-   project: `cargo-ai cdk init <dir> --template blank && cd <dir> && npm install`. That is the
-   whole shell; this folder never ships one.
-2. **Copy this folder in as a sibling of what is there**, then reconcile: for every model or
-   connector this example carries that the project already has (an accounts model keyed on
-   website, a HubSpot connector, an OpenAI connector), rewire the imports to the existing one and
-   drop the copy. Two resources with one slug is a collision at deploy. Append this folder's
-   `.env` needs to the project's `.env.example`; never overwrite it.
+1. **Install it — the CLI does the copy.** From inside the CDK project,
+   `cargo-ai cdk add cookbook/account-scoring` writes this example to `infra/account-scoring/` and
+   this procedure to `.claude/skills/account-scoring/`. No project yet?
+   `cargo-ai cdk init <dir> --cookbook account-scoring && cd <dir> && npm install` does both; this
+   folder never ships a shell. **If you are reading this from the project's `.claude/skills/`, the
+   install already happened — start at step 2.** On a CLI too old to have `add`, copy this folder
+   in as a sibling of what is there by hand; everything below is unchanged.
+2. **Reconcile it with what is already declared.** For every model or connector this example
+   carries that the project already has (an accounts model keyed on website, a HubSpot connector,
+   an OpenAI connector), rewire the imports to the existing one and drop the copy. Two resources
+   with one slug is a collision at deploy. Append this folder's `.env` needs to the project's
+   `.env.example`; never overwrite it.
 3. **Adapt.** Work the sections below in order: _What should not change_ is what you argue back
    about (say what breaks, then do it if they still want it); _What you can change_ is what you
    offer unprompted (nobody asks for a variant they do not know exists); _What you will be asked_

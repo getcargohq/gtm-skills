@@ -58,16 +58,18 @@ is to end up with the code your company would have written, in your project, and
 adapting. If the `cargo-cdk` skill is in your session it carries the long form of this; if not,
 this is enough.
 
-1. **Look first.** `grep -l '@cargo-ai/cdk' package.json` says whether a CDK project already
-   lives here; `ls */models/*.ts */connectors/*.ts */infra/*.ts` says what it already declares. If
-   there is no project: `cargo-ai cdk init <dir> --template blank && cd <dir> && npm install`. That
-   is the whole shell; this folder never ships one.
-2. **Copy this folder in as a sibling of what is there**, then reconcile: for every model or
-   connector this example carries that the project already has (a HubSpot connector, an account
-   extract), rewire the imports to the existing one and drop the copy. Two resources with one
-   slug is a collision at deploy. The play must keep running on that CRM account model
-   (`crm_accounts` in the example). Append this folder's `.env` needs to the project's
-   `.env.example`; never overwrite it.
+1. **Install it — the CLI does the copy.** From inside the CDK project,
+   `cargo-ai cdk add cookbook/crm-enrichment` writes this example to `infra/crm-enrichment/` and
+   this procedure to `.claude/skills/crm-enrichment/`. No project yet?
+   `cargo-ai cdk init <dir> --cookbook crm-enrichment && cd <dir> && npm install` does both; this
+   folder never ships a shell. **If you are reading this from the project's `.claude/skills/`, the
+   install already happened — start at step 2.** On a CLI too old to have `add`, copy this folder
+   in as a sibling of what is there by hand; everything below is unchanged.
+2. **Reconcile it with what is already declared.** For every model or connector this example
+   carries that the project already has (a HubSpot connector, an account extract), rewire the
+   imports to the existing one and drop the copy. Two resources with one slug is a collision at
+   deploy. The play must keep running on that CRM account model (`crm_accounts` in the example).
+   Append this folder's `.env` needs to the project's `.env.example`; never overwrite it.
 3. **Select fields before target math.** Re-read the live LinkedIn output and CRM property schemas.
    Follow the field-selection gate in [`references/configure.md`](references/configure.md): present
    the starting recommendation, direct-compatible optional fields, transformation-required fields,
