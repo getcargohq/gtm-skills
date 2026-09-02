@@ -1,115 +1,87 @@
 # CRM enrichment
 
 Keep CRM accounts filled and refresh them when they go stale. New records get
-approved blanks written from LinkedIn; a record whose successful fill is older
-than six months comes back.
+approved blanks written from LinkedIn; a record whose last successful fill is
+older than six months comes back.
 
 ## What it does
 
-- **Fills approved blank fields** on every new CRM account from LinkedIn — the
-  starting recommendation is identity and size: company name, domain, website,
-  LinkedIn page, employee count, and LinkedIn company ID as a durable matching
-  key.
-- **Re-enrolls stale records** whose last successful fill is older than six
-  months, so firmographics stay current without manual refreshes.
-- **Never overwrites** a value that is already there — the CRM is authoritative.
-- **Stamps freshness only after a real fill** — a row where every field is
-  already populated exits early without a paid call, and freshness is not
-  stamped on a no-op.
-- **Separates enrichment from writeback** — the reusable tool normalizes
-  identifiers and returns provider data; the play calls that tool and owns
-  the CRM write.
+- **Fills approved blanks** from LinkedIn — name, domain, website, LinkedIn
+  page, employee count, and LinkedIn company ID as a durable matching key.
+- **Re-enrolls stale records** after six months, so firmographics stay current
+  without manual refreshes.
+- **Never overwrites** a populated value. The CRM stays authoritative.
+- **Stamps freshness only after a real fill.** An already-filled row exits
+  before any paid call.
+- **Separates enrichment from writeback.** The tool returns provider data; the
+  play owns the CRM write.
 
 ## How it works
 
 ```mermaid
 flowchart TD
-    subgraph CRM["CRM Account Extract"]
-        model["crm_accounts<br/><small>HubSpot · Salesforce · Attio</small>"]
-    end
+    model["crm_accounts<br/>HubSpot · Salesforce · Attio"]
+    filter["Managed segment trigger<br/>has identifier · stale or never filled · one approved blank"]
+    enrich["account_enrichment tool<br/>LinkedIn URL route, else domain route"]
+    write["enrich_accounts play<br/>fills approved blanks · stamps freshness"]
 
-    subgraph Trigger["Managed Segment Trigger"]
-        filter["Has identifier<br/>Freshness null or > 6 months<br/>At least one approved blank"]
-    end
-
-    subgraph Tool["account_enrichment Tool"]
-        enrich["LinkedIn URL route <small>(preferred)</small><br/>or domain route<br/><small>Returns provider data, no CRM write</small>"]
-    end
-
-    subgraph Play["enrich_accounts Play"]
-        write["Fills approved blanks only<br/>Writes freshness fields<br/><small>Disabled on first deploy</small>"]
-    end
-
-    model --> filter
-    filter --> enrich
-    enrich --> write
-    write -->|"writes back with CRM record ID"| model
+    model --> filter --> enrich --> write
+    write -->|CRM record ID| model
 ```
 
-1. **Audit and recommend.** The agent joins live LinkedIn fields and CRM
-   properties, presents the starting recommendation and optional candidates,
-   flags duplicates and transformations, and waits for approval of the complete
-   field contract.
-2. **Build disabled.** After approval, the agent adapts `infra/index.ts`,
-   deploys the tool and play with the play disabled, sends Cargo UI links, and
-   shows the exact target population and estimated credits.
-3. **Run.** After cost approval, enrichment runs. The agent reports
-   before-and-after fill rates, outcomes, failures, and actual credits.
+1. **Audit.** The agent joins live LinkedIn fields to live CRM properties, flags
+   duplicates and transformations, and waits for approval of the field contract.
+2. **Build disabled.** It adapts `infra/index.ts`, deploys with the play
+   disabled, and shows Cargo links, target population, and estimated credits.
+3. **Run.** After cost approval, enrichment runs and the agent reports fill
+   rates, outcomes, failures, and actual credits.
 
 ## Architecture
 
-| Resource             | Type  | Role                                                         |
-| -------------------- | ----- | ------------------------------------------------------------ |
-| `crm_accounts`       | Model | CRM account extract — play runs on this, writes back with ID |
-| `account_enrichment` | Tool  | Reusable enrichment: normalizes IDs, returns provider data   |
-| `enrich_accounts`    | Play  | Calls tool, fills blanks, owns writeback and freshness       |
+| Resource             | Type  | Role                                                |
+| -------------------- | ----- | --------------------------------------------------- |
+| `crm_accounts`       | Model | CRM account extract; the play reads and writes here |
+| `account_enrichment` | Tool  | Normalizes identifiers, returns provider data       |
+| `enrich_accounts`    | Play  | Fills blanks, owns writeback and freshness          |
 
-The tool and play share one workflow contract — separate mappings would drift.
-The play's filter is its managed segment; there is no standalone segment.
+Tool and play share one workflow contract, so mappings cannot drift. The play's
+filter is its segment; there is no standalone segment.
 
 ## Placeholders (edit before deploy)
 
-1. **CRM connector and record ID** — `infra/index.ts`: the checked example uses
-   HubSpot (`hs_object_id`). Salesforce uses `Id`; Attio uses the record id.
-   Using the wrong ID field targets nothing and the run looks successful.
-2. **Field mappings** — `infra/index.ts`: every destination must be a live
-   property on the connected CRM. The agent derives these from live schemas.
-3. **Freshness fields** — `cargo_last_enriched_at` (date) and
-   `cargo_enrichment_status` (string) must exist on the CRM object.
-4. **LinkedIn company ID property** — recommended as a durable matching key.
-   Propose `linkedin_company_id` if one does not exist.
+1. **CRM connector and record ID** (`infra/index.ts`) — the example is HubSpot
+   (`hs_object_id`); Salesforce uses `Id`, Attio its record id. The wrong field
+   targets nothing while the run still looks successful.
+2. **Field mappings** (`infra/index.ts`) — every destination must be a live
+   property on the connected CRM.
+3. **Freshness fields** — `cargo_last_enriched_at` and
+   `cargo_enrichment_status` must exist on the CRM object.
+4. **`linkedin_company_id`** — propose it if no equivalent property exists.
 
 ## Cost
 
-Read this before pointing the skill at your CRM.
+The audit makes no paid call: it reads schemas and counts eligibility, so the
+cost preview lands before any approval.
 
-**Counting is free.** The audit phase makes no paid call — it reads schemas and
-counts eligibility. The cost preview happens before any approval.
+Enrichment is one LinkedIn call per eligible row, priced by route —
+`enrichCompany` for a LinkedIn URL, `enrichCompanyFromDomain` as the fallback.
+Run `cargo-ai connection integration get linkedin` for current unit prices. A
+row with no identifier never calls; an already-filled row exits as
+`skipped_already_filled`.
 
-**Enrichment is per-row.** Every eligible row costs one LinkedIn call. The
-price depends on the route:
-
-- **LinkedIn URL route** — preferred, uses `enrichCompany`
-- **Domain route** — fallback, uses `enrichCompanyFromDomain`
-
-Run `cargo-ai connection integration get linkedin` to see current unit prices.
-A row without an identifier makes no paid call. A row whose approved
-destinations are already filled exits early (`skipped_already_filled`).
-
-**Re-enrollment is six months.** After a successful fill, the record leaves the
-segment for six months. The daily schedule processes only newly eligible rows
-and records that come back due.
+After a successful fill the record leaves the segment for six months, so the
+daily schedule only pays for new rows and records coming back due.
 
 ## Done when
 
 - Audit JSON, Markdown, and chat summary agree on every count
-- CDK plan shows `account_enrichment` tool and disabled `enrich_accounts` play
+- The plan shows the `account_enrichment` tool and a disabled `enrich_accounts`
 - Every destination is a live property on the connected CRM
-- Records without identifiers or with all fields filled exit before a paid call
-- The play targets `crm_accounts` and matches the audited CRM record ID
+- Rows with no identifier or no blanks exit before a paid call
+- The write matches the audited CRM record ID
 - LinkedIn and domain route counts are mutually exclusive and reproduce the
   credit estimate
-- Post-run report shows fill rates, outcomes, failures, and actual credits
+- The post-run report shows fill rates, outcomes, failures, and actual credits
 
 ## Composes into
 
