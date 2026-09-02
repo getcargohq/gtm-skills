@@ -1,10 +1,11 @@
 # Audit
 
 Produce the audit before editing the CDK template. Re-read live CRM properties. Do not assume
-property names, universal provider output paths, or that every CRM account is in scope.
+property names, universal provider output paths, or that every CRM account or contact is in
+scope. Audit the path the operator asked for — accounts, contacts, or both.
 
-Write `crm-enrichment-audit-YYYY-MM-DD.json` and a matching Markdown report with this minimum
-JSON contract:
+Write `crm-enrichment-audit-YYYY-MM-DD.json` and a matching Markdown report. The account path
+uses this minimum JSON contract:
 
 ```json
 {
@@ -102,6 +103,79 @@ JSON contract:
 }
 ```
 
+The people path reuses that contract with the contact object swapped in — `total_contacts`,
+contact `field_selection` candidates from the live person-enrichment and resolver actions, and
+contact routes in `target_preview` (`linkedin_url_path`, `email_resolver_path`,
+`skipped_no_identifier`; the resolver path prices the chain) — plus this people-only block:
+
+```json
+{
+  "contacts": {
+    "gaps": {
+      "missing_work_email": 0,
+      "missing_phone": 0,
+      "missing_linkedin_url": 0,
+      "missing_linkedin_person_id": 0,
+      "missing_job_title": 0,
+      "missing_primary_company": 0
+    },
+    "company_side_gaps": {
+      "missing_domain": 0,
+      "missing_linkedin_company_id": 0,
+      "missing_customer_status": 0
+    },
+    "customer_status_mapping": {
+      "relationship": "primary associated company only",
+      "property": "lifecyclestage",
+      "customer_values": ["customer"],
+      "mirrored_on_contact": true,
+      "evidence": "how the live portal was checked",
+      "status": "pending_operator_confirmation|confirmed",
+      "customer_contacts": 0,
+      "non_customer_contacts": 0
+    },
+    "operational_fields": [
+      {
+        "purpose": "last_enriched_at|enrichment_status|primary_employment_status",
+        "equivalent_candidates": [
+          {
+            "internal_name": "crm_internal_name",
+            "type": "CRM type",
+            "filled_count": 0,
+            "fill_rate": 0
+          }
+        ],
+        "decision": "reuse|create",
+        "property": "cargo_last_enriched_at",
+        "reason": "usage and fill-rate evidence; never a second duplicate"
+      }
+    ],
+    "play_split": {
+      "enrich_contacts_eligible": 0,
+      "monitor_champions_eligible": 0
+    }
+  }
+}
+```
+
+Audit these contact fields at minimum: work email, phone, LinkedIn profile URL, LinkedIn person
+ID, job title, and the primary associated company link. On the company side of the contact audit:
+domain, LinkedIn company URL and ID, and the customer-status property — required to know whether
+a former company was a customer. The customer-status mapping is detected from the live schema and
+data (HubSpot example: primary associated company with `Lifecycle stage = Customer`, mirrored
+onto contacts by the native lifecycle sync; Salesforce:
+`Contact.AccountId → Account.<customer status field>`), always through the contact's primary
+company relationship — never an arbitrary associated company — with the exact live values that
+mean "customer" listed, and it stays `pending_operator_confirmation` until the operator confirms
+it.
+
+The operational-field audit is reuse-else-propose. If equivalent properties already exist for the
+freshness stamp, the outcome stamp, or the employment status, recommend the canonical one on
+usage and fill-rate evidence — do not create another duplicate. If none exists, mark the property
+for creation before launch: `cargo_last_enriched_at` (datetime) and `cargo_enrichment_status`
+(string) carry the `cargo_` prefix; `primary_employment_status` (single select, `Active`/`Left`)
+is a business property and keeps its neutral name.
+
 `field_selection.candidates` covers every live output path from both selected LinkedIn actions and
 records which routes return it. Use exactly one row per exact provider path in the JSON, Markdown,
 and chat presentation. Never group multiple provider properties into one row, even when they share
@@ -122,7 +196,10 @@ writes, not segment eligibility, so recompute the write preview after approval.
 Class provider `company_id` as `starting_recommendation` because it is the LinkedIn company ID
 matching key. Recommend the most-filled compatible CRM property. When HubSpot has none, propose
 `linkedin_company_id` with `destination_state: proposed`, type `string`, and include creation
-in the operator approval. Do not silently create it during audit.
+in the operator approval. Do not silently create it during audit. On the people path, class the
+provider's person ID the same way — it is the durable person matching key behind the
+one-person-one-contact rule — proposing `linkedin_person_id` when no compatible property exists,
+with the LinkedIn profile URL and job title completing the starting recommendation.
 
 `duplicate_properties` contains only genuine duplicate groups among customer-managed CRM
 properties. Exclude CRM-managed and system-generated properties, including HubSpot `hs_*` fields.
@@ -133,27 +210,42 @@ a duplicate group. If none exist, emit an empty array and state `No duplicate pr
 in Markdown and chat. Never infer ownership from fill rate alone.
 
 The Markdown headings are `Summary`, `Duplicate properties`, `Enrichment gaps`, and `Target and
-cost preview`, with a `Field selection` subsection before the target preview. Every table must
+cost preview`, with a `Field selection` subsection before the target preview; the people path
+adds `Customer-status mapping` and `Operational fields` between the gaps and the field
+selection. Every table must
 reproduce the JSON counts and percentages. The chat summary names the approved provider fields,
 destinations and transformations, excluded candidates with reasons, recommended primary
-properties, largest gaps, eligible population, and exact credit estimate. Do not invent a CRM
-health score. Report field-level evidence.
+properties, largest gaps, eligible population — split by play on the people path — and exact
+credit estimate. Do not invent a CRM
+health score. Report field-level evidence: "10,800 contacts have no work email" is the audit's
+voice, "your CRM health is 3/5" is not.
 
 Recommend the most filled type-compatible property, preferring a CRM-native property on a tie.
 The HubSpot example uses `hs_object_id` as `record_id_field`; Salesforce uses `Id`; Attio uses
 the record id. Do not delete or rename CRM properties during audit.
 
 If no compatible operational property exists, propose the exact property and pause for approval.
-Use generic outcomes: `pending`, `succeeded`, `failed`, `identity_conflict`, and
-`skipped_no_identifier`.
+Use generic outcomes: `pending`, `succeeded`, `partial`, `failed`, `identity_conflict`, and
+`skipped_no_identifier`. The pseudo-vocabulary Success/Partial/Failed maps onto that set:
+Success is `succeeded`, Partial is `partial` (a job change whose new company is not yet in the
+CRM), and Failed is a failed workflow run, which never stamps freshness.
 
-Before calculating credits, run `cargo-ai connection integration get linkedin`. Read the current,
-applicable costs from `integration.actions.enrichCompany.credits.costs` and
-`integration.actions.enrichCompanyFromDomain.credits.costs`; stop if the relevant entry is missing
+Before calculating credits, fetch live prices for the audited path. Accounts:
+`cargo-ai connection integration get linkedin`, reading
+`integration.actions.enrichCompany.credits.costs` and
+`integration.actions.enrichCompanyFromDomain.credits.costs`. Contacts: the same lookup for
+`integration.actions.enrichProfile.credits.costs`, plus
+`cargo-ai connection integration get FullEnrich` for
+`integration.actions.reverseEmailLookup.credits.costs`; stop if the relevant entry is missing
 or ambiguous. Credit math is
-`linkedin_url_path * linkedin_url_unit_credits + domain_path * domain_unit_credits`. The route
-counts are mutually exclusive and count eligible CRM accounts on the connected extract. Ask
-whether to narrow the population after showing the preview.
+`linkedin_url_path * linkedin_url_unit_credits + domain_path * domain_unit_credits` for accounts
+and
+`linkedin_url_path * person_enrich_unit_credits + email_path * (resolver_unit_credits + person_enrich_unit_credits)`
+for contacts. The route
+counts are mutually exclusive and count eligible CRM rows on the connected extract — on the
+people path, split by play, because the two filters own disjoint populations. Ask
+whether to narrow the population after showing the preview: enriching every eligible contact and
+creating a governed sub-segment are both valid answers, and the choice belongs to the operator.
 
 ## Complete when
 
@@ -164,3 +256,6 @@ whether to narrow the population after showing the preview.
 - every selected destination has a live name, type, and fill-rate justification
 - duplicate findings contain only genuine customer-managed semantic duplicates and exclude
   HubSpot `hs_*`, CRM-managed, system-generated, and generic native properties
+- on the people path: the customer-status mapping is operator-confirmed with its exact live
+  values and primary-relationship path, every operational field has a reuse-or-create decision,
+  and the eligible population is split between `enrich_contacts` and `monitor_champions`

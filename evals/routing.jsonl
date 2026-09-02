@@ -85,3 +85,11 @@
 {"prompt": "Enrich my CRM", "expect": "crm-enrichment"}
 {"prompt": "Our account data was accurate a year ago, but new companies and old firmographics keep going stale", "expect": "crm-enrichment"}
 {"prompt": "Every new CRM company should get standard identity and firmographics, then be refreshed when it goes stale", "expect": "crm-enrichment"}
+{"prompt": "Keep our CRM contacts filled", "expect": "crm-enrichment"}
+{"prompt": "Nobody refreshes the contact records", "expect": "crm-enrichment"}
+{"prompt": "Every new CRM contact should get a LinkedIn profile, person ID, and title, then be refreshed when stale", "expect": "crm-enrichment"}
+{"prompt": "Half our contacts are missing LinkedIn URLs and job titles, and nobody keeps them fresh", "expect": "crm-enrichment"}
+{"prompt": "Monitor our customer champions and keep their contact records current when they move", "expect": "crm-enrichment", "why": "The standing champion monitor lives in the CRM pipeline; a one-time movement check is track-job-changes."}
+{"prompt": "Did any of my contacts move companies this quarter? Check once and give me the list", "expect": "track-job-changes", "why": "A one-time job-change check stays with the one-off, not the deployed champion monitor."}
+{"prompt": "Enrich this supplied list of 40 LinkedIn profile URLs once", "expect": "enrich-linkedin-profile", "why": "A supplied one-off list should not route to the CRM contact pipeline."}
+{"prompt": "Find work emails for these 50 people I exported", "expect": "find-work-email", "why": "A one-off email lookup stays with the email finder, not the contact pipeline's optional email route."}
