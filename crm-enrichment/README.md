@@ -1,42 +1,125 @@
 # CRM enrichment
 
-Keep CRM accounts filled and refresh them when they go stale. This folder is a
-worked example: copy it into a Cargo CDK project as a sibling, reconcile it with
-what is already there, adapt `infra/index.ts`, and follow both operator approval
-gates before deploying disabled resources or running enrichment.
+Keep CRM accounts filled and refresh them when they go stale. New records get
+approved blanks written from LinkedIn; a record whose successful fill is older
+than six months comes back.
 
-The agent joins the live LinkedIn and CRM schemas, presents the starting and optional field
-mappings, recommends LinkedIn company ID as a durable matching key, and waits for approval of the
-complete field contract. After approval, it builds and deploys the tool and disabled play, sends
-direct Cargo UI links, and shows the exact target and estimated cost for a second approval. Only
-then does enrichment run. The reusable tool normalizes company identifiers and returns provider
-data without touching the CRM. The play calls that tool, fills approved blank CRM fields, and owns
-writeback. The final report compares before-and-after coverage, outcomes, failures, and actual
-credits, then recommends the next action. The play writes freshness only after a real fill and
-re-enrolls a record after six months. It runs on `crm_accounts` (the CRM account extract) and writes
-back with that row's CRM record id. The checked example is HubSpot; Salesforce and Attio adapt that
-one file. Nothing in this folder deploys or touches customer data by itself.
+## What it does
 
-This pipeline requires the `cargo-cdk` authoring skill. Install it before adapting the worked
-example:
+- **Fills approved blank fields** on every new CRM account from LinkedIn — the
+  starting recommendation is identity and size: company name, domain, website,
+  LinkedIn page, employee count, and LinkedIn company ID as a durable matching
+  key.
+- **Re-enrolls stale records** whose last successful fill is older than six
+  months, so firmographics stay current without manual refreshes.
+- **Never overwrites** a value that is already there — the CRM is authoritative.
+- **Stamps freshness only after a real fill** — a row where every field is
+  already populated exits early without a paid call, and freshness is not
+  stamped on a no-op.
+- **Separates enrichment from writeback** — the reusable tool normalizes
+  identifiers and returns provider data; the play calls that tool and owns
+  the CRM write.
 
-```sh
-npx skills add getcargohq/cargo-skills --skill cargo-cdk
+## How it works
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                           CRM account extract                               │
+│                     (crm_accounts: HubSpot, Salesforce, Attio)              │
+└──────────────────────────────────┬──────────────────────────────────────────┘
+                                   │
+                                   ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                        Managed segment trigger                              │
+│         • Has identifier (LinkedIn URL or domain)                           │
+│         • Freshness null OR older than 6 months                             │
+│         • At least one approved blank                                       │
+└──────────────────────────────────┬──────────────────────────────────────────┘
+                                   │
+                                   ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                        account_enrichment tool                              │
+│         • LinkedIn URL route (preferred) or domain route                    │
+│         • Returns provider data, no CRM write                               │
+└──────────────────────────────────┬──────────────────────────────────────────┘
+                                   │
+                                   ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                          enrich_accounts play                               │
+│         • Calls the tool                                                    │
+│         • Fills approved blank fields only (skipIfExist)                    │
+│         • Writes cargo_last_enriched_at + cargo_enrichment_status           │
+│         • Disabled on first deploy, noConcurrency                           │
+└─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-The agent reads `.agents/skills/cargo-cdk/SKILL.md` directly after installation and follows its CDK
-bootstrap, authoring, state, plan, and deployment rules.
+1. **Audit and recommend.** The agent joins live LinkedIn fields and CRM
+   properties, presents the starting recommendation and optional candidates,
+   flags duplicates and transformations, and waits for approval of the complete
+   field contract.
+2. **Build disabled.** After approval, the agent adapts `infra/index.ts`,
+   deploys the tool and play with the play disabled, sends Cargo UI links, and
+   shows the exact target population and estimated credits.
+3. **Run.** After cost approval, enrichment runs. The agent reports
+   before-and-after fill rates, outcomes, failures, and actual credits.
 
-`SKILL.md` is the procedure. Supporting depth:
+## Architecture
 
-| Path                      | Purpose                                            |
-| ------------------------- | -------------------------------------------------- |
-| `SKILL.md`                | Outcome, install, contract, cost                   |
-| `infra/index.ts`          | The only adaptation surface                        |
-| `references/audit.md`     | Audit JSON contract and live-price preview         |
-| `references/configure.md` | Model, mappings, and Salesforce / Attio adaptation |
-| `references/run.md`       | Workflow / play boundary and consumer verification |
-| `evals/acceptance.md`     | Acceptance checklist                               |
+| Resource             | Type  | Role                                                         |
+| -------------------- | ----- | ------------------------------------------------------------ |
+| `crm_accounts`       | Model | CRM account extract — play runs on this, writes back with ID |
+| `account_enrichment` | Tool  | Reusable enrichment: normalizes IDs, returns provider data   |
+| `enrich_accounts`    | Play  | Calls tool, fills blanks, owns writeback and freshness       |
 
-Do not declare a standalone segment. The play's filter is its managed backing
-segment.
+The tool and play share one workflow contract — separate mappings would drift.
+The play's filter is its managed segment; there is no standalone segment.
+
+## Placeholders (edit before deploy)
+
+1. **CRM connector and record ID** — `infra/index.ts`: the checked example uses
+   HubSpot (`hs_object_id`). Salesforce uses `Id`; Attio uses the record id.
+   Using the wrong ID field targets nothing and the run looks successful.
+2. **Field mappings** — `infra/index.ts`: every destination must be a live
+   property on the connected CRM. The agent derives these from live schemas.
+3. **Freshness fields** — `cargo_last_enriched_at` (date) and
+   `cargo_enrichment_status` (string) must exist on the CRM object.
+4. **LinkedIn company ID property** — recommended as a durable matching key.
+   Propose `linkedin_company_id` if one does not exist.
+
+## Cost
+
+Read this before pointing the skill at your CRM.
+
+**Counting is free.** The audit phase makes no paid call — it reads schemas and
+counts eligibility. The cost preview happens before any approval.
+
+**Enrichment is per-row.** Every eligible row costs one LinkedIn call. The
+price depends on the route:
+
+- **LinkedIn URL route** — preferred, uses `enrichCompany`
+- **Domain route** — fallback, uses `enrichCompanyFromDomain`
+
+Run `cargo-ai connection integration get linkedin` to see current unit prices.
+A row without an identifier makes no paid call. A row whose approved
+destinations are already filled exits early (`skipped_already_filled`).
+
+**Re-enrollment is six months.** After a successful fill, the record leaves the
+segment for six months. The daily schedule processes only newly eligible rows
+and records that come back due.
+
+## Done when
+
+- Audit JSON, Markdown, and chat summary agree on every count
+- CDK plan shows `account_enrichment` tool and disabled `enrich_accounts` play
+- Every destination is a live property on the connected CRM
+- Records without identifiers or with all fields filled exit before a paid call
+- The play targets `crm_accounts` and matches the audited CRM record ID
+- LinkedIn and domain route counts are mutually exclusive and reproduce the
+  credit estimate
+- Post-run report shows fill rates, outcomes, failures, and actual credits
+
+## Composes into
+
+`account-scoring` (a filled book is what the scorer can cite),
+`find-stakeholders` (the buyers at every filled account),
+`tam-building` (the universe these records join).
