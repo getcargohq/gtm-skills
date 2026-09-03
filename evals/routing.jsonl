@@ -61,8 +61,8 @@
 {"prompt":"portfolio companies of","expect":"find-portfolio-companies"}
 
 // --- one-off / deployed seam -------------------------------------------------------
-// tam-building, account-scoring, crm-enrichment, call-capture and
-// agentic-engagement are worked CDK examples that deploy a pipeline.
+// tam-building, account-scoring, crm-enrichment, call-capture,
+// agentic-engagement and standup are worked CDK examples that deploy a pipeline.
 // build-tam-list, score-leads and research-account are one-offs: the same
 // job once, in a turn. The
 // same words describe both, so these cases pin which way each phrasing goes;
@@ -98,3 +98,10 @@
 {"prompt": "Keep talking to leads over email", "expect": "agentic-engagement", "why": "The standing tell: a loop, not one send."}
 {"prompt": "Native email trigger for lead replies", "expect": "agentic-engagement"}
 {"prompt": "I need email addresses for these prospects so I can start conversations", "expect": "find-work-email", "why": "Addresses first; agentic-engagement is the loop you deploy after you have someone to write to."}
+{"prompt": "Post the daily standup to slack", "expect": "standup"}
+{"prompt": "End of day report in slack", "expect": "standup"}
+{"prompt": "What happened today posted to slack", "expect": "standup", "why": "The standing tell: posted, every evening, not a recap in this chat."}
+{"prompt": "Keep a cadence log of each day", "expect": "standup"}
+{"prompt": "Replace the GitHub Action that posts our standup", "expect": "standup"}
+{"prompt": "Evening recap of the GTM day", "expect": "standup"}
+{"prompt": "Scribe yesterday's calls into the repo every morning", "expect": "call-capture", "why": "Calls are call-capture; standup reads those entries in the evening, it does not scribe them."}

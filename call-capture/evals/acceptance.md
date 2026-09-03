@@ -29,7 +29,7 @@ Walk every line. A checked template without an evidence-backed consumer adaptati
 
 ## First scheduled run
 
-- Exactly one pull request, unmerged, titled `[cadence] scribe <date>`.
+- Exactly one pull request, unmerged, titled `[call-capture] scribe <date>`.
 - Its body reports four numbers: captured, scribed fresh, scribed from backfill, pending remaining.
 - Every scribed call has exactly one entry under `cadence/log/calls/`, each carrying the recorder's
   uuid in frontmatter.
