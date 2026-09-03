@@ -283,11 +283,17 @@ for (const name of exampleFolders) {
       );
     } else {
       try {
-        execFileSync(cargoCdk, ["check", "--dir", infraDir], {
+        // Point at the skill folder, not infra/. Since 1.0.68, `--dir infra/`
+        // walks up to the nearest package.json that declares @cargo-ai/cdk —
+        // this repo's root — and loads every skill plus scripts/ as one project.
+        // `--dir <skill>` resolves that skill's infra/ in isolation, the way a
+        // scaffolded consumer project does.
+        const skillDir = join(root, name);
+        execFileSync(cargoCdk, ["check", "--dir", skillDir], {
           stdio: "pipe",
         });
         const plan = JSON.parse(
-          execFileSync(cargoCdk, ["plan", "--dir", infraDir, "--json"], {
+          execFileSync(cargoCdk, ["plan", "--dir", skillDir, "--json"], {
             encoding: "utf8",
           }),
         );
