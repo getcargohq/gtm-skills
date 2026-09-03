@@ -105,3 +105,9 @@
 {"prompt": "Replace the GitHub Action that posts our standup", "expect": "standup"}
 {"prompt": "Evening recap of the GTM day", "expect": "standup"}
 {"prompt": "Scribe yesterday's calls into the repo every morning", "expect": "call-capture", "why": "Calls are call-capture; standup reads those entries in the evening, it does not scribe them."}
+{"prompt": "What should we work on this week", "expect": "weekly-planning"}
+{"prompt": "Rank our initiatives against what is actually running", "expect": "weekly-planning"}
+{"prompt": "Weekly GTM plan from the cadence log", "expect": "weekly-planning"}
+{"prompt": "Recommend next work from infra and runs", "expect": "weekly-planning"}
+{"prompt": "The play is deployed but I don't think it ran", "expect": "weekly-planning", "why": "Deployed-is-not-running is a planning gap, not a daily Slack recap."}
+{"prompt": "What should we do next this week, not a recap of today in Slack", "expect": "weekly-planning", "why": "Recommendations are weekly-planning; standup recaps the day and posts to Slack."}
