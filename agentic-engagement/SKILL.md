@@ -1,8 +1,8 @@
 ---
 name: agentic-engagement
-description: 'Deploy an agent that holds email conversations with leads: a sending domain, a mailbox, a native email trigger on reply and unsubscribe, and a heartbeat that checks thread status when nothing inbound happened. Triggers: "handle email conversations with leads", "agentic engagement", "an agent that replies to inbound email", "stand up a conversation agent on a Cargo mailbox", "native email trigger for lead replies", "keep talking to leads over email". Cargo CDK, defineDomain, defineMailbox, defineAgent, agentNativeTrigger, heartbeat, sendEmail. Skip when: you want to send one email right now, which is a native sendEmail from the CLI and needs nothing deployed; or you want a play that blasts a list rather than holding a thread.'
+description: 'Deploy an agent that holds email conversations with leads: a sending domain, a mailbox, native sendEmail and listEmailEvents on the agent, a native email trigger on reply and unsubscribe, and a heartbeat that checks thread status when nothing inbound happened. Triggers: "handle email conversations with leads", "agentic engagement", "an agent that replies to inbound email", "stand up a conversation agent on a Cargo mailbox", "native email trigger for lead replies", "keep talking to leads over email". Cargo CDK, defineDomain, defineMailbox, defineAgent, agentNativeTrigger, heartbeat, sendEmail, listEmailEvents. Skip when: you want to send one email right now, which is a native sendEmail from the CLI and needs nothing deployed; or you want a play that blasts a list rather than holding a thread.'
 version: "0.1.0"
-compatibility: "Requires @cargo-ai/cli with @cargo-ai/cdk 1.0.66 or later — 1.0.66 brought defineDomain, defineMailbox, and agentNativeTrigger. Also needs a Cargo workspace and an authenticated LLM connector."
+compatibility: "Requires @cargo-ai/cli with @cargo-ai/cdk 1.0.68 or later — native sendEmail and listEmailEvents on defineAgent uses, plus defineDomain, defineMailbox, and agentNativeTrigger. Also needs a Cargo workspace and an authenticated LLM connector."
 homepage: https://github.com/getcargohq/gtm-skills/tree/main/agentic-engagement
 metadata:
   author: getcargo
@@ -41,19 +41,19 @@ Three resources make the loop:
    credit charge for as long as it exists. Domain, username and type are create-only: changing
    any of them destroys the inbox and puts a new one at the bottom of the send ramp.
 3. **An agent with `agentNativeTrigger({ agentSlug: "email" })` and a `heartbeat`.** The agent
-   cannot call `sendEmail` itself, so a tool wraps it and pins the mailbox uuid. The trigger
-   fires on `replied` and `unsubscribed` — inbound status. The heartbeat is the other half:
-   silence has no event, so without it an unanswered first send is a dead chat. `opened` and
-   `interacted` stay out of `kinds`; a tracking-pixel view is not a reason to write.
+   calls `sendEmail` directly, with `mailboxUuid` locked in the action's `config` so every send
+   is from that inbox. `listEmailEvents` is how a heartbeat reads thread status — silence has no
+   trigger payload. The trigger fires on `replied` and `unsubscribed` — inbound status.
+   `opened` and `interacted` stay out of `kinds`; a tracking-pixel view is not a reason to write.
 
 The first outbound is a separate invocation — a chat, or a play that calls the agent with a lead.
 This skill is the loop after that send. Without the native trigger a reply never comes back into
 the agent. Without the heartbeat a quiet thread never gets a status check.
 
-**Two failure modes worth knowing before you start.** If the send-email tool takes the mailbox as
-an input, the agent can pick a different inbox and the trigger wakes the wrong chat. If the reply
-omits `inReplyTo` or passes only the parent Message-ID as `references`, mail clients break the
-thread and the next wake has no conversation to continue.
+**Two failure modes worth knowing before you start.** If `mailboxUuid` is not locked on the
+`sendEmail` use, the agent can pick a different inbox and the trigger wakes the wrong chat. If the
+reply omits `inReplyTo` or passes only the parent Message-ID as `references`, mail clients break
+the thread and the next wake has no conversation to continue.
 
 ## Put it in your project
 
@@ -128,8 +128,8 @@ default.
 However far you adapt, these hold. Ask for one anyway and the agent tells you what breaks, then does
 it if you still want it, and records why under `## Decisions` in your copy of this file.
 
-- **The loop is the native email trigger plus the heartbeat.** (`infra/agents/engager.ts`) Trigger `kinds` are `replied` and `unsubscribed` — inbound status. The heartbeat re-wakes a chat whose thread stayed at `sent` so the agent can check that status. A cron trigger, or `kinds` that include `opened` / `interacted`, either never continues the thread or writes when nobody asked. `sendEmail` wakes the chats *this* agent has emailed; a send from a play that bypasses the agent is invisible to it. Dropping the heartbeat makes silence a dead chat.
-- **The send-email tool pins the mailbox uuid. It is not a form field.** (`infra/tools/send-email.ts`) An agent cannot call `sendEmail` directly. A tool that lets the agent pick a mailbox sends from an inbox the trigger is not watching, and the run looks successful.
+- **The loop is the native email trigger plus the heartbeat.** (`infra/agents/engager.ts`) Trigger `kinds` are `replied` and `unsubscribed` — inbound status. The heartbeat re-wakes a chat whose thread stayed at `sent` so the agent can call `listEmailEvents` and check that status. A cron trigger, or `kinds` that include `opened` / `interacted`, either never continues the thread or writes when nobody asked. `sendEmail` wakes the chats *this* agent has emailed; a send from a play that bypasses the agent is invisible to it. Dropping the heartbeat makes silence a dead chat.
+- **`sendEmail` is a native action on the agent. `mailboxUuid` is locked in `config`.** (`infra/agents/engager.ts`) Wrapping it in a tool is ceremony. Leaving the mailbox as a field the agent fills sends from an inbox the trigger is not watching, and the run looks successful. `listEmailEvents` stays on the same agent so a heartbeat can read status instead of inferring it from chat history.
 - **A reply carries `inReplyTo` and the full `references` chain, oldest first.** (`infra/agents/engager.prompt.ts`) Passing only the parent Message-ID is how mail clients split the conversation. The next wake then has no thread to continue.
 - **Domain, username and type on the mailbox are create-only.** (`infra/mailboxes/rep.ts`) Editing them in place is not an update. It is destroy plus a new inbox, back at five real sends a day, with a new address the lead does not know.
 - **`dnsRecords` is omitted unless this file is meant to own the zone.** (`infra/domains/outreach.ts`) Declaring it replaces every live record, including the ones the registrar wrote at purchase.
@@ -138,11 +138,12 @@ it if you still want it, and records why under `## Decisions` in your copy of th
 
 ## Done when
 
-- `cargo-ai cdk plan` reports the domain, the mailbox, the send-email tool and the engager, and
+- `cargo-ai cdk plan` reports the domain, the mailbox and the engager, and
   the operator approved the monthly mailbox line against a live `pricing get`
 - `node --import tsx evals/contract.mjs` passes: the agent trigger is native `email` with
-  `kinds: ["replied", "unsubscribed"]`, a heartbeat is declared whose prompt names status, the
-  tool contains one `sendEmail` node, and `mailboxUuid` is not a form field
+  `kinds: ["replied", "unsubscribed"]`, a heartbeat is declared whose prompt names
+  `listEmailEvents`, the engager uses native `sendEmail` and `listEmailEvents`, and
+  `mailboxUuid` is locked on the `sendEmail` use
 - the mailbox reaches `active` (`cargo-ai mailboxManagement mailbox refresh-status`) and
   warm-up has been started (`mailbox start-warmup`) so the send ramp can climb
 - a first send to yourself delivers from the declared address

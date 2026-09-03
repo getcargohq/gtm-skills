@@ -30,13 +30,16 @@ Walk every line. A checked template without an evidence-backed consumer adaptati
 - A second reply continues that same thread.
 - "Not interested" or an unsubscribe produces no further send. Spot-check the thread; this is
   the check nothing automated can do for you.
-- The engager declares a heartbeat whose prompt names status. An unanswered first send is
-  still a live chat, not a dead one. A heartbeat is at most one follow-up.
+- The engager declares a heartbeat whose prompt tells the agent to call `listEmailEvents`.
+  An unanswered first send is still a live chat, not a dead one. A heartbeat is at most one
+  follow-up.
 
 ## Isolation
 
 - This is one root skill. Its supporting Markdown files live under `references/`, and no
   nested `SKILL.md` exists.
-- The send-email tool is the only send path. No play in this folder calls `sendEmail` itself.
+- Native `sendEmail` on the engager is the only send path, with `mailboxUuid`
+  locked in the action's `config`. `listEmailEvents` is on the same agent. No
+  play in this folder calls `sendEmail` itself.
 - No credential, deployment command, or customer data is in this repository.
 - No relative import leaves the skill.

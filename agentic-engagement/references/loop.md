@@ -18,8 +18,8 @@ heartbeat: {
 `sendEmail` records which agent sent the message. When the thread's status
 becomes `replied` or `unsubscribed`, the native `email` action wakes **the
 same chat**. A thread that stays at `sent` never fires that trigger — the
-heartbeat re-wakes the chat so the engager can read that status and decide
-(one follow-up, or stop).
+heartbeat re-wakes the chat so the engager can call `listEmailEvents` and
+decide (one follow-up, or stop).
 
 That is the whole loop. Four ways it silently stops being a loop:
 
@@ -27,9 +27,11 @@ That is the whole loop. Four ways it silently stops being a loop:
    itself starts a thread the trigger will never wake, because the trigger keys
    off chats *this* agent has emailed. First-touch belongs in a play that
    *calls the engager*, not a second send path.
-2. **No heartbeat.** Silence has no event. Without a heartbeat the agent only
-   wakes when they write back or opt out, so an unanswered first send is a
-   dead chat.
+2. **No heartbeat, or no `listEmailEvents`.** Silence has no event. Without a
+   heartbeat the agent only wakes when they write back or opt out, so an
+   unanswered first send is a dead chat. Without `listEmailEvents` a heartbeat
+   infers status from chat history and may follow up on a thread that already
+   replied.
 3. **`kinds` that include `opened` or `interacted`.** A tracking-pixel view is
    not a reason to write. The agent wakes, spends a turn, and looks like a
    follow-up nobody asked for. `unsubscribed` is the opposite: status that
@@ -39,15 +41,14 @@ That is the whole loop. Four ways it silently stops being a loop:
    continue, and the lead sees two emails instead of one.
 
 Status is the mailbox event on the thread (`sent`, `replied`, `unsubscribed`,
-and later `opened` / `clicked` / `bounced`). The engager reads it from the
-wake — the trigger payload, or the absence of one on a heartbeat — not by
-calling `mailboxManagement`. Opens and clicks are not in `kinds`, so they
-never look like a reason to write.
+and later `opened` / `clicked` / `bounced`). The engager reads it from
+`listEmailEvents` — or from the trigger payload on a reply/unsubscribe wake —
+not by calling `mailboxManagement`. Opens and clicks are not in trigger
+`kinds`, so they never look like a reason to write.
 
 Threading rules live in `infra/agents/engager.prompt.ts` and are the contract
-the evaluator scores. The tool in `infra/tools/send-email.ts` is what makes
-the mailbox pin enforceable: `mailboxUuid` is set there, so the agent cannot
-pick a different inbox.
+the evaluator scores. `mailboxUuid` is locked on the `sendEmail` use in
+`infra/agents/engager.ts`, so the agent cannot pick a different inbox.
 
 Warm-up is not in the CDK spec. After the mailbox is `active`:
 
