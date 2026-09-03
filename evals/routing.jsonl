@@ -61,8 +61,9 @@
 {"prompt":"portfolio companies of","expect":"find-portfolio-companies"}
 
 // --- one-off / deployed seam -------------------------------------------------------
-// tam-building, account-scoring, and crm-enrichment are worked CDK examples that
-// deploy a pipeline. build-tam-list and score-leads are one-offs: the same
+// tam-building, account-scoring, crm-enrichment, call-capture and
+// agentic-engagement are worked CDK examples that deploy a pipeline.
+// build-tam-list, score-leads and research-account are one-offs: the same
 // job once, in a turn. The
 // same words describe both, so these cases pin which way each phrasing goes;
 // a pipeline skill that starts winning the one-off prompts has stolen them.
@@ -85,3 +86,14 @@
 {"prompt": "Enrich my CRM", "expect": "crm-enrichment"}
 {"prompt": "Our account data was accurate a year ago, but new companies and old firmographics keep going stale", "expect": "crm-enrichment"}
 {"prompt": "Every new CRM company should get standard identity and firmographics, then be refreshed when it goes stale", "expect": "crm-enrichment"}
+{"prompt": "Our call recordings never make it into the knowledge base", "expect": "call-capture"}
+{"prompt": "Turn yesterday's call transcripts into context updates every morning", "expect": "call-capture", "why": "The standing tell: every morning, not this one call."}
+{"prompt": "We relearn the same objection every quarter because nobody writes it down", "expect": "call-capture", "why": "The repetition bar promoting a twice-heard objection is exactly this pipeline."}
+{"prompt": "Replace the GitHub Action that scribes our meetings into the repo", "expect": "call-capture"}
+{"prompt": "Prep me for my call with this account tomorrow", "expect": "research-account", "why": "A call in the future is briefing work; call-capture only ever looks at calls already held."}
+{"prompt": "Handle email conversations with leads", "expect": "agentic-engagement"}
+{"prompt": "Stand up a conversation agent on a Cargo mailbox", "expect": "agentic-engagement"}
+{"prompt": "An agent that replies to inbound email", "expect": "agentic-engagement"}
+{"prompt": "Keep talking to leads over email", "expect": "agentic-engagement", "why": "The standing tell: a loop, not one send."}
+{"prompt": "Native email trigger for lead replies", "expect": "agentic-engagement"}
+{"prompt": "I need email addresses for these prospects so I can start conversations", "expect": "find-work-email", "why": "Addresses first; agentic-engagement is the loop you deploy after you have someone to write to."}
