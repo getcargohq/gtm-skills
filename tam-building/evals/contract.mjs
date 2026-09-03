@@ -71,7 +71,7 @@ assert.equal(
 const declaredColumns = new Set(
   (modelSpec.additionalColumns ?? []).map((column) => column.slug),
 );
-for (const slug of ["tier", "tier_rationale", "tiered_at"]) {
+for (const slug of ["tier", "tier_rationale", "tier_evidence_url", "tiered_at"]) {
   assert.equal(
     declaredColumns.has(slug),
     true,
@@ -104,6 +104,11 @@ assert.equal(
   capabilitySlugs.has("webSearch"),
   true,
   "the tiering agent must carry webSearch: the evidence that separates tier A from tier C is not in the sourced row",
+);
+assert.equal(
+  capabilitySlugs.has("memory"),
+  false,
+  "the tiering agent must not carry memory: each company is an independent judgment, and a prior rationale leaking into the next row is how a book fills with copied reasons",
 );
 
 assert.deepEqual(
@@ -178,7 +183,7 @@ assert.equal(
 const written = new Map(
   write.config.mappings.map((mapping) => [mapping.columnSlug, mapping.value]),
 );
-for (const slug of ["tier", "tier_rationale", "tiered_at"]) {
+for (const slug of ["tier", "tier_rationale", "tier_evidence_url", "tiered_at"]) {
   assert.equal(
     written.has(slug),
     true,
@@ -245,16 +250,32 @@ const segments = [...byId.values()].filter((resource) =>
   resource.id.startsWith("segment:"),
 );
 assert.ok(segments.length > 0, "the skill must expose the tiers as segments");
+const segmentTiers = new Set();
 for (const segment of segments) {
-  const slugs = segment.spec.filter.groups
-    .flatMap((group) => group.conditions)
-    .map((condition) => condition.columnSlug);
+  const conditions = segment.spec.filter.groups.flatMap(
+    (group) => group.conditions,
+  );
   assert.equal(
-    slugs.every((slug) => slug === "custom__tier"),
+    conditions.every((condition) => condition.columnSlug === "custom__tier"),
     true,
     `${segment.id} filters on something other than the tier: a segment that restates the play's own trigger is dead weight and a drift trap`,
   );
+  for (const condition of conditions) {
+    for (const value of condition.values ?? []) segmentTiers.add(value);
+  }
 }
+const agentTiers = new Set(judgmentProperties.tier.enum);
+assert.deepEqual(
+  [...segmentTiers].sort(),
+  [...agentTiers].sort(),
+  "every value in the agent's tier enum must have a segment, and every segment value must be in that enum: a missing slice is a row that Done when claims to reconcile and cannot",
+);
+
+assert.equal(
+  [...byId.keys()].some((id) => id.startsWith("context:")),
+  false,
+  "this skill must not declare defineContext: that singleton belongs to the project, and a nested copy syncs markdown nobody curates",
+);
 
 console.log(
   "ok: the ICP filter is the model, the agent judges without writing, and the play owns the only write back onto the sourced row",

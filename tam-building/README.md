@@ -30,15 +30,17 @@ flowchart TD
     trigger["tier-companies trigger<br/>never tiered, or stamp older than six months"]
     agent["tam-tier-analyst<br/>rubric from context · webSearch for one doubt"]
     write["tier · rationale · evidence · tiered_at<br/>written back onto the row"]
-    segments["tam-tier-a · tam-tier-b · tam-disqualified"]
+    segments["tam-tier-a · tam-tier-b · tam-tier-c · tam-disqualified"]
 
     count -.->|"shapes"| model
     model --> trigger --> agent --> write --> segments
 ```
 
-1. **Write the ICP down** in `infra/context/icp.md`, and what A / B / C /
-   disqualified mean in `infra/context/tiering-rubric.md`. Both live in the
-   workspace context repo, so they are versioned and editable without a deploy.
+1. **Write the ICP down** in the project's `context/icp.md`, and what A / B / C /
+   disqualified mean in `context/tiering-rubric.md`. Copy the examples from
+   `infra/context/`. Both live in the workspace context repo, so they are
+   versioned and editable without a deploy. This skill declares no
+   `defineContext`: that singleton belongs to the project.
 2. **Translate the ICP into filter groups** in
    `infra/models/tam-companies.ts`. They are nested groups, not a flat map, and
    enum-backed values come from the integration's autocompletes.
@@ -57,31 +59,34 @@ flowchart TD
 
 4. **Set `limit`** to what you are willing to spend on the first run. Sourcing
    bills per returned record.
-5. **Sync, then tier.** Rows land in `tam_companies`. The play picks up
-   everything with no `tiered_at` stamp, sends one agent call per row, and
-   writes the judgment back.
+5. **Sync, then execute the play once.** Rows land in `tam_companies` while the
+   play is still disabled so you can confirm column names. Enable it and run it
+   once: `changeKinds: ["added"]` will not backfill rows that landed while it
+   was off. After that, each new sync is enrolled on the next tick.
 6. **Work the segments.** `tam-tier-a` is the rep queue, `tam-tier-b` is the
-   sequence, `tam-disqualified` is the suppression list with a written reason
-   attached to every row in it.
+   sequence, `tam-tier-c` is in-market but not in-motion, `tam-disqualified` is
+   the suppression list with a written reason attached to every row in it.
 
-Seven resources, all declared in the CDK.
+Adds a model, an agent, a play, four segments, and the folders they file into.
 
-| File                                | Resource          | Role                                                        |
-| ----------------------------------- | ----------------- | ----------------------------------------------------------- |
-| `infra/connectors/ai-ark.ts`        | `defineConnector` | AI Ark, adopted: no key, no seat, no cookie                 |
-| `infra/connectors/anthropic.ts`     | `defineConnector` | the LLM behind the tiering agent, adopted                   |
-| `infra/context.ts` + `context/*.md` | `defineContext`   | the ICP and the tier rubric, versioned in the context repo  |
-| `infra/models/tam-companies.ts`     | `defineModel`     | the universe: the ICP filter, the budget, the tier columns  |
-| `infra/agents/tier-analyst.ts`      | `defineAgent`     | one judgment per company, from the rubric plus web evidence |
-| `infra/plays/tier-companies.ts`     | `definePlay`      | one agent call per row, and the only write                  |
-| `infra/segments/tiers.ts`           | `defineSegment`   | the tier slices downstream work takes                       |
+| File                            | Resource          | Role                                                         |
+| ------------------------------- | ----------------- | ------------------------------------------------------------ |
+| `infra/connectors/ai-ark.ts`    | `defineConnector` | AI Ark, adopted: no key, no seat, no cookie                  |
+| `infra/connectors/anthropic.ts` | `defineConnector` | the LLM behind the tiering agent, adopted                    |
+| `infra/folders/index.ts`        | `defineFolder`    | model / agent / play folders named after the skill           |
+| `infra/models/tam-companies.ts` | `defineModel`     | the universe: the ICP filter, the budget, the tier columns   |
+| `infra/agents/tier-analyst.ts`  | `defineAgent`     | one judgment per company, from the rubric plus web evidence  |
+| `infra/plays/tier-companies.ts` | `definePlay`      | one agent call per row, and the only write                   |
+| `infra/segments/tiers.ts`       | `defineSegment`   | the A / B / C / disqualified slices downstream work takes    |
+| `infra/context/*.md`            | (not a resource)  | example ICP and rubric to copy into the project's `context/` |
 
 ## Why the rubric is not in the prompt
 
 Put it in the system prompt and three things stop being true: changing what tier
 A means becomes a deploy, the reason for the change stops being reviewable, and
-the rep who reads the tier can no longer read the file the agent read. In
-`infra/context/tiering-rubric.md` it is a commit, with a diff and a history.
+the rep who reads the tier can no longer read the file the agent read. In the project's `context/tiering-rubric.md` it is a
+commit, with a diff and a history. `infra/context/` is the example to copy
+there.
 
 ## Why the agent cannot write
 
@@ -94,9 +99,9 @@ the judgment.
 
 ## Placeholders (edit before deploy)
 
-1. **The ICP and the rubric** in `infra/context/icp.md` and
-   `infra/context/tiering-rubric.md`. The example is a technical B2B software
-   ICP; nothing in it is yours.
+1. **The ICP and the rubric** — copy `infra/context/icp.md` and
+   `infra/context/tiering-rubric.md` into the project's `context/`. The example
+   is a technical B2B software ICP; nothing in it is yours.
 2. **The filter groups** in `infra/models/tam-companies.ts` `config`. Nested
    groups, `_or` to include and `_not` to exclude, enum values from
    `listIndustries` / `listSeniorities` / `listDepartmentsAndFunctions` /
@@ -119,7 +124,8 @@ re-bills every returned record, including the rows already in the model: a
 monthly refresh buys the handful of new companies at the price of the whole
 pool. Sourcing is a deliberate spend. The play is the part that stands, and
 because it runs on `changeKinds: ["added"]`, a tick that follows no sourcing run
-is a no-op.
+is a no-op — except the first enable, which must be followed by an explicit run
+so the rows that landed while the play was disabled are enrolled.
 
 ## Alternatives
 
@@ -139,6 +145,6 @@ cargo-ai cdk types && cargo-ai cdk check && cargo-ai cdk plan
 
 ## Composes into
 
-`contact-sourcing` (the buyers at every tier A account), `account-scoring` (when
-the book already exists somewhere else), `crm-enrichment` (fill the records these
-accounts become), `signal-based-tam` (watch the universe you just built).
+`contact-sourcing` (the buyers at every tier A account), `crm-enrichment` (fill
+the records these accounts become), `signal-based-tam` (watch the universe you
+just built).

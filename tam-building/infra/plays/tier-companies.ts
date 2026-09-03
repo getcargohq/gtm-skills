@@ -2,6 +2,7 @@ import { definePlay, defineWorkflow } from "@cargo-ai/cdk";
 import { z } from "zod";
 
 import { tierAnalyst } from "../agents/tier-analyst";
+import { playsFolder } from "../folders";
 import { tamCompanies } from "../models/tam-companies";
 
 // One agent call per sourced company, written back onto the row that triggered
@@ -89,9 +90,12 @@ const tierCompany = defineWorkflow(
 //
 // Ships disabled. Enabling is the last yes after the first sourcing run has
 // landed and the columns read back the way this file expects, not an input.
+// Enable, then execute once: `changeKinds: ["added"]` will not backfill rows
+// that landed while the play was off.
 export const tierCompanies = definePlay("tier-companies", {
   description:
     "Per-row ICP tiering over AI Ark-sourced companies: the agent judges against the context rubric and the play writes tier, rationale, evidence and stamp back onto the row.",
+  folder: playsFolder,
   model: tamCompanies,
   workflow: tierCompany,
   filter: {

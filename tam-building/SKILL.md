@@ -1,6 +1,6 @@
 ---
 name: tam-building
-description: 'Stand up your account universe as a deployed pipeline: an AI Ark company search shaped by your ICP, sized for free before it bills, then tiered A / B / C / disqualified by an agent that reads your rubric from the workspace context and web-searches the evidence the sourced row does not carry. Triggers: "our TAM is a stale CSV", "build our account universe", "source companies matching our ICP and rank them", "keep our market list current", "which of these companies are actually worth a rep", "tier the market we just sourced". Cargo CDK, aiArk, countCompanies, fetchCompanies, agent tiering, workspace context, webSearch. Skip when: you want the list once rather than a pipeline that keeps producing it, which is cargo-gtm''s build-tam recipe; or the accounts already exist in a CRM or an accounts model and only need judging, which is account-scoring.'
+description: 'Stand up your account universe as a deployed pipeline: an AI Ark company search shaped by your ICP, sized for free before it bills, then tiered A / B / C / disqualified by an agent that reads your rubric from the workspace context and web-searches the evidence the sourced row does not carry. Triggers: "our TAM is a stale CSV", "build our account universe", "source companies matching our ICP and rank them", "keep our market list current", "which of these companies are actually worth a rep", "tier the market we just sourced". Cargo CDK, aiArk, countCompanies, fetchCompanies, agent tiering, workspace context, webSearch. Skip when: you want the list once rather than a pipeline that keeps producing it, which is build-tam-list; or the accounts already exist in a CRM or an accounts model and only need judging, which is account-scoring.'
 version: "0.3.0"
 compatibility: "Requires the cargo-cdk skill, a Cargo CDK project, and @cargo-ai/cdk ^1.0.51. AI Ark and the LLM both run on adopted connections, so this example needs no API key and no LinkedIn seat, user, or cookie. The repository example does not deploy or source anything until an agent adapts it in the consumer project."
 homepage: https://github.com/getcargohq/gtm-skills/tree/main/tam-building
@@ -47,11 +47,13 @@ settle a doubt that would change the tier. It returns `{tier, rationale, evidenc
 writes all three plus a stamp back onto the row, and the tier segments are what downstream work
 takes.
 
-**The rubric is a markdown file, not a prompt.** `infra/context/icp.md` and
-`infra/context/tiering-rubric.md` live in the workspace context repo, so changing what tier A means
-is a reviewed commit that takes effect on the next run, with no deploy and a git history of why.
-That is the difference between a scoring model your team owns and one only the person who wrote the
-prompt can change.
+**The rubric is a markdown file, not a prompt.** `context/icp.md` and
+`context/tiering-rubric.md` live in the workspace context repo (the project's
+root `context/` in a scaffolded project). The copies under `infra/context/` are
+the example to put there. Changing what tier A means is a reviewed commit that
+takes effect on the next run, with no deploy and a git history of why. That is
+the difference between a scoring model your team owns and one only the person
+who wrote the prompt can change.
 
 **Two failure modes worth knowing before you start.** A flat filter map
 (`{"industry": "Software"}` at the top level) is ignored silently, so you source the whole database
@@ -84,11 +86,13 @@ help.
    `limit` that will actually be sourced, the current per-record sourcing price fetched live, and
    the per-company tiering cost. End by asking the operator to approve the first sourcing run at
    that stated maximum. Do not trigger a sync or enable the play without that second approval.
-3. **Source, tier, report.** Trigger one sync, confirm the extractor's column names against the live
-   model, enable the play, and report: rows landed against `limit`, the tier distribution, the
-   disqualified share, the evaluator pass rate, actual credits against estimate, and direct Cargo
-   links. End with one recommended next action: narrow the filter if the disqualified share is
-   large, widen `limit` if it is small, or move to contact sourcing on tier A.
+3. **Source, tier, report.** Trigger one sync while the play is still disabled, confirm the
+   extractor's column names against the live model (adapt and redeploy if they differ), then enable
+   the play and execute it once. Rows that landed while it was off are not `added` on the next cron
+   tick. Report: rows landed against `limit`, the tier distribution, the disqualified share, the
+   evaluator pass rate, actual credits against estimate, and direct Cargo links. End with one
+   recommended next action: narrow the filter if the disqualified share is large, widen `limit` if
+   it is small, or move to contact sourcing on tier A.
 
 ## Put it in your project
 
@@ -114,12 +118,13 @@ sizing or template work if the skill cannot be installed or read.
    install already happened — start at step 2.** On a CLI too old to have `add`, copy this folder
    in as a sibling of what is there by hand; everything below is unchanged.
 2. **Reconcile it with what is already declared.** For every resource this example carries that the
-   project already has (an AI Ark or LLM connector, a GTM folder, a context repository), rewire the
-   imports to the existing one and drop the copy. Two resources with one slug is a collision at
-   deploy, and `defineContext` is a per-workspace singleton, so if the project already declares one,
-   move `infra/context/*.md` into that directory and delete `infra/context.ts`. If the project has
-   an `accounts` model every other skill reads, see `promote-to-shared-accounts` below. This folder
-   needs nothing in `.env`; append nothing and never overwrite it.
+   project already has (an AI Ark or LLM connector, a TAM-building folder), rewire the imports to
+   the existing one and drop the copy. Two resources with one slug is a collision at deploy. This
+   skill declares no `defineContext`: that resource is a per-workspace singleton owned by the
+   project (a scaffolded repo points it at the root `context/`). Copy `infra/context/*.md` into that
+   directory. If the project has an `accounts` model every other skill reads, see
+   `promote-to-shared-accounts` below. This folder needs nothing in `.env`; append nothing and never
+   overwrite it.
 3. **Size it before you shape it.** Follow the count-first gate in
    [`references/configure.md`](references/configure.md): derive the filter groups from the ICP,
    resolve every enum-backed value through the integration's autocompletes, and count each candidate
@@ -136,22 +141,24 @@ sizing or template work if the skill cannot be installed or read.
 5. **Hand off for cost approval.** Resolve the workspace and resource UUIDs, send the Cargo UI links
    from [`references/run.md`](references/run.md), and show the counted pool, the `limit`, the live
    per-record price, and the total estimate. Stop for explicit approval.
-6. **Source, tier, verify.** Run only after that approval, then walk _Done when_ line by line and
-   report each with evidence. Deployed cleanly and produced nothing is the normal failure.
+6. **Source, tier, verify.** Run only after that approval: sync once with the play still disabled,
+   confirm columns, enable, then execute the play once so the landed rows are enrolled. Walk
+   _Done when_ line by line and report each with evidence. Deployed cleanly and produced nothing is
+   the normal failure.
 
 ## What you will be asked
 
 **Derive before you ask.** An input with a lookup is looked up, not asked. Only the ones marked
 _asked_ genuinely live in the operator's head.
 
-| Input             | Kind    | How it is answered                                                                                                                                                                                            | Why it matters                                                                                                                                                  |
-| ----------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `icp`             | derived | Read the workspace context repository first (`cargo-ai context …`, or the project's `defineContext` directory). Ask only when no ICP is written down anywhere, and then write it to `infra/context/icp.md`    | It is the one thing that cannot be computed: it encodes who you sell to. Everything else here is arithmetic or judgment on top of it                            |
-| `sourcing_filter` | derived | Translate the ICP into AI Ark filter groups (`industry`, `employeeSize`, `companyType`, `employeeRole`, `technologies`, `funding`, …), resolving enum-backed values through `listIndustries` and its siblings | A flat map is ignored silently and a guessed enum member matches nothing. Either way you source a market nobody described                                       |
-| `pool_size`       | derived | `cargo-ai orchestration action execute --action aiArk.countCompanies --data '<the same filter groups>'`, which is free and returns `{"count": N}`                                                             | It is the only number that turns "is this filter right" into a question with an answer, and it costs nothing to ask                                             |
-| `limit`           | value   | Defaults to a fraction of the counted pool for the first run; widen once rows land correctly. Ask only to change it                                                                                           | `fetchCompanies` bills per returned record, so this is the invoice. Sourcing wide and filtering later means paying for every company the rubric will throw away |
-| `tier_rubric`     | asked   | Propose A / B / C / disqualified from the ICP's own language, then have the operator correct it. It is written to `infra/context/tiering-rubric.md`, not into the agent prompt                                | It is what the whole book gets judged against, and the one thing the operator will want to change next month without a deploy                                   |
-| `llm`             | derived | Inspect the authenticated LLM connectors and pick the one already in use, with its current model slug                                                                                                         | A second LLM connector is a collision at deploy, and a stale model slug fails at run time rather than at plan time                                              |
+| Input             | Kind    | How it is answered                                                                                                                                                                                             | Why it matters                                                                                                                                                  |
+| ----------------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `icp`             | derived | Read the workspace context repository first (`cargo-ai context …`, or the project's defineContext directory). Ask only when no ICP is written down anywhere, and then write it to the project's context/icp.md | It is the one thing that cannot be computed: it encodes who you sell to. Everything else here is arithmetic or judgment on top of it                            |
+| `sourcing_filter` | derived | Translate the ICP into AI Ark filter groups (`industry`, `employeeSize`, `companyType`, `employeeRole`, `technologies`, `funding`, …), resolving enum-backed values through `listIndustries` and its siblings  | A flat map is ignored silently and a guessed enum member matches nothing. Either way you source a market nobody described                                       |
+| `pool_size`       | derived | The JSON --action form in references/configure.md: aiArk.countCompanies with the same filter groups. It is free and returns {"count": N}                                                                       | It is the only number that turns "is this filter right" into a question with an answer, and it costs nothing to ask                                             |
+| `limit`           | derived | Defaults to a fraction of the counted pool for the first run; widen once rows land correctly. Ask only to change it                                                                                            | `fetchCompanies` bills per returned record, so this is the invoice. Sourcing wide and filtering later means paying for every company the rubric will throw away |
+| `tier_rubric`     | asked   | Propose A / B / C / disqualified from the ICP's own language, then have the operator correct it. It is written to the project's context/tiering-rubric.md, not into the agent prompt                           | It is what the whole book gets judged against, and the one thing the operator will want to change next month without a deploy                                   |
+| `llm`             | derived | Inspect the authenticated LLM connectors and pick the one already in use, with its current model slug                                                                                                          | A second LLM connector is a collision at deploy, and a stale model slug fails at run time rather than at plan time                                              |
 
 Checked before moving on, not after the deploy:
 
@@ -192,9 +199,10 @@ it if you still want it, and records why under `## Decisions` in your copy of th
   the whole database up to `limit`. A guessed enum member matches nothing and returns an empty sync
   that looks like a broken connector.
 - **The rubric lives in the workspace context, not in the system prompt and not in code.**
-  (`infra/context/tiering-rubric.md`) Put it in the prompt and changing what tier A means becomes a
-  deploy, the reason for the change stops being reviewable, and the rep reading the tier can no
-  longer read the same file the agent read.
+  (`context/tiering-rubric.md` in the project's knowledge layer; `infra/context/` is the example
+  to copy there.) Put it in the prompt and changing what tier A means becomes a deploy, the reason
+  for the change stops being reviewable, and the rep reading the tier can no longer read the same
+  file the agent read.
 - **The agent judges and the play writes.** (`infra/agents/tier-analyst.ts`,
   `infra/plays/tier-companies.ts`) The agent carries no model in `uses`. Give it one and it decides
   its own routing, at which point an untiered row could be a failed run, a silent skip, or a
@@ -209,7 +217,8 @@ it if you still want it, and records why under `## Decisions` in your copy of th
   forever.
 - **`changeKinds: ["added"]` stays.** (`infra/plays/tier-companies.ts`) Runs are created for rows
   entering the segment, so the LLM bill scales with how many companies you sourced. Drop it and it
-  scales with how often the cron fires.
+  scales with how often the cron fires. After the first sync (play still disabled), enable and
+  execute the play once: `added` does not backfill rows that landed while it was off.
 - **A tier ships with its rationale, its evidence, and its stamp, on the same write.**
   (`infra/plays/tier-companies.ts`) A tier nobody can audit is a number a rep will not trust, and a
   row marked judged without a judgment is worse than one that was never judged.
@@ -223,7 +232,8 @@ it if you still want it, and records why under `## Decisions` in your copy of th
 - every row carries a tier the rubric defines, a rationale naming the deciding lines, and a
   `tiered_at` stamp
 - no row carries a stamp with an empty tier, and no row carries a tier with an empty stamp
-- the tier segments resolve, and their counts plus the disqualified count sum to the tiered row count
+- the tier segments (`tam-tier-a`, `tam-tier-b`, `tam-tier-c`, `tam-disqualified`) resolve, and
+  their counts sum to the tiered row count
 - the agent's evaluator pass rate is at or above its threshold, and a failing sample reads as a
   genuinely hard company rather than a missing rubric
 - editing `tiering-rubric.md` in the context repo changes the next tier with no deploy
@@ -258,6 +268,7 @@ source really costs.
 
 ## Composes into
 
-`contact-sourcing` (the buyers at every tier A account), `account-scoring` (when the book already
-exists somewhere else and only needs judging), `crm-enrichment` (fill the records these accounts
-become), `signal-based-tam` (watch the universe you just built).
+`contact-sourcing` (the buyers at every tier A account), `crm-enrichment` (fill the records these
+accounts become), `signal-based-tam` (watch the universe you just built). `account-scoring` is the
+sibling for a book that already exists, not the next step after this skill has already tiered the
+row.

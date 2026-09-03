@@ -7,7 +7,7 @@ import { tamCompanies } from "../models/tam-companies";
 // weight and drifts the first time the filter changes.
 //
 // These are the handles downstream work takes: contact sourcing runs on tier A,
-// a nurture sequence runs on tier B, and reporting counts all three. They read
+// a nurture sequence runs on tier B, reporting counts all four. They read
 // `custom__tier` because the read side exposes custom columns under that alias;
 // the play writes the bare slug.
 export const tierA = defineSegment("tam-tier-a", {
@@ -43,6 +43,26 @@ export const tierB = defineSegment("tam-tier-b", {
             columnSlug: tamCompanies.columns.custom__tier,
             operator: "is",
             values: ["B"],
+          },
+        ],
+      },
+    ],
+  },
+});
+
+export const tierC = defineSegment("tam-tier-c", {
+  model: tamCompanies,
+  filter: {
+    conjonction: "and",
+    groups: [
+      {
+        conjonction: "and",
+        conditions: [
+          {
+            kind: "string",
+            columnSlug: tamCompanies.columns.custom__tier,
+            operator: "is",
+            values: ["C"],
           },
         ],
       },

@@ -2,7 +2,7 @@ import { defineAgent } from "@cargo-ai/cdk";
 
 import { cargoDb } from "../connectors/cargo";
 import { openai } from "../connectors/openai";
-import { agentsFolder } from "../folders/account-scoring";
+import { agentsFolder } from "../folders";
 
 // The scorer: an agent instead of point weights. The scoring criteria are the
 // ICP files in the context repo (gtm-knowledge-graph) — versioned in git, no

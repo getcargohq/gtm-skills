@@ -1,7 +1,7 @@
 import { defineAgent, agentNativeTrigger } from "@cargo-ai/cdk";
 
 import { openai } from "../connectors/openai";
-import { agentsFolder } from "../folders/agentic-engagement";
+import { agentsFolder } from "../folders";
 import { sendEmailTool } from "../tools/send-email";
 import { engagerHeartbeatPrompt, engagerPrompt } from "./engager.prompt";
 

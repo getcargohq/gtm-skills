@@ -1,7 +1,7 @@
 import { defineModel } from "@cargo-ai/cdk";
 
 import { aiArk } from "../connectors/ai-ark";
-import { modelsFolder } from "../folders/tam-building";
+import { modelsFolder } from "../folders";
 
 // The account universe: one row per company AI Ark returned for the approved
 // ICP filter, tiered in place by ../plays/tier-companies.ts.

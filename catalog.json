@@ -524,7 +524,7 @@
       "name": "tam-building",
       "kind": "cookbook",
       "job": "Stand up your account universe as a deployed pipeline: an AI Ark company search shaped by your ICP, sized for free before it bills, then tiered A / B / C / disqualified by an agent that reads your rubric from the workspace context and web-searches the evidence the sourced row does not carry.",
-      "description": "Stand up your account universe as a deployed pipeline: an AI Ark company search shaped by your ICP, sized for free before it bills, then tiered A / B / C / disqualified by an agent that reads your rubric from the workspace context and web-searches the evidence the sourced row does not carry. Triggers: \"our TAM is a stale CSV\", \"build our account universe\", \"source companies matching our ICP and rank them\", \"keep our market list current\", \"which of these companies are actually worth a rep\", \"tier the market we just sourced\". Cargo CDK, aiArk, countCompanies, fetchCompanies, agent tiering, workspace context, webSearch. Skip when: you want the list once rather than a pipeline that keeps producing it, which is cargo-gtm's build-tam recipe; or the accounts already exist in a CRM or an accounts model and only need judging, which is account-scoring.",
+      "description": "Stand up your account universe as a deployed pipeline: an AI Ark company search shaped by your ICP, sized for free before it bills, then tiered A / B / C / disqualified by an agent that reads your rubric from the workspace context and web-searches the evidence the sourced row does not carry. Triggers: \"our TAM is a stale CSV\", \"build our account universe\", \"source companies matching our ICP and rank them\", \"keep our market list current\", \"which of these companies are actually worth a rep\", \"tier the market we just sourced\". Cargo CDK, aiArk, countCompanies, fetchCompanies, agent tiering, workspace context, webSearch. Skip when: you want the list once rather than a pipeline that keeps producing it, which is build-tam-list; or the accounts already exist in a CRM or an accounts model and only need judging, which is account-scoring.",
       "version": "0.3.0",
       "homepage": "https://github.com/getcargohq/gtm-skills/tree/main/tam-building",
       "group": "Make it run forever",
@@ -535,7 +535,6 @@
       "resources": [
         "agents",
         "connectors",
-        "context",
         "folders",
         "models",
         "plays",
@@ -545,7 +544,7 @@
         {
           "input": "icp",
           "kind": "derived",
-          "how": "Read the workspace context repository first (`cargo-ai context …`, or the project's `defineContext` directory). Ask only when no ICP is written down anywhere, and then write it to `infra/context/icp.md",
+          "how": "Read the workspace context repository first (`cargo-ai context …`, or the project's defineContext directory). Ask only when no ICP is written down anywhere, and then write it to the project's context/icp.md",
           "why": "It is the one thing that cannot be computed: it encodes who you sell to. Everything else here is arithmetic or judgment on top of it"
         },
         {
@@ -557,19 +556,19 @@
         {
           "input": "pool_size",
           "kind": "derived",
-          "how": "cargo-ai orchestration action execute --action aiArk.countCompanies --data '<the same filter groups>'`, which is free and returns `{\"count\": N}",
+          "how": "The JSON --action form in references/configure.md: aiArk.countCompanies with the same filter groups. It is free and returns {\"count\": N}",
           "why": "It is the only number that turns \"is this filter right\" into a question with an answer, and it costs nothing to ask"
         },
         {
           "input": "limit",
-          "kind": "value",
+          "kind": "derived",
           "how": "Defaults to a fraction of the counted pool for the first run; widen once rows land correctly. Ask only to change it",
           "why": "fetchCompanies` bills per returned record, so this is the invoice. Sourcing wide and filtering later means paying for every company the rubric will throw away"
         },
         {
           "input": "tier_rubric",
           "kind": "asked",
-          "how": "Propose A / B / C / disqualified from the ICP's own language, then have the operator correct it. It is written to `infra/context/tiering-rubric.md`, not into the agent prompt",
+          "how": "Propose A / B / C / disqualified from the ICP's own language, then have the operator correct it. It is written to the project's context/tiering-rubric.md, not into the agent prompt",
           "why": "It is what the whole book gets judged against, and the one thing the operator will want to change next month without a deploy"
         },
         {
@@ -615,11 +614,11 @@
         "**Every filter is counted before it is sourced.** (`infra/models/tam-companies.ts`) `countCompanies` takes the same groups and is free. Sourcing blind is how a filter that reads right returns a market ten times the size you meant, already billed per record, with no signal that anything went wrong.",
         "**The ICP filter is the narrowing, and there is no post-filter.** (`infra/models/tam-companies.ts`) Every returned record is paid for, so a company the rubric will disqualify was bought before it was judged. A large disqualified segment is a filter that is too wide, not an agent that is too harsh.",
         "**Filter groups are nested, and enum values come from the autocompletes.** (`infra/models/tam-companies.ts`) A flat `{\"industry\": \"Software\"}` is ignored silently and sources the whole database up to `limit`. A guessed enum member matches nothing and returns an empty sync that looks like a broken connector.",
-        "**The rubric lives in the workspace context, not in the system prompt and not in code.** (`infra/context/tiering-rubric.md`) Put it in the prompt and changing what tier A means becomes a deploy, the reason for the change stops being reviewable, and the rep reading the tier can no longer read the same file the agent read.",
+        "**The rubric lives in the workspace context, not in the system prompt and not in code.** (`context/tiering-rubric.md` in the project's knowledge layer; `infra/context/` is the example to copy there.) Put it in the prompt and changing what tier A means becomes a deploy, the reason for the change stops being reviewable, and the rep reading the tier can no longer read the same file the agent read.",
         "**The agent judges and the play writes.** (`infra/agents/tier-analyst.ts`, `infra/plays/tier-companies.ts`) The agent carries no model in `uses`. Give it one and it decides its own routing, at which point an untiered row could be a failed run, a silent skip, or a judgment it chose not to record, and you cannot tell which.",
         "**Custom columns are written with their bare slugs.** (`infra/plays/tier-companies.ts`) `custom__` is the read-side alias only. The write path nests the declared slug under `custom` itself, so a prefixed slug produces `custom.custom__tier`, the node reports \"Record upserted\", and the value is dropped. The failure looks like a play that ran perfectly over a book with no tiers in it.",
         "**Eligibility is the stamp, not the tier.** (`infra/plays/tier-companies.ts`) Filter on `tiered_at` being null or stale. Filter on the tier column instead and a run that failed looks identical to a row waiting its turn, while a legitimate `disqualified` verdict gets re-judged forever.",
-        "**`changeKinds: [\"added\"]` stays.** (`infra/plays/tier-companies.ts`) Runs are created for rows entering the segment, so the LLM bill scales with how many companies you sourced. Drop it and it scales with how often the cron fires.",
+        "**`changeKinds: [\"added\"]` stays.** (`infra/plays/tier-companies.ts`) Runs are created for rows entering the segment, so the LLM bill scales with how many companies you sourced. Drop it and it scales with how often the cron fires. After the first sync (play still disabled), enable and execute the play once: `added` does not backfill rows that landed while it was off.",
         "**A tier ships with its rationale, its evidence, and its stamp, on the same write.** (`infra/plays/tier-companies.ts`) A tier nobody can audit is a number a rep will not trust, and a row marked judged without a judgment is worse than one that was never judged."
       ],
       "doneWhen": [
@@ -627,13 +626,13 @@
         "the sync landed rows, the row count is at or under `limit`, and the extractor's real column names match the workflow input",
         "every row carries a tier the rubric defines, a rationale naming the deciding lines, and a `tiered_at` stamp",
         "no row carries a stamp with an empty tier, and no row carries a tier with an empty stamp",
-        "the tier segments resolve, and their counts plus the disqualified count sum to the tiered row count",
+        "the tier segments (`tam-tier-a`, `tam-tier-b`, `tam-tier-c`, `tam-disqualified`) resolve, and their counts sum to the tiered row count",
         "the agent's evaluator pass rate is at or above its threshold, and a failing sample reads as a genuinely hard company rather than a missing rubric",
         "editing `tiering-rubric.md` in the context repo changes the next tier with no deploy",
         "`node --import tsx evals/contract.mjs` passes against the adapted resources"
       ],
       "cost": "Read this before pointing the skill at a market-sized filter.\n\n**Counting is free**, and it is the cheapest insurance in this skill: `aiArk.countCompanies` takes\nthe same filter groups as the search and returns the pool size without billing. Run it for every\ncandidate filter, every time you widen one.\n\n**Sourcing is the spend, and it is per returned record, not per call.** Immediately before every\npreview, run `cargo-ai connection integration get aiArk` and read the current entry under\n`integration.actions.searchCompanies.credits.costs`; the `fetchCompanies` extractor bills on the same\nper-record basis. Record the CLI version, the lookup time, and the unit price. The estimate is\n`limit * unit price`, which is why `limit` is the only control that matters: **to spend less, source\nless.** Start well under the counted pool, watch the rows land and the tiers come back sane, then\nwiden.\n\n**Tiering is one agent run per newly sourced company**, billed as LLM tokens through the adopted\nconnector plus whatever web search steps it takes. `maxSteps` is the per-company ceiling and the\nrubric's one-question-one-search rule is what keeps a normal row far below it. Because the play runs\non `changeKinds: [\"added\"]`, steady state is only the companies a sourcing run newly added, plus\nwhatever comes back when its six-month stamp expires. A tick that follows no sourcing run is a no-op.\n\nThe model deliberately carries **no schedule**, because a cron re-runs the same search and re-bills\nevery returned record, including the rows already sitting in the model. Sourcing is a deliberate\nspend; the tiering play is the part that stands. See `refresh-cadence` above for what a recurring\nsource really costs.",
-      "composesInto": "`contact-sourcing` (the buyers at every tier A account), `account-scoring` (when the book already\nexists somewhere else and only needs judging), `crm-enrichment` (fill the records these accounts\nbecome), `signal-based-tam` (watch the universe you just built)."
+      "composesInto": "`contact-sourcing` (the buyers at every tier A account), `crm-enrichment` (fill the records these\naccounts become), `signal-based-tam` (watch the universe you just built). `account-scoring` is the\nsibling for a book that already exists, not the next step after this skill has already tiered the\nrow."
     },
     {
       "name": "track-funding-rounds",

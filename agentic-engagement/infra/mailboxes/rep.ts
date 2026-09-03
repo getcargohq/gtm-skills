@@ -1,7 +1,7 @@
 import { defineMailbox } from "@cargo-ai/cdk";
 
 import { outreach } from "../domains/outreach";
-import { mailboxesFolder } from "../folders/agentic-engagement";
+import { mailboxesFolder } from "../folders";
 
 // PLACEHOLDER — the inbox the engager sends from and is woken by. Yields
 // `jane@example-outreach.com` once the domain name and username are real.

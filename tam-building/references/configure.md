@@ -6,11 +6,12 @@ No paid call happens anywhere in this file.
 ## Reconcile before you edit
 
 Reuse what the project already declares. An AI Ark connector, an LLM connector,
-a GTM folder, and above all a `defineContext` repository: two resources with one
-slug collide at deploy, and `defineContext` is a **per-workspace singleton**, so
-if one already exists, move `infra/context/*.md` into its directory and delete
-`infra/context.ts`. The agent's `context` capability reads whatever the
-workspace context holds, wherever it was declared.
+and TAM-building folders: two resources with one slug collide at deploy. This
+skill declares no `defineContext`: that resource is a **per-workspace
+singleton** owned by the project (a scaffolded repo points it at the root
+`context/`). Copy `infra/context/*.md` into that directory. The agent's
+`context` capability reads whatever the workspace context holds, wherever it
+was declared.
 
 If the project already has an `accounts` model that scoring, routing, and
 signals read, do not rename `tam_companies` to it. Land the sourced rows here and
@@ -22,8 +23,9 @@ add the promotion play described under `promote-to-shared-accounts` in
 Read it before asking for it. The workspace context repository is where an ICP
 already lives if the company has written one down, and the whole point of this
 skill's rubric design is that both files are readable by the operator and by the
-agent. Ask only when nothing is written anywhere, and then write the answer into
-`infra/context/icp.md` rather than into a prompt.
+agent. Ask only when nothing is written anywhere, and then write the answer into the
+project's `context/icp.md` rather than into a prompt. `infra/context/icp.md` is
+the example to copy there.
 
 Two files, and they do different jobs:
 
@@ -121,10 +123,10 @@ later.
 In `infra/models/tam-companies.ts`:
 
 - `config`: the filter groups and `limit`
-- `additionalColumns`: keep `tier`, `tier_rationale` and `tiered_at`; add to them
-  only if the play writes them on the same node
+- `additionalColumns`: keep `tier`, `tier_rationale`, `tier_evidence_url` and
+  `tiered_at`; add to them only if the play writes them on the same node
 
-In `infra/context/`:
+In the project's `context/` (copy from `infra/context/`):
 
 - `icp.md` and `tiering-rubric.md`, in the operator's own language
 

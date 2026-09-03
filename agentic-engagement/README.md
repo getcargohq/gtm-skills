@@ -55,7 +55,7 @@ Adds 4 resource kinds plus the folders they file into.
 | `infra/agents/engager.ts` | `defineAgent` | conversation agent + native email trigger + heartbeat |
 | `infra/agents/engager.prompt.ts` | (not a resource) | when to reply, how to thread, when to stop |
 | `infra/connectors/openai.ts` | `defineConnector` | the LLM the engager talks through |
-| `infra/folders/agentic-engagement.ts` | `defineFolder` | mailbox / tool / agent folders named after the skill |
+| `infra/folders/index.ts` | `defineFolder` | mailbox / tool / agent folders named after the skill |
 
 ## Why the tool is not a wrapped action
 

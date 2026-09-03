@@ -1,7 +1,7 @@
 import { defineAgent } from "@cargo-ai/cdk";
 
 import { anthropic } from "../connectors/anthropic";
-import { agentsFolder } from "../folders/tam-building";
+import { agentsFolder } from "../folders";
 
 // The tiering agent: one judgment per sourced company.
 //
@@ -19,10 +19,17 @@ import { agentsFolder } from "../folders/tam-building";
 //     resolving a stated doubt, never for filling in a firmographic the search
 //     did not return.
 //
-// The rubric is deliberately NOT in this prompt. It lives in
-// ../context/tiering-rubric.md so that changing what tier A means is a
-// reviewed commit rather than a deploy, and so a rep can read the same file the
-// agent read. The prompt says how to behave; the rubric says what to decide.
+// The rubric is deliberately NOT in this prompt. It lives in the project's
+// context repo (`context/tiering-rubric.md` in a scaffolded project) so that
+// changing what tier A means is a reviewed commit rather than a deploy, and so
+// a rep can read the same file the agent read. The copies under ../context/
+// are the example to copy there. The prompt says how to behave; the rubric
+// says what to decide.
+//
+// This skill declares no `defineContext`. That resource is a per-workspace
+// singleton owned by the project; a copy nested under `infra/` would plan
+// green while syncing markdown the humans who curate the knowledge layer never
+// see.
 //
 // No writable model in `uses`, and none should be added. The agent hands back a
 // judgment and the play persists it. An agent that can write decides its own
@@ -30,7 +37,7 @@ import { agentsFolder } from "../folders/tam-building";
 export const tierAnalyst = defineAgent("tam-tier-analyst", {
   color: "green",
   connector: anthropic,
-  languageModel: "claude-sonnet-5", // PLACEHOLDER — your model of choice
+  languageModel: "claude-sonnet-4-5", // PLACEHOLDER — your model of choice
   systemPrompt: [
     "You tier sourced companies for a B2B seller against that seller's own ICP.",
     "Read icp.md and tiering-rubric.md from the workspace context before every judgment. They are the rubric; nothing in this prompt overrides them.",
@@ -71,7 +78,6 @@ export const tierAnalyst = defineAgent("tam-tier-analyst", {
   maxSteps: 8,
   capabilities: [
     "webSearch",
-    "memory",
     { slug: "context", config: { isReadOnly: true } },
   ],
   // The QA gate. A tier with no grounded rationale fails, which is what stops

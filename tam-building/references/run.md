@@ -62,8 +62,11 @@ against `limit`. Rows landing well under `limit` means the pool was smaller than
 counted, or a filter value matched nothing: check the enum-backed values before
 widening anything.
 
-Then enable the play. It picks up every row with no `tiered_at` stamp on the next
-tick, one run per row, `noConcurrency`.
+Then enable the play **and execute it once**. It will not pick up rows that
+landed while it was disabled: `changeKinds: ["added"]` only enrols rows entering
+the segment after the play is on. Confirm the extractor's column names against
+the live model before that run; a renamed column leaves the prompt interpolating
+an undefined.
 
 ## Verification
 
@@ -110,7 +113,8 @@ Do not end the report with an open-ended offer to help.
 - the operator approved the filter, the budget and the rubric, and then approved
   the run at a stated maximum
 - every landed row carries a tier, a rationale, and a stamp
-- the tier segments resolve and their counts reconcile with the tiered row count
+- the tier segments resolve (`tam-tier-a`, `tam-tier-b`, `tam-tier-c`,
+  `tam-disqualified`) and their counts reconcile with the tiered row count
 - the report includes the tier distribution, the evaluator pass rate, the actual
   variance against estimate, and one recommended next step
 - no credential, customer data, or deploy command was written into the copied
