@@ -110,7 +110,7 @@ change the strategy or the deployed engine.
 
 ## 4. Open the pull request
 
-One branch, one pull request, titled "[cadence] scribe <today>". Do not merge
+One branch, one pull request, titled "[call-capture] scribe <today>". Do not merge
 it, and do not push to the default branch.
 
 The body states four numbers, because they are what a reviewer checks in ten
