@@ -603,7 +603,7 @@
         "no number in the digest is absent from the raw dump, a metrics file dated that day, or a platform tool the agent actually called. A platform-tool error is a note on the PR, not a made-up count"
       ],
       "cost": "The collector talks to git and, when `gh` is installed, to GitHub from the harness environment.\nThose calls are not Cargo connector actions.\n\nThe Slack post is `slack.postMessage` on the adopted connector. Immediately before the plan, run\n`cargo-ai orchestration action list postMessage --kind connector --integration-slug slack` and\nread the current cost. Say that number out loud as a per-post cost; the run posts once.\n\nThe recurring cost is the harness run itself, once a day, and it scales with how much the agent\nreads — the dump, the day's cadence files, a short window of git history, and the platform\nreads (whoami, runs, usage, models). There is no per-record fan-out. `execute_action` is on\nthe capability; this recap never calls it.",
-      "composesInto": "`call-capture` (yesterday's scribed calls are evidence this recap reads), `agentic-engagement`\n(a thread that closed today is something that moved), `tam-building` and `account-scoring` (a\ntiered book is a number the digest can name only when the metrics file actually moved)."
+      "composesInto": "`call-capture` (yesterday's scribed calls are evidence this recap reads), `agentic-engagement`\n(a thread that closed today is something that moved), `tam-building` and `account-scoring` (a\ntiered book is a number the digest can name only when the metrics file actually moved),\n`weekly-planning` (the week's logs are what it ranks against infra and runs)."
     },
     {
       "name": "tam-building",
@@ -762,6 +762,79 @@
       "group": "Get the contact data",
       "install": "npx skills add getcargohq/gtm-skills/waterfall-enrichment",
       "partOf": []
+    },
+    {
+      "name": "weekly-planning",
+      "kind": "cookbook",
+      "job": "Every Monday last week's GTM work is ranked against active initiatives, declared infra, and live runs, as one reviewable pull request per initiative — or one workspace pull request when there are none.",
+      "description": "Every Monday last week's GTM work is ranked against active initiatives, declared infra, and live runs, as one reviewable pull request per initiative — or one workspace pull request when there are none. Triggers: \"what should we work on this week\", \"rank our initiatives against what is actually running\", \"weekly GTM plan from the cadence log\", \"recommend next work from infra and runs\", \"the play is deployed but I don't think it ran\". Cargo CDK, defineAgent, harness claudeCode, GitHub, platform capability, initiatives, cadence. Skip when: you want today recapped and posted to Slack, which is standup; or you want call transcripts scribed into context, which is call-capture.",
+      "version": "0.1.0",
+      "homepage": "https://github.com/getcargohq/gtm-skills/tree/main/weekly-planning",
+      "group": "Make it run forever",
+      "install": "cargo-ai cdk add cookbook/weekly-planning",
+      "partOf": [],
+      "state": "to-be-approved",
+      "chain": 7,
+      "resources": [
+        "agents",
+        "connectors",
+        "folders"
+      ],
+      "asked": [
+        {
+          "input": "PLANNING_TIMEZONE` (`infra/agents/planner.ts`)",
+          "kind": "value",
+          "how": "**derived**: default `America/Los_Angeles`. Change it only if the team's week is not Pacific. Change it together with `cron`.",
+          "why": "The previous ISO week is computed in this timezone. A timezone the collector does not share with the prompt splits the dump and the plan files across two weeks."
+        }
+      ],
+      "canChange": [
+        {
+          "id": "move-the-hour",
+          "when": "The team reads pull requests at a different time, or you are not on Pacific time",
+          "how": "Change `cron` and `PLANNING_TIMEZONE` together in `infra/agents/planner.ts`. The cron is 15:00 UTC Monday because that is 8am PT in PDT.",
+          "cost": "A Sunday cron recaps an incomplete week. A timezone the collector does not share with the prompt splits the dump and the plan files across two weeks."
+        },
+        {
+          "id": "skip-on-track",
+          "when": "An on-track initiative should not ping the reviewer",
+          "how": "In `infra/agents/planner.prompt.ts`, skip the pull request when The gap is \"on track\"",
+          "cost": "Silence on an on-track week is indistinguishable from a missed run for that initiative. The default still opens the PR, because a written \"keep going\" is the record."
+        },
+        {
+          "id": "no-platform",
+          "when": "This agent must not have execute tools on it, even as a prompt-forbidden list",
+          "how": "Drop `capabilities` in `infra/agents/planner.ts` and §1b of `infra/agents/planner.prompt.ts",
+          "cost": "The recap loses runs, usage, and model movement. The git dump still lands. Until the capability is live on the workspace, the default already continues from the dump if the tools error."
+        },
+        {
+          "id": "one-pr",
+          "when": "You want one weekly diff even when there are five initiatives",
+          "how": "Collapse step 2 of `infra/agents/planner.prompt.ts` to a single pull request that holds every plan file",
+          "cost": "The reviewer merges the loud initiative and skips the overdue one. The default splits them because that is the gate."
+        }
+      ],
+      "shouldNotChange": [
+        "**The agent does not fetch git; the script does.** (`scripts/collect/week.ts`) A fetch loop an agent re-derives every Monday is a fetch loop that silently changes shape — a window that drifts, a `gh` flag that quietly widens. The raw dump is the one thing here that has to be byte-identical in its rules every week, because everything downstream is diffed against it. Cargo workspace data is the other half of the week, and it is the platform capability, not a `cargo-ai` CLI loop in the collector.",
+        "**Zero active initiatives is one workspace pull request. N active is N pull requests.** (`infra/agents/planner.prompt.ts`) Combining them is how a reviewer merges one bet and skips another. Opening a workspace pull request *and* the initiative ones is how unclaimed runs get a second home they were not asked to have: they stay in the dump.",
+        "**The platform capability is read-only.** (`infra/agents/planner.ts`, `infra/agents/planner.prompt.ts`) `execute_action` and `execute_action_batch` spend, and a recommendation is not a deploy. Leaving those tools callable is how a planner starts a batch it cannot undo. Until the capability is on the workspace, the tools error and the recap continues from the git dump — it does not invent the numbers.",
+        "**`scripts/weekly-planning/package.json` stays.** (`scripts/package.json`) It is not decoration. The CDK loader imports every `.ts` under the project root except directories carrying a `package.json`; delete it and `cargo-ai cdk plan` imports the collector and runs git/`gh` on every plan.",
+        "**The harness root stays the directory holding the `package.json` that declares `@cargo-ai/cdk`.** (`infra/agents/planner.ts`) That is where `node_modules` is, so it is the only place `npx tsx …/collect/week.ts` resolves — and in the scaffolded layout it is the repository root, which is also where `cadence/` and `initiatives/` live. **Check it, do not assume it:** `cargo-ai cdk check` prints the resolved binding, and a line ending `in infra/` means the harness was rooted where there is no package.json and no node_modules. The collector then cannot run at all, and Monday reports clean and empty. On a CLI old enough to resolve it that way, pin `rootDirectory: \".\"` in the repository block until you upgrade.",
+        "**The agent opens pull requests and never merges them.** (`infra/agents/planner.prompt.ts`) The recommendation is what next week's work is chosen from. Remove the review gate and a hallucinated gap, a play misread as idle, or a stuck item filed against the wrong owner becomes the team's next bet.",
+        "**Do not invent a number.** (`infra/agents/planner.prompt.ts`) Drop a metrics line rather than carry last week's ARR forward. A made-up delta is worse than no delta, because the plan file is what leadership reads. A platform-tool error is a note on the PR, not a count you fill in.",
+        "**Never edit `plan/` or `infra/`.** (`infra/agents/planner.prompt.ts`) The planner recommends. A pull request that rewires a play is a deploy wearing a plan file's name."
+      ],
+      "doneWhen": [
+        "`--dry-run` printed the dump for the previous ISO week, and the run without it wrote `cadence/log/raw/planning/<YYYY-Www>.md`; running it twice that Monday overwrote the same file",
+        "`node --import tsx evals/contract.mjs` passes: harness is `claudeCode`, the platform capability is on the agent, there is no Slack action, and no tool wraps git or platform",
+        "`cargo-ai cdk plan` reports the agent, the GitHub connector and the folder, and does **not** run git or `gh` while planning",
+        "with **zero** active initiatives, the first scheduled run opened exactly one unmerged pull request titled `[cadence] workspace <YYYY-Www>` whose diff contains the dump and `cadence/plan/<YYYY-Www>.md` with `## Recommendations`",
+        "with **N** active initiatives, it opened exactly N unmerged pull requests, one per slug, each diff containing the dump and exactly one `cadence/plan/<YYYY-Www>-<slug>.md` — never a second initiative in the same diff",
+        "a re-run the same Monday opened no additional pull request for a target whose `## Recommendations` section was already on disk",
+        "no number in a plan file is absent from the raw dump, a metrics file dated that week, or a platform tool the agent actually called. A platform-tool error is a note on the PR, not a made-up count"
+      ],
+      "cost": "The collector talks to git and, when `gh` is installed, to GitHub from the harness environment.\nThose calls are not Cargo connector actions.\n\nThe recurring cost is the harness run itself, once a week, and it scales with how much the agent\nreads — the dump, the week's cadence files, the active initiative files, declared infra, and the\nplatform reads (whoami, runs, usage, models). There is no per-record fan-out. `execute_action` is\non the capability; this recap never calls it.",
+      "composesInto": "`standup` (the week's daily logs are evidence this recap reads), `call-capture` (scribed calls dated\nin the week are evidence), `tam-building` and `account-scoring` (a declared play that did not run is\nthe gap this recap is for)."
     },
     {
       "name": "zoominfo-to-cargo",

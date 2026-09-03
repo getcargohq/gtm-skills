@@ -232,4 +232,5 @@ the capability; this recap never calls it.
 
 `call-capture` (yesterday's scribed calls are evidence this recap reads), `agentic-engagement`
 (a thread that closed today is something that moved), `tam-building` and `account-scoring` (a
-tiered book is a number the digest can name only when the metrics file actually moved).
+tiered book is a number the digest can name only when the metrics file actually moved),
+`weekly-planning` (the week's logs are what it ranks against infra and runs).
