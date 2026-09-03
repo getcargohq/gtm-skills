@@ -34,8 +34,8 @@ Walk every line. A checked template without an evidence-backed consumer adaptati
   transformation, write policy, and reason where applicable.
 - JSON, Markdown, and chat agree on property candidates, gaps, route counts, and costs.
 - Unit costs come from current `cargo-ai connection integration get` responses for every billed
-  action on the audited path — `linkedin` for the company actions and `enrichProfile`,
-  `FullEnrich` for `reverseEmailLookup` — with the
+  action on the audited path — `linkedin` for the company actions and `enrichProfile` — plus the
+  instantiated resolver tool's live per-row quote, with the
   lookup timestamp, CLI version, action slugs, and applicable cost entries recorded.
 - Credit math uses the fetched unit costs; the contact email route prices the resolver plus the
   person enrichment as one chain.
@@ -103,12 +103,22 @@ Walk every line. A checked template without an evidence-backed consumer adaptati
   on a missing company. A failed provider call does not stamp freshness.
 - Provider or CRM connector errors remain failed workflow runs.
 - `contact_enrichment` is a workflow-backed Cargo tool that accepts a LinkedIn profile URL or
-  handle plus an email, normalizes the profile URL, and returns enriched person data. It has no
+  handle plus an email, normalizes the profile URL, and returns enriched person data — the
+  live-verified flat `enrichProfile` paths — plus the complete profile JSON. It has no
   CRM connector, CRM record id, or CRM write.
 - The compiled `contact_enrichment` graph starts with a code-generated Branch that ends rows with
   neither identifier. The URL route calls the person enrichment directly; the email route calls
-  the resolver, branches on its result, and only a resolved row continues into the person
+  the instantiated "Find LinkedIn URL from email" template tool, branches on its result, and
+  only a resolved row continues into the person
   enrichment.
+- `champion_verdict` is one AI step with no connector access, materialized at its end node, run
+  only when the deterministic guards cannot confirm the company. No branch condition inlines the
+  verdict prompt; branches read the tool's answer.
+- The `contact_primary_company` relationship is declared — or adopted when the dataset already
+  carries an identical one — and both contact play filters read the account's customer property
+  through it, never the contact's own lifecycle field.
+- Every blank condition in the contact play filters pairs `isNull` with `isEmpty`: blank HubSpot
+  values surface as NULL in the extract, and `isEmpty` alone silently matches nothing.
 - `enrich_contacts` fills approved blanks with `skipIfExist` and stamps freshness in its only CRM
   update. Its trigger requires an identifier, the non-customer side of the confirmed mapping,
   null-or-six-month freshness, and at least one blank starting-recommendation destination — the
@@ -116,22 +126,32 @@ Walk every line. A checked template without an evidence-backed consumer adaptati
   refresh policy.
 - `monitor_champions`'s trigger requires an identifier, the customer side of the confirmed
   mapping, the primary company link, and null-or-30-day freshness. Its row workflow reads the
-  primary company, compares LinkedIn company ID first and domain second, and never treats a work
+  primary company, guards on LinkedIn company identity first and domain second, hands unconfirmed
+  rows to the verdict, and never treats a work
   email or its domain as identity or proof of a move.
-- On a job change, the champion play finds the new company by LinkedIn company ID then domain,
-  resolves the target contact through the LinkedIn person identity (falling back to the
-  triggering row), updates that one contact — association, title, employment status — preserves
-  the former relationship, and posts the structured alert to the approved Slack channel. Exactly
-  one write moves the association; the title refresh there is deliberate. When the new company is
-  missing, the play stamps `partial`, keeps the association, and the alert says what to create.
+- On a MOVED verdict, the champion play resolves the target contact through the LinkedIn person
+  identity (falling back to the triggering row), finds the new company by LinkedIn company
+  identity then domain, creates it behind the no-match Branch when absent, preserves the former
+  relationship with an explicit association, updates that one contact — association, title,
+  employment status — writes one JOB CHANGE note associated to the contact and both companies,
+  and posts the structured alert with the verified Slack payload (`channelId`,
+  `format: "markdown"`, `body`). Exactly
+  one write moves the association; the title refresh there is deliberate. Only a move with no
+  company identifiers stamps `partial` and defers to the owner.
   No branch creates, merges, or deletes a contact.
 - The two contact play filters are the customer-status split: their populations are disjoint and
   express the two refresh cadences. No standalone `defineSegment` exists.
 - Every disabled play evaluates daily, creates runs only for rows added to its managed segment,
   and uses `noConcurrency`.
-- The provider result paths marked `PLACEHOLDER`, the Slack channel id, and the `postMessage`
-  payload are resolved from live schemas before deploy.
-- `cargo-ai cdk types`, `cargo-ai cdk check`, and `cargo-ai cdk plan` pass in the consumer project.
+- The approved CRM properties were created by hand in the CRM UI — verbatim internal names,
+  case-sensitive enum options, date-and-time date properties — before the write probe.
+- The resolver tool's UUID and output path, the Slack channel id (with the Cargo app added to
+  the channel), and the association type ids are resolved from the live workspace before deploy.
+- The one-record write probe ran and its stamps were reset before any paid batch; the champion
+  coverage gate ran with an operator-chosen policy before the champion play; same-day write
+  verification used a forced full extract refresh.
+- `cargo-ai cdk types`, `cargo-ai cdk check`, and `cargo-ai cdk plan` pass in the consumer
+  project, with root `zod` pinned to 4.4.3 and the documented `NODE_OPTIONS` heap headroom.
 - The plays and tools are deployed disabled only after phase-one approval, and their direct Cargo
   UI links resolve before the phase-two review request.
 

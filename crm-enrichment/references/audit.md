@@ -125,14 +125,22 @@ contact routes in `target_preview` (`linkedin_url_path`, `email_resolver_path`,
       "missing_customer_status": 0
     },
     "customer_status_mapping": {
-      "relationship": "primary associated company only",
+      "relationship": "contact_primary_company (primary associated company only)",
       "property": "lifecyclestage",
       "customer_values": ["customer"],
-      "mirrored_on_contact": true,
+      "read_through_relationship": true,
+      "relationship_preexisting": false,
       "evidence": "how the live portal was checked",
       "status": "pending_operator_confirmation|confirmed",
       "customer_contacts": 0,
       "non_customer_contacts": 0
+    },
+    "champion_coverage": {
+      "customer_companies_missing_domain": 0,
+      "customer_companies_missing_website": 0,
+      "customer_companies_missing_linkedin_page": 0,
+      "unmatchable_champions": 0,
+      "policy": "fill_manually|priced_resolution|matchable_only|pending"
     },
     "operational_fields": [
       {
@@ -162,19 +170,29 @@ Audit these contact fields at minimum: work email, phone, LinkedIn profile URL, 
 ID, job title, and the primary associated company link. On the company side of the contact audit:
 domain, LinkedIn company URL and ID, and the customer-status property — required to know whether
 a former company was a customer. The customer-status mapping is detected from the live schema and
-data (HubSpot example: primary associated company with `Lifecycle stage = Customer`, mirrored
-onto contacts by the native lifecycle sync; Salesforce:
+data (HubSpot example: the primary associated company's `Lifecycle stage = Customer`; Salesforce:
 `Contact.AccountId → Account.<customer status field>`), always through the contact's primary
-company relationship — never an arbitrary associated company — with the exact live values that
+company relationship — the `contact_primary_company` relationship the plays filter through,
+never an arbitrary associated company and never the contact's own lifecycle field, which portals
+do not reliably sync — with the exact live values that
 mean "customer" listed, and it stays `pending_operator_confirmation` until the operator confirms
-it.
+it. Record whether an identical relationship already exists on the dataset: an existing one is
+adopted, not duplicated.
+
+`champion_coverage` is the coverage gate's evidence: count the customer companies missing each
+matching identifier and the champions that are unmatchable as a result, and hold `policy` at
+`pending` until the operator chooses — fill the identifiers by hand, approve a priced
+name→domain resolution step quoted live, or run only the matchable champions. The counts come
+from the account extract; no paid call is needed to produce them.
 
 The operational-field audit is reuse-else-propose. If equivalent properties already exist for the
 freshness stamp, the outcome stamp, or the employment status, recommend the canonical one on
 usage and fill-rate evidence — do not create another duplicate. If none exists, mark the property
-for creation before launch: `cargo_last_enriched_at` (datetime) and `cargo_enrichment_status`
+for creation before launch: `cargo_last_enriched_at` (date and time) and `cargo_enrichment_status`
 (string) carry the `cargo_` prefix; `primary_employment_status` (single select, `Active`/`Left`)
-is a business property and keeps its neutral name.
+is a business property and keeps its neutral name. Creation itself is a manual CRM UI step — the
+connector has no create-property action — governed by the verbatim-name, case-sensitive-enum,
+and date-and-time rules in [`configure.md`](configure.md).
 
 `field_selection.candidates` covers every live output path from both selected LinkedIn actions and
 records which routes return it. Use exactly one row per exact provider path in the JSON, Markdown,
@@ -234,9 +252,8 @@ Before calculating credits, fetch live prices for the audited path. Accounts:
 `cargo-ai connection integration get linkedin`, reading
 `integration.actions.enrichCompany.credits.costs` and
 `integration.actions.enrichCompanyFromDomain.credits.costs`. Contacts: the same lookup for
-`integration.actions.enrichProfile.credits.costs`, plus
-`cargo-ai connection integration get FullEnrich` for
-`integration.actions.reverseEmailLookup.credits.costs`; stop if the relevant entry is missing
+`integration.actions.enrichProfile.credits.costs`, plus the instantiated "Find LinkedIn URL
+from email" template tool's live per-row quote; stop if the relevant entry is missing
 or ambiguous. Credit math is
 `linkedin_url_path * linkedin_url_unit_credits + domain_path * domain_unit_credits` for accounts
 and
@@ -257,5 +274,7 @@ creating a governed sub-segment are both valid answers, and the choice belongs t
 - duplicate findings contain only genuine customer-managed semantic duplicates and exclude
   HubSpot `hs_*`, CRM-managed, system-generated, and generic native properties
 - on the people path: the customer-status mapping is operator-confirmed with its exact live
-  values and primary-relationship path, every operational field has a reuse-or-create decision,
+  values and its `contact_primary_company` read path, every operational field has a
+  reuse-or-create decision,
+  the champion-coverage counts are presented with the operator's chosen policy,
   and the eligible population is split between `enrich_contacts` and `monitor_champions`

@@ -54,21 +54,28 @@ between the play and the CRM write.
 
 The people path repeats the same boundary. `contact_enrichment` accepts a LinkedIn profile URL or
 handle plus an email, normalizes the LinkedIn value, and returns the approved person-data schema
+plus the full profile JSON,
 with no CRM access. Its compiled graph starts with the identifier Branch; the URL route calls the
-person enrichment directly, the email route calls the resolver, ends unresolved rows, and only
+person enrichment directly, the email route calls the "Find LinkedIn URL from email" template
+tool, ends unresolved rows, and only
 then calls the person enrichment — at most one full paid chain per row.
 
 `enrich_crm_contact` starts with the tool call and owns one CRM update: fill approved blanks,
 stamp freshness. `monitor_crm_champion` starts with the same tool call, reads the contact's
-primary company record, and branches: same company fills blanks and sets
-`primary_employment_status: Active`; no current company sets `Left` and keeps the association; a
-different company finds the new company by LinkedIn company ID first and domain second, resolves
+primary company record, and applies the deterministic guards — LinkedIn company identity first,
+domain second. A guard match fills blanks and sets `primary_employment_status: Active`. When the
+guards cannot confirm the company, the `champion_verdict` tool reads the complete profile JSON —
+experience dates and concurrent positions included — and answers SAME, MOVED, or LEFT on the
+question "did the PRIMARY employment change?". SAME converges into the fill-blanks path. LEFT
+sets `Left` and keeps the association for the next cycle. MOVED resolves
 the target contact through the LinkedIn person identity — the row's record when no duplicate
-exists — updates that one contact (association, title, status), and posts the structured
-job-change alert to the approved Slack channel. When the new company is not in the CRM, the play
-stamps a `partial` outcome, keeps the association, marks the departure, and the alert asks the
-owner to create the company so the next cycle finishes the move — record creation is not part of
-the checked example. No branch creates, merges, or deletes a contact.
+exists — finds the new company by LinkedIn company identity first and domain second, creates it
+when no match exists, preserves the former relationship with an explicit association, updates
+that one contact (association, title, status), writes one JOB CHANGE note associated to the
+contact and both companies, and posts the structured
+job-change alert to the approved Slack channel. Only a move with no company identifiers at all
+stamps a `partial` outcome and defers to the owner. No branch creates, merges, or deletes a
+contact.
 
 The tool output schema and the play write mappings form one interface: every selected provider field
 returned by a tool has its approved CRM destination in its play workflows. The plays
@@ -95,35 +102,61 @@ Before every preview, fetch the applicable costs for the path:
 `cargo-ai connection integration get linkedin` for
 `integration.actions.enrichCompany.credits.costs`,
 `integration.actions.enrichCompanyFromDomain.credits.costs`, and
-`integration.actions.enrichProfile.credits.costs`, plus
-`cargo-ai connection integration get FullEnrich` for
-`integration.actions.reverseEmailLookup.credits.costs`. Cost the eligible
+`integration.actions.enrichProfile.credits.costs`, plus the instantiated resolver tool's live
+per-row quote. Cost the eligible
 CRM rows with the current values and record when pricing was fetched.
+
+## Two gates before any paid batch
+
+**The one-record write probe.** A failed CRM write re-bills the provider on retry — there is no
+cache — so write-capability is proven before the first paid call, not discovered by it. After
+the disabled deploy, update one sacrificial record's operational stamps directly through the CRM
+action (no provider call), confirm the values landed in the CRM UI, then reset the probe stamps
+to null so the record re-enters its segment. A probe that fails on a property name, type, or
+permission just saved the whole batch's re-billed calls.
+
+**The champion coverage gate.** The champion play matches moves against CRM company identifiers.
+Before its first run, count the customer companies missing domain, website, and LinkedIn page,
+show the operator the number, and ask them to choose: (a) fill the identifiers by hand, (b)
+approve a priced name→domain resolution step — for example `serper.search`, quoted live, with
+every resolved domain verified against the company before it is written, because wrong-entity
+hits happen — or (c) run only the matchable champions. Without the gate, every unmatchable
+champion is marked `Left` and fires a false alert.
 
 ## Verification
 
 In this repository run `npm run validate`. In the consumer project:
 
-1. Run `cargo-ai cdk types` after selecting the live CRM connector. On the people path, use the
-   generated types to fix every `PLACEHOLDER` provider result path and the Slack `postMessage`
-   payload before anything else.
+1. Run `cargo-ai cdk types` after selecting the live CRM connector (with the pinned `zod` and
+   the `NODE_OPTIONS` heap headroom from
+   [`configure.md`](configure.md)). On the people path, wire the instantiated resolver tool's
+   UUID and output path and verify the association type ids before anything else.
 2. From the copied skill folder, run `node --import tsx evals/contract.mjs` after adapting
    `infra/index.ts`. It must pass before the plan is reviewed.
 3. Run `cargo-ai cdk check`.
 4. Run `cargo-ai cdk plan` and inspect every resource and action payload.
-5. Confirm the plan has one CRM model per audited object and no native `accounts` or `contacts`
+5. Confirm the plan has one CRM model per audited object, the `contact_primary_company`
+   relationship (declared or adopted, full array sent), and no native `accounts` or `contacts`
    unification.
 6. Confirm each compiled tool starts with an identifier Branch and contains no CRM action —
-   `contact_enrichment`'s email route must end unresolved rows before the person enrichment.
-   Confirm every play starts with one Tool node targeting its tool, contains no provider action,
+   `contact_enrichment`'s email route must end unresolved rows before the person enrichment, and
+   `champion_verdict` must be one AI node gated behind the deterministic guards, never inlined
+   into branch conditions.
+   Confirm every play starts with one Tool node targeting its enrichment tool, contains no
+   provider action,
    and that CRM actions exist only in plays; the champion play's four update branches each stamp
-   the Cargo-owned fields, and exactly one moves the company association.
+   the Cargo-owned fields, exactly one moves the company association, company creation sits
+   behind the no-match Branch, and both Slack nodes carry `channelId` + `format: "markdown"` +
+   `body`.
 7. Deploy only after the phase-one approval explicitly authorizes disabled resource creation.
-8. Show the operator direct Cargo UI links for every disabled play and tool, the approved field
+8. Run the one-record write probe, then the champion coverage gate, from the section above.
+9. Show the operator direct Cargo UI links for every disabled play and tool, the approved field
    contract, exclusions, target counts per play, mappings, live action costs, exact estimated
    credits, pricing lookup time, and that every play stays disabled.
-9. Run or enable only after the operator reviews that phase-two handoff and explicitly approves the
-   stated population and maximum cost.
+10. Run or enable only after the operator reviews that phase-two handoff and explicitly approves
+    the stated population and maximum cost.
+11. When verifying fresh CRM writes the same day, force a full extract refresh — the incremental
+    schedule does not pick up new writes promptly, and a stale extract reads as a failed write.
 
 ## Post-enrichment report
 

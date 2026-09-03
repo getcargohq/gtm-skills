@@ -27,29 +27,61 @@ live schemas as authoritative.
 | Founding             | `year_founded`                                                                                                                                                                  | provider-schema-untyped                                                                                              |
 | Domain fallback only | `confident_score`                                                                                                                                                               | string                                                                                                               |
 
-### Person actions (people path)
+### Person action (people path)
 
-The contact tool calls `linkedin.enrichProfile` (input `linkedinUrl`) and, for rows without a
-profile URL, `FullEnrich.reverseEmailLookup` (input `email`) to resolve one first. Those action
-slugs and inputs are verified against the Cargo provider playbooks. Their **output paths are
-not fully verified in this repository**: only `currentCompany.name`, `currentCompany.domain`,
-and `currentRole.startDate` are documented upstream. Every path below marked _derive live_ is a
-`PLACEHOLDER` in `infra/index.ts` and must be re-read from the live output schemas
-(`cargo-ai orchestration action get-output-schema`, or the generated types after
-`cargo-ai cdk types`) before the field-selection gate is presented.
+The contact tool calls `linkedin.enrichProfile` (input `linkedinUrl`). Its output schema is
+**flat**, verified live on 2026-09-03 — do not reuse the nested `currentCompany.*` /
+`currentRole.*` shapes some upstream recipes still show. The paths the template maps:
 
-| Tool output      | Template path                                      | Status                                       |
-| ---------------- | -------------------------------------------------- | -------------------------------------------- |
-| `person_id`      | `profile_id`                                       | derive live                                  |
-| `job_title`      | `currentRole.title`                                | derive live (`currentRole` is documented)    |
-| `linkedin_url`   | normalized input, or the resolver's `linkedin_url` | input-derived; resolver path: derive live    |
-| `company_id`     | `currentCompany.id`                                | derive live (`currentCompany` is documented) |
-| `company_name`   | `currentCompany.name`                              | documented upstream                          |
-| `company_domain` | `currentCompany.domain`                            | documented upstream                          |
+| Group           | Exact output paths                                                                                                   | Declared type                                                                                                                                                                          |
+| --------------- | -------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Person          | `profile_id`, `public_id`, `urn`, `full_name`, `first_name`, `last_name`, `headline`, `job_title`, `linkedin_url`    | string                                                                                                                                                                                 |
+| Current company | `company`, `company_domain`, `company_website`, `company_linkedin_url`, `company_industry`, `company_employee_range` | string                                                                                                                                                                                 |
+| Current company | `company_employee_count`, `company_year_founded`, `current_company_join_month`, `current_company_join_year`          | number                                                                                                                                                                                 |
+| Location        | `city`, `state`, `country`, `location`                                                                               | string                                                                                                                                                                                 |
+| History         | `experiences`                                                                                                        | array of objects with `company`, `company_id`, `company_linkedin_url`, `title`, `is_current`, `start_month`, `start_year`, `end_month`, `end_year`, `date_range`, `duration`, and more |
+| History         | `educations`, `skills`, `languages`                                                                                  | arrays                                                                                                                                                                                 |
 
-Present every other live `enrichProfile` output at the contact field-selection gate the same way
-the company table above feeds the account gate — one row per exact provider path, with its
-declared type and the routes that return it.
+The tool maps `profile_id`, `job_title`, `linkedin_url`, `company` → `company_name`,
+`company_domain`, and `company_linkedin_url`, and passes the whole payload as `profile_json` for
+the champion verdict — the `experiences` array with its `is_current` flags and dates is what
+lets the verdict see through concurrent positions. Present every other live output at the
+contact field-selection gate the same way the company table above feeds the account gate — one
+row per exact provider path, with its declared type.
+
+### Email resolver (people path)
+
+A row without a profile URL resolves one first through Cargo's **"Find LinkedIn URL from
+email" template tool** — an internal waterfall priced per resolved row — then continues into
+`linkedin.enrichProfile`. Instantiate it from the template catalog in the workspace UI, paste
+its UUID into `findLinkedinUrlFromEmail` in `infra/index.ts`, and confirm its output path (the
+template assumes `linkedin_url`) on the instantiated tool's release before deploying. Do not
+swap in a direct provider reverse-lookup node: the template tool is the maintained, cheaper
+route.
+
+### Create the CRM properties by hand (people path)
+
+The HubSpot connector has no create-property action, so approved property creation is an
+explicit UI step in the audit phase, before the write probe. Three rules, each a silent or
+row-dropping failure when broken: internal names are frozen at creation and must match the
+template verbatim; enum option values are case-sensitive (`Active`/`Left`, exactly); date
+properties must be "Date picker — **date and time**" — a date-only property rejects timestamp
+writes with `INVALID_DATE`, and because HubSpot updates are atomic the whole row's mapping
+drops with it. A date property cannot be converted to datetime in place; delete and recreate
+it. The checked people-path list on contacts: `linkedin_person_id` (single-line text),
+`linkedin_profile_url` (single-line text), `primary_employment_status` (single select,
+options `Active` and `Left`), `cargo_last_enriched_at` (date and time),
+`cargo_enrichment_status` (single-line text). The account path's `cargo_last_enriched_at` and
+`cargo_enrichment_status` on companies follow the same date-and-time rule.
+
+### Declare or adopt the relationship (people path)
+
+Both contact play filters read the account's customer property through the
+`contact_primary_company` relationship (`crm_accounts.hs_object_id` one-to-many
+`crm_contacts.associatedcompanyid`). **List the dataset's existing relationships first**: if an
+identical one already exists, adopt it into CDK state instead of creating a second. A dataset's
+relationship set is replaced wholesale on deploy — always send the full array, or an unrelated
+existing relationship silently disappears.
 
 ## Field-selection gate
 
@@ -99,32 +131,37 @@ In `infra/index.ts`, edit these together:
 
 - `crm`: the adopted CRM connector
 - `crmAccounts` / `crmContacts`: the live extractors
+- `contactPrimaryCompany`: the relationship columns, or the adopted existing relationship
 - `enrichCrmAccount` / `enrichCrmContact`: the write mappings, matching property, and fill-blank
   guard
-- `enrichContactData`: the provider result paths marked `PLACEHOLDER`, re-read live
+- `findLinkedinUrlFromEmail`: the instantiated template tool's UUID and its output path
 - `monitorCrmChampion`: the company-comparison and duplicate-search property names, the
-  association write, and the alert message
+  find-or-create identifiers, the note body, and the alert message
+- `championVerdictWorkflow`: the verdict prompt, if the operator's definition of a move differs
+- `contactToCompanyTypeId` / `noteToContactTypeId` / `noteToCompanyTypeId`: verified against the
+  live connector's association-type autocomplete
 - `enrichAccounts` / `enrichContacts` / `monitorChampions`: the play filter slugs, which must be
-  columns on their extract — including the confirmed customer-status property on both contact
-  filters
-- `championAlertChannelId` and the `postMessage` input field names, confirmed against the
-  generated Slack action types
+  columns on their extract or the related account model — including the confirmed
+  customer-status property on both contact filters
+- `championAlertChannelId`: the approved channel, with the Cargo app already added to it
 
 The checked repository example extracts HubSpot companies and contacts (`fetchRecords`,
 `objectType: "companies"` / `"contacts"`) and writes with `updateRecords` matching
-`hs_object_id` and its native `skipIfExist` mapping flag. Create
-`cargo_last_enriched_at` (datetime) and `cargo_enrichment_status` (string) on each enriched
-object if they are missing, `primary_employment_status` (single select, `Active`/`Left`) on the
-contact object, and include every creation in the field-contract approval. Keep one CRM
+`hs_object_id` and its native `skipIfExist` mapping flag, creates the missing company with
+`insertRecord`, preserves and adds associations with `createAssociation`, and posts the alert
+with the live Slack payload — `channelId`, `format: "markdown"`, `body` (verified 2026-09-03; a
+`message` field does not exist and dies at the alert step, after the paid call). Create the
+approved properties by hand per the UI step above and include every creation in the
+field-contract approval. Keep one CRM
 shape in the file. The play filter, workflow
 input, and write matching property must use the same record-id field.
 
-Two HubSpot behaviors the champion play leans on must be confirmed on the live portal at the
-gate, not assumed: the company-to-contact lifecycle sync that makes `lifecyclestage = customer`
-readable on the contact row, and the association model in which writing `associatedcompanyid`
-moves the primary company while retaining the former company as a non-primary association. If
-either does not hold, adapt the filter's customer-status source or the association step before
-deploy — a portal without the sync silently gives the champion play an empty segment.
+One HubSpot behavior the champion play leans on must be confirmed on the live portal at the
+gate, not assumed: writing `associatedcompanyid`
+moves the primary company. The former relationship does not depend on implicit retention — the
+play preserves it with an explicit `createAssociation` — but the three association type ids
+(the checked example ships HubSpot-defined `279`, `202`, `190`) must be verified against the
+connector's association autocomplete before deploy.
 
 - **Salesforce:** generated Account and Contact updates matching `Id`. There is no
   `skipIfExist` — read the record first and omit any field that is already populated, including
@@ -167,25 +204,33 @@ Fetch current pricing immediately before the
 preview: `cargo-ai connection integration get linkedin` for
 `integration.actions.enrichCompany.credits.costs`,
 `integration.actions.enrichCompanyFromDomain.credits.costs`, and
-`integration.actions.enrichProfile.credits.costs`, and
-`cargo-ai connection integration get FullEnrich` for
-`integration.actions.reverseEmailLookup.credits.costs`. Record the lookup timestamp, CLI
+`integration.actions.enrichProfile.credits.costs`, plus the instantiated resolver tool's live
+per-row quote. Record the lookup timestamp, CLI
 version, action slugs, and unit costs in the audit. Keep the LinkedIn action first and the
 fallback route — domain for accounts, the email resolver chain for contacts — mutually
 exclusive.
 
+Toolchain: pin the consumer project's root `zod` to `4.4.3` — a version mismatch against the
+CDK breaks typechecking — and run `tsc` against generated workspace types with
+`NODE_OPTIONS=--max-old-space-size=16384`, in CI too.
+
 ## Complete when
 
 - exactly one CRM model per audited object exists (`crm_accounts`, `crm_contacts` in the
-  example) and each play uses its own
-- every destination is an approved live CRM property
-- `cargo-ai cdk types` confirms the selected CRM action names and payloads, the Slack
-  `postMessage` payload, and the provider result paths this repository marks `PLACEHOLDER`
+  example) and each play uses its own; the `contact_primary_company` relationship is declared or
+  adopted, with the dataset's full relationship array sent
+- every destination is an approved live CRM property, created by hand per the UI step where
+  missing — verbatim internal names, case-sensitive enum options, date-and-time date properties
+- `cargo-ai cdk types` confirms the selected CRM action names and payloads, and the resolver
+  tool's UUID, output path, and the association type ids this repository marks `PLACEHOLDER`
+  are resolved from the live workspace
 - the operator-approved field contract records every included mapping and excluded candidate
 - selected provider fields and CRM destinations agree in meaning and type, or have an explicit
   approved transformation
-- each managed segment trigger excludes rows with no identifier; the approved per-field policy
+- each managed segment trigger excludes rows with no identifier, and every blank condition pairs
+  `isNull` with `isEmpty`; the approved per-field policy
   decides fill blank versus refresh
-- on the people path: the confirmed customer-status property drives both contact filters, the
-  lifecycle-sync and association-preservation behaviors are verified on the live portal, and the
-  champion alert channel is named by the operator
+- on the people path: the confirmed customer-status property drives both contact filters through
+  the relationship, the `associatedcompanyid` primary-move behavior is verified on the live
+  portal, and the
+  champion alert channel is named by the operator with the Cargo app added

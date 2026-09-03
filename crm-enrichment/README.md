@@ -13,10 +13,12 @@ watched for job changes.
 - **Fills approved contact blanks** from LinkedIn: profile URL, LinkedIn person
   ID as a durable matching key, and job title — resolving the profile from a
   work email when the URL is missing.
-- **Monitors customer champions** every 30 days: compares the live LinkedIn
-  company against the CRM company, and on a job change updates the same
-  contact, preserves the former company relationship, and alerts the former
-  account's owner in Slack.
+- **Monitors customer champions** every 30 days: deterministic company guards
+  first, then an AI verdict over the complete profile — concurrent side
+  positions included — and on a confirmed move it finds or creates the new
+  company, updates the same contact, preserves the former company
+  relationship, writes a JOB CHANGE note, and alerts the former account's
+  owner in Slack.
 - **Re-enrolls stale records** — six months for accounts and non-customer
   contacts, 30 days for customer contacts — so the data stays current without
   manual refreshes.
@@ -39,15 +41,19 @@ flowchart TD
     awrite -->|CRM record ID| accounts
 
     contacts["crm_contacts<br/>same CRM connector"]
+    rel["contact_primary_company relationship<br/>filters read the account's customer status"]
     cfilter["Two managed segment triggers<br/>non-customer · 6 months / customer · 30 days"]
-    cenrich["contact_enrichment tool<br/>LinkedIn URL route, else email → resolver → profile"]
+    cenrich["contact_enrichment tool<br/>LinkedIn URL route, else email → resolver tool → profile"]
     cwrite["enrich_contacts play<br/>fills approved blanks · stamps freshness"]
-    champion["monitor_champions play<br/>job-change detection · same-contact update"]
+    verdict["champion_verdict tool<br/>AI answer: SAME · MOVED · LEFT"]
+    champion["monitor_champions play<br/>guards · find-or-create · same-contact update · note"]
     slack["Slack alert<br/>former customer account's owner"]
 
+    accounts -.-> rel -.-> cfilter
     contacts --> cfilter --> cenrich
     cenrich --> cwrite -->|CRM record ID| contacts
     cenrich --> champion -->|CRM record ID| contacts
+    champion --> verdict --> champion
     champion --> slack
 ```
 
@@ -62,16 +68,18 @@ flowchart TD
 
 ## Architecture
 
-| Resource             | Type      | Role                                                             |
-| -------------------- | --------- | ---------------------------------------------------------------- |
-| `crm_accounts`       | Model     | CRM account extract; the account play reads and writes here      |
-| `crm_contacts`       | Model     | CRM contact extract; both contact plays read and write here      |
-| `account_enrichment` | Tool      | Normalizes company identifiers, returns provider data            |
-| `contact_enrichment` | Tool      | Normalizes person identifiers, resolves email → profile          |
-| `enrich_accounts`    | Play      | Fills account blanks, owns writeback and freshness               |
-| `enrich_contacts`    | Play      | Fills non-customer contact blanks, owns writeback and freshness  |
-| `monitor_champions`  | Play      | Watches customer contacts, handles job changes, alerts the owner |
-| `slack`              | Connector | Carries the champion job-change alert                            |
+| Resource                  | Type         | Role                                                             |
+| ------------------------- | ------------ | ---------------------------------------------------------------- |
+| `crm_accounts`            | Model        | CRM account extract; the account play reads and writes here      |
+| `crm_contacts`            | Model        | CRM contact extract; both contact plays read and write here      |
+| `contact_primary_company` | Relationship | Lets both contact filters read the account's customer status     |
+| `account_enrichment`      | Tool         | Normalizes company identifiers, returns provider data            |
+| `contact_enrichment`      | Tool         | Normalizes person identifiers, resolves email → profile          |
+| `champion_verdict`        | Tool         | One AI step: did the PRIMARY employment change?                  |
+| `enrich_contacts`         | Play         | Fills non-customer contact blanks, owns writeback and freshness  |
+| `enrich_accounts`         | Play         | Fills account blanks, owns writeback and freshness               |
+| `monitor_champions`       | Play         | Watches customer contacts, handles job changes, alerts the owner |
+| `slack`                   | Connector    | Carries the champion job-change alert                            |
 
 Tools and plays share one workflow contract per path, so mappings cannot
 drift. Each play's filter is its segment; there is no standalone segment. The
@@ -90,14 +98,22 @@ refresh cadences.
    (Active/Left) on the contact object.
 4. **Matching keys**: propose `linkedin_company_id` and `linkedin_person_id`
    if no equivalent properties exist.
-5. **Provider result paths** (`infra/index.ts` `enrichContactData`): the person
-   enrichment and resolver output paths marked `PLACEHOLDER` must be re-read
-   from the live action schemas before deploy.
-6. **Champion alert channel** (`infra/index.ts`): the Slack channel id, and the
-   live `postMessage` input field names once `cargo-ai cdk types` has run.
-7. **Customer-status mapping** (`infra/index.ts` play filters): the checked
-   example filters `lifecyclestage = customer` via HubSpot's native
-   company-to-contact lifecycle sync; confirm how this CRM marks customers.
+5. **Resolver tool** (`infra/index.ts` `findLinkedinUrlFromEmail`): instantiate
+   Cargo's "Find LinkedIn URL from email" template tool and paste its UUID;
+   confirm its output path on the instantiated release.
+6. **Champion alert channel** (`infra/index.ts`): the Slack channel id, with
+   the Cargo app added to the channel first — a channel without the app fails
+   at send time, after the paid call.
+7. **Association type ids** (`infra/index.ts`): the checked HubSpot-defined
+   values (279, 202, 190) must be verified against the connector's
+   association autocomplete.
+8. **Customer-status mapping** (`infra/index.ts` play filters): the checked
+   example reads the related account's `lifecyclestage = customer` through
+   `contact_primary_company`; confirm how this CRM marks customers, and adopt
+   the relationship if the dataset already declares it.
+9. **Manual property creation**: the connector has no create-property action —
+   create the approved properties in the CRM UI with verbatim names,
+   case-sensitive enum options, and date-and-time date properties.
 
 ## Cost
 
@@ -107,11 +123,14 @@ cost preview lands before any approval.
 Account enrichment is one LinkedIn call per eligible row, priced by route:
 `enrichCompany` for a LinkedIn URL, `enrichCompanyFromDomain` as the fallback.
 Contact enrichment is `enrichProfile` for a LinkedIn URL; a row with only an
-email pays `reverseEmailLookup` and, only when it resolves, `enrichProfile` —
-the one full paid chain. Run `cargo-ai connection integration get linkedin`
-and `cargo-ai connection integration get FullEnrich` for current unit prices.
-A row with no identifier never calls; CRM reads and the Slack alert are not
-credit-billed.
+email pays the "Find LinkedIn URL from email" template tool and, only when it
+resolves, `enrichProfile` — the one full paid chain. The champion verdict is
+an AI step billed by the engine, and only on rows the deterministic guards
+cannot confirm. Run `cargo-ai connection integration get linkedin` and read
+the instantiated resolver tool's live quote for current unit prices. A row
+with no identifier never calls; CRM reads, the note, and the Slack alert are
+not credit-billed. Probe write-capability on one record before any paid
+batch: a failed write re-bills the provider on retry.
 
 After a successful fill the record leaves its segment for the length of its
 window — six months for accounts and non-customer contacts, 30 days for
@@ -128,8 +147,9 @@ coming back due.
   before the person enrichment
 - Every write matches the audited CRM record ID
 - Route counts are mutually exclusive and reproduce the credit estimate
-- A verified job change updates the same contact, preserves the former
-  relationship, and alerts the former account's owner
+- A verified job change finds or creates the new company, updates the same
+  contact, preserves the former relationship, writes the note, and alerts the
+  former account's owner
 - The post-run report shows fill rates, outcomes, failures, and actual credits
 
 ## Composes into
