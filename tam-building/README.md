@@ -1,113 +1,150 @@
 # TAM building
 
-Build your account universe from a Sales Navigator company search, even when the
-natural search returns far more than the extraction cap.
+Source your account universe from AI Ark with a filter that encodes your ICP,
+then have an agent tier every company in it against a rubric your team owns.
 
 ## What it does
 
-- Counts a search **before** extracting it, so you never take a silently
-  truncated list.
-- Splits an oversized search into sub-searches that each sit under the cap, and
-  unions them into one table.
-- Resolves each Sales Nav company to a real domain (Sales Nav does not give you
-  one) and merges it into the shared `accounts` model, deduped.
-- Costs nothing to try: Sales Nav extraction in Cargo is **cookieless**, so no
-  LinkedIn seat, user, or cookie is needed. Only the search URL.
+- **Counts before it sources.** `aiArk.countCompanies` takes the same filter
+  groups as the search, returns `{"count": N}`, and is free. The search bills
+  per returned record, so this is the difference between a market you chose and
+  one you discovered after paying for it.
+- **Puts the ICP in the filter, not in a post-filter.** Every returned record is
+  paid for. Narrowing happens where it costs nothing.
+- **Tiers every row with an agent, not with point weights.** Whether a company
+  is in the size band is a column; whether it already runs the motion you sell
+  into is an open role, a changelog, or an engineering post. The agent reads the
+  rubric out of the workspace context, judges on the sourced facts, and searches
+  the web only to settle a doubt that would change the tier.
+- **Writes the reason next to the tier.** `tier`, `tier_rationale`,
+  `tier_evidence_url` and `tiered_at`, on the row that triggered the run.
+- **Needs no key and no seat.** AI Ark and the LLM both run on adopted
+  connections.
 
 ## How it works
 
-1. **Write the giant search.** The one that describes your whole market, in the
-   Sales Navigator UI. Copy its URL.
-2. **Count it, do not extract it.** Counting is design-time work you do from your
-   terminal, so it needs no deployed resource. Call the action directly:
+```mermaid
+flowchart TD
+    count["aiArk.countCompanies<br/>free, same filters, run at design time"]
+    model["tam_companies<br/>aiArk.fetchCompanies · the ICP filter · limit"]
+    trigger["tier-companies trigger<br/>never tiered, or stamp older than six months"]
+    agent["tam-tier-analyst<br/>rubric from context · webSearch for one doubt"]
+    write["tier · rationale · evidence · tiered_at<br/>written back onto the row"]
+    segments["tam-tier-a · tam-tier-b · tam-tier-c · tam-disqualified"]
+
+    count -.->|"shapes"| model
+    model --> trigger --> agent --> write --> segments
+```
+
+1. **Write the ICP down** in the project's `context/icp.md`, and what A / B / C /
+   disqualified mean in `context/tiering-rubric.md`. Copy the examples from
+   `infra/context/`. Both live in the workspace context repo, so they are
+   versioned and editable without a deploy. This skill declares no
+   `defineContext`: that singleton belongs to the project.
+2. **Translate the ICP into filter groups** in
+   `infra/models/tam-companies.ts`. They are nested groups, not a flat map, and
+   enum-backed values come from the integration's autocompletes.
+3. **Count each candidate filter** with `aiArk.countCompanies`. It is free and
+   takes the same groups:
 
    ```sh
    cargo-ai orchestration action execute --wait-until-finished \
-     --action '{"kind":"connector","integrationSlug":"salesNavigator","actionSlug":"searchCompanyMetrics","config":{}}' \
-     --data '{"url":"<your Sales Navigator company-search URL>"}'
+     --action '{"kind":"connector","integrationSlug":"aiArk","actionSlug":"countCompanies","config":{}}' \
+     --data '{"industry":{"industry_or":["software development"]},"employeeSize":{"min_employee_count":20,"max_employee_count":500}}'
    ```
 
-   It returns `total_results` and costs a fraction of a credit. Extracting blind
-   is how you end up with a silently truncated list: the search holds 4,000
-   companies, the extractor takes 1,000, and nothing tells you the rest exist.
+   Counting is design-time work you do from your terminal, so it needs no
+   deployed resource: a resource that only ever wraps one connector action is
+   ceremony.
 
-3. **Over 1,000? Split by facet.** Industry first: the LinkedIn industry taxonomy
-   has three levels, so start at Level 1 and descend into Level 2 or 3 only for
-   the segments that are still oversized. Then geography, then headcount band.
-4. **Recurse.** Count each sub-search with the same command. Split any that is
-   still over. Stop when every search is under the cap.
-5. **Extract.** Put the final sub-search URLs in the `salesnav_companies` model.
-   Rows from every URL land in that one table.
-6. **Promote.** For each row, `promote-to-accounts` matches the company in
-   Cargo's business database, pulls its website and firmographics, and upserts it
-   into `accounts` keyed on `website`. Overlapping sub-searches (they will
-   overlap: facets do) collapse to one account.
+4. **Set `limit`** to what you are willing to spend on the first run. Sourcing
+   bills per returned record.
+5. **Sync, then execute the play once.** Rows land in `tam_companies` while the
+   play is still disabled so you can confirm column names. Enable it and run it
+   once: `changeKinds: ["added"]` will not backfill rows that landed while it
+   was off. After that, each new sync is enrolled on the next tick.
+6. **Work the segments.** `tam-tier-a` is the rep queue, `tam-tier-b` is the
+   sequence, `tam-tier-c` is in-market but not in-motion, `tam-disqualified` is
+   the suppression list with a written reason attached to every row in it.
 
-Adds 3 resources on top of the base. Counting is a CLI call, not a deployed
-tool: you run it while designing the search, and a tool that only ever wraps one
-connector action in a workflow is ceremony, not a resource.
+Adds a model, an agent, a play, four segments, and the folders they file into.
 
-| File                                  | Resource          | Role                                                     |
-| ------------------------------------- | ----------------- | -------------------------------------------------------- |
-| `infra/connectors/sales-navigator.ts` | `defineConnector` | Sales Navigator, adopted: no key, no seat, no cookie     |
-| `infra/models/salesnav-companies.ts`  | `defineModel`     | the landing table: one row per extracted company         |
-| `infra/plays/promote-to-accounts.ts`  | `definePlay`      | resolve a domain, then upsert into the shared `accounts` |
+| File                            | Resource          | Role                                                         |
+| ------------------------------- | ----------------- | ------------------------------------------------------------ |
+| `infra/connectors/ai-ark.ts`    | `defineConnector` | AI Ark, adopted: no key, no seat, no cookie                  |
+| `infra/connectors/anthropic.ts` | `defineConnector` | the LLM behind the tiering agent, adopted                    |
+| `infra/folders/index.ts`        | `defineFolder`    | model / agent / play folders named after the skill           |
+| `infra/models/tam-companies.ts` | `defineModel`     | the universe: the ICP filter, the budget, the tier columns   |
+| `infra/agents/tier-analyst.ts`  | `defineAgent`     | one judgment per company, from the rubric plus web evidence  |
+| `infra/plays/tier-companies.ts` | `definePlay`      | one agent call per row, and the only write                   |
+| `infra/segments/tiers.ts`       | `defineSegment`   | the A / B / C / disqualified slices downstream work takes    |
+| `infra/context/*.md`            | (not a resource)  | example ICP and rubric to copy into the project's `context/` |
 
-## Why the domain resolution is not optional
+## Why the rubric is not in the prompt
 
-A Sales Nav company row carries a name and a LinkedIn company id, but **no
-domain**. The shared `accounts` model keys on `website`. A row that cannot be
-resolved to a website is therefore dropped rather than written, because a
-domainless account cannot be deduped and will quietly fork into duplicates the
-first time it appears in another list.
+Put it in the system prompt and three things stop being true: changing what tier
+A means becomes a deploy, the reason for the change stops being reviewable, and
+the rep who reads the tier can no longer read the file the agent read. In the project's `context/tiering-rubric.md` it is a
+commit, with a diff and a history. `infra/context/` is the example to copy
+there.
+
+## Why the agent cannot write
+
+`tam-tier-analyst` carries no model in `uses`. It hands back
+`{tier, rationale, evidence_url}` and the play persists it. Give the agent a
+writable model and an untiered row could be a failed run, a silent skip, or a
+judgment it chose not to record, with no way to tell which. The play's write is
+also the eligibility stamp, so a row can never be marked judged without carrying
+the judgment.
 
 ## Placeholders (edit before deploy)
 
-1. **Sub-search URLs** in `infra/models/salesnav-companies.ts` `config.urls`: your
-   real, counted, under-the-cap Sales Navigator company-search URLs.
-2. **The cap** in the same file, `config.limit`: keep at or below 1,000. A search
-   that returns exactly this number is truncated, which is the failure this
-   skill exists to prevent.
-
-The industry, geography, and headcount facets in a Sales Nav search are opaque
-LinkedIn ids. Build the searches in the Sales Nav UI and copy the URLs; there is
-no taxonomy lookup in the CDK.
-
-## Done when
-
-The sub-search extractions sum to roughly the count of the original giant search,
-no sub-search sits exactly at the cap (which would mean it is truncated), and the
-promoted accounts appear in `accounts` with a website, deduped across overlapping
-sub-searches.
+1. **The ICP and the rubric** — copy `infra/context/icp.md` and
+   `infra/context/tiering-rubric.md` into the project's `context/`. The example
+   is a technical B2B software ICP; nothing in it is yours.
+2. **The filter groups** in `infra/models/tam-companies.ts` `config`. Nested
+   groups, `_or` to include and `_not` to exclude, enum values from
+   `listIndustries` / `listSeniorities` / `listDepartmentsAndFunctions` /
+   `listFundingTypes`, numeric ranges as numbers.
+3. **`config.limit`** in the same file: the per-sync record budget, and the only
+   real cost control.
+4. **`languageModel`** in `infra/agents/tier-analyst.ts`.
 
 ## Cost
 
-Read this before pointing the skill at a market-sized search.
+Counting is free. Sourcing bills **per returned record**, so the estimate is
+`limit` times the current per-record price: fetch it with
+`cargo-ai connection integration get aiArk` immediately before any preview
+rather than trusting a number written here. Tiering is one agent run per newly
+sourced company, billed as LLM tokens plus its web searches, with `maxSteps` as
+the ceiling.
 
-Counting is a fraction of a credit and is the cheapest insurance here. The
-expensive step is promotion: **every promoted company costs two credited calls**
-(`matchBusiness` + `enrichBusinessFirmographics`), and there is no cheaper path,
-because Sales Nav returns no domain and both calls are needed to resolve one. A
-5,000-company TAM is therefore around 10,000 enrichment calls. That is the price
-of the outcome, not waste, but it is real money and you should decide to spend it
-on purpose.
-
-The promote play runs on `watch`, so it fires once per extracted row: promotion
-is **1:1 with extraction**, and the number of accounts you pay to enrich equals
-the number of rows your searches pull in. The cost control is therefore
-**upstream**, where the rows are created: the extraction cap in
-`infra/models/salesnav-companies.ts` (`config.limit`) and how many sub-search URLs you
-add. To spend less, extract less. Start with one small sub-search, watch it land
-correctly, then widen. There are no API keys to buy: everything is
-credits-based.
+The model carries **no schedule on purpose**. A cron re-runs the same search and
+re-bills every returned record, including the rows already in the model: a
+monthly refresh buys the handful of new companies at the price of the whole
+pool. Sourcing is a deliberate spend. The play is the part that stands, and
+because it runs on `changeKinds: ["added"]`, a tick that follows no sourcing run
+is a no-op — except the first enable, which must be followed by an explicit run
+so the rows that landed while the play was disabled are enrolled.
 
 ## Alternatives
 
-For a non-LinkedIn company source, the [Ark enrichment
-API](https://ai-ark.com/platform/enrichment-api) covers the same ground.
+For a LinkedIn-native source whose facet taxonomy may express your market
+better, swap the extractor for `salesNavigator.fetchAccountSearch`. It returns
+no domain, so you add a resolution step, and its extraction cap means splitting
+one market search into counted sub-searches.
+
+## Verification
+
+```sh
+node --import tsx evals/contract.mjs   # the graph boundaries, from the compiled registry
+cargo-ai cdk types && cargo-ai cdk check && cargo-ai cdk plan
+```
+
+`evals/acceptance.md` is the line-by-line acceptance test.
 
 ## Composes into
 
-`list-building` (the same split tactic for people), `contact-sourcing` (find the
-buyers at every account you just built), `account-scoring`, and
-`signal-based-tam` (watch the universe you just built for buying signals).
+`contact-sourcing` (the buyers at every tier A account), `crm-enrichment` (fill
+the records these accounts become), `signal-based-tam` (watch the universe you
+just built).

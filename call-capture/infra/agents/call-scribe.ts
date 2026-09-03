@@ -1,7 +1,7 @@
 import { defineAgent, secret } from "@cargo-ai/cdk";
 
 import { callScribePrompt } from "./call-scribe.prompt";
-import { agentsFolder } from "../folders/call-capture";
+import { agentsFolder } from "../folders";
 
 // The scribe: a Claude Code harness agent, not a streamText agent.
 //

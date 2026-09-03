@@ -1,7 +1,7 @@
 import { defineTool, defineWorkflow } from "@cargo-ai/cdk";
 import { z } from "zod";
 
-import { toolsFolder } from "../folders/agentic-engagement";
+import { toolsFolder } from "../folders";
 import { rep } from "../mailboxes/rep";
 
 // The agent's only send path. An agent cannot call `sendEmail` directly, so

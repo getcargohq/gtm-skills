@@ -68,13 +68,14 @@
 // same words describe both, so these cases pin which way each phrasing goes;
 // a pipeline skill that starts winning the one-off prompts has stolen them.
 {"prompt": "Our TAM is a stale CSV, I want it to stay current", "expect": "tam-building", "why": "The standing tell, in the user's words: keep it current."}
-{"prompt": "The Sales Navigator search has way more companies than it will let me export", "expect": "tam-building", "why": "The extraction-cap problem is what this skill exists for."}
+{"prompt": "Source companies matching our ICP and keep every one of them tiered", "expect": "tam-building", "why": "Source and judge, standing: the two halves of this pipeline in one sentence."}
 {"prompt": "Build our account universe and keep loading new companies into it", "expect": "tam-building"}
-{"prompt": "Stand up a pipeline that builds our market from LinkedIn company searches", "expect": "tam-building"}
+{"prompt": "Stand up a pipeline that builds our market and tells us which accounts are worth a rep", "expect": "tam-building"}
 {"prompt": "Build a TAM list of seed-stage SaaS companies in Europe", "expect": "build-tam-list", "why": "Same words as tam-building, opposite intent: a list today, not a pipeline."}
 {"prompt": "How many companies match our ICP in DACH?", "expect": "build-tam-list", "why": "A count is a one-off."}
 {"prompt": "Keep our accounts scored as they arrive and re-score when the ICP changes", "expect": "account-scoring"}
 {"prompt": "Our lead scoring is a spreadsheet nobody trusts", "expect": "account-scoring"}
+{"prompt": "The accounts are already in our CRM, we just need them tiered against the ICP", "expect": "account-scoring", "why": "A book that already exists is account-scoring; tam-building is for the book that does not exist yet."}
 {"prompt": "Why is this account tier A?", "expect": "account-scoring", "why": "Only the deployed scorer writes a rationale anyone can read back."}
 {"prompt": "Score this list of 200 companies against our ICP and rank them", "expect": "score-leads", "why": "A supplied list, scored once: the one-off, not the deployed scorer."}
 {"prompt": "Keep our CRM accounts filled", "expect": "crm-enrichment"}

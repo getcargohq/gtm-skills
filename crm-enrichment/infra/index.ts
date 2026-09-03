@@ -6,11 +6,7 @@ import {
   defineWorkflow,
 } from "@cargo-ai/cdk";
 import { z } from "zod";
-import {
-  modelsFolder,
-  playsFolder,
-  toolsFolder,
-} from "./folders/crm-enrichment";
+import { modelsFolder, playsFolder, toolsFolder } from "./folders";
 
 // Checked HubSpot example. For Salesforce or Attio, replace the connector
 // integration, the account extractor (HubSpot object: companies), the

@@ -523,9 +523,9 @@
     {
       "name": "tam-building",
       "kind": "cookbook",
-      "job": "Stand up your account universe as a deployed pipeline: a Sales Navigator company search split past the 1,000 extraction cap, resolved to real domains, deduped into a shared accounts model.",
-      "description": "Stand up your account universe as a deployed pipeline: a Sales Navigator company search split past the 1,000 extraction cap, resolved to real domains, deduped into a shared accounts model. Triggers: \"our TAM is a stale CSV\", \"build our account universe\", \"the search has more companies than it will export\", \"keep our market list current\", \"size our market then load it\". Cargo CDK, salesNavigator, searchCompanyMetrics, fetchAccountSearch, accounts model. Skip when: you want the list once rather than a pipeline that keeps producing it, which is cargo-gtm's build-tam recipe.",
-      "version": "0.2.0",
+      "job": "Stand up your account universe as a deployed pipeline: an AI Ark company search shaped by your ICP, sized for free before it bills, then tiered A / B / C / disqualified by an agent that reads your rubric from the workspace context and web-searches the evidence the sourced row does not carry.",
+      "description": "Stand up your account universe as a deployed pipeline: an AI Ark company search shaped by your ICP, sized for free before it bills, then tiered A / B / C / disqualified by an agent that reads your rubric from the workspace context and web-searches the evidence the sourced row does not carry. Triggers: \"our TAM is a stale CSV\", \"build our account universe\", \"source companies matching our ICP and rank them\", \"keep our market list current\", \"which of these companies are actually worth a rep\", \"tier the market we just sourced\". Cargo CDK, aiArk, countCompanies, fetchCompanies, agent tiering, workspace context, webSearch. Skip when: you want the list once rather than a pipeline that keeps producing it, which is build-tam-list; or the accounts already exist in a CRM or an accounts model and only need judging, which is account-scoring.",
+      "version": "0.3.0",
       "homepage": "https://github.com/getcargohq/gtm-skills/tree/main/tam-building",
       "group": "Make it run forever",
       "install": "cargo-ai cdk add cookbook/tam-building",
@@ -533,63 +533,106 @@
       "state": "to-be-approved",
       "chain": 2,
       "resources": [
+        "agents",
         "connectors",
         "folders",
         "models",
-        "plays"
+        "plays",
+        "segments"
       ],
       "asked": [
         {
-          "input": "marketSearch",
-          "kind": "manual",
-          "how": "**checked, not written**: Paste the Sales Navigator company search that describes your whole market, however oversized it is",
-          "why": "This is the only input that cannot be derived: it encodes who you sell to. Everything else in this skill is arithmetic on top of it."
+          "input": "icp",
+          "kind": "derived",
+          "how": "Read the workspace context repository first (`cargo-ai context …`, or the project's defineContext directory). Ask only when no ICP is written down anywhere, and then write it to the project's context/icp.md",
+          "why": "It is the one thing that cannot be computed: it encodes who you sell to. Everything else here is arithmetic or judgment on top of it"
         },
         {
-          "input": "searchUrls` (`infra/models/salesnav-companies.ts`)",
-          "kind": "value",
-          "how": "**derived**: cargo-ai orchestration action execute --action salesNavigator.searchCompanyMetrics --data '{\"url\":\"<marketSearch>\"}' returns total_results. Over the cap, split by facet (industry first, descending the LinkedIn taxonomy only where still oversized, then geography, then headcount band) and recount each sub-search until every one is under the cap.",
-          "why": "A search holding 4,000 companies extracts 1,000 and tells you nothing about the missing 3,000. Splitting under the cap is the entire point of this skill."
+          "input": "sourcing_filter",
+          "kind": "derived",
+          "how": "Translate the ICP into AI Ark filter groups (`industry`, `employeeSize`, `companyType`, `employeeRole`, `technologies`, `funding`, …), resolving enum-backed values through `listIndustries` and its siblings",
+          "why": "A flat map is ignored silently and a guessed enum member matches nothing. Either way you source a market nobody described"
         },
         {
-          "input": "limit` (`infra/models/salesnav-companies.ts`)",
-          "kind": "value",
-          "how": "defaults to `1000`; ask only to change it",
-          "why": "This is the upstream cost control. Promotion is 1:1 with extraction, so what you extract is what you pay to enrich."
+          "input": "pool_size",
+          "kind": "derived",
+          "how": "The JSON --action form in references/configure.md: aiArk.countCompanies with the same filter groups. It is free and returns {\"count\": N}",
+          "why": "It is the only number that turns \"is this filter right\" into a question with an answer, and it costs nothing to ask"
+        },
+        {
+          "input": "limit",
+          "kind": "derived",
+          "how": "Defaults to a fraction of the counted pool for the first run; widen once rows land correctly. Ask only to change it",
+          "why": "fetchCompanies` bills per returned record, so this is the invoice. Sourcing wide and filtering later means paying for every company the rubric will throw away"
+        },
+        {
+          "input": "tier_rubric",
+          "kind": "asked",
+          "how": "Propose A / B / C / disqualified from the ICP's own language, then have the operator correct it. It is written to the project's context/tiering-rubric.md, not into the agent prompt",
+          "why": "It is what the whole book gets judged against, and the one thing the operator will want to change next month without a deploy"
+        },
+        {
+          "input": "llm",
+          "kind": "derived",
+          "how": "Inspect the authenticated LLM connectors and pick the one already in use, with its current model slug",
+          "why": "A second LLM connector is a collision at deploy, and a stale model slug fails at run time rather than at plan time"
         }
       ],
       "canChange": [
         {
-          "id": "non-linkedin-source",
-          "when": "You do not want to source from LinkedIn at all, or Sales Nav does not cover your market",
-          "how": "Swap the Sales Nav connector and landing model for the Ark enrichment API (https://ai-ark.com/platform/enrichment-api), keeping `promote-to-accounts` and the `accounts` contract unchanged (`infra/models/salesnav-companies.ts`, `infra/connectors/sales-navigator.ts`)",
-          "cost": "You lose the Sales Nav facet taxonomy that makes the split tactic mechanical, and the splitting has to be redesigned around the new source's own limits"
+          "id": "lookalike-sourcing",
+          "when": "Your best customers describe the ICP better than any facet does, which is usual before a segment is written down",
+          "how": "Add `lookalikeDomains` (up to five domains or LinkedIn URLs) to the model config beside the filter groups (`infra/models/tam-companies.ts`)",
+          "cost": "The pool is shaped by the seeds rather than by anything written down, so it drifts from `icp.md` and `countCompanies` becomes the only way to see what you asked for"
         },
         {
-          "id": "land-without-promoting",
-          "when": "You want to see and filter the raw market before paying to enrich it",
-          "how": "Deploy the landing model only and leave `promote-to-accounts` out until you have decided which rows are worth promoting (`infra/plays/promote-to-accounts.ts`)",
-          "cost": "Nothing reaches `accounts`, so no downstream skill (scoring, contact sourcing, signals) has anything to work with until you promote"
+          "id": "refresh-cadence",
+          "when": "The market moves and a one-time source goes stale",
+          "how": "Give the model a cron and widen `limit` (`infra/models/tam-companies.ts`), then read the deleting-a-schedule warning in that file before you ever remove it again",
+          "cost": "Every run re-bills every returned record, including the rows you already have: a monthly refresh buys the handful of new companies at the price of the whole pool"
         },
         {
-          "id": "sample-first",
-          "when": "The market search is large and you want to see the cost curve before committing",
-          "how": "Set `config.limit` well below the cap and start with one sub-search URL, then widen once rows land correctly (`infra/models/salesnav-companies.ts`)",
-          "cost": "Your TAM is deliberately incomplete until you widen it, so do not score or report on coverage from a sample"
+          "id": "promote-to-shared-accounts",
+          "when": "The project already has an `accounts` model that scoring, routing, and signals all read",
+          "how": "Add a play that upserts tiered rows into that model keyed on its identity column, and leave `tam_companies` as the landing table",
+          "cost": "One more resource and one more dedupe key to keep true; a row that cannot resolve to that key has to be dropped rather than written, or it forks into duplicates the first time it appears elsewhere"
+        },
+        {
+          "id": "sales-navigator-source",
+          "when": "Your market is expressed better by LinkedIn's facet taxonomy than by AI Ark's filter groups",
+          "how": "Swap the connector and the extractor for `salesNavigator.fetchAccountSearch` over a list of search URLs, keeping the agent, the play, and the tier segments unchanged",
+          "cost": "Sales Nav returns no domain, so you add a resolution step of two credited calls per company; and its extraction cap forces splitting one market search into sub-searches and recounting each"
+        },
+        {
+          "id": "deterministic-tiering",
+          "when": "The rubric turns out to be thresholds (headcount band, industry, funding stage) with no judgment in it",
+          "how": "Delete the agent and write the tier in the play from the sourced columns, or push the thresholds up into the sourcing filter where they cost nothing",
+          "cost": "You lose the rationale a rep reads and the web-verified evidence, which is most of what makes a tier trusted rather than obeyed"
         }
       ],
       "shouldNotChange": [
-        "**Every company is resolved to a real domain before it is promoted into `accounts`.** (`infra/plays/promote-to-accounts.ts`) The shared `accounts` model keys on `website`. A domainless account cannot be deduped, so it forks into duplicates the first time the same company appears in another list. This is why a row that cannot be resolved is dropped rather than written.",
-        "**Every search is counted before it is extracted.** (`infra/models/salesnav-companies.ts`) Extracting blind is how you take a silently truncated list: the search holds 4,000 companies, the extractor takes 1,000, and nothing tells you the rest exist.",
-        "**No sub-search sits at or above the extraction cap.** (`infra/models/salesnav-companies.ts`) A search returning exactly the cap is truncated. That is the failure this whole skill exists to prevent, and it is invisible unless you check the number."
+        "**Every filter is counted before it is sourced.** (`infra/models/tam-companies.ts`) `countCompanies` takes the same groups and is free. Sourcing blind is how a filter that reads right returns a market ten times the size you meant, already billed per record, with no signal that anything went wrong.",
+        "**The ICP filter is the narrowing, and there is no post-filter.** (`infra/models/tam-companies.ts`) Every returned record is paid for, so a company the rubric will disqualify was bought before it was judged. A large disqualified segment is a filter that is too wide, not an agent that is too harsh.",
+        "**Filter groups are nested, and enum values come from the autocompletes.** (`infra/models/tam-companies.ts`) A flat `{\"industry\": \"Software\"}` is ignored silently and sources the whole database up to `limit`. A guessed enum member matches nothing and returns an empty sync that looks like a broken connector.",
+        "**The rubric lives in the workspace context, not in the system prompt and not in code.** (`context/tiering-rubric.md` in the project's knowledge layer; `infra/context/` is the example to copy there.) Put it in the prompt and changing what tier A means becomes a deploy, the reason for the change stops being reviewable, and the rep reading the tier can no longer read the same file the agent read.",
+        "**The agent judges and the play writes.** (`infra/agents/tier-analyst.ts`, `infra/plays/tier-companies.ts`) The agent carries no model in `uses`. Give it one and it decides its own routing, at which point an untiered row could be a failed run, a silent skip, or a judgment it chose not to record, and you cannot tell which.",
+        "**Custom columns are written with their bare slugs.** (`infra/plays/tier-companies.ts`) `custom__` is the read-side alias only. The write path nests the declared slug under `custom` itself, so a prefixed slug produces `custom.custom__tier`, the node reports \"Record upserted\", and the value is dropped. The failure looks like a play that ran perfectly over a book with no tiers in it.",
+        "**Eligibility is the stamp, not the tier.** (`infra/plays/tier-companies.ts`) Filter on `tiered_at` being null or stale. Filter on the tier column instead and a run that failed looks identical to a row waiting its turn, while a legitimate `disqualified` verdict gets re-judged forever.",
+        "**`changeKinds: [\"added\"]` stays.** (`infra/plays/tier-companies.ts`) Runs are created for rows entering the segment, so the LLM bill scales with how many companies you sourced. Drop it and it scales with how often the cron fires. After the first sync (play still disabled), enable and execute the play once: `added` does not backfill rows that landed while it was off.",
+        "**A tier ships with its rationale, its evidence, and its stamp, on the same write.** (`infra/plays/tier-companies.ts`) A tier nobody can audit is a number a rep will not trust, and a row marked judged without a judgment is worse than one that was never judged."
       ],
       "doneWhen": [
-        "the sub-search extractions sum to roughly the count of the original whole-market search",
-        "no sub-search returned exactly the cap, which would mean it is still truncated",
-        "promoted accounts appear in `accounts` with a website, deduped across overlapping sub-searches"
+        "`countCompanies` was run for the filter actually deployed, and its number is recorded before any sourcing run",
+        "the sync landed rows, the row count is at or under `limit`, and the extractor's real column names match the workflow input",
+        "every row carries a tier the rubric defines, a rationale naming the deciding lines, and a `tiered_at` stamp",
+        "no row carries a stamp with an empty tier, and no row carries a tier with an empty stamp",
+        "the tier segments (`tam-tier-a`, `tam-tier-b`, `tam-tier-c`, `tam-disqualified`) resolve, and their counts sum to the tiered row count",
+        "the agent's evaluator pass rate is at or above its threshold, and a failing sample reads as a genuinely hard company rather than a missing rubric",
+        "editing `tiering-rubric.md` in the context repo changes the next tier with no deploy",
+        "`node --import tsx evals/contract.mjs` passes against the adapted resources"
       ],
-      "cost": "Counting is a fraction of a credit and is the cheapest insurance here. **Promotion is the\nexpensive step:** every promoted company costs two credited calls (`matchBusiness` +\n`enrichBusinessFirmographics`), because Sales Nav returns no domain and both are needed to resolve\none. A 5,000-company TAM is roughly 10,000 enrichment calls. That is the price of the outcome, not\nwaste, but it is real money and it should be spent on purpose.\n\nThe control is upstream, where the rows are created: `config.limit` and how many sub-search URLs\nyou add. **To spend less, extract less.** Start with one small sub-search, watch it land correctly,\nthen widen.",
-      "composesInto": "`list-building` (the same split tactic for people), `contact-sourcing` (the buyers at every account\nyou just built), `account-scoring`, `signal-based-tam` (watch the universe you just built)."
+      "cost": "Read this before pointing the skill at a market-sized filter.\n\n**Counting is free**, and it is the cheapest insurance in this skill: `aiArk.countCompanies` takes\nthe same filter groups as the search and returns the pool size without billing. Run it for every\ncandidate filter, every time you widen one.\n\n**Sourcing is the spend, and it is per returned record, not per call.** Immediately before every\npreview, run `cargo-ai connection integration get aiArk` and read the current entry under\n`integration.actions.searchCompanies.credits.costs`; the `fetchCompanies` extractor bills on the same\nper-record basis. Record the CLI version, the lookup time, and the unit price. The estimate is\n`limit * unit price`, which is why `limit` is the only control that matters: **to spend less, source\nless.** Start well under the counted pool, watch the rows land and the tiers come back sane, then\nwiden.\n\n**Tiering is one agent run per newly sourced company**, billed as LLM tokens through the adopted\nconnector plus whatever web search steps it takes. `maxSteps` is the per-company ceiling and the\nrubric's one-question-one-search rule is what keeps a normal row far below it. Because the play runs\non `changeKinds: [\"added\"]`, steady state is only the companies a sourcing run newly added, plus\nwhatever comes back when its six-month stamp expires. A tick that follows no sourcing run is a no-op.\n\nThe model deliberately carries **no schedule**, because a cron re-runs the same search and re-bills\nevery returned record, including the rows already sitting in the model. Sourcing is a deliberate\nspend; the tiering play is the part that stands. See `refresh-cadence` above for what a recurring\nsource really costs.",
+      "composesInto": "`contact-sourcing` (the buyers at every tier A account), `crm-enrichment` (fill the records these\naccounts become), `signal-based-tam` (watch the universe you just built). `account-scoring` is the\nsibling for a book that already exists, not the next step after this skill has already tiered the\nrow."
     },
     {
       "name": "track-funding-rounds",
