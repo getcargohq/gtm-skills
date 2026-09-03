@@ -60,6 +60,7 @@
         "crm-enrichment",
         "crm-deduplication",
         "call-capture",
+        "standup",
         "agentic-engagement"
       ]
     }

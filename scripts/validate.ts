@@ -502,6 +502,8 @@ async function checkPluginChannel(skillNames: string[]): Promise<void> {
     "twenty-two",
     "twenty-three",
     "twenty-four",
+    "twenty-five",
+    "twenty-six",
   ];
   const spelled = WORDS[count];
   for (const [label, manifest] of [
