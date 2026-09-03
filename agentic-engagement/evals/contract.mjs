@@ -6,13 +6,6 @@ await import(`../infra/agents/engager.ts?contract=${Date.now()}`);
 
 const byId = new Map(resources().map((resource) => [resource.id, resource]));
 
-const nodesFor = (id) => {
-  const resource = byId.get(id);
-  assert.ok(resource, `${id} must exist`);
-  assert.ok(Array.isArray(resource.spec.nodes), `${id} must have workflow nodes`);
-  return resource.spec.nodes;
-};
-
 const findOne = (nodes, predicate, message) => {
   const matches = nodes.filter(predicate);
   assert.equal(matches.length, 1, message);
@@ -21,23 +14,40 @@ const findOne = (nodes, predicate, message) => {
 
 assert.ok(byId.get("domain:example-outreach.com"), "defineDomain must exist");
 assert.ok(byId.get("mailbox:rep"), "defineMailbox(rep) must exist");
-
-const toolNodes = nodesFor("tool:send-email");
-findOne(
-  toolNodes,
-  (node) => node.kind === "native" && node.actionSlug === "sendEmail",
-  "send-email must contain exactly one native sendEmail node",
-);
-
-const tool = byId.get("tool:send-email");
 assert.equal(
-  tool.spec.formFields.some((field) => field.slug === "mailboxUuid"),
+  byId.has("tool:send-email"),
   false,
-  "mailboxUuid must be pinned in the workflow, not exposed as a form field",
+  "sendEmail must be a native action on the agent, not a wrapped tool",
+);
+assert.equal(
+  byId.has("folder:agentic-engagement-tools"),
+  false,
+  "the tools folder must not exist once the send wrapper is gone",
 );
 
 const agent = byId.get("agent:engager");
 assert.ok(agent, "defineAgent(engager) must exist");
+
+const nativeActions = agent.spec.nativeActions ?? [];
+const send = findOne(
+  nativeActions,
+  (action) => action.actionSlug === "sendEmail",
+  "engager must use native sendEmail",
+);
+assert.ok(
+  send.config?.mailboxUuid,
+  "mailboxUuid must be locked on the sendEmail use, not left for the agent to pick",
+);
+findOne(
+  nativeActions,
+  (action) => action.actionSlug === "listEmailEvents",
+  "engager must use native listEmailEvents so a heartbeat can read thread status",
+);
+assert.equal(
+  (agent.spec.tools ?? []).length,
+  0,
+  "engager must not wrap sendEmail in a tool",
+);
 
 const nativeEmail = findOne(
   agent.spec.triggers,
@@ -74,8 +84,8 @@ assert.ok(
 assert.equal(typeof heartbeat.prompt, "string");
 assert.match(
   heartbeat.prompt,
-  /status/i,
-  "heartbeat prompt must tell the agent to check thread status",
+  /listEmailEvents/i,
+  "heartbeat prompt must tell the agent to list thread events",
 );
 
 console.log("ok: agentic-engagement contract");

@@ -6,16 +6,11 @@ import { defineFolder } from "@cargo-ai/cdk";
 // and what else came with it" by looking. It is also what makes removing a
 // skill bounded rather than a hunt.
 //
-// Folders are per-kind, which is why there are three: this skill deploys a
-// mailbox, a tool and an agent, and each kind is filed separately. Domains
+// Folders are per-kind, which is why there are two: this skill deploys a
+// mailbox and an agent, and each kind is filed separately. Domains
 // have no folder kind.
 export const mailboxesFolder = defineFolder("agentic-engagement-mailboxes", {
   kind: "mailbox",
-  name: "Agentic engagement",
-});
-
-export const toolsFolder = defineFolder("agentic-engagement-tools", {
-  kind: "tool",
   name: "Agentic engagement",
 });
 
