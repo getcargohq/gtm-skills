@@ -60,6 +60,7 @@
         "crm-enrichment",
         "call-capture",
         "standup",
+        "weekly-planning",
         "agentic-engagement"
       ]
     }
