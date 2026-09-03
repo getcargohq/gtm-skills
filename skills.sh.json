@@ -5,7 +5,11 @@
     {
       "title": "Coming from another tool",
       "description": "Rebuild what you already have: mapped column by column, priced before it runs, kept as code.",
-      "skills": ["clay-to-cargo", "apollo-to-cargo", "zoominfo-to-cargo"]
+      "skills": [
+        "clay-to-cargo",
+        "apollo-to-cargo",
+        "zoominfo-to-cargo"
+      ]
     },
     {
       "title": "Find the accounts and the people",
@@ -42,7 +46,10 @@
     {
       "title": "Decide who is worth the time",
       "description": "Rank a list against your profile, then understand the one account before you walk into the call.",
-      "skills": ["score-leads", "research-account"]
+      "skills": [
+        "score-leads",
+        "research-account"
+      ]
     },
     {
       "title": "Make it run forever",
@@ -50,7 +57,9 @@
       "skills": [
         "tam-building",
         "account-scoring",
-        "crm-enrichment"
+        "crm-enrichment",
+        "call-capture",
+        "agentic-engagement"
       ]
     }
   ]

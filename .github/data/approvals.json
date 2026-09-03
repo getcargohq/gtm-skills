@@ -16,5 +16,17 @@
     "chain": 2,
     "demoWorkspace": null,
     "implementations": []
+  },
+  "call-capture": {
+    "state": "to-be-approved",
+    "chain": 4,
+    "demoWorkspace": null,
+    "implementations": []
+  },
+  "agentic-engagement": {
+    "state": "to-be-approved",
+    "chain": 5,
+    "demoWorkspace": null,
+    "implementations": []
   }
 }

@@ -1,0 +1,14 @@
+{
+  "//": "The cookbooks' runnable scripts (`*/scripts/**`), which the root tsconfig deliberately excludes. They are node code — they read the filesystem and the environment — while `*/infra/**` is declarative resource code that must stay node-free, so the two cannot share one `types` setting. Both run under `npm run typecheck`. A consumer project needs nothing like this: `cargo-ai cdk init` already covers `scripts/**/*.ts` with node types from its root tsconfig.",
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "strict": true,
+    "skipLibCheck": true,
+    "noEmit": true,
+    "types": ["node"]
+  },
+  "include": ["*/scripts/**/*.ts"],
+  "exclude": ["node_modules"]
+}

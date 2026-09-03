@@ -7,7 +7,7 @@ markdown, and accounts re-score against it as they come due.
 ## What it does
 
 - Keeps the scoring criteria where the ICP already lives: the context repo
-  (`infra/context/icp.md`, an example ICP; if the project already has a context repo, the ICP goes there) — versioned in git, reviewable, and
+  (the repo's root `context/`, which the project's own `defineContext` syncs) — versioned in git, reviewable, and
   shared with every other agent.
 - An agent scores every account when it arrives, and re-scores stale ones (last
   scored 3+ months ago) on a weekly sweep: it looks the account up in Cargo's
@@ -42,7 +42,7 @@ holds.
 
 ## Placeholders (edit before deploy)
 
-1. **The ICP itself** — `infra/context/icp.md`: the criteria ARE
+1. **The ICP itself** — the repo's root `context/`: the criteria ARE
    the prompt; disqualifiers matter as much as fit signals.
 2. **Language model** — `infra/agents/scorer.ts`.
 3. **Score columns** — `cargo_score`, `cargo_tier`, `cargo_rationale`, and

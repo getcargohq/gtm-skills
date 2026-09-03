@@ -16,7 +16,6 @@
       "resources": [
         "agents",
         "connectors",
-        "context",
         "folders",
         "models",
         "plays",
@@ -24,9 +23,9 @@
       ],
       "asked": [
         {
-          "input": "icp` (`infra/context/icp.md`)",
+          "input": "icp` (the repo's root `context/`)",
           "kind": "generated",
-          "how": "**derived**: If the workspace already has closed-won and closed-lost data, extract the industry, size, geography and stack that separate won from lost accounts and propose the ICP from it rather than asking cold.",
+          "how": "**derived**: If the workspace already has closed-won and closed-lost data, extract the industry, size, geography and stack that separate won from lost accounts and propose the ICP from it rather than asking cold. Write it to the knowledge layer at the repository root — `context/icp/` in a scaffolded repo — which the project's own `defineContext` already syncs. This skill declares none: it is a per-workspace singleton, and a second one collides at deploy.",
           "why": "The criteria ARE the prompt. There are no point weights in code, so a vague ICP produces vague scores and the disqualifiers are what cap a bad account at 20."
         },
         {
@@ -84,6 +83,100 @@
       "composesInto": "`routing-engine` (territories and capacity over the scored book), `rep-cockpit`, `ai-sdr`."
     },
     {
+      "name": "agentic-engagement",
+      "kind": "cookbook",
+      "job": "Deploy an agent that holds email conversations with leads: a sending domain, a mailbox, a native email trigger on reply and unsubscribe, and a heartbeat that checks thread status when nothing inbound happened.",
+      "description": "Deploy an agent that holds email conversations with leads: a sending domain, a mailbox, a native email trigger on reply and unsubscribe, and a heartbeat that checks thread status when nothing inbound happened. Triggers: \"handle email conversations with leads\", \"agentic engagement\", \"an agent that replies to inbound email\", \"stand up a conversation agent on a Cargo mailbox\", \"native email trigger for lead replies\", \"keep talking to leads over email\". Cargo CDK, defineDomain, defineMailbox, defineAgent, agentNativeTrigger, heartbeat, sendEmail. Skip when: you want to send one email right now, which is a native sendEmail from the CLI and needs nothing deployed; or you want a play that blasts a list rather than holding a thread.",
+      "version": "0.1.0",
+      "homepage": "https://github.com/getcargohq/gtm-skills/tree/main/agentic-engagement",
+      "group": "Make it run forever",
+      "install": "cargo-ai cdk add cookbook/agentic-engagement",
+      "partOf": [],
+      "state": "to-be-approved",
+      "chain": 5,
+      "resources": [
+        "agents",
+        "connectors",
+        "domains",
+        "folders",
+        "mailboxes",
+        "tools"
+      ],
+      "asked": [
+        {
+          "input": "sendingDomain` (`infra/domains/outreach.ts`)",
+          "kind": "value",
+          "how": "**derived**: a domain the workspace already owns is adopted (`adopt: true`). There is no CLI list for sending domains — read `cargo.state.json`, the Cargo UI, or an existing `defineDomain`. Ask for the name only when nothing is found.",
+          "why": "A mailbox cannot be created on a domain the workspace does not own. Registering a second copy of a domain the workspace already has fails instead of binding."
+        },
+        {
+          "input": "mailboxIdentity` (`infra/mailboxes/rep.ts`)",
+          "kind": "asked",
+          "how": "first name, last name, and username of a real person. The From header is what the lead sees.",
+          "why": "A fabricated sender is refused. Domain, username and type are create-only; getting the local part wrong means destroy plus a new inbox."
+        },
+        {
+          "input": "languageModel` (`infra/connectors/openai.ts`)",
+          "kind": "value",
+          "how": "**derived**: whichever LLM connector is already authenticated in the workspace",
+          "why": "Conversation quality and per-turn cost both live here."
+        },
+        {
+          "input": "mailboxCharge",
+          "kind": "asked",
+          "how": "cargo-ai mailboxManagement pricing get` for the chosen type, said out loud as a recurring cost, approved before apply",
+          "why": "A mailbox bills every month until `destroy`. Silence is not approval of a fleet."
+        }
+      ],
+      "canChange": [
+        {
+          "id": "register-domain",
+          "when": "The workspace does not yet own a sending domain",
+          "how": "Drop `adopt: true` on `defineDomain`. Do not add `dnsRecords` unless you mean to replace the whole zone (`infra/domains/outreach.ts`)",
+          "cost": "Registration charges workspace credits and is not refundable. The deploy waits until the domain is `active` before creating the mailbox."
+        },
+        {
+          "id": "mailbox-type",
+          "when": "Shared or private SMTP fits better than Google",
+          "how": "Change `type` on `defineMailbox` (`infra/mailboxes/rep.ts`). `outlook` is not in the union: Graph delivery has not shipped.",
+          "cost": "Type is create-only. Changing it later is a new inbox and a reset ramp. Live `pricing get` for the new flavour."
+        },
+        {
+          "id": "adopt-mailbox",
+          "when": "The inbox already exists in the workspace",
+          "how": "Set `adopt: true` on `defineMailbox` at the existing `username@domain` (`infra/mailboxes/rep.ts`)",
+          "cost": "Adopting never falls back to creating. The wrong address fails deploy instead of minting a second inbox."
+        },
+        {
+          "id": "first-touch-play",
+          "when": "New leads should get a first email without a human starting the chat",
+          "how": "Add a play that calls the engager with a prompt naming the lead, then let this trigger own every reply. Keep the play's send path as a call to the agent, not a second `sendEmail`.",
+          "cost": "A play that sends without going through the agent starts threads the native trigger will never wake, because the trigger keys off chats *this agent* has emailed."
+        }
+      ],
+      "shouldNotChange": [
+        "**The loop is the native email trigger plus the heartbeat.** (`infra/agents/engager.ts`) Trigger `kinds` are `replied` and `unsubscribed` — inbound status. The heartbeat re-wakes a chat whose thread stayed at `sent` so the agent can check that status. A cron trigger, or `kinds` that include `opened` / `interacted`, either never continues the thread or writes when nobody asked. `sendEmail` wakes the chats *this* agent has emailed; a send from a play that bypasses the agent is invisible to it. Dropping the heartbeat makes silence a dead chat.",
+        "**The send-email tool pins the mailbox uuid. It is not a form field.** (`infra/tools/send-email.ts`) An agent cannot call `sendEmail` directly. A tool that lets the agent pick a mailbox sends from an inbox the trigger is not watching, and the run looks successful.",
+        "**A reply carries `inReplyTo` and the full `references` chain, oldest first.** (`infra/agents/engager.prompt.ts`) Passing only the parent Message-ID is how mail clients split the conversation. The next wake then has no thread to continue.",
+        "**Domain, username and type on the mailbox are create-only.** (`infra/mailboxes/rep.ts`) Editing them in place is not an update. It is destroy plus a new inbox, back at five real sends a day, with a new address the lead does not know.",
+        "**`dnsRecords` is omitted unless this file is meant to own the zone.** (`infra/domains/outreach.ts`) Declaring it replaces every live record, including the ones the registrar wrote at purchase.",
+        "**The From name is a real person.** (`infra/mailboxes/rep.ts`) A fabricated sender is a refusal, not a configuration question.",
+        "**No credentials, deploy commands, or customer data in this repository.**"
+      ],
+      "doneWhen": [
+        "`cargo-ai cdk plan` reports the domain, the mailbox, the send-email tool and the engager, and the operator approved the monthly mailbox line against a live `pricing get`",
+        "`node --import tsx evals/contract.mjs` passes: the agent trigger is native `email` with `kinds: [\"replied\", \"unsubscribed\"]`, a heartbeat is declared whose prompt names status, the tool contains one `sendEmail` node, and `mailboxUuid` is not a form field",
+        "the mailbox reaches `active` (`cargo-ai mailboxManagement mailbox refresh-status`) and warm-up has been started (`mailbox start-warmup`) so the send ramp can climb",
+        "a first send to yourself delivers from the declared address",
+        "a reply to that send wakes the engager without a human prompting it",
+        "the agent's reply lands in the same thread in the mailbox (same subject, `In-Reply-To` set), not as a new conversation",
+        "a second reply continues that same thread; an unsubscribe or \"not interested\" produces no further send",
+        "an unanswered first send is still a live chat: the heartbeat is declared, and the agent treats that wake as a status check, not a sequence"
+      ],
+      "cost": "A mailbox is a **monthly, recurring** charge for as long as it exists. Immediately before the\nplan, run `cargo-ai mailboxManagement pricing get` and read `monthlyCredits` for the chosen type.\nSay that number out loud as a per-month cost, not a one-off. `destroy` is the only way it stops.\n\nIf the plan also shows `+ create domain:…`, that registration is a separate, non-refundable\ncharge. Adopting an existing domain does not.\n\nEach delivery is a `sendEmail` native action. Run `cargo-ai connection native-integration\nget` (or `orchestration action list sendEmail`) for the current per-send cost. The engager\nadds one LLM turn per wake, including heartbeats. The per-thread cap is the cost control:\none send per wake, at most one unanswered follow-up, and a stop when the lead closes.\n\nA mailbox that never starts warm-up stays at the floor of five real sends a day. Starting\nwarm-up is what moves the ramp; it takes forty-five days to finish. Check\n`mailbox get-send-allowance` before promising volume.",
+      "composesInto": "`account-scoring` (the engager should be talking to accounts the scorer already ranked),\n`call-capture` (a conversation that becomes a meeting is a call worth scribing),\n`crm-enrichment` (the record the thread is about should already be filled)."
+    },
+    {
       "name": "apollo-to-cargo",
       "kind": "one-off",
       "job": "Rebuild an Apollo list on Cargo and price the two side by side before you move anything, powered by Cargo.",
@@ -104,6 +197,87 @@
       "group": "Find the accounts and the people",
       "install": "npx skills add getcargohq/gtm-skills/build-tam-list",
       "partOf": []
+    },
+    {
+      "name": "call-capture",
+      "kind": "cookbook",
+      "job": "Every call the team records is collected into the cadence layer each morning, scribed into a log entry, and — once a claim repeats — promoted into the context knowledge layer, as one reviewable pull request against your GTM repo.",
+      "description": "Every call the team records is collected into the cadence layer each morning, scribed into a log entry, and — once a claim repeats — promoted into the context knowledge layer, as one reviewable pull request against your GTM repo. Triggers: \"our call recordings never make it into the knowledge base\", \"turn our call transcripts into context\", \"keep our context updated from sales calls\", \"we relearn the same objection every quarter\", \"scribe yesterday's calls into the repo every morning\", \"replace the GitHub Action that summarizes our meetings\". Cargo CDK, defineAgent, harnessSlug claudeCode, repository env, GitHub, Avoma, Gong, Fireflies, cadence, context. Skip when: you want one call summarized right now, which is a read against the recorder's own API and needs nothing deployed.",
+      "version": "0.1.0",
+      "homepage": "https://github.com/getcargohq/gtm-skills/tree/main/call-capture",
+      "group": "Make it run forever",
+      "install": "cargo-ai cdk add cookbook/call-capture",
+      "partOf": [],
+      "state": "to-be-approved",
+      "chain": 4,
+      "resources": [
+        "agents",
+        "connectors",
+        "folders"
+      ],
+      "asked": [
+        {
+          "input": "CALL_RECORDER_API_KEY",
+          "kind": "env",
+          "how": "**asked**: the recorder's API key, exported before deploy and never committed. It is declared as a `secret()` in the agent's `repository.env`, so it reaches the collector as an environment variable and nothing else.",
+          "why": "It is the collector's only credential. Deploy without it set and `secret()` fails loudly at apply, which is the behaviour you want; hard-code it instead and it is in `cargo.state.json` forever."
+        },
+        {
+          "input": "CALL_CAPTURE_INTERNAL_DOMAIN` (`infra/agents/call-scribe.ts`)",
+          "kind": "value",
+          "how": "**derived**: your own email domain, which the workspace members' addresses already name",
+          "why": "It is how an internal call is told from a customer one. Avoma's `is_internal` is false on every meeting in some workspaces, so it cannot be used; leave the placeholder and every standup is captured as an account."
+        }
+      ],
+      "canChange": [
+        {
+          "id": "notes-not-transcripts",
+          "when": "The repo is growing faster than you want, or your recorder's AI notes are genuinely good",
+          "how": "Reorder the fallback in `collect/calls.ts` so notes are fetched first and the transcript is the fallback",
+          "cost": "You lose the verbatim record, so the scribe can no longer quote and nobody can check a summary against what was actually said. Notes are already an interpretation; scribing them is interpreting an interpretation"
+        },
+        {
+          "id": "raise-the-bar",
+          "when": "Your context is filling with claims that turn out to be one customer's opinion",
+          "how": "Raise the repetition bar in `infra/agents/call-scribe.prompt.ts` from two independent occurrences to three, and require them to come from different accounts",
+          "cost": "The knowledge layer lags the field by weeks. A real, fast-moving objection sits unwritten while it is costing you deals"
+        },
+        {
+          "id": "widen-the-cap",
+          "when": "The backfill queue is not draining — the pull request reports a remainder that never falls",
+          "how": "Raise the per-run cap in `infra/agents/call-scribe.prompt.ts`, or leave it and let the daily runs grind through the queue",
+          "cost": "The pull request stops being reviewable, which is the whole control. A diff nobody reads is an auto-merge with extra steps"
+        },
+        {
+          "id": "internal-calls-too",
+          "when": "You want deal reviews, onboardings and retros in the record as well as customer calls",
+          "how": "Drop the external-attendee filter in `collect/calls.ts` and file internal captures under their own folder",
+          "cost": "Volume roughly doubles and the signal thins: internal calls restate what customers said, so the repetition bar counts the same occurrence twice and promotes it as if two customers had said it"
+        }
+      ],
+      "shouldNotChange": [
+        "**The agent does not fetch calls; the script does.** (`scripts/collect/calls.ts`) A fetch loop an agent re-derives every morning is a fetch loop that silently changes shape — a window that drifts, a filter that quietly widens, a field read differently on a day the model was less careful. The raw archive is the one thing here that has to be byte-identical in its rules every day, because everything downstream is diffed against it.",
+        "**`Recorder.provider` stays one field.** (`scripts/collect/recorder.ts`) It is written into every `source:` line and compiled into the regex that reads those lines back. Split it into two literals and the day they drift, the collector stops recognising what it has already captured and re-captures the whole window every morning — producing files, never erroring, until someone notices the repository doubling in size.",
+        "**A recorder swap is a new adapter, not an edit to the pipeline.** (`scripts/collect/recorder.ts`) Deduplication, slugging, the internal-domain filter, the file format and the window are the same whoever records your calls. Move one of them into an adapter to make a vendor fit and the next adapter has to reimplement it, which is how two recorders start writing subtly different frontmatter and the dedup stops seeing half the archive.",
+        "**`scripts/call-capture/package.json` stays.** (`scripts/package.json`) It is not decoration. The CDK loader imports every `.ts` under the project root except directories carrying a `package.json`; delete it and `cargo-ai cdk plan` imports the collector and runs it against the live API on every plan.",
+        "**The harness root stays the directory holding the `package.json` that declares `@cargo-ai/cdk`.** (`infra/agents/call-scribe.ts`) That is where `node_modules` is, so it is the only place `npx tsx …/collect/calls.ts` resolves — and in the scaffolded layout it is the repository root, which is also where `cadence/` and `context/` live. The binder infers it, so nothing declares it here; what must not change is the outcome. **Check it, do not assume it:** `cargo-ai cdk check` prints the resolved binding, and a line ending `in infra/` means the harness was rooted where there is no package.json and no node_modules. The collector then cannot run at all, and the morning reports clean and empty. On a CLI old enough to resolve it that way, pin `rootDirectory: \".\"` in the repository block until you upgrade.",
+        "**The agent opens a pull request and never merges it.** (`infra/agents/call-scribe.prompt.ts`) Everything downstream reads `context/` as fact. Remove the review gate and a hallucinated objection, a misheard number, or a vendor call misread as pipeline becomes what your scorer, your researcher and your SDR all believe — and nothing will ever contradict it, because they read the same file.",
+        "**One entry per call, keyed on the provider uuid, and raw captures are never touched.** (`infra/agents/call-scribe.prompt.ts`) The uuid in each file's `source:` line is the only idempotency key in this system. Let the agent rewrite entries \"to improve them\" and the run stops being idempotent: a re-run re-litigates history, the diff is unreviewable, and the earlier occurrence the repetition bar counted changes underneath it.",
+        "**A claim reaches `context/` only on its second independent occurrence.** (`infra/agents/call-scribe.prompt.ts`) Drop the bar and the knowledge layer fills with singletons at the same confidence as durable truths. The failure is not noise, it is that nobody can tell which is which any more, and the layer stops being trusted at exactly the moment it is big enough to matter.",
+        "**The collector's window overlaps the previous run.** (`scripts/collect/calls.ts`) Transcripts are not ready when a call ends. A one-day window silently drops every call the recorder was still processing at the cron minute, and because the window only moves forward, those calls are never seen again. The overlap is free: uuids already on disk are skipped before any transcript is fetched."
+      ],
+      "doneWhen": [
+        "`--dry-run` listed the calls it would take, and the run without it wrote those files into `cadence/log/raw/calls/` with a `source:` id in each; running it twice wrote nothing the second time",
+        "on a recorder other than Avoma: the new adapter compiles (a half-written one does not typecheck, and the error names the missing field), `--dry-run` lists real calls through it, and nothing in `scripts/collect/recorder.ts` had to change to make it fit",
+        "`cargo-ai cdk plan` reports three resources and does **not** hit the recorder's API while planning",
+        "the first scheduled run opened one pull request whose body reports four numbers: captured, scribed fresh, scribed from backfill, and pending remaining",
+        "every scribed call has exactly one entry under `cadence/log/calls/`, and no raw file was edited, moved or deleted",
+        "at least one `context/` file in the diff cites two different calls as its occurrences, and no file in the diff cites only one",
+        "a call where your company was the buyer, not the seller, is filed as vendor intel and appears nowhere as pipeline",
+        "after merging and `cargo-ai cdk deploy`, the changed `context/` file is readable from the workspace context repository, and an agent with the `context` capability quotes it back"
+      ],
+      "cost": "There are no connector actions in this skill, so it consumes no per-record credits: the collector\ntalks to your recorder directly from the harness environment, under whatever API limits your\nrecording plan already gives you.\n\nThe recurring cost is the harness run itself, once a day, and it scales with how much the agent\nreads — which is the raw captures it scribes. **The per-run cap is the cost control as well as the\nreview control.** A lower cap spreads the same backlog over more days at the same daily cost rather\nthan paying for it all at once, and the pending remainder in the pull request body is how you watch\nwhether it is keeping up.",
+      "composesInto": "`account-scoring` and any agent with the `context` capability (they read the ICP and objection files\nthis keeps current), `crm-enrichment` (the account files this writes name the record the enrichment\nfills), `monitor-buying-signals` (the signals this promotes are what a feed then watches for)."
     },
     {
       "name": "clay-to-cargo",
@@ -130,6 +304,7 @@
       "chain": 3,
       "resources": [
         "connectors",
+        "folders",
         "models",
         "plays",
         "tools"

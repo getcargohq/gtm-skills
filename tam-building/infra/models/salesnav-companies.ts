@@ -1,6 +1,6 @@
 import { defineModel } from "@cargo-ai/cdk";
 
-import { modelsFolder } from "../folders/gtm";
+import { modelsFolder } from "../folders/tam-building";
 import { salesNav } from "../connectors/sales-navigator";
 
 // The raw landing table for Sales Navigator company searches.

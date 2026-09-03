@@ -139,6 +139,15 @@ weight: it deploys, it shows up in the workspace, and it rots.
 
 ## Conventions
 
+- File every resource a pipeline skill deploys under workspace folders named
+  after the skill (`defineFolder("<name>-agents", { kind: "agent", name: "<Name>" })`),
+  not under a shared one. Folders are per-kind, so a skill deploying models and
+  agents declares one of each. A workspace accumulates resources from several
+  skills plus whatever the team wrote by hand, and the folder is what answers
+  "what put this here, and what else came with it" by looking. It is also what
+  makes removing a skill bounded rather than a hunt. Declare only the kinds the
+  skill actually files something into: a folder nothing references is a resource
+  that deploys, shows up in the workspace and rots.
 - Read secrets with `secret("NAME")` and say so under _What you will be asked_
   as an `env` input; never inline a value.
 - Keep `defineContext` paths relative to the project root, and remember it is
@@ -147,3 +156,15 @@ weight: it deploys, it shows up in the workspace, and it rots.
 - App and worker bundles under `*/apps/*` and `*/workers/*` are self-contained
   sub-projects (own `tsconfig` and deps) and are excluded from the root
   typecheck.
+- A cookbook that ships runnable scripts puts them in `<name>/scripts/`, beside
+  `<name>/infra/`. The install mirrors each top-level directory into its
+  namesake in the project: `infra/` to `infra/<name>/`, `scripts/` to
+  `scripts/<name>/`, matching the layers `cargo-ai cdk init` scaffolds. They
+  are node code, so they are typechecked by `tsconfig.scripts.json`
+  (`types: ["node"]`) rather than the root config, which keeps `*/infra/**`
+  node-free; `npm run typecheck` runs both. They carry a `package.json` and no
+  tsconfig of their own — a nested one is never auto-discovered by `tsc -p`, and
+  a consumer project already covers `scripts/**/*.ts` from its root config. Keep
+  the `package.json`: the CDK loader imports every `.ts` under the project root
+  **except** directories carrying one, so in a project whose CDK root is the
+  repo root, dropping it makes `cdk plan` execute the script.

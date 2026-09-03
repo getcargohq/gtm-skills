@@ -1,6 +1,6 @@
 import { defineModel } from "@cargo-ai/cdk";
 
-import { modelsFolder } from "../folders/gtm";
+import { modelsFolder } from "../folders/tam-building";
 
 // The account universe: the model every skill builds on (the signals feed
 // monitors it, the research agent reads it, scoring writes to it).

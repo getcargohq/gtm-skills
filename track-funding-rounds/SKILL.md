@@ -62,20 +62,13 @@ grep -q '"cargo@gtm"' ~/.claude/plugins/installed_plugins.json 2>/dev/null ||
 ## Do the job
 
 ```bash
-# 1. Resolve to a cargo business_id
 cargo-ai orchestration action execute-batch \
-  --action '{"kind":"connector","integrationSlug":"cargo","actionSlug":"matchBusiness","config":{}}' \
-  --records '[{"name":"Acme","domain":"acme.com"}]' \
-  --wait-until-finished > matched.json
-
-# 2. Pull funding history
-cargo-ai orchestration action execute-batch \
-  --action '{"kind":"connector","integrationSlug":"cargo","actionSlug":"enrichBusinessFundingAndAcquisitions","config":{}}' \
-  --records "$(jq -c '[.results[] | {business_id}]' matched.json)" \
+  --action '{"kind":"connector","integrationSlug":"enrichCrm","actionSlug":"getFunding","config":{}}' \
+  --records '[{"domain":"acme.com"},{"domain":"globex.com"}]' \
   --wait-until-finished
 ```
 
-Funding rounds, amounts, dates, investors, and acquisition history per company.
+Funding rounds, amounts, dates, and investors per company.
 
 Operations are asynchronous. `--wait-until-finished` blocks until done; without it you get a run
 or batch UUID to poll with `cargo-ai orchestration run get <uuid>` (2s interval) or
@@ -85,8 +78,7 @@ or batch UUID to poll with `cargo-ai orchestration run get <uuid>` (2s interval)
 
 | Action | Credits |
 |---|---|
-| `cargo.matchBusiness` | 0.5 |
-| `cargo.enrichBusinessFundingAndAcquisitions` | 0.5 |
+| `enrichCrm.getFunding` | 1 |
 
 **Never run this across a full list on the first attempt.** Sample 10–20 records, report the
 observed cost and hit-rate, then get the user to approve the full run — quoting the record count
@@ -95,6 +87,7 @@ with it.
 
 ## Worth knowing
 
+- `enrichCrm.getFunding` is the catalog's only credits-based funding action. Coverage is strong on venture-backed companies.
 - Fresh funding is a budget signal — pair it with find-stakeholders to reach the new buyer.
 
 ## Going further

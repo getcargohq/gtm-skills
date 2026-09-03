@@ -6,6 +6,11 @@ import {
   defineWorkflow,
 } from "@cargo-ai/cdk";
 import { z } from "zod";
+import {
+  modelsFolder,
+  playsFolder,
+  toolsFolder,
+} from "./folders/crm-enrichment";
 
 // Checked HubSpot example. For Salesforce or Attio, replace the connector
 // integration, the account extractor (HubSpot object: companies), the
@@ -17,6 +22,7 @@ const crm = defineConnector("crm", {
 });
 
 export const crmAccounts = defineModel("crm_accounts", {
+  folder: modelsFolder,
   connector: crm,
   extractSlug: "fetchRecords",
   config: { objectType: "companies", columnSelectionMode: "all" },
@@ -85,6 +91,7 @@ const enrichCompanyData = defineWorkflow(
 );
 
 export const accountEnrichment = defineTool("account_enrichment", {
+  folder: toolsFolder,
   workflow: enrichCompanyData,
   name: "Account enrichment",
   description:
@@ -176,6 +183,7 @@ const enrichCrmAccount = defineWorkflow(
 );
 
 export const enrichAccounts = definePlay("enrich_accounts", {
+  folder: playsFolder,
   model: crmAccounts,
   workflow: enrichCrmAccount,
   filter: {
