@@ -15,7 +15,7 @@
     "format:check": "prettier --check ."
   },
   "dependencies": {
-    "@cargo-ai/cdk": "^1.0.66",
+    "@cargo-ai/cdk": "^1.0.68",
     "zod": "^4.4.3"
   },
   "devDependencies": {
