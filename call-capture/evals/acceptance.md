@@ -4,13 +4,21 @@ Walk every line. A checked template without an evidence-backed consumer adaptati
 
 ## Before deploy
 
-- The collector was run by hand once (`CALL_RECORDER_API_KEY=… npx tsx
+- `CALL_RECORDER` names the recorder the team actually records on, and it is one of the slugs
+  `npx tsx scripts/call-capture/collect/calls.ts --list` prints. A recorder that does not ship has a
+  new adapter under `collect/recorders/`, registered under a key equal to its own `provider`.
+- The collector was run by hand once (`CALL_RECORDER=… CALL_RECORDER_API_KEY=… npx tsx
   scripts/call-capture/collect/calls.ts`) and wrote real raw files into
-  `cadence/log/raw/calls/`, each carrying a `source:` uuid.
+  `cadence/log/raw/calls/`, each carrying a `source:` line naming that recorder and a uuid.
 - Running it a second time wrote nothing. If it re-captured the same calls, the dedup key and the
   `source:` line have drifted apart and every run will duplicate the window.
 - The transcript response shape was checked against the live API, not assumed. A wrong field name
-  here produces a clean, empty run every morning rather than an error.
+  here produces a clean, empty run every morning rather than an error. Eight of the nine adapters
+  were written from vendor documentation and print a warning saying so on every run: on one of
+  those, this check is the whole acceptance test, and passing it is what earns `written: "live"`.
+- `--dry-run` listed calls whose dates, subjects and account slugs are recognisably real. An
+  adapter reading the wrong timestamp field files everything under one day; one reading no
+  attendees files everything as internal and captures nothing at all.
 - `CALL_CAPTURE_INTERNAL_DOMAIN` is the company's real domain, and an internal-only call in the
   window was **not** captured.
 - `scripts/call-capture/package.json` exists in the project, and `cargo-ai cdk plan` did not
