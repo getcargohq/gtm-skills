@@ -91,6 +91,7 @@
 {"prompt": "Turn yesterday's call transcripts into context updates every morning", "expect": "call-capture", "why": "The standing tell: every morning, not this one call."}
 {"prompt": "We relearn the same objection every quarter because nobody writes it down", "expect": "call-capture", "why": "The repetition bar promoting a twice-heard objection is exactly this pipeline."}
 {"prompt": "Replace the GitHub Action that scribes our meetings into the repo", "expect": "call-capture"}
+{"prompt": "We record our calls on Granola, not Avoma — scribe them into the repo every morning", "expect": "call-capture", "why": "Naming a recorder must not route away from the pipeline: nine ship and the recorder is a selection, not a fork."}
 {"prompt": "Prep me for my call with this account tomorrow", "expect": "research-account", "why": "A call in the future is briefing work; call-capture only ever looks at calls already held."}
 {"prompt": "Handle email conversations with leads", "expect": "agentic-engagement"}
 {"prompt": "Stand up a conversation agent on a Cargo mailbox", "expect": "agentic-engagement"}
