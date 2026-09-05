@@ -10,19 +10,51 @@
  *
  * Run from the repo root:
  *
- *   CALL_RECORDER_API_KEY=… npx tsx scripts/call-capture/collect/calls.ts
- *   CALL_RECORDER_API_KEY=… npx tsx scripts/call-capture/collect/calls.ts --dry-run
+ *   npx tsx scripts/call-capture/collect/calls.ts --list
+ *   CALL_RECORDER=avoma CALL_RECORDER_API_KEY=… npx tsx scripts/call-capture/collect/calls.ts --dry-run
+ *   CALL_RECORDER=avoma CALL_RECORDER_API_KEY=… npx tsx scripts/call-capture/collect/calls.ts
+ *
+ * `--list` prints the recorders that ship and what each wants for a
+ * credential. `--recorder=<slug>` overrides `CALL_RECORDER` for one run, which
+ * is how you try a second recorder without touching the deployed env.
  *
  * Idempotent. A call already present anywhere under `cadence/log/` — raw or
  * long since scribed — is skipped, so re-running costs nothing and the
- * overlapping window is free.
+ * overlapping window is free. Note that the key includes the recorder slug: a
+ * switch of recorder is a switch of id space, and history captured under the
+ * old one reads as uncaptured.
  *
  * This file is the wiring and nothing else. `recorder.ts` holds the contract
- * and everything that is true whoever records your calls; `avoma.ts` is the
- * one implementation. To use a different recorder, write an adapter beside
- * `avoma.ts` and swap the import here — see `references/providers.md`.
+ * and everything that is true whoever records your calls; `recorders/` holds
+ * one adapter per vendor and the registry that names them. To support a
+ * recorder that is not there, write an adapter beside the others and register
+ * it — see `references/providers.md`.
  */
-import { avoma } from "./avoma";
-import { capture } from "./recorder";
+import { capture, ConfigError } from "./recorder";
+import { recorderTable, resolve } from "./recorders";
 
-await capture(avoma);
+if (process.argv.includes("--list")) {
+  console.log(recorderTable());
+} else {
+  try {
+    const { recorder, entry } = resolve();
+    if (entry.written === "docs") {
+      // Said out loud on every run, because the difference between "compiles"
+      // and "has ever worked" is the whole risk of a registry.
+      console.error(
+        `note: the ${entry.label} adapter was written from vendor docs and not ` +
+          `yet run against a live workspace. Check --dry-run lists real calls ` +
+          `before trusting a clean run.`,
+      );
+    }
+    await capture(recorder);
+  } catch (error) {
+    // A configuration error is a message, not a stack trace: the reader needs
+    // to know which variable to set, not which line threw.
+    if (error instanceof ConfigError) {
+      console.error(error.message);
+      process.exit(1);
+    }
+    throw error;
+  }
+}

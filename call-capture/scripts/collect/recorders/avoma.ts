@@ -1,37 +1,34 @@
 /**
- * The Avoma adapter: the one worked implementation of `Recorder`.
+ * Avoma — the adapter that has been run against a live workspace.
  *
- * This is the file a coding agent replaces to support a different recorder.
- * It is the whole surface — auth, endpoints, pagination, readiness, response
- * shapes — and nothing outside it needs to change. `references/providers.md`
- * carries Gong and Fireflies against this same contract.
+ * It is the one to read first when you write a new one: the others in this
+ * directory follow its shape, and where they differ it is because the vendor
+ * differs, not because the pattern does.
  *
  * Verify the transcript response shape against the live API before you trust
- * it; the endpoint is stable and the field names around it have moved. The
- * one-line check is in that reference, and `--dry-run` exercises `listReady`
- * without writing anything.
+ * any adapter here, including this one; the endpoints are stable and the field
+ * names around them have moved. The one-line curl is in
+ * `references/recorder-apis.md`, and `--dry-run` exercises `listReady` without
+ * writing anything.
  */
 import {
   fetchJson,
   HttpError,
   PACE_MS,
+  recorderKey,
   sleep,
   type Call,
   type Recorder,
-} from "./recorder";
+} from "../recorder";
+import { renderTurns, type Turn } from "./turns";
 
 const API = "https://api.avoma.com/v1";
 
-const API_KEY = process.env["CALL_RECORDER_API_KEY"];
-if (API_KEY === undefined || API_KEY === "") {
-  console.error(
-    "CALL_RECORDER_API_KEY is not set. It comes from the agent's repository env " +
-      "in infra/call-capture/agents/call-scribe.ts; export it locally to run this by hand.",
-  );
-  process.exit(1);
-}
-
-const headers = { Authorization: `Bearer ${API_KEY}` };
+// A function, not a const: the key is read when a request is made, because
+// this module is imported on every run whatever recorder was selected.
+const headers = (): Record<string, string> => ({
+  Authorization: `Bearer ${recorderKey()}`,
+});
 
 type AvomaCall = {
   uuid: string;
@@ -70,7 +67,7 @@ export const avoma: Recorder = {
 
     while (next !== null) {
       const page: { results?: AvomaCall[]; next?: string | null } =
-        await fetchJson(next, { headers });
+        await fetchJson(next, { headers: headers() });
       raw.push(...(page.results ?? []));
       next = page.next ?? null;
     }
@@ -102,7 +99,7 @@ export const avoma: Recorder = {
     let payload: { transcript?: unknown; speakers?: unknown };
     try {
       payload = await fetchJson(`${API}/transcriptions/?meeting_uuid=${id}`, {
-        headers,
+        headers: headers(),
       });
     } catch (error) {
       if (error instanceof HttpError) {
@@ -125,15 +122,14 @@ export const avoma: Recorder = {
 
     if (!Array.isArray(payload.transcript)) return null;
 
-    const lines: string[] = [];
+    const turns: Turn[] = [];
     for (const entry of payload.transcript as Record<string, unknown>[]) {
       const text = entry["transcript"];
-      if (typeof text !== "string" || text.trim() === "") continue;
-      const speaker = speakers.get(String(entry["speaker_id"])) ?? "Speaker";
-      lines.push(`**${speaker}:** ${text.trim()}`);
+      if (typeof text !== "string") continue;
+      turns.push({ speaker: speakers.get(String(entry["speaker_id"])), text });
     }
 
-    return lines.length > 0 ? lines.join("\n\n") : null;
+    return renderTurns(turns);
   },
 
   async notes(id) {
@@ -141,7 +137,9 @@ export const avoma: Recorder = {
 
     let notes: { results?: { data?: unknown }[] };
     try {
-      notes = await fetchJson(`${API}/notes/?meeting_uuid=${id}`, { headers });
+      notes = await fetchJson(`${API}/notes/?meeting_uuid=${id}`, {
+        headers: headers(),
+      });
     } catch (error) {
       if (error instanceof HttpError) {
         console.error(`notes ${id} unavailable (${error.status})`);
