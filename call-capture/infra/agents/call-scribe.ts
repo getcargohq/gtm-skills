@@ -43,17 +43,31 @@ export const callScribe = defineAgent("call-scribe", {
     // field only to override the checkout — a different repo, or a base branch
     // that is not `main`.
     env: {
+      // PLACEHOLDER — which recorder records your calls, as one of the slugs
+      // in scripts/call-capture/collect/recorders/index.ts. Nine ship;
+      // `npx tsx scripts/call-capture/collect/calls.ts --list` prints them.
+      //
+      // There is no default in the collector, and this is why: unset, it stops
+      // rather than picking one. A wrong-but-valid slug reads the wrong API
+      // successfully and captures nothing, and a morning that reports a clean
+      // empty run is the failure nobody notices for a month.
+      CALL_RECORDER: "avoma",
       // The collector's credential. `secret()` is read from the deploying
       // environment at apply time and excluded from the content hash, so the
       // plaintext never enters git and rotating it does not read as drift.
-      // The agent never handles it: only scripts/collect/avoma.ts reads it.
+      // The agent never handles it: only the selected adapter under
+      // scripts/collect/recorders/ reads it.
       //
-      // The name is deliberately not the vendor's, so swapping recorder changes
-      // the value and the adapter file, not this wiring.
+      // The name is deliberately not the vendor's, so swapping recorder
+      // changes this value and CALL_RECORDER, not this wiring. Where a
+      // recorder issues two values — Gong's access key and secret, Clari
+      // Copilot's key and password — this holds `<first>:<second>` and the
+      // adapter splits it, so one secret still covers every recorder.
       CALL_RECORDER_API_KEY: secret("CALL_RECORDER_API_KEY"),
       // PLACEHOLDER — your own email domain. It is how the collector tells an
-      // internal call from a customer one: Avoma's `is_internal` is false on
-      // every meeting in some workspaces, so a vendor flag cannot be trusted.
+      // internal call from a customer one, for every recorder alike. Most do
+      // not flag it at all, and the ones that do cannot be trusted to agree:
+      // Avoma's `is_internal` is false on every meeting in some workspaces.
       // Public, so a plain string rather than a secret.
       CALL_CAPTURE_INTERNAL_DOMAIN: "example.com",
     },

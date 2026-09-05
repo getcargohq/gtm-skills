@@ -36,7 +36,13 @@ Run the collector, from the repository root:
 
 It pulls every call in a rolling window whose transcript the provider has
 finished processing and writes one raw file per call into
-cadence/log/raw/calls/. Its credential is already in your environment.
+cadence/log/raw/calls/. Which recorder it reads (CALL_RECORDER) and its
+credential are both already in your environment.
+
+If it stops because no recorder is selected or the slug is unknown, that is a
+deploy-time configuration error, not something to work around: report it and
+stop. Do not reach for --recorder to make a failing run proceed — if this
+repository records on two recorders, the commands above say so explicitly.
 
 Do not fetch calls yourself, and do not edit the script to change what it
 collects. It is deterministic on purpose: a fetch loop an agent re-derives each

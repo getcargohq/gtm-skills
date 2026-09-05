@@ -6,9 +6,9 @@
  * whoever answers: deduplication, account slugging, file layout, the rolling
  * window, and the run itself.
  *
- * To support a different recorder, write one object satisfying `Recorder` (see
- * `avoma.ts` for the worked one) and pass it to `capture`. TypeScript is what
- * keeps the boundary honest: an adapter that cannot satisfy this type is
+ * To support a recorder that is not in `recorders/`, write one object
+ * satisfying `Recorder` beside the ones there and register it. TypeScript is
+ * what keeps the boundary honest: an adapter that cannot satisfy this type is
  * telling you something real about the API, and an adapter cannot reach into
  * the pipeline below because it does not import it.
  */
@@ -72,6 +72,56 @@ export class HttpError extends Error {
   }
 }
 
+/**
+ * Something about the run's configuration is wrong — no recorder selected, an
+ * unknown slug, a missing credential. Distinct from every other error on
+ * purpose: `calls.ts` prints one of these as a message and exits 1, because a
+ * stack trace pointing into an adapter is the wrong thing to read when the
+ * answer is "set CALL_RECORDER".
+ */
+export class ConfigError extends Error {}
+
+/**
+ * The recorder's credential, read when a request is about to be made rather
+ * than at import.
+ *
+ * Lazy for a structural reason: `recorders/index.ts` imports every adapter so
+ * a slug can be resolved to one at run time, so an import-time check in any
+ * single adapter would fail every run — including the runs of the eight
+ * recorders it is not using.
+ */
+export function recorderKey(): string {
+  const key = process.env["CALL_RECORDER_API_KEY"];
+  if (key === undefined || key === "") {
+    throw new ConfigError(
+      "CALL_RECORDER_API_KEY is not set. It comes from the agent's repository env in " +
+        "infra/call-capture/agents/call-scribe.ts; export it locally to run this by hand.",
+    );
+  }
+  return key;
+}
+
+/**
+ * The same credential where the recorder wants two values — Gong's access key
+ * and secret, Clari Copilot's key and password. Set it as `<first>:<second>`
+ * and the adapter splits it here.
+ *
+ * One env name whatever records your calls, which is what keeps a recorder
+ * swap to a value and an adapter rather than a change to the deploy wiring.
+ * Split on the FIRST colon only: the second half is a secret and secrets
+ * contain colons.
+ */
+export function recorderKeyPair(shape: string): [string, string] {
+  const raw = recorderKey();
+  const split = raw.indexOf(":");
+  if (split < 1 || split === raw.length - 1) {
+    throw new ConfigError(
+      `CALL_RECORDER_API_KEY must be ${shape} for this recorder, and this one has no colon in it.`,
+    );
+  }
+  return [raw.slice(0, split), raw.slice(split + 1)];
+}
+
 export const sleep = (ms: number): Promise<void> =>
   new Promise((done) => setTimeout(done, ms));
 
@@ -127,9 +177,11 @@ const RAW_DIR = join(LOG_DIR, "raw", "calls");
 const LOOKBACK_DAYS = Number(process.env["CALL_CAPTURE_LOOKBACK_DAYS"] ?? "3");
 
 // PLACEHOLDER — your own email domain, set from the agent's repository env. It
-// is how internal-only calls are recognised: Avoma's `is_internal` is false on
-// every meeting in some workspaces, including all-internal ones, so a vendor
-// flag cannot be trusted for this.
+// is how internal-only calls are recognised, and it lives here rather than in
+// an adapter because it has to mean the same thing whoever recorded the call.
+// Most recorders do not flag internal-versus-external at all; the ones that do
+// cannot be trusted to agree, and Avoma's `is_internal` is false on every
+// meeting in some workspaces, including all-internal ones.
 const INTERNAL_DOMAIN =
   process.env["CALL_CAPTURE_INTERNAL_DOMAIN"] ?? "example.com";
 
