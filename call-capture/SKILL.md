@@ -1,6 +1,6 @@
 ---
 name: call-capture
-description: 'Every call the team records is collected into the cadence layer each morning, scribed into a log entry, and — once a claim repeats — promoted into the context knowledge layer, as one reviewable pull request against your GTM repo. Triggers: "our call recordings never make it into the knowledge base", "turn our call transcripts into context", "keep our context updated from sales calls", "we relearn the same objection every quarter", "scribe yesterday''s calls into the repo every morning", "replace the GitHub Action that summarizes our meetings". Cargo CDK, defineAgent, harnessSlug claudeCode, repository env, GitHub, Avoma, Gong, Fireflies, cadence, context. Skip when: you want one call summarized right now, which is a read against the recorder''s own API and needs nothing deployed.'
+description: 'Every call the team records is collected into the cadence layer each morning, scribed into a log entry, and — once a claim repeats — promoted into the context knowledge layer, as one reviewable pull request against your GTM repo. Works with whatever records your calls: nine recorders ship and a tenth is one adapter file. Triggers: "our call recordings never make it into the knowledge base", "turn our call transcripts into context", "keep our context updated from sales calls", "we relearn the same objection every quarter", "scribe yesterday''s calls into the repo every morning", "replace the GitHub Action that summarizes our meetings", "we record on Granola / Fathom / Gong / Fireflies, not Avoma". Cargo CDK, defineAgent, harnessSlug claudeCode, repository env, GitHub, Avoma, Granola, Fathom, Gong, Fireflies, Grain, tl;dv, Modjo, Clari Copilot, cadence, context. Skip when: you want one call summarized right now, which is a read against the recorder''s own API and needs nothing deployed.'
 version: "0.1.0"
 compatibility: "Requires @cargo-ai/cli with @cargo-ai/cdk 1.0.67 or later — 1.0.66 brought `harness` and the harness repository spec, 1.0.67 roots the agent at the package.json that declares the CDK rather than at `infra/`. On 1.0.66, declare `rootDirectory: \".\"` yourself. Also needs a Cargo workspace, a GTM repository with `context/` and `cadence/` at its root (the shape `cargo-ai cdk init` scaffolds), and an API key for whatever records your calls."
 homepage: https://github.com/getcargohq/gtm-skills/tree/main/call-capture
@@ -80,18 +80,27 @@ is enough.
    declares the repo's root `context/` in `infra/context.ts`, and `defineContext` is a per-workspace
    singleton, which is why this folder ships none. Append this folder's env needs to the project's
    `.env.example`; never overwrite it.
-3. **Point the collector at your recorder.** Avoma is what ships, in
-   `scripts/collect/avoma.ts`. **On any other recorder, this step is a new file, not an edit.**
-   Write `scripts/collect/<recorder>.ts` exporting one object that satisfies the `Recorder` type in
+3. **Pick the recorder, or write one.** **Ask which recorder records the team's calls** — this is
+   the one thing here that is not in the repository and not in a connector list, and every later
+   step depends on it. Nine ship:
+   `npx tsx scripts/call-capture/collect/calls.ts --list` prints them with what each wants for a
+   credential. Set the slug as `CALL_RECORDER` in `infra/call-capture/agents/call-scribe.ts` beside
+   the key. There is deliberately no default, because a wrong-but-valid slug reads the wrong
+   vendor's API successfully and reports a clean, empty run every morning.
+   **On a recorder that does not ship, this step is a new file, not an edit.** Write
+   `scripts/collect/recorders/<slug>.ts` exporting one object that satisfies the `Recorder` type in
    `scripts/collect/recorder.ts` — a `provider` slug plus `listReady(from, to)`, `transcript(id)`
-   and `notes(id)` — then change the single import in `scripts/collect/calls.ts` to pass it to
-   `capture`. Nothing else moves: deduplication, account slugging, the internal-domain filter, the
-   file format and the rolling window are the same whoever records your calls, and they live in
-   `recorder.ts`. `references/providers.md` (installed beside this file) carries the contract in
-   full, the endpoints for Gong and Fireflies, and the one migration trap — changing `provider`
-   makes existing captures read as uncaptured. Verify the transcript response shape against the
-   live API before you deploy: the endpoints are stable, the field names around them have moved,
-   and a wrong one captures nothing while reporting a clean run. Then set
+   and `notes(id)` — then register it in `recorders/index.ts`. Follow the shipped adapter closest
+   in shape: `avoma.ts` for Bearer REST, `gong.ts` for POST-with-a-body and a speaker id that needs
+   joining, `fireflies.ts` for GraphQL, `granola.ts` for a list too thin to carry attendees.
+   Nothing else moves: deduplication, account slugging, the internal-domain filter, the file format
+   and the rolling window are the same whoever records your calls, and they live in `recorder.ts`.
+   `references/providers.md` carries the contract and the procedure;
+   `references/recorder-apis.md` carries the endpoints and exact field names for all nine plus five
+   more that do not ship, each with the reason. Whichever recorder you land on, **verify its
+   response shapes against the live API before you deploy** — eight of the nine were written from
+   vendor documentation and say so on every run, the field names around stable endpoints move, and
+   a wrong one captures nothing while reporting a clean run. Then set
    `CALL_CAPTURE_INTERNAL_DOMAIN` to your own email domain, or every internal call is captured as a
    customer one.
 4. **Adapt.** Work the sections below in order: _What should not change_ is what you argue back
@@ -100,9 +109,11 @@ is enough.
    the floor, and you derive before you ask. If you are asking more than about four questions you
    have skipped lookups. Record what you changed and why under a `## Decisions` section in your copy
    of this file.
-5. **Run the collector by hand once, then plan.** `CALL_RECORDER_API_KEY=… npx tsx
-   scripts/call-capture/collect/calls.ts --dry-run` first: it exercises the list call and the
-   readiness filter and prints what it would take, writing nothing. Then drop `--dry-run`. If it does
+5. **Run the collector by hand once, then plan.** `CALL_RECORDER=<slug> CALL_RECORDER_API_KEY=… npx
+   tsx scripts/call-capture/collect/calls.ts --dry-run` first: it exercises the list call and the
+   readiness filter and prints what it would take, writing nothing. Read what it printed — real
+   subjects, real dates, real account slugs — because that is the only thing separating a working
+   adapter from one that will report a clean empty run every morning. Then drop `--dry-run`. If it does
    not produce raw files locally it will not produce them on a schedule, and that is far cheaper to
    find out now. Then
    `npm run check && cargo-ai cdk plan`, show the diff, and deploy only on an explicit yes:
@@ -119,14 +130,16 @@ _asked_ genuinely live in the operator's head.
 | Input                                                        | Kind   | How it is answered                                                                                                                                                                                                                                     | Why it matters                                                                                                                                                                                                       |
 | ------------------------------------------------------------ | ------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | repository binding (`infra/agents/call-scribe.ts`)           | value  | **derived**: leave `repository`, `defaultBranch` and `connector` unset and `plan` fills them from the git origin of the checkout, taking the GitHub connector from the project's own. `cargo-ai cdk check` prints what it resolved: confirm the line reads your repo and `./`.                | This is the working tree the harness clones and the only place its output can land. An `owner/name` written by hand is the one value nobody notices is wrong until a pull request opens against a stranger's repository.                                                |
-| `CALL_RECORDER_API_KEY`                                              | env    | **asked**: the recorder's API key, exported before deploy and never committed. It is declared as a `secret()` in the agent's `repository.env`, so it reaches the collector as an environment variable and nothing else.                                  | It is the collector's only credential. Deploy without it set and `secret()` fails loudly at apply, which is the behaviour you want; hard-code it instead and it is in `cargo.state.json` forever.                     |
+| recorder (`CALL_RECORDER`)                                   | value  | **asked**, once derivation fails: check the repo's own context and `cargo-ai connection connector list` first, then ask which of the nine slugs (`--list` prints them) records the team's calls. A recorder that is not there is one new adapter file plus an entry, per `references/providers.md`. | It is the one input with no lookup anywhere in the project, and everything downstream is shaped by it. There is no default on purpose: unset stops the run, while a plausible-but-wrong slug reads the wrong vendor's API successfully and captures nothing, reporting a clean empty morning indefinitely. |
+| `CALL_RECORDER_API_KEY`                                              | env    | **asked**: the recorder's API key, exported before deploy and never committed. It is declared as a `secret()` in the agent's `repository.env`, so it reaches the collector as an environment variable and nothing else. Gong and Clari Copilot issue two values; that one variable holds `<first>:<second>` and the adapter splits it.                                  | It is the collector's only credential. Deploy without it set and `secret()` fails loudly at apply, which is the behaviour you want; hard-code it instead and it is in `cargo.state.json` forever.                     |
 | `CALL_CAPTURE_INTERNAL_DOMAIN` (`infra/agents/call-scribe.ts`) | value  | **derived**: your own email domain, which the workspace members' addresses already name                                                                                                                                                                | It is how an internal call is told from a customer one. Avoma's `is_internal` is false on every meeting in some workspaces, so it cannot be used; leave the placeholder and every standup is captured as an account.  |
-| recorder adapter (`scripts/collect/avoma.ts`)          | value  | **derived**: read which recorder is in the stack from the repo's own context or the workspace connectors. Avoma ships; anything else is one new file satisfying `Recorder` plus an import swap in `calls.ts`, per `references/providers.md`.               | The contract is compiler-enforced, so a half-written adapter fails to build rather than half-working. Pointed at the wrong API it fails on the first request, which is loud; pointed at the right API with a stale field name it captures nothing and reports a clean empty run every morning. |
+| adapter state (`scripts/collect/recorders/index.ts`)   | value  | **derived**: `--list` prints which adapters were verified against a live workspace (Avoma) and which were written from vendor docs (the other eight). Nothing to decide — it decides how hard you check step 5 before deploying.                          | The contract is compiler-enforced, so a half-written adapter fails to build rather than half-working. Pointed at the wrong API it fails on the first request, which is loud; pointed at the right API with a stale field name it captures nothing and reports a clean empty run every morning. |
 | GitHub connector (`infra/connectors/git.ts`)                 | value  | **derived**: `cargo-ai connection connector list` shows whether one is authorized; if not, `cargo-ai cdk add connector/github` opens the OAuth consent. The declaration is `adopt: true` because a deploy cannot mint an OAuth grant.                    | It is the agent's entire write path. Without it the run does the work and has nowhere to put it.                                                                                                                      |
 | cadence and context paths                                    | value  | **derived**: read `cadence/README.md` and `context/README.md`, and `ls cadence/log/` for what already exists                                                                                                                                            | The agent writes into layers humans already curate. A second parallel folder splits the record in half and the repetition bar stops seeing the earlier occurrence.                                                    |
 
 Checked before moving on, not after the deploy:
 
+- `CALL_RECORDER` names a slug `--list` prints, and it is the recorder the team actually records on
 - the collector was run by hand once and wrote real raw files
 - `cargo-ai cdk check` prints `agent:call-scribe bound to <your repo>#<branch>` with no trailing
   subdirectory — the repo is the one holding `context/` and `cadence/`, and the GitHub grant can
@@ -147,6 +160,7 @@ default.
 | `raise-the-bar`     | Your context is filling with claims that turn out to be one customer's opinion                            | Raise the repetition bar in `infra/agents/call-scribe.prompt.ts` from two independent occurrences to three, and require them to come from different accounts                                               | The knowledge layer lags the field by weeks. A real, fast-moving objection sits unwritten while it is costing you deals                                                                                                            |
 | `widen-the-cap`     | The backfill queue is not draining — the pull request reports a remainder that never falls                | Raise the per-run cap in `infra/agents/call-scribe.prompt.ts`, or leave it and let the daily runs grind through the queue                                                                                  | The pull request stops being reviewable, which is the whole control. A diff nobody reads is an auto-merge with extra steps                                                                                                         |
 | `internal-calls-too` | You want deal reviews, onboardings and retros in the record as well as customer calls                    | Drop the external-attendee filter in `collect/calls.ts` and file internal captures under their own folder                                                                               | Volume roughly doubles and the signal thins: internal calls restate what customers said, so the repetition bar counts the same occurrence twice and promotes it as if two customers had said it                                     |
+| `two-recorders`     | You are mid-migration between recorders, or sales records on one and CS on another                        | Run the collector once per recorder in step 1 of `infra/agents/call-scribe.prompt.ts`: `--recorder=<a>` then `--recorder=<b>`. Both write into the same archive under their own `source:` prefix | Deduplication is per-recorder, because the ids are. A call both tools recorded is captured twice and scribed as two entries, and the repetition bar then counts one conversation as two occurrences and promotes it as if two customers had said it |
 
 ## What should not change
 
@@ -158,16 +172,28 @@ it if you still want it, and records why under `## Decisions` in your copy of th
   drifts, a filter that quietly widens, a field read differently on a day the model was less careful.
   The raw archive is the one thing here that has to be byte-identical in its rules every day, because
   everything downstream is diffed against it.
-- **`Recorder.provider` stays one field.** (`scripts/collect/recorder.ts`) It is written into
-  every `source:` line and compiled into the regex that reads those lines back. Split it into two
-  literals and the day they drift, the collector stops recognising what it has already captured and
-  re-captures the whole window every morning — producing files, never erroring, until someone notices
-  the repository doubling in size.
-- **A recorder swap is a new adapter, not an edit to the pipeline.**
-  (`scripts/collect/recorder.ts`) Deduplication, slugging, the internal-domain filter, the file
-  format and the window are the same whoever records your calls. Move one of them into an adapter to
-  make a vendor fit and the next adapter has to reimplement it, which is how two recorders start
-  writing subtly different frontmatter and the dedup stops seeing half the archive.
+- **`Recorder.provider` stays one field, and the registry key equals it.**
+  (`scripts/collect/recorder.ts`, `scripts/collect/recorders/index.ts`) It is written into every
+  `source:` line and compiled into the regex that reads those lines back. Split it into two
+  literals, or file an adapter under a key that disagrees with its own `provider`, and the day they
+  drift the collector stops recognising what it has already captured and re-captures the whole
+  window every morning — producing files, never erroring, until someone notices the repository
+  doubling in size. `resolve()` refuses the mismatch and `evals/contract.mjs` fails on it; leave
+  both in place.
+- **A recorder swap is a selection, and a new recorder is a new adapter — never an edit to the
+  pipeline.** (`scripts/collect/recorder.ts`) Deduplication, slugging, the internal-domain filter,
+  the file format and the window are the same whoever records your calls. Move one of them into an
+  adapter to make a vendor fit and the next adapter has to reimplement it, which is how two
+  recorders start writing subtly different frontmatter and the dedup stops seeing half the archive.
+  That includes the internal/external flags four of the recorders offer: they disagree with each
+  other, and one of them is wrong in some workspaces, so every adapter passes attendees through and
+  one domain rule decides.
+- **`written: "live"` is a claim someone made with evidence.**
+  (`scripts/collect/recorders/index.ts`) It means an adapter was run against a real workspace, and
+  the collector prints a warning on every run of one that was not. Flip it to silence the warning
+  and the registry starts implying that nine recorders are tested when one is — which is exactly
+  how a convenience becomes a promise nobody checked, on a pipeline whose failure mode is a clean
+  empty run.
 - **`scripts/call-capture/package.json` stays.** (`scripts/package.json`) It is not
   decoration. The CDK loader imports every `.ts` under the project root except directories carrying a
   `package.json`; delete it and `cargo-ai cdk plan` imports the collector and runs it against the live
@@ -204,9 +230,15 @@ it if you still want it, and records why under `## Decisions` in your copy of th
 
 - `--dry-run` listed the calls it would take, and the run without it wrote those files into
   `cadence/log/raw/calls/` with a `source:` id in each; running it twice wrote nothing the second time
-- on a recorder other than Avoma: the new adapter compiles (a half-written one does not typecheck,
-  and the error names the missing field), `--dry-run` lists real calls through it, and nothing in
-  `scripts/collect/recorder.ts` had to change to make it fit
+- `CALL_RECORDER` is set to the recorder the team records on, and the captured `source:` lines carry
+  that slug
+- on an adapter marked `docs` rather than `live`: `--dry-run` listed real calls with the right dates
+  and account slugs through it, and one captured file was opened and read — that is what moves it to
+  `live`, and until someone does it a clean run proves nothing
+- on a recorder that does not ship: the new adapter compiles (a half-written one does not typecheck,
+  and the error names the missing field), it is registered under a key equal to its own `provider`,
+  `--dry-run` lists real calls through it, and nothing in `scripts/collect/recorder.ts` had to
+  change to make it fit
 - `cargo-ai cdk plan` reports three resources and does **not** hit the recorder's API while planning
 - the first scheduled run opened one pull request whose body reports four numbers: captured, scribed
   fresh, scribed from backfill, and pending remaining
