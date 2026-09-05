@@ -80,9 +80,9 @@ is enough.
    declares the repo's root `context/` in `infra/context.ts`, and `defineContext` is a per-workspace
    singleton, which is why this folder ships none. Append this folder's env needs to the project's
    `.env.example`; never overwrite it.
-3. **Pick the recorder, or write one.** **Ask which recorder records the team's calls** — this is
-   the one thing here that is not in the repository and not in a connector list, and every later
-   step depends on it. Nine ship:
+3. **Pick the recorder, or write one.** **Ask which recorder records the team's calls**, unless the
+   repo's own context or the workspace connectors already say — it is the one input here with no
+   reliable lookup, and every later step depends on it. Nine ship:
    `npx tsx scripts/call-capture/collect/calls.ts --list` prints them with what each wants for a
    credential. Set the slug as `CALL_RECORDER` in `infra/call-capture/agents/call-scribe.ts` beside
    the key. There is deliberately no default, because a wrong-but-valid slug reads the wrong
@@ -255,7 +255,11 @@ it if you still want it, and records why under `## Decisions` in your copy of th
 
 There are no connector actions in this skill, so it consumes no per-record credits: the collector
 talks to your recorder directly from the harness environment, under whatever API limits your
-recording plan already gives you.
+recording plan already gives you. Those limits differ enough between recorders to be worth checking
+once — a daily three-day window is nothing against Grain's per-minute allowance and is real against
+Fireflies' Free tier of a few dozen requests a **day**, and `references/recorder-apis.md` records
+each. The collector paces itself and backs off on a 429 regardless, so the failure is a slow run
+rather than a half-captured one.
 
 The recurring cost is the harness run itself, once a day, and it scales with how much the agent
 reads — which is the raw captures it scribes. **The per-run cap is the cost control as well as the
