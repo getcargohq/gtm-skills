@@ -168,6 +168,193 @@ const header = (name) => {
   return headers[name];
 };
 
+check("avoma: readiness flags, speakers joined, blocks walked to text", async () => {
+  const { avoma } = await import("../scripts/collect/recorders/avoma.ts");
+  routes.clear();
+  route("GET https://api.avoma.com/v1/meetings/", () => ({
+    results: [
+      {
+        uuid: "av-1",
+        state: "completed",
+        transcript_ready: true,
+        start_at: "2026-01-02T09:00:00Z",
+        subject: "Acme call",
+        attendees: [{ name: "Ada", email: "ada@acme.com" }],
+      },
+      // Still processing: the flag is absent rather than false, which is the
+      // whole reason the collector's window overlaps.
+      { uuid: "av-2", state: "completed", start_at: "2026-01-02T10:00:00Z" },
+      // Ready, but the meeting never happened.
+      {
+        uuid: "av-3",
+        state: "cancelled",
+        transcript_ready: true,
+        start_at: "2026-01-02T11:00:00Z",
+      },
+    ],
+    next: null,
+  }));
+  route("GET https://api.avoma.com/v1/transcriptions/", () => ({
+    speakers: [{ id: 7, name: "Ada" }],
+    transcript: [
+      { speaker_id: 7, transcript: "We need SSO." },
+      { speaker_id: 9, transcript: "Noted." },
+    ],
+  }));
+  route("GET https://api.avoma.com/v1/notes/", () => ({
+    results: [
+      {
+        data: [
+          { object: "block", text: "They asked about SSO." },
+          { children: [{ text: " Twice." }] },
+        ],
+      },
+    ],
+  }));
+
+  const calls = await avoma.listReady("2026-01-01", "2026-01-03");
+  assert.deepEqual(
+    calls.map((call) => call.id),
+    ["av-1"],
+  );
+  assert.equal(header("Authorization"), "Bearer test-key");
+  // An unmapped speaker id falls back rather than dropping the line.
+  assert.equal(
+    await avoma.transcript("av-1"),
+    "**Ada:** We need SSO.\n\n**Speaker:** Noted.",
+  );
+  // Blocks become lines: `object: "block"` is what ends one.
+  assert.equal(await avoma.notes("av-1"), "They asked about SSO.\n Twice.");
+});
+
+check("grain: two headers, bare-array transcript, summary from the list", async () => {
+  const { grain } = await import("../scripts/collect/recorders/grain.ts");
+  routes.clear();
+  route("POST https://api.grain.com/_/public-api/v2/recordings", (_url, init) => {
+    const body = JSON.parse(init.body);
+    assert.equal(body.include.participants, true);
+    assert.equal(body.filter.after_datetime, "2026-01-01T00:00:00Z");
+    return {
+      recordings: [
+        {
+          id: "gr-1",
+          title: "Acme call",
+          start_datetime: "2026-01-02T13:00:00Z",
+          participants: [{ name: "Ada", email: "ada@acme.com", scope: "external" }],
+          ai_summary: { text: "They want SSO." },
+        },
+      ],
+      cursor: null,
+    };
+  });
+  route(
+    "GET https://api.grain.com/_/public-api/v2/recordings/gr-1/transcript",
+    () => [
+      { start: 0, end: 1, text: "We need SSO.", speaker: "Ada" },
+      { start: 1, end: 2, text: "By March.", speaker: "Ada" },
+    ],
+  );
+
+  const calls = await grain.listReady("2026-01-01", "2026-01-03");
+  assert.equal(calls[0].startAt, "2026-01-02T13:00:00Z");
+  assert.equal(header("Public-Api-Version"), "2025-10-31");
+  assert.equal(await grain.transcript("gr-1"), "**Ada:** We need SSO. By March.");
+  assert.equal(await grain.notes("gr-1"), "They want SSO.");
+});
+
+check("tldv: x-api-key, page/pages paging, notes as markdown", async () => {
+  const { tldv } = await import("../scripts/collect/recorders/tldv.ts");
+  routes.clear();
+  route("GET https://pasta.tldv.io/v1alpha1/meetings", (url) => {
+    const page = Number(new URL(url).searchParams.get("page"));
+    return {
+      page,
+      pages: 2,
+      results: [
+        {
+          id: `td-${page}`,
+          name: "Acme call",
+          happenedAt: "2026-01-02T16:00:00Z",
+          invitees: [{ name: "Ada", email: "ada@acme.com" }],
+          organizer: { name: "Rep", email: "rep@ourco.com" },
+        },
+      ],
+    };
+  });
+  route("GET https://pasta.tldv.io/v1alpha1/meetings/td-1/transcript", () => ({
+    data: [{ speaker: "Ada", text: "We need SSO." }],
+  }));
+  route("GET https://pasta.tldv.io/v1alpha1/meetings/td-1/notes", () => ({
+    markdownContent: "- SSO asked for",
+    structuredNotes: [],
+  }));
+
+  const calls = await tldv.listReady("2026-01-01", "2026-01-03");
+  // Both pages walked, and the organizer counts as an attendee.
+  assert.deepEqual(
+    calls.map((call) => call.id),
+    ["td-1", "td-2"],
+  );
+  assert.equal(calls[0].attendees.length, 2);
+  assert.equal(header("x-api-key"), "test-key");
+  assert.equal(await tldv.transcript("td-1"), "**Ada:** We need SSO.");
+  assert.equal(await tldv.notes("td-1"), "- SSO asked for");
+});
+
+check("modjo: expand always passed, content not text, retention respected", async () => {
+  const { modjo } = await import("../scripts/collect/recorders/modjo.ts");
+  routes.clear();
+  route("GET https://api.modjo.ai/v2/calls", (url) => {
+    const query = new URL(url).searchParams;
+    // Without this the response carries contactIds instead of contacts, and
+    // the adapter would see no attendees at all.
+    assert.equal(query.get("expand"), "contacts,users");
+    return {
+      data: [
+        {
+          id: 4021,
+          title: "Acme call",
+          startDate: "2026-01-02T17:00:00Z",
+          transcriptRetentionStatus: "available",
+          contacts: [{ name: "Ada", email: "ada@acme.com" }],
+          users: [{ firstName: "Rep", lastName: "One", email: "rep@ourco.com" }],
+        },
+        {
+          id: 4022,
+          startDate: "2026-01-02T18:00:00Z",
+          transcriptRetentionStatus: "deleted",
+        },
+      ],
+      pagination: { page: 1, size: 100, total: 2 },
+    };
+  });
+  route("GET https://api.modjo.ai/v2/calls/4021/transcript", () => ({
+    data: [{ content: "We need SSO.", speaker: { name: "Ada", type: "contact" } }],
+  }));
+  route("GET https://api.modjo.ai/v2/calls/4021/summaries", () => ({
+    data: [
+      { templateTitle: "MEDDIC", answer: "Champion identified." },
+      { templateTitle: "Pending", answer: null },
+    ],
+  }));
+
+  const calls = await modjo.listReady("2026-01-01", "2026-01-03");
+  // The reaped transcript is skipped; ids are strings from here on.
+  assert.deepEqual(
+    calls.map((call) => call.id),
+    ["4021"],
+  );
+  assert.deepEqual(calls[0].attendees[1], {
+    name: "Rep One",
+    email: "rep@ourco.com",
+  });
+  assert.equal(await modjo.transcript("4021"), "**Ada:** We need SSO.");
+  assert.equal(
+    await modjo.notes("4021"),
+    "**MEDDIC**\n\nChampion identified.",
+  );
+});
+
 check("granola: thin list, detail for attendees, paged transcript", async () => {
   const { granola } = await import("../scripts/collect/recorders/granola.ts");
   routes.clear();
