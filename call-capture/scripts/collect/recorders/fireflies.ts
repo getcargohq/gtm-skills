@@ -60,6 +60,15 @@ const TRANSCRIPT_QUERY = `query One($id: String!) {
   }
 }`;
 
+// The same object without the sentences, for the path where notes() is called
+// on a call whose transcript was never fetched. Selecting sentences there
+// would pull the whole conversation to render a paragraph of summary.
+const SUMMARY_QUERY = `query Summary($id: String!) {
+  transcript(id: $id) {
+    summary { overview notes action_items }
+  }
+}`;
+
 type GraphQlResponse<T> = {
   data?: T | null;
   errors?: { message?: string }[];
@@ -207,7 +216,7 @@ export const fireflies: Recorder = {
     try {
       const data = await graphql<{
         transcript?: { summary?: Record<string, unknown> | null } | null;
-      }>(TRANSCRIPT_QUERY, { id });
+      }>(SUMMARY_QUERY, { id });
       const overview = data.transcript?.summary?.["overview"];
       return typeof overview === "string" && overview.trim() !== ""
         ? overview.trim()
