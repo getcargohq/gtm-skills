@@ -122,9 +122,17 @@ export const granola: Recorder = {
         ...(detail.calendar_event?.invitees ?? []),
       ];
 
+      const startAt = detail.created_at ?? note.created_at;
+      if (startAt === undefined) {
+        // Documented as always present. Filing it under the window's end
+        // instead would put the call in the wrong day's log for good.
+        console.error(`skip ${note.id}: no created_at on the note`);
+        continue;
+      }
+
       calls.push({
         id: note.id,
-        startAt: detail.created_at ?? note.created_at ?? `${to}T00:00:00Z`,
+        startAt,
         subject: detail.title ?? note.title ?? "call",
         attendees,
       });
