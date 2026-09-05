@@ -1,10 +1,14 @@
 # Recorder APIs, field by field
 
-What you need to satisfy the `Recorder` contract in `recorder.ts` for thirteen recorders, taken
-from each vendor's own developer documentation. Read `providers.md` first — it is the shape of an
-adapter. This file is the raw material: base URLs, header formats, the exact date parameters, the
-exact field names a transcript arrives under, and the things that will produce a clean empty run
-if you guess.
+What you need to satisfy the `Recorder` contract in `recorder.ts` for fourteen recorders, taken
+from each vendor's own developer documentation. Read `providers.md` first — it is how a recorder is
+chosen and what an adapter is shaped like. This file is the raw material: base URLs, header
+formats, the exact date parameters, the exact field names a transcript arrives under, and the
+things that will produce a clean empty run if you guess.
+
+Nine of the fourteen ship as adapters under `collect/recorders/`; for those, this file is what the
+adapter was written against and where to look when a field name has moved. The other five do not
+ship, each for a named reason in its own section, and this file is what you would write them from.
 
 Everything below was read from an official spec or developer page and the URL is cited. Where a
 vendor does not document something — a page-size ceiling, a rate limit number — it says
@@ -14,25 +18,76 @@ Checked September 2026.
 
 ## The short version
 
-| Recorder      | Public API      | List by date range                | Transcript readiness signal          |
-| ------------- | --------------- | --------------------------------- | ------------------------------------ |
-| Granola       | Business / Ent  | `created_after` / `created_before` | none — `summary_markdown` may be null |
-| Fathom        | all plans       | `created_after` / `created_before` | none — poll or use the webhook       |
-| Gong          | any plan        | `fromDateTime` / `toDateTime` (required) | none — infer from records present |
-| Fireflies     | all plans       | `fromDate` / `toDate`             | `meeting_info.summary_status`        |
-| Otter.ai      | **Enterprise only** | **no date filter**            | `process_status.*`                   |
-| Grain         | Starter+ / Business+ | `after_datetime` / `before_datetime` | none                         |
-| tl;dv         | organizer on Pro+ | `from` / `to`                   | none — use the `TranscriptReady` hook |
-| Read.ai       | all plans (open beta) | `start_time_ms.gte` / `.lte` | `end_time_ms` present = ended        |
-| Zoom          | Pro+            | `from` / `to`, **one month max**  | `TRANSCRIPT` file in `recording_files` |
-| Circleback    | unverified      | **no date filter**                | `statuses` filter                    |
-| Clari Copilot | unverified      | `filterTimeGt` / `filterTimeLt`   | `status === "PROCESSED"`             |
-| Modjo         | unverified      | `from` / `to`                     | `status`, `transcriptRetentionStatus` |
-| Attention     | unverified      | `fromDateTime` / `toDateTime`     | `transcriptStatus`                   |
+| Recorder      | Ships           | Public API      | List by date range                | Transcript readiness signal          |
+| ------------- | --------------- | --------------- | --------------------------------- | ------------------------------------ |
+| Avoma         | `avoma`         | paid plans      | `from_date` / `to_date` (required) | `state` + `transcript_ready`         |
+| Granola       | `granola`       | Business / Ent  | `created_after` / `created_before` | none — `summary_markdown` may be null |
+| Fathom        | `fathom`        | all plans       | `created_after` / `created_before` | none — poll or use the webhook       |
+| Gong          | `gong`          | any plan        | `fromDateTime` / `toDateTime` (required) | none — infer from records present |
+| Fireflies     | `fireflies`     | all plans       | `fromDate` / `toDate`             | `meeting_info.summary_status`        |
+| Grain         | `grain`         | Starter+ / Business+ | `after_datetime` / `before_datetime` | none                         |
+| tl;dv         | `tldv`          | organizer on Pro+ | `from` / `to`                   | none — use the `TranscriptReady` hook |
+| Modjo         | `modjo`         | unverified      | `from` / `to`                     | `status`, `transcriptRetentionStatus` |
+| Clari Copilot | `clari`         | unverified      | `filterTimeGt` / `filterTimeLt`   | `status === "PROCESSED"`             |
+| Otter.ai      | no — see below  | **Enterprise only** | **no date filter**            | `process_status.*`                   |
+| Circleback    | no — see below  | unverified      | **no date filter**                | `statuses` filter                    |
+| Zoom          | no — see below  | Pro+            | `from` / `to`, **one month max**  | `TRANSCRIPT` file in `recording_files` |
+| Read.ai       | no — see below  | all plans (open beta) | `start_time_ms.gte` / `.lte` | `end_time_ms` present = ended        |
+| Attention     | no — see below  | unverified      | `fromDateTime` / `toDateTime`     | `transcriptStatus`                   |
 
 Two recorders cannot answer "what happened between these dates" in one request. Otter and
 Circleback both page newest-first with no date parameter, so a rolling window means paging until
 you cross the window's floor and stopping. Everything else takes a range.
+
+## Check it against the live API, not against this file
+
+Whether you are verifying a shipped adapter or writing a new one, run the list endpoint by hand
+first. A wrong field name produces a clean, empty run every morning rather than an error, and one
+curl settles it:
+
+```sh
+# Avoma; the other thirteen differ only in host, header and parameter names
+curl -s -H "Authorization: Bearer $CALL_RECORDER_API_KEY" \
+  "https://api.avoma.com/v1/meetings/?from_date=$(date -u -d '3 days ago' +%F)T00:00:00Z&to_date=$(date -u +%F)T23:59:59Z&page_size=5" \
+  | head -c 2000
+```
+
+Then take one id and check the transcript endpoint the same way. When the adapter compiles, run the
+collector with `--recorder=<slug> --dry-run`: it exercises `listReady` and the readiness filter and
+prints what it would capture, writing nothing you would have to unpick.
+
+---
+
+## Avoma
+
+**Public API.** Yes, on the paid plans; the key is generated per user in Avoma's settings.
+
+**Base URL.** `https://api.avoma.com/v1`
+
+**Auth.** `Authorization: Bearer <api_key>`
+
+**List.** `GET /v1/meetings/` — `from_date` and `to_date` are both **required**, ISO-8601 with `Z`,
+plus `page_size` (100 used here). Paginate by following the response's `next` link until it is
+null; results are on `results[]`.
+
+**Transcript.** `GET /v1/transcriptions/?meeting_uuid=<id>` → `transcript[]` of
+`{ transcript, speaker_id }` plus a separate `speakers[]` of `{ id, name }`. The text field is
+called `transcript`, on an object inside a field also called `transcript`, and the speaker is an id
+to be joined against `speakers[]`.
+
+**Notes.** `GET /v1/notes/?meeting_uuid=<id>` → `results[].data`, a **nested block structure**
+rather than markdown: objects carrying `text`, `children` and `object: "block"`, walked
+recursively.
+
+**Attendees.** `attendees[]` with `{ email, name }`. `is_internal` exists on the meeting and
+**cannot be trusted** — some workspaces return false on every meeting, including all-internal ones,
+which is why the pipeline derives that from email domains.
+
+**Meeting id.** `uuid`.
+
+**Gotchas.** `transcript_ready` and `notes_ready` are false until processing finishes and **absent**
+rather than false on anything not yet held, which is the whole reason the collector's window
+overlaps the previous run. Readiness is `state === "completed"` and either flag true.
 
 ---
 
@@ -315,7 +370,16 @@ higher and expire after 24 hours. `duration` is in **minutes**, `date` is epoch 
 
 ---
 
-## Otter.ai
+## Otter.ai — not shipped
+
+**Why not.** Two blockers, either one of which would be enough. The list endpoint has no date
+parameter at all, so a rolling window means paging newest-first until you cross the floor — doable,
+but it re-reads the same recent conversations every morning. And the transcript arrives as a
+**plain-text blob** with the speaker and the offset baked into the string and no documented grammar
+for parsing it, so a `Recorder` here either hands the scribe an unstructured wall of text or invents
+a parser against an undocumented format. Write it if Otter is what your team uses: hand the blob
+straight back from `transcript()` and let the scribe read it, which is honest, or parse it and own
+the format when it changes.
 
 **Public API.** Yes, but **Enterprise workspaces only**. Otter says so plainly: "Otter's Public
 API is available for all Enterprise workspaces. If you do not see this feature for your workspace,
@@ -500,7 +564,15 @@ does not imply API access to it; sharing grants UI visibility only. Two webhook 
 
 ---
 
-## Read.ai
+## Read.ai — not shipped
+
+**Why not.** The credential cannot survive an unattended cron. There are no static API keys: it is
+OAuth 2.1 with dynamic client registration, access tokens that expire after **ten minutes**, and
+single-use refresh tokens that rotate on every exchange. A daily job would have to persist the
+rotated refresh token somewhere durable and a broken chain needs a human with a browser — which is
+a different shape of resource from `secret("CALL_RECORDER_API_KEY")` and would change the agent's
+wiring rather than just adding an adapter. Revisit when Read.ai ships the personal access tokens it
+names as planned for GA.
 
 **Public API.** Yes — a REST API and an MCP server, both in **open beta**, available to all users
 regardless of plan, subject to two prerequisites: if you belong to a workspace it must have
@@ -579,7 +651,18 @@ base64-decoded).
 
 ---
 
-## Zoom (cloud recording transcripts)
+## Zoom (cloud recording transcripts) — not shipped
+
+**Why not.** Zoom is a recorder by accident and the adapter shows it. The transcript is a **WebVTT
+file** you find by hunting for `file_type === "TRANSCRIPT"` in `recording_files` and then download
+with a second authenticated request, so `transcript()` is a cue-block parser rather than a field
+read. Attendee emails are usually **not available**: `user_email` is an empty string for anyone
+outside the host's account, which is exactly the external attendee this pipeline slugs the account
+from. Add Server-to-Server OAuth, two different meeting ids that silently resolve to different
+instances, and a one-month cap on the list window, and it is a different class of work from the
+nine that ship. Worth doing if Zoom's own recording is your system of record — start from the
+participants endpoint, not the recordings one, because if the emails are not there nothing
+downstream works.
 
 **Public API.** Yes. Cloud Recording requires **Pro or higher**; AI Companion meeting summaries
 require Pro/Business or higher plus the host's **Meeting Summary with AI Companion** setting
@@ -657,7 +740,14 @@ recordings may be auto-deleted (`auto_delete`, `auto_delete_date`).
 
 ---
 
-## Circleback
+## Circleback — not shipped
+
+**Why not.** No date filter on the list endpoint and the cursor is in a `Link` **header** rather
+than the body, which is a bare array — so a rolling window means paging newest-first until you
+cross the floor, and `fetchJson` would have to hand back headers to do it. Nothing here is hard;
+it is the one adapter that needs a shared helper changed, and that change belongs to a run where
+someone actually uses Circleback. Everything else about it is clean: structured segments, notes on
+the meeting object, emails on the attendees.
 
 **Public API.** Yes. Keys are created in Settings → API keys, look like `cb_<secret>` and are
 shown once. **Which plans include API keys is unverified** — the docs do not say.
@@ -855,7 +945,15 @@ a UUID.
 
 ---
 
-## Attention
+## Attention — not shipped
+
+**Why not.** The transcript's field names are genuinely unknowable from the documentation.
+Attention's own OpenAPI document types `attributes.transcript` as an untyped open object and the
+example shows `transcript: {}`, so the segment, speaker and text keys can only be learned from a
+live response with a real key. Writing this adapter from docs would mean guessing exactly the
+field names whose wrong values produce a silent empty run. Everything else is documented and
+straightforward, so this is a one-sitting adapter for anyone who has a key: call
+`/conversations`, read what comes back, write it down here, then write it.
 
 **Public API.** Yes. Keys are created under Settings → Organization → API Keys and require the
 **Admin** role for organization-level keys. **Plan requirement is unverified.** Keys are
@@ -932,22 +1030,30 @@ family is the cheap way to do readiness filtering server-side.
 
 ## What this changes about writing an adapter
 
-Three patterns cut across the thirteen and are worth deciding once.
+Three patterns cut across the fourteen and are worth deciding once, which the shipped adapters
+already have — read one of them rather than re-deciding.
 
-**Speaker attribution is a join, not a field.** Gong (`speakerId`), Clari Copilot (`personId`),
-Grain (`participant_id`) and Modjo (`speaker.id`) all return an identifier where you want a name,
-and the mapping lives on the *call* object, not the transcript. That is why `providers.md` says to
-carry names through on `Call.attendees` — for these four, `transcript(id)` alone cannot attribute
-a line.
+**Speaker attribution is usually a join, not a field.** Avoma (`speaker_id`), Gong (`speakerId`),
+Clari Copilot (`personId`), Grain (`participant_id`) and Modjo (`speaker.id`) all return an
+identifier where you want a name. For Avoma, Grain and Modjo the mapping arrives with the
+transcript; for Gong and Clari it lives on the *call* object, so a transcript fetched without a
+prior list is unattributable text and the adapter keeps what the list told it. Granola, Fathom,
+Fireflies, tl;dv and Circleback hand you a name directly.
 
-**Internal vs external is only flagged by five of them.** Gong (`parties[].affiliation`), Fathom
-(`calendar_invitees[].is_external`), Grain (`participants[].scope`), Zoom
+**Internal versus external is only flagged by five of them.** Gong (`parties[].affiliation`),
+Fathom (`calendar_invitees[].is_external`), Grain (`participants[].scope`), Zoom
 (`participants[].internal_user`) and Modjo (by array membership, and on `speaker.type`) tell you
-directly. The other eight do not, which is why the pipeline derives it from attendee email domains
-against `CALL_CAPTURE_INTERNAL_DOMAIN` and why that stays in `recorder.ts` rather than the adapter.
+directly. The other nine do not, and Avoma's flag is actively wrong in some workspaces — which is
+why the pipeline derives it from attendee email domains against `CALL_CAPTURE_INTERNAL_DOMAIN`, why
+that stays in `recorder.ts`, and why the adapters that DO have a flag deliberately ignore it. One
+rule for every recorder is what keeps the same call from reading as internal on one and external on
+the next.
 
-**Readiness is spelt eight ways or not at all.** Fireflies gives you a clean enum, Clari gives you
-a status with fourteen values, Otter gives you three per-artefact nulls, Modjo makes you correlate
-an empty array with a status field, Zoom makes you look for a file type, and Granola, Fathom,
-Grain, tl;dv and Circleback give you nothing. This is the whole reason `listReady` owns the filter
-and speaks the recorder's own vocabulary.
+**Readiness is spelt eight ways or not at all.** Avoma gives you two flags that are absent rather
+than false, Fireflies a clean enum, Clari a status with fourteen values, Otter three per-artefact
+nulls; Modjo makes you correlate an empty array with a status field, Zoom makes you look for a file
+type, and Granola, Fathom, Gong, Grain, tl;dv and Circleback give you nothing. This is the whole
+reason `listReady` owns the filter and speaks the recorder's own vocabulary — and where a recorder
+says nothing, returning the window whole and letting `transcript()` answer null is the shipped
+answer, because the collector's window overlaps the previous run precisely so that tomorrow is the
+retry.
