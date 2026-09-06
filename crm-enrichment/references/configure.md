@@ -70,9 +70,36 @@ writes with `INVALID_DATE`, and because HubSpot updates are atomic the whole row
 drops with it. A date property cannot be converted to datetime in place; delete and recreate
 it. The checked people-path list on contacts: `linkedin_person_id` (single-line text),
 `linkedin_profile_url` (single-line text), `primary_employment_status` (single select,
-options `Active` and `Left`), `cargo_last_enriched_at` (date and time),
-`cargo_enrichment_status` (single-line text). The account path's `cargo_last_enriched_at` and
+options `Active` and `Left`), `cargo_relationship` (single select, options `used_cargo` and
+`never_used_cargo`), `job_change_date` (date and time — or the audited reuse candidate, such as
+HubSpot's native `hs_job_change_detected_date` when it is writable), `cargo_last_enriched_at`
+(date and time),
+`cargo_enrichment_status` (single-line text). The buying role needs no property work:
+`hs_buying_role` is HubSpot-native, mirrors the contact-to-deal labels, and is read-only in this
+pipeline. The account path's `cargo_last_enriched_at` and
 `cargo_enrichment_status` on companies follow the same date-and-time rule.
+
+### Create the association label pair by hand (people path)
+
+The champion play's memory rides one paired contact-and-company association label: contact side
+"Ex-employee", company side "Former employer", many-to-many. Create it once in the HubSpot UI —
+Settings → Data model → Contacts → Associated objects and labels → Create association label →
+"A pair of labels" — before the build; the Cargo HubSpot connector cannot create labels (a known
+gap), but it resolves existing ones by name. At adaptation, resolve every `associationTypeId`
+placeholder from the live autocomplete:
+
+```sh
+cargo-ai connection connector autocomplete --connector-uuid <crm-connector-uuid> \
+  --slug listObjectAssociationTypes \
+  --params '{"fromObjectType":"contacts","toObjectType":"companies"}'
+```
+
+The results carry composite values like `USER_DEFINED:<n>` with the label as the display name;
+match the pair BY LABEL (the contacts→companies direction shows "Former employer") and paste the
+returned value. The note directions (`notes`→`contacts`, `notes`→`companies`) each return a
+single default entry — take it. The numeric part is a portal-specific sequence: a value copied
+from another portal labels the wrong relationship without any error, which is why no numeric id
+may ever be committed.
 
 ### Declare or adopt the relationship (people path)
 

@@ -533,13 +533,33 @@ const slack = defineConnector("slack", {
 // not at build time.
 const championAlertChannelId = "REPLACE-WITH-SLACK-CHANNEL-ID";
 
-// HubSpot-defined association type ids for the checked example: contact →
-// company (non-primary) 279, note → contact 202, note → company 190.
-// PLACEHOLDER: verify all three against the live connector's association
-// autocomplete before deploying.
-const contactToCompanyTypeId = "279";
-const noteToContactTypeId = "202";
-const noteToCompanyTypeId = "190";
+// Association types are portal-specific and are NEVER hardcoded as numeric
+// ids. Resolve each value at adaptation from the live connector's
+// autocomplete — it lists the portal's types by label and returns composite
+// values such as "USER_DEFINED:5":
+//   cargo-ai connection connector autocomplete --connector-uuid <crm-uuid> \
+//     --slug listObjectAssociationTypes \
+//     --params '{"fromObjectType":"contacts","toObjectType":"companies"}'
+// PLACEHOLDER: the pair below is matched BY LABEL NAME ("Former employer" on
+// the contacts→companies direction of the Ex-employee / Former employer
+// pair created in the HubSpot UI); the note types are the single default
+// entry of their direction's autocomplete.
+const formerEmployerAssociationType = "RESOLVE-BY-LABEL:Former employer";
+const noteToContactAssociationType =
+  "RESOLVE-FROM-AUTOCOMPLETE:notes-to-contacts";
+const noteToCompanyAssociationType =
+  "RESOLVE-FROM-AUTOCOMPLETE:notes-to-companies";
+
+// The relationship flag and the move date are written only when empty, from
+// configurable defaults. PLACEHOLDER: confirm both property names at the
+// audit — cargo_relationship is a single select (used_cargo |
+// never_used_cargo) created in the CRM UI; the move-date default creates
+// job_change_date as a date-and-time property (HubSpot's native
+// hs_job_change_detected_date is a reuse candidate when it is writable on
+// the portal).
+const cargoRelationshipProperty = "cargo_relationship";
+const cargoRelationshipDefault = "used_cargo";
+const jobChangeDateProperty = "job_change_date";
 
 // The departure verdict is its own tool so the AI step materializes as one
 // node whose answer the play branches on. Inlining ai() into branch
@@ -562,7 +582,7 @@ const championVerdictWorkflow = defineWorkflow(
   ({ input, ai }) => {
     return {
       verdict: ai(
-        `You are auditing one CRM contact against their live LinkedIn profile. CRM primary company: name "${input.crm_company_name}", domain "${input.crm_company_domain}", LinkedIn page "${input.crm_company_linkedin_page}". Live LinkedIn profile JSON, including every position in "experiences" with dates and is_current flags: ${input.profile_json}. Concurrent side positions (communities, advisory seats, volunteering, fractional work) are not primary employment. Question: did this person's PRIMARY employment change away from the CRM primary company? Answer with exactly one word: SAME if their primary employer is still the CRM primary company, MOVED if their primary employer is now a different company, LEFT if they left and no new primary employer is visible.`,
+        `You are auditing one CRM contact against their live LinkedIn profile. CRM primary company: name "${input.crm_company_name}", domain "${input.crm_company_domain}", LinkedIn page "${input.crm_company_linkedin_page}". Live LinkedIn profile JSON, including every position in "experiences" with dates and is_current flags: ${input.profile_json}. Concurrent side positions (communities, advisory seats, volunteering, fractional work) are not primary employment. Question: did this person's PRIMARY employment change away from the CRM primary company? Answer on one line: first exactly one word — SAME if their primary employer is still the CRM primary company, MOVED if their primary employer is now a different company, LEFT if they left and no new primary employer is visible — then a confidence word (high, medium, or low), then one short reason.`,
       ),
     };
   },
@@ -586,6 +606,9 @@ const monitorCrmChampion = defineWorkflow(
       associatedcompanyid: z.string().optional(),
       firstname: z.string().optional(),
       lastname: z.string().optional(),
+      hs_buying_role: z.string().optional(),
+      persona_type: z.string().optional(),
+      cargo_relationship: z.string().optional(),
     }),
     output: z.object({
       status: z.enum([
@@ -600,9 +623,12 @@ const monitorCrmChampion = defineWorkflow(
     uses: { crm, slack, contactEnrichment, championVerdict },
     imports: {
       championAlertChannelId,
-      contactToCompanyTypeId,
-      noteToContactTypeId,
-      noteToCompanyTypeId,
+      formerEmployerAssociationType,
+      noteToContactAssociationType,
+      noteToCompanyAssociationType,
+      cargoRelationshipProperty,
+      cargoRelationshipDefault,
+      jobChangeDateProperty,
     },
   },
   ({ input, uses }) => {
@@ -705,8 +731,8 @@ const monitorCrmChampion = defineWorkflow(
           ? duplicateContacts[0].id
           : input.hs_object_id;
 
-        if (!enriched.company_domain && !enriched.company_linkedin_url) {
-          // A move with no company identifiers cannot be found or created
+        if (!enriched.company_domain && !enriched.company_name) {
+          // A move with no company identity cannot be found or created
           // safely. Stamp the partial outcome and hand the owner the
           // context instead of minting an unmatchable company.
           uses.crm.updateRecords({
@@ -722,7 +748,7 @@ const monitorCrmChampion = defineWorkflow(
           uses.slack.postMessage({
             channelId: championAlertChannelId,
             format: "markdown",
-            body: `JOB CHANGE (unresolved)\n${input.firstname} ${input.lastname} left ${crmCompany?.properties.name} for "${enriched.company_name}", but LinkedIn exposed no domain or company page to match or create a CRM record with.\nPrevious role: ${input.jobtitle}\nNew role: ${enriched.job_title}\nSource: LinkedIn enrichment\nContact record: ${input.hs_object_id}\nPrevious company record: ${input.associatedcompanyid} (owner: ${crmCompany?.properties.hubspot_owner_id})\nResolve the new company manually; the next cycle finishes the move.`,
+            body: `JOB CHANGE (unresolved)\n${input.firstname} ${input.lastname} left ${crmCompany?.properties.name}, but LinkedIn exposed no company name or domain to match or create a CRM record with.\nPrevious role: ${input.jobtitle}\nNew role: ${enriched.job_title}\nVerdict: ${verdict}\nSource: LinkedIn enrichment\nContact record: ${input.hs_object_id}\nPrevious company record: ${input.associatedcompanyid} (owner: ${crmCompany?.properties.hubspot_owner_id})\nResolve the new company manually; the next cycle finishes the move.`,
           });
 
           return {
@@ -731,19 +757,10 @@ const monitorCrmChampion = defineWorkflow(
           };
         }
 
-        // Find the new company: LinkedIn company identity first, domain
-        // second. The no-match literals keep empty identifiers from
-        // matching arbitrary records.
-        const companiesByPage = uses.crm.findRecords({
-          objectType: "companies",
-          criterias: [
-            {
-              propertyName: "linkedin_company_page",
-              value:
-                enriched.company_linkedin_url || "cargo-no-linkedin-company",
-            },
-          ],
-        });
+        // Find the new company by identity, never a stored id: domain
+        // first, then exact name — HubSpot search is raw-exact. The
+        // no-match literals keep empty identifiers from matching arbitrary
+        // records.
         const companiesByDomain = uses.crm.findRecords({
           objectType: "companies",
           criterias: [
@@ -753,11 +770,21 @@ const monitorCrmChampion = defineWorkflow(
             },
           ],
         });
-        const matchedCompany = companiesByPage[0] ?? companiesByDomain[0];
+        const companiesByName = uses.crm.findRecords({
+          objectType: "companies",
+          criterias: [
+            {
+              propertyName: "name",
+              value: enriched.company_name || "cargo-no-company-name",
+            },
+          ],
+        });
+        const matchedCompany = companiesByDomain[0] ?? companiesByName[0];
 
         if (!matchedCompany) {
           // Create the missing company, then converge on a re-read so the
-          // continuation has its CRM record id.
+          // continuation has its CRM record id. A second run finds this
+          // record and creates nothing.
           uses.crm.insertRecord({
             objectType: "companies",
             mappings: [
@@ -780,29 +807,33 @@ const monitorCrmChampion = defineWorkflow(
             },
           ],
         });
-        const createdByPage = uses.crm.findRecords({
+        const createdByName = uses.crm.findRecords({
           objectType: "companies",
           criterias: [
             {
-              propertyName: "linkedin_company_page",
-              value:
-                enriched.company_linkedin_url || "cargo-no-linkedin-company",
+              propertyName: "name",
+              value: enriched.company_name || "cargo-no-company-name",
             },
           ],
         });
         const newCompany =
-          matchedCompany ?? createdByDomain[0] ?? createdByPage[0];
+          matchedCompany ?? createdByDomain[0] ?? createdByName[0];
 
-        // Preserve the former relationship explicitly before moving the
-        // primary association.
+        // The CRM remembers: add the Ex-employee / Former employer pair on
+        // the OLD company association — resolved by label name, never a
+        // numeric id — and never delete anything. Adding an existing
+        // labeled association is a no-op, so reruns stay clean.
         uses.crm.createAssociation({
           fromObjectType: "contacts",
           fromObjectId: targetContactId,
           toObjectType: "companies",
           toObjectId: input.associatedcompanyid,
-          associationTypeId: contactToCompanyTypeId,
+          associationTypeId: formerEmployerAssociationType,
         });
 
+        // Move the primary to the new company, refresh the title, and
+        // stamp the memory fields — the relationship flag and the move
+        // date only when empty, so a rerun rewrites nothing.
         uses.crm.updateRecords({
           objectType: "contacts",
           matchingPropertyName: "hs_object_id",
@@ -820,22 +851,33 @@ const monitorCrmChampion = defineWorkflow(
               value: enriched.linkedin_url,
               skipIfExist: true,
             },
+            {
+              propertyName: cargoRelationshipProperty,
+              value: cargoRelationshipDefault,
+              skipIfExist: true,
+            },
+            {
+              propertyName: jobChangeDateProperty,
+              value: new Date(),
+              skipIfExist: true,
+            },
             { propertyName: "primary_employment_status", value: "Active" },
             { propertyName: "cargo_last_enriched_at", value: new Date() },
             { propertyName: "cargo_enrichment_status", value: "succeeded" },
           ],
         });
 
-        // One JOB CHANGE note, associated to the contact, the former
-        // company, and the new company. PLACEHOLDER: confirm the created
-        // note's id field on the generated insertRecord output types.
+        // One JOB CHANGE note with the evidence, associated to the
+        // contact, the former company, and the new company. PLACEHOLDER:
+        // confirm the created note's id field on the generated
+        // insertRecord output types.
         const note = uses.crm.insertRecord({
           objectType: "notes",
           mappings: [
             { propertyName: "hs_timestamp", value: new Date() },
             {
               propertyName: "hs_note_body",
-              value: `JOB CHANGE\n${input.firstname} ${input.lastname} moved from ${crmCompany?.properties.name} to ${enriched.company_name}.\nPrevious role: ${input.jobtitle}\nNew role: ${enriched.job_title}\nSource: LinkedIn enrichment`,
+              value: `JOB CHANGE\n${input.firstname} ${input.lastname} moved from ${crmCompany?.properties.name} to ${enriched.company_name} (${enriched.company_domain}).\nPrevious role: ${input.jobtitle}\nNew role: ${enriched.job_title}\nDetected: ${new Date()}\nSource: LinkedIn enrichment\nVerdict: ${verdict}`,
             },
           ],
         });
@@ -844,27 +886,31 @@ const monitorCrmChampion = defineWorkflow(
           fromObjectId: note.id,
           toObjectType: "contacts",
           toObjectId: targetContactId,
-          associationTypeId: noteToContactTypeId,
+          associationTypeId: noteToContactAssociationType,
         });
         uses.crm.createAssociation({
           fromObjectType: "notes",
           fromObjectId: note.id,
           toObjectType: "companies",
           toObjectId: input.associatedcompanyid,
-          associationTypeId: noteToCompanyTypeId,
+          associationTypeId: noteToCompanyAssociationType,
         });
         uses.crm.createAssociation({
           fromObjectType: "notes",
           fromObjectId: note.id,
           toObjectType: "companies",
           toObjectId: newCompany?.id,
-          associationTypeId: noteToCompanyTypeId,
+          associationTypeId: noteToCompanyAssociationType,
         });
 
+        // The alert carries who this person was to the account: the buying
+        // role on the old customer's deal (read from HubSpot's native
+        // contact-deal labels, never written), the product relationship,
+        // and the persona.
         uses.slack.postMessage({
           channelId: championAlertChannelId,
           format: "markdown",
-          body: `JOB CHANGE\n${input.firstname} ${input.lastname} moved from ${crmCompany?.properties.name} to ${enriched.company_name}.\nPrevious role: ${input.jobtitle}\nNew role: ${enriched.job_title}\nPrevious work email: ${input.email}\nSource: LinkedIn enrichment\nContact record: ${targetContactId}\nPrevious company record: ${input.associatedcompanyid} (owner: ${crmCompany?.properties.hubspot_owner_id})\nNew company record: ${newCompany?.id}`,
+          body: `JOB CHANGE\n${input.firstname} ${input.lastname} moved from ${crmCompany?.properties.name} to ${enriched.company_name}.\nPrevious role: ${input.jobtitle}\nNew role: ${enriched.job_title}\nBuying role on the old account: ${input.hs_buying_role}\nProduct relationship: ${input.cargo_relationship || cargoRelationshipDefault}\nPersona: ${input.persona_type}\nPrevious work email: ${input.email}\nVerdict: ${verdict}\nSource: LinkedIn enrichment\nContact record: ${targetContactId}\nPrevious company record: ${input.associatedcompanyid} (owner: ${crmCompany?.properties.hubspot_owner_id})\nNew company record: ${newCompany?.id}`,
         });
 
         return {

@@ -1,7 +1,7 @@
 ---
 name: crm-enrichment
 description: 'Keep CRM accounts and contacts filled and refresh them when they go stale: deployed plays that fill approved blanks from LinkedIn, re-enroll stale records, and monitor customer champions for job changes. Triggers: "keep our CRM accounts filled", "keep our CRM companies filled", "keep our CRM contacts filled", "enrich my CRM", "CRM enrichment", "old firmographics keep going stale", "every new CRM account", "every new CRM company", "every new CRM contact", "nobody refreshes the company records", "nobody refreshes the contact records", "refresh stale firmographics", "contacts are missing LinkedIn URLs and titles", "monitor our customer champions". HubSpot, Salesforce, Attio, Cargo CDK. Skip when: the records are not in a CRM. A supplied company list is enrich-company-data; a supplied LinkedIn-URL list is enrich-linkedin-profile; a one-time job-change check is track-job-changes.'
-version: "0.8.0"
+version: "0.9.0"
 compatibility: "Requires the cargo-cdk skill, a Cargo CDK project, and @cargo-ai/cdk ^1.0.51. Pin the project's root zod to 4.4.3 (a mismatch breaks typechecking), and give tsc NODE_OPTIONS=--max-old-space-size=16384 when checking infra against generated workspace types, in CI too. The repository example does not deploy or access a CRM until an agent adapts it in the consumer project."
 homepage: https://github.com/getcargohq/gtm-skills/tree/main/crm-enrichment
 metadata:
@@ -41,10 +41,14 @@ the six-month window. `monitor_champions` watches contacts whose primary company
 a 30-day window and compares their live LinkedIn profile against the CRM company: deterministic
 guards first (LinkedIn company identity, then domain), and when the guards cannot confirm the
 company, an AI verdict over the complete profile — dates and concurrent positions included —
-decides whether the PRIMARY employment changed. On a confirmed move it finds or creates the new
-company, updates the same contact, preserves the former company relationship, writes one JOB
-CHANGE note on the contact and both companies, and alerts the former
-account's owner in Slack. Job changes among customer contacts are time-sensitive warm pipeline;
+decides whether the PRIMARY employment changed. On a confirmed move it finds the new company by
+identity — domain, then exact name — creating it only when missing, moves the primary
+association and refreshes the title, labels the old company association with the Ex-employee /
+Former employer pair, stamps the product relationship and the move date when empty, writes one
+JOB CHANGE note with the evidence on the contact and both companies, and alerts the former
+account's owner in Slack with the buying role, product relationship, and persona. A second run
+on the same contact creates nothing: the CRM now says the person moved, so the verdict is SAME
+and every memory field is written only when empty. Job changes among customer contacts are time-sensitive warm pipeline;
 standard contact data is not — that is why the cadences differ and why the split lives in the two
 play filters rather than a standalone segment.
 
@@ -102,6 +106,28 @@ The duplicate-property audit is about genuine customer-managed duplicates. Do no
 system properties, HubSpot `hs_*` fields, or generic native properties as duplicates merely because
 they could hold similar data. If no customer-managed duplicate group exists, say
 `No duplicate properties detected`.
+
+## How the CRM remembers
+
+A CRM that only tracks current employees forgets the person the moment they leave. This pipeline
+makes the move itself durable, with a model small enough to reason about:
+
+- **One paired association label** carries the history: contact side "Ex-employee", company side
+  "Former employer", many-to-many. It is created once, by hand, in the HubSpot UI (Settings →
+  Data model → Contacts → Associated objects and labels → Create association label → "A pair of
+  labels") — the Cargo HubSpot connector cannot create labels, but its Create association node
+  lists the existing labels by name and resolves the portal-specific type id itself, so no
+  numeric id is ever hardcoded.
+- **The label carries no judgment.** Who the person was to the account comes from data that
+  already exists: role-then is the buying role on the old customer's deal (HubSpot's native
+  contact-to-deal labels, read for the alert and never written), and role-now is the title and
+  company this pipeline's enrichment already maintains.
+- **Two properties complete the memory**: `cargo_relationship` (used_cargo | never_used_cargo),
+  written only when empty from a configurable default, and a configurable move-date property
+  (default: create `job_change_date`), stamped only on the first detection.
+- **Two plays can then read the same records**: "Ex-employee of a customer + used_cargo" is
+  champion tracking — this play's alert; "Ex-employee of <company> + persona in a target set" is
+  alumni outreach. Neither needs a new data model, only the label and the two properties.
 
 ## Guide the operator through every phase
 
@@ -255,6 +281,7 @@ waiting to be asked. Every one costs something; that is what makes it a variatio
 | `refresh_cadences`          | The six-month or 30-day windows do not fit the book                                            | Change the freshness filter values in the play triggers, keeping the champion window shorter than the standard one                                                                                                                                                                                                                                                                                                                                                                          | A faster cadence re-bills the same rows more often; a slower champion window ages the job-change signal       |
 | `approved_refresh_behavior` | Populated fields must be refreshed after explicit approval                                     | Drop `skipIfExist` / the read-then-omit guard on the approved fields only — for `enrich_contacts`, also remove the blank-destination filter group — preview the replacements, and compare against a fresh CRM read (`infra/index.ts`)                                                                                                                                                                                                                                                       | Refresh can overwrite CRM-authoritative values if the preview and the write disagree                          |
 | `champion_deferral`         | The operator does not want the champion play creating companies or writing notes automatically | At the policy gate, replace the find-or-create branch with the alert-only behavior: stamp the `partial` outcome, keep the association, and let the Slack alert ask the owner to create the company so the next cycle finishes the move                                                                                                                                                                                                                                                      | Every deferred move waits a full cycle on a human; the warm-pipeline signal ages while it waits               |
+| `crm_memory_defaults`       | The portal already tracks the product relationship, the move date, or personas elsewhere       | Point `cargoRelationshipProperty`, `cargoRelationshipDefault`, and `jobChangeDateProperty` at the audited equivalents (`hs_job_change_detected_date` is a reuse candidate when writable), and swap the alert's persona source                                                                                                                                                                                                                                                               | A second parallel property splits the history the alumni segment will filter on                               |
 | `champion_sequencing`       | The operator wants a detected job change to trigger outreach                                   | Hand the alert off to a play built on `track-job-changes` or `monitor-buying-signals`; the champion play stops at the note and the Slack alert by design                                                                                                                                                                                                                                                                                                                                    | A sequence on a false positive burns the relationship; keep the verdict thresholds conservative first         |
 
 ## What should not change
@@ -270,9 +297,11 @@ it if you still want it, and records why under `## Decisions` in your copy of th
 - **Fill approved blanks only.** (`infra/index.ts` `skipIfExist` or the Salesforce/Attio read-then-omit guard) A stale snapshot overwrites authoritative CRM data, including numeric zero. The champion play's job-change branch is the one recorded exception: on a confirmed move it refreshes the company association, title, and employment status, because preserving them would preserve the wrong employer.
 - **Eligibility and freshness live in the play triggers.** (`infra/index.ts` `enrichAccounts`, `enrichContacts`, `monitorChampions`) Require an identifier and the path's freshness window in the managed segment. The row workflow starts with the reusable tool call instead of repeating trigger conditions as branches. A standalone `defineSegment` or duplicate workflow gate drifts from the play.
 - **The customer-status split is the two contact filters, read through the relationship.** (`infra/index.ts` `contactPrimaryCompany`) `enrich_contacts` owns non-customer contacts on the six-month window; `monitor_champions` owns customer-company contacts on the 30-day window — both reading the RELATED account's customer property through `contact_primary_company`, never the contact's own lifecycle field, which portals do not reliably sync. Widening either filter enrolls the same contact in both plays and bills it twice per cycle; narrowing both drops contacts into a gap nobody refreshes; filtering on the contact's own lifecycle hands the champion play an empty or wrong segment.
-- **One person is one contact.** (`infra/index.ts` `monitorCrmChampion`) A job change updates the resolved existing contact — found by LinkedIn person identity, else the triggering row — finds or creates the new company, moves the primary company, and preserves the former relationship. The play never creates, merges, or deletes a contact, and a new employer or work email is never a new identity. Breaking this splits one person across duplicate records and the champion history with them.
+- **One person is one contact, one company is one record.** (`infra/index.ts` `monitorCrmChampion`) A job change updates the resolved existing contact — found by LinkedIn person identity, else the triggering row — and finds the new company by identity, domain then exact name, never a stored id (HubSpot search is raw-exact), creating it only behind the no-match Branch. It moves the primary company and preserves the former relationship. The play never creates, merges, or deletes a contact, and a new employer or work email is never a new identity. Breaking this splits one person across duplicate records and the champion history with them.
 - **Deterministic guards first, AI verdict second, email never.** (`infra/index.ts` `monitorCrmChampion`, `championVerdictWorkflow`) The same-company guards compare LinkedIn company identity first and domain second; only when they cannot confirm does the verdict tool read the complete profile — dates and concurrent positions included — and decide whether the PRIMARY employment changed. A bare current-company comparison flips champions with side positions (communities, advisory seats) between runs; a work email or an email-domain mismatch alone is never identity or proof of a move. Inlining the verdict prompt into branch conditions bills it per condition and makes `includes()` test the prompt text instead of the answer.
 - **Every blank filter condition pairs `isNull` with `isEmpty`.** (`infra/index.ts` play filters) Blank HubSpot values surface as NULL in the Cargo extract, and `isEmpty` alone matches nothing — the play deploys green and enrolls zero rows, silently.
+- **Association labels are resolved by name, never hardcoded as numeric ids.** (`infra/index.ts` association type consts) User-defined label ids are portal-specific sequence numbers; a hardcoded number labels the wrong relationship on the next portal without any error. Resolve every `associationTypeId` from the live connector autocomplete at adaptation, matching the Ex-employee / Former employer pair by its label.
+- **The moved write is idempotent and buying roles are read-only.** (`infra/index.ts` `monitorCrmChampion`) `cargo_relationship` and the move date write only when empty, the labeled association add is a no-op when it exists, and a rerun lands on the SAME branch because the CRM now agrees with LinkedIn — a second run creates nothing. The buying role on the old customer's deal is HubSpot's native contact-to-deal label: it feeds the alert and is never written. Weakening either turns reruns into duplicate history or overwritten judgment.
 - **Every play deploys disabled and `noConcurrency` first.** (`infra/index.ts`) Removing those expands an unapproved pilot.
 - **No credentials, deploy commands, or customer data in this repository.**
 
@@ -320,11 +349,18 @@ it if you still want it, and records why under `## Decisions` in your copy of th
 - the first plan shows `isEnabled: false` and `runCreationRule: noConcurrency` on every play
 - route counts are mutually exclusive and reproduce the credit estimate — LinkedIn URL and domain
   for accounts; LinkedIn URL and email-resolver chain for contacts
-- on a verified job change, the champion play found or created the new company, updated the
+- the Ex-employee / Former employer pair exists in the portal and every `associationTypeId` in
+  the plan is an autocomplete-resolved value, with no numeric id in any node config
+- on a verified job change, the champion play found the new company by domain then exact name or
+  created it, updated the
   resolved existing contact, moved the
-  primary company, preserved the former relationship with an explicit association, refreshed the
-  title, wrote one JOB CHANGE note associated to the contact and both companies, and posted the
-  structured alert to the approved channel — and created no contact
+  primary company, labeled the old company association with the pair, stamped
+  `cargo_relationship` and the move date where empty, refreshed the
+  title, wrote one JOB CHANGE note with the evidence associated to the contact and both
+  companies, and posted the
+  structured alert — buying role, product relationship, and persona included — to the approved
+  channel; a second run on the same contact created zero new objects and left the buying role
+  untouched
 - the phase-two handoff contains working Cargo UI links for every disabled play and tool, plus the
   exact target and estimated credits
 - the operator explicitly approved the run after reviewing the links and cost

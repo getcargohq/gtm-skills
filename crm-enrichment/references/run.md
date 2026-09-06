@@ -69,13 +69,19 @@ experience dates and concurrent positions included — and answers SAME, MOVED, 
 question "did the PRIMARY employment change?". SAME converges into the fill-blanks path. LEFT
 sets `Left` and keeps the association for the next cycle. MOVED resolves
 the target contact through the LinkedIn person identity — the row's record when no duplicate
-exists — finds the new company by LinkedIn company identity first and domain second, creates it
-when no match exists, preserves the former relationship with an explicit association, updates
-that one contact (association, title, status), writes one JOB CHANGE note associated to the
+exists — finds the new company by identity, domain first and exact name second (HubSpot search
+is raw-exact; never a stored id), creates it only
+when no match exists, labels the old company association with the Ex-employee / Former employer
+pair (resolved by label name), updates
+that one contact — primary association, title, status, plus `cargo_relationship` and the move
+date where empty — writes one JOB CHANGE note with the evidence (old and new company, titles,
+date, provider, verdict and confidence) associated to the
 contact and both companies, and posts the structured
-job-change alert to the approved Slack channel. Only a move with no company identifiers at all
+job-change alert — buying role on the old account, product relationship, and persona included —
+to the approved Slack channel. Only a move with no company name or domain at all
 stamps a `partial` outcome and defers to the owner. No branch creates, merges, or deletes a
-contact.
+contact, and a second run on the same contact lands on SAME and creates nothing: the CRM now
+agrees with LinkedIn, and every memory field writes only when empty.
 
 The tool output schema and the play write mappings form one interface: every selected provider field
 returned by a tool has its approved CRM destination in its play workflows. The plays
@@ -138,7 +144,9 @@ In this repository run `npm run validate`. In the consumer project:
 5. Confirm the plan has one CRM model per audited object, the `contact_primary_company`
    relationship (declared or adopted, full array sent), and no native `accounts` or `contacts`
    unification.
-6. Confirm each compiled tool starts with an identifier Branch and contains no CRM action —
+6. Resolve every `associationTypeId` from the live autocomplete by label name, and confirm no
+   numeric id survives in any node config.
+7. Confirm each compiled tool starts with an identifier Branch and contains no CRM action —
    `contact_enrichment`'s email route must end unresolved rows before the person enrichment, and
    `champion_verdict` must be one AI node gated behind the deterministic guards, never inlined
    into branch conditions.
@@ -148,14 +156,17 @@ In this repository run `npm run validate`. In the consumer project:
    the Cargo-owned fields, exactly one moves the company association, company creation sits
    behind the no-match Branch, and both Slack nodes carry `channelId` + `format: "markdown"` +
    `body`.
-7. Deploy only after the phase-one approval explicitly authorizes disabled resource creation.
-8. Run the one-record write probe, then the champion coverage gate, from the section above.
-9. Show the operator direct Cargo UI links for every disabled play and tool, the approved field
-   contract, exclusions, target counts per play, mappings, live action costs, exact estimated
-   credits, pricing lookup time, and that every play stays disabled.
-10. Run or enable only after the operator reviews that phase-two handoff and explicitly approves
+8. Deploy only after the phase-one approval explicitly authorizes disabled resource creation.
+9. Run the one-record write probe, then the champion coverage gate, from the section above.
+10. Show the operator direct Cargo UI links for every disabled play and tool, the approved field
+    contract, exclusions, target counts per play, mappings, live action costs, exact estimated
+    credits, pricing lookup time, and that every play stays disabled.
+11. Run or enable only after the operator reviews that phase-two handoff and explicitly approves
     the stated population and maximum cost.
-11. When verifying fresh CRM writes the same day, force a full extract refresh — the incremental
+12. On the first champion pilot, verify a seeded moved contact end to end: exactly one new
+    company, primary moved, the old link kept with the pair, the move date and note present —
+    then run it again and confirm zero new objects and untouched buying roles.
+13. When verifying fresh CRM writes the same day, force a full extract refresh — the incremental
     schedule does not pick up new writes promptly, and a stale extract reads as a failed write.
 
 ## Post-enrichment report
@@ -199,8 +210,10 @@ schedule.
   customer status with the approved freshness windows
 - fills use a CRM-native blank-only update flag or an explicit fresh-read guard; the champion
   job-change branch's refresh of association, title, and status is the recorded exception
-- a job change updates the resolved existing contact, preserves the former relationship, and
-  posts the structured alert — and never creates, merges, or deletes a contact
+- a job change updates the resolved existing contact, labels the old association with the pair,
+  stamps the memory fields where empty, and
+  posts the structured alert — and never creates, merges, or deletes a contact; a second run on
+  the same contact creates nothing
 - `isEnabled: false`, `runCreationRule: noConcurrency`, daily scheduling, and
   `changeKinds: ["added"]` remain in the first plan for every play
 - every disabled play and tool has a working direct Cargo UI link before run approval

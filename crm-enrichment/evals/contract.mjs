@@ -536,6 +536,17 @@ assert.equal(
   false,
   "the job-change write must refresh the stale title, not preserve it",
 );
+for (const property of ["cargo_relationship", "job_change_date"]) {
+  assert.equal(
+    isLiteralTrue(
+      moveWrites[0].config.mappings.find(
+        (mapping) => mapping.propertyName === property,
+      )?.skipIfExist,
+    ),
+    true,
+    `${property} is written only when empty, so a rerun rewrites nothing`,
+  );
+}
 const employmentValues = new Set(
   championWrites.flatMap((write) =>
     write.config.mappings
@@ -567,15 +578,19 @@ assert.equal(
 const championReads = championNodes.filter(
   (node) => node.kind === "connector" && node.actionSlug === "findRecords",
 );
-assert.equal(
-  championReads.some((node) =>
-    node.config.criterias.some(
-      (criteria) => criteria.propertyName === "linkedin_company_page",
+for (const property of ["domain", "name"]) {
+  assert.equal(
+    championReads.some(
+      (node) =>
+        node.config.objectType === "companies" &&
+        node.config.criterias.some(
+          (criteria) => criteria.propertyName === property,
+        ),
     ),
-  ),
-  true,
-  "the champion play must search the new company by LinkedIn company identity",
-);
+    true,
+    `the champion play must search the new company by ${property} — identity, never a stored id`,
+  );
+}
 assert.equal(
   championReads.some(
     (node) =>
@@ -622,15 +637,27 @@ assert.equal(
   3,
   "the note must be associated to the contact, the former company, and the new company",
 );
-assert.equal(
-  associations.some(
-    (node) =>
-      node.config.fromObjectType === "contacts" &&
-      node.config.toObjectType === "companies",
-  ),
-  true,
+const formerEmployerLink = associations.find(
+  (node) =>
+    node.config.fromObjectType === "contacts" &&
+    node.config.toObjectType === "companies",
+);
+assert.ok(
+  formerEmployerLink,
   "the former company relationship must be preserved with an explicit association",
 );
+assert.match(
+  formerEmployerLink.config.associationTypeId,
+  /Former employer/,
+  "the old-company link must carry the Ex-employee / Former employer pair, resolved by label name",
+);
+for (const association of associations) {
+  assert.doesNotMatch(
+    String(association.config.associationTypeId),
+    /(?:_DEFINED:)?\d+$/,
+    "association type ids are portal-specific: resolve them from the live autocomplete, never hardcode a number",
+  );
+}
 
 // The verified Slack payload: channelId + format + body, never message.
 const championAlerts = championNodes.filter(

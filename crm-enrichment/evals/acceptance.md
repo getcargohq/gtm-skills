@@ -130,15 +130,25 @@ Walk every line. A checked template without an evidence-backed consumer adaptati
   rows to the verdict, and never treats a work
   email or its domain as identity or proof of a move.
 - On a MOVED verdict, the champion play resolves the target contact through the LinkedIn person
-  identity (falling back to the triggering row), finds the new company by LinkedIn company
-  identity then domain, creates it behind the no-match Branch when absent, preserves the former
-  relationship with an explicit association, updates that one contact — association, title,
-  employment status — writes one JOB CHANGE note associated to the contact and both companies,
+  identity (falling back to the triggering row), finds the new company by identity — domain then
+  exact name, never a stored id — creates it behind the no-match Branch when absent, labels the
+  old company association with the Ex-employee / Former employer pair, updates that one contact —
+  association, title, employment status, plus `cargo_relationship` and the move date where
+  empty — writes one JOB CHANGE note with the evidence (companies, titles, date, provider,
+  verdict and confidence) associated to the contact and both companies,
   and posts the structured alert with the verified Slack payload (`channelId`,
-  `format: "markdown"`, `body`). Exactly
+  `format: "markdown"`, `body`), carrying the buying role, product relationship, and persona.
+  Exactly
   one write moves the association; the title refresh there is deliberate. Only a move with no
-  company identifiers stamps `partial` and defers to the owner.
+  company name or domain stamps `partial` and defers to the owner.
   No branch creates, merges, or deletes a contact.
+- The Ex-employee / Former employer pair was created once in the HubSpot UI before the build, and
+  every `associationTypeId` is resolved from the live connector autocomplete by label name — no
+  numeric id appears in any node config.
+- A second run on a moved contact lands on the SAME branch and creates zero new objects: the
+  labeled association add is a no-op, `cargo_relationship` and the move date write only when
+  empty, and no second note or company appears. Buying roles are read for the alert and never
+  written.
 - The two contact play filters are the customer-status split: their populations are disjoint and
   express the two refresh cadences. No standalone `defineSegment` exists.
 - Every disabled play evaluates daily, creates runs only for rows added to its managed segment,
