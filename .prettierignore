@@ -24,6 +24,7 @@ skills.sh.json
 hooks/
 evals/
 */apps/*/**
+*/infra/apps/*/**
 */workers/*/**
 scripts/build-codex-package.mjs
 scripts/validate.ts
