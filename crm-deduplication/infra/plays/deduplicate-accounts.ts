@@ -75,30 +75,30 @@ const deduplicateCrmAccount = defineWorkflow(
     // Everything the merge decision rests on, derived deterministically: no
     // model, no judgement. The same records always produce the same evidence.
     const evidence = js(({ nodes }) => {
-      const found: any[] = Array.isArray(nodes.hubspot) ? nodes.hubspot : [];
-
-      const text = (value: unknown) =>
+      // CRM properties arrive as whatever the API felt like sending, so every
+      // value is coerced before it is compared to another one.
+      const asText = (value: unknown) =>
         value === null || value === undefined ? "" : String(value).trim();
-      const count = (value: unknown) =>
+      const asNumber = (value: unknown) =>
         Number.isFinite(Number(value)) ? Number(value) : 0;
-      const domainOf = (value: unknown) =>
-        text(value)
+      const asDomain = (value: unknown) =>
+        asText(value)
           .toLowerCase()
           .replace(/^https?:\/\//, "")
           .replace(/^www\./, "")
           .split(/[/?#]/)[0]
           .replace(/:\d+$/, "")
           .replace(/\.$/, "");
-      const handleOf = (value: unknown) =>
-        text(value)
+      const asHandle = (value: unknown) =>
+        asText(value)
           .toLowerCase()
           .replace(/^(?:https?:\/\/)?(?:www\.)?linkedin\.com\/company\//, "")
           .replace(/[?#].*$/, "")
           .replace(/\/+$/, "");
 
-      // Domains thousands of unrelated companies share. One of these is never
-      // evidence of anything, so it can neither pair two records nor score.
-      const parkedDomains = [
+      // Domains thousands of unrelated companies share. One of these tells you
+      // nothing, so it can neither pair two records nor score.
+      const parked = [
         "bit.ly",
         "facebook.com",
         "github.com",
@@ -110,79 +110,97 @@ const deduplicateCrmAccount = defineWorkflow(
         "substack.com",
         "uk.com",
       ];
-      const identifies = (domain: string) =>
-        domain !== "" && !parkedDomains.includes(domain);
+      const identifiesOneCompany = (domain: string) =>
+        domain !== "" && !parked.includes(domain);
 
-      const normalized = found
+      // What the search just returned, in the shape the policy below reads.
+      const found: any[] = Array.isArray(nodes.hubspot) ? nodes.hubspot : [];
+      const records = found
         .map((record) => {
-          const properties = (record && record.properties) || {};
+          const fields = (record && record.properties) || {};
+          const populated = Object.values(fields).filter(
+            (value) => value !== null && value !== undefined && value !== "",
+          );
           return {
-            id: text(record && record.id),
-            linkedinId: text(properties.linkedin_company_id),
-            linkedinUrl: handleOf(properties.linkedin_company_page),
-            domain: domainOf(properties.domain),
-            protectedId: text(properties.protected_business_id),
-            parentId: text(properties.parent_company_id),
+            id: asText(record && record.id),
+            linkedinId: asText(fields.linkedin_company_id),
+            linkedinUrl: asHandle(fields.linkedin_company_page),
+            domain: asDomain(fields.domain),
+            protectedId: asText(fields.protected_business_id),
+            parentId: asText(fields.parent_company_id),
             isCustomer:
-              text(properties.lifecyclestage).toLowerCase() === "customer",
-            openDeals: count(properties.hs_num_open_deals),
-            contacts: count(properties.num_associated_contacts),
-            activities: count(properties.hs_num_engagements),
-            filledProperties: Object.values(properties).filter(
-              (value) => value !== null && value !== undefined && value !== "",
-            ).length,
-            lastActivityAt: text(properties.notes_last_updated),
-            createdAt: text(properties.createdate),
+              asText(fields.lifecyclestage).toLowerCase() === "customer",
+            openDeals: asNumber(fields.hs_num_open_deals),
+            contacts: asNumber(fields.num_associated_contacts),
+            activities: asNumber(fields.hs_num_engagements),
+            filledProperties: populated.length,
+            lastActivityAt: asText(fields.notes_last_updated),
+            createdAt: asText(fields.createdate),
           };
         })
+        // One company can match several criteria; keep its first appearance.
         .filter(
           (record, index, all) =>
             record.id !== "" &&
             all.findIndex((other) => other.id === record.id) === index,
         );
 
-      // The enrolled row as the CRM holds it now. Its absence means an earlier
-      // merge already absorbed it, and nothing below may emit a merge ID.
-      const sourceId = text(nodes.start.hs_object_id);
-      const source = normalized.find((record) => record.id === sourceId);
-
-      const cluster = normalized.filter(
-        (record) =>
-          source !== undefined &&
-          (record.id === source.id ||
-            (source.linkedinId !== "" &&
-              record.linkedinId === source.linkedinId) ||
-            (source.linkedinUrl !== "" &&
-              record.linkedinUrl === source.linkedinUrl) ||
-            (identifies(source.domain) && record.domain === source.domain)),
-      );
-      const duplicates = cluster.filter((record) => record.id !== sourceId);
-
-      const distinct = (values: string[]) =>
-        values.filter(
-          (value, index, all) => value !== "" && all.indexOf(value) === index,
+      // The cluster is the enrolled row plus every record sharing an identity
+      // key with it. A source the search no longer returns was absorbed by an
+      // earlier merge: the cluster comes back empty, which leaves every flag
+      // below false and stops any merge ID being emitted.
+      const sourceId = asText(nodes.start.hs_object_id);
+      const source = records.find((record) => record.id === sourceId);
+      const cluster = records.filter((record) => {
+        if (source === undefined) return false;
+        if (record.id === source.id) return true;
+        return (
+          (source.linkedinId !== "" &&
+            record.linkedinId === source.linkedinId) ||
+          (source.linkedinUrl !== "" &&
+            record.linkedinUrl === source.linkedinUrl) ||
+          (identifiesOneCompany(source.domain) &&
+            record.domain === source.domain)
         );
-      const linkedinIds = cluster.map((record) => record.linkedinId);
-      const linkedinUrls = cluster.map((record) => record.linkedinUrl);
-      const domains = cluster.map((record) => record.domain);
-      const protectedIds = cluster.map((record) => record.protectedId);
+      });
+      const duplicates = cluster.filter((record) => record.id !== sourceId);
+      const hasDuplicates = duplicates.length > 0;
 
-      // "Exact" means every record in the cluster carries the key and they all
-      // agree. One blank is enough to disqualify the automatic class.
-      const sharedByAll = (values: string[]) =>
-        duplicates.length > 0 &&
-        values.every((value) => value !== "") &&
-        distinct(values).length === 1;
+      // How one identity key behaves across the cluster. `sharedByAll` is the
+      // bar for merging unattended — every record carries the key and they all
+      // agree — and `conflicting` is what disqualifies a cluster outright.
+      const agreementOn = (
+        key: "linkedinId" | "linkedinUrl" | "domain" | "protectedId",
+      ) => {
+        const present = cluster
+          .map((record) => record[key])
+          .filter((value) => value !== "");
+        const distinct = present.filter(
+          (value, index, all) => all.indexOf(value) === index,
+        );
+        return {
+          value: distinct.length === 1 ? distinct[0] : "",
+          sharedByAll:
+            present.length === cluster.length && distinct.length === 1,
+          conflicting: distinct.length > 1,
+        };
+      };
+      const linkedinId = agreementOn("linkedinId");
+      const linkedinUrl = agreementOn("linkedinUrl");
+      const domain = agreementOn("domain");
+      const protectedId = agreementOn("protectedId");
 
-      const exactLinkedinId = sharedByAll(linkedinIds);
-      const exactLinkedinUrl = sharedByAll(linkedinUrls);
-      const exactDomain = sharedByAll(domains) && identifies(domains[0]);
-
+      const exactLinkedinId = hasDuplicates && linkedinId.sharedByAll;
+      const exactLinkedinUrl = hasDuplicates && linkedinUrl.sharedByAll;
+      const exactDomain =
+        hasDuplicates &&
+        domain.sharedByAll &&
+        identifiesOneCompany(domain.value);
       const identityConflict =
-        distinct(linkedinIds).length > 1 ||
-        distinct(linkedinUrls).length > 1 ||
-        distinct(domains).length > 1;
-      const protectedIdConflict = distinct(protectedIds).length > 1;
+        linkedinId.conflicting || linkedinUrl.conflicting || domain.conflicting;
+
+      // A record whose parent is also in the cluster is a subsidiary, and a
+      // subsidiary is a different company however much it looks like this one.
       const clusterIds = cluster.map((record) => record.id);
       const parentOrSubsidiaryWarning = cluster.some(
         (record) =>
@@ -191,25 +209,33 @@ const deduplicateCrmAccount = defineWorkflow(
 
       return {
         sourceFound: source !== undefined,
-        hasDuplicates: duplicates.length > 0,
+        hasDuplicates,
         duplicateCount: duplicates.length,
         cluster,
         exactLinkedinId,
         exactLinkedinUrl,
         exactDomain,
         identityConflict,
-        protectedIdConflict,
+        protectedIdConflict: protectedId.conflicting,
         parentOrSubsidiaryWarning,
         // The only class safe enough to merge unattended.
         autoEligible:
           exactLinkedinId &&
           !identityConflict &&
-          !protectedIdConflict &&
+          !protectedId.conflicting &&
           !parentOrSubsidiaryWarning,
+        // For the review message only. Protected IDs are reported as present
+        // or absent, never printed.
         evidenceSummary: cluster
-          .map(
-            (record) =>
-              `${record.id} - linkedinId: ${record.linkedinId || "none"}, linkedin: ${record.linkedinUrl || "none"}, domain: ${record.domain || "none"}, protected: ${record.protectedId !== "" ? "yes" : "no"}, parent: ${record.parentId || "none"}`,
+          .map((record) =>
+            [
+              record.id,
+              `linkedin id ${record.linkedinId || "none"}`,
+              `linkedin ${record.linkedinUrl || "none"}`,
+              `domain ${record.domain || "none"}`,
+              `protected ${record.protectedId === "" ? "no" : "yes"}`,
+              `parent ${record.parentId || "none"}`,
+            ].join(", "),
           )
           .join("\n"),
       };
