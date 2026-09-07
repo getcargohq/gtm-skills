@@ -98,3 +98,10 @@
 {"prompt": "Keep talking to leads over email", "expect": "agentic-engagement", "why": "The standing tell: a loop, not one send."}
 {"prompt": "Native email trigger for lead replies", "expect": "agentic-engagement"}
 {"prompt": "I need email addresses for these prospects so I can start conversations", "expect": "find-work-email", "why": "Addresses first; agentic-engagement is the loop you deploy after you have someone to write to."}
+{"prompt": "centralized inbox for email and LinkedIn replies", "expect": "reply-inbox"}
+{"prompt": "manage replies from emails and LinkedIn", "expect": "reply-inbox"}
+{"prompt": "cut Lemlist for a unified inbox", "expect": "reply-inbox"}
+{"prompt": "hosted inbox app for outbound replies", "expect": "reply-inbox"}
+{"prompt": "stand up a reply inbox", "expect": "reply-inbox"}
+{"prompt": "unibox for Cargo mailboxes", "expect": "reply-inbox"}
+{"prompt": "An agent that replies to inbound email so I don't need an inbox", "expect": "agentic-engagement", "why": "The agent holds the thread; reply-inbox is where a human sits."}
