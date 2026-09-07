@@ -61,8 +61,8 @@
 {"prompt":"portfolio companies of","expect":"find-portfolio-companies"}
 
 // --- one-off / deployed seam -------------------------------------------------------
-// tam-building, account-scoring, crm-enrichment, call-capture and
-// agentic-engagement are worked CDK examples that deploy a pipeline.
+// tam-building, account-scoring, crm-enrichment, crm-deduplication, call-capture
+// and agentic-engagement are worked CDK examples that deploy a pipeline.
 // build-tam-list, score-leads and research-account are one-offs: the same
 // job once, in a turn. The
 // same words describe both, so these cases pin which way each phrasing goes;
@@ -87,6 +87,10 @@
 {"prompt": "Enrich my CRM", "expect": "crm-enrichment"}
 {"prompt": "Our account data was accurate a year ago, but new companies and old firmographics keep going stale", "expect": "crm-enrichment"}
 {"prompt": "Every new CRM company should get standard identity and firmographics, then be refreshed when it goes stale", "expect": "crm-enrichment"}
+{"prompt": "Deduplicate our CRM accounts and keep the ambiguous company matches in review", "expect": "crm-deduplication"}
+{"prompt": "Set up recurring account deduplication in Cargo", "expect": "crm-deduplication"}
+{"prompt": "Merge duplicate companies in HubSpot automatically when confidence is high, and ask me to review uncertain matches", "expect": "crm-deduplication"}
+{"prompt": "Our CRM has duplicate account records sharing LinkedIn company IDs and domains", "expect": "crm-deduplication"}
 {"prompt": "Our call recordings never make it into the knowledge base", "expect": "call-capture"}
 {"prompt": "Turn yesterday's call transcripts into context updates every morning", "expect": "call-capture", "why": "The standing tell: every morning, not this one call."}
 {"prompt": "We relearn the same objection every quarter because nobody writes it down", "expect": "call-capture", "why": "The repetition bar promoting a twice-heard objection is exactly this pipeline."}

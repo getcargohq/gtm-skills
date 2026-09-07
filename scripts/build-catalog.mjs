@@ -33,7 +33,7 @@ const groupOf = (name) =>
 // What a cookbook declares, read from the `define*` calls themselves rather
 // than from its directory names. Every cookbook keeps its resources in `infra/`
 // now, so counting top-level folders would answer "infra" for all of them —
-// and a cookbook is free to put everything in one `infra/index.ts` anyway.
+// and a cookbook is free to lay `infra/` out however it likes.
 const RESOURCE_BY_BUILDER = {
   defineAgent: "agents",
   defineAlert: "alerts",

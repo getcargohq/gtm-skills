@@ -9,10 +9,10 @@ import { defineConnector } from "@cargo-ai/cdk";
 // own GitHub connector — this one. Declaring it is what makes it exist; wiring
 // it by hand would only re-state what the resolver already knows.
 //
-// Adopted, not created: authorize it once in the browser
-// (`cargo-ai cdk add connector/github`) and this declaration binds to it. A
-// deploy cannot mint an OAuth grant.
+// Binds the workspace's DEFAULT GitHub connector rather than creating one:
+// authorize it once in the browser (`cargo-ai cdk add connector/github`) and
+// this declaration resolves to it. A deploy cannot mint an OAuth grant.
 export const git = defineConnector("github", {
   integration: "github",
-  adopt: true,
+  default: true,
 });

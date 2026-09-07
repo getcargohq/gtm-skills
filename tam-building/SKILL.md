@@ -2,7 +2,7 @@
 name: tam-building
 description: 'Stand up your account universe as a deployed pipeline: an AI Ark company search shaped by your ICP, sized for free before it bills, then tiered A / B / C / disqualified by an agent that reads your rubric from the workspace context and web-searches the evidence the sourced row does not carry. Triggers: "our TAM is a stale CSV", "build our account universe", "source companies matching our ICP and rank them", "keep our market list current", "which of these companies are actually worth a rep", "tier the market we just sourced". Cargo CDK, aiArk, countCompanies, fetchCompanies, agent tiering, workspace context, webSearch. Skip when: you want the list once rather than a pipeline that keeps producing it, which is build-tam-list; or the accounts already exist in a CRM or an accounts model and only need judging, which is account-scoring.'
 version: "0.3.0"
-compatibility: "Requires the cargo-cdk skill, a Cargo CDK project, and @cargo-ai/cdk ^1.0.51. AI Ark and the LLM both run on adopted connections, so this example needs no API key and no LinkedIn seat, user, or cookie. The repository example does not deploy or source anything until an agent adapts it in the consumer project."
+compatibility: "Requires the cargo-cdk skill, a Cargo CDK project, and @cargo-ai/cdk 1.0.73 or later — connectors bind the workspace default with `default: true`, which 1.0.72 and older do not understand. AI Ark and the LLM both run on the workspace default connections, so this example needs no API key and no LinkedIn seat, user, or cookie. The repository example does not deploy or source anything until an agent adapts it in the consumer project."
 homepage: https://github.com/getcargohq/gtm-skills/tree/main/tam-building
 metadata:
   author: getcargo
@@ -255,7 +255,7 @@ per-record basis. Record the CLI version, the lookup time, and the unit price. T
 less.** Start well under the counted pool, watch the rows land and the tiers come back sane, then
 widen.
 
-**Tiering is one agent run per newly sourced company**, billed as LLM tokens through the adopted
+**Tiering is one agent run per newly sourced company**, billed as LLM tokens through the default
 connector plus whatever web search steps it takes. `maxSteps` is the per-company ceiling and the
 rubric's one-question-one-search rule is what keeps a normal row far below it. Because the play runs
 on `changeKinds: ["added"]`, steady state is only the companies a sourcing run newly added, plus

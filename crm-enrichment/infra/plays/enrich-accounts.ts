@@ -1,99 +1,13 @@
-import {
-  defineConnector,
-  defineModel,
-  definePlay,
-  defineTool,
-  defineWorkflow,
-} from "@cargo-ai/cdk";
+import { definePlay, defineWorkflow } from "@cargo-ai/cdk";
 import { z } from "zod";
-import { modelsFolder, playsFolder, toolsFolder } from "./folders";
 
-// Checked HubSpot example. For Salesforce or Attio, replace the connector
-// integration, the account extractor (HubSpot object: companies), the
-// record-id field, the write action, and the fill-blank guard. Keep one
-// CRM shape in this file.
-const crm = defineConnector("crm", {
-  integration: "hubspot",
-  adopt: true,
-});
+import { crm } from "../connectors/crm";
+import { playsFolder } from "../folders/crm-enrichment";
+import { crmAccounts } from "../models/crm-accounts";
+import { accountEnrichment } from "../tools/account-enrichment";
 
-export const crmAccounts = defineModel("crm_accounts", {
-  folder: modelsFolder,
-  connector: crm,
-  extractSlug: "fetchRecords",
-  config: { objectType: "companies", columnSelectionMode: "all" },
-  schedule: { type: "cron", cron: "0 * * * *" },
-});
-
-const linkedin = defineConnector("linkedin", {
-  integration: "linkedin",
-  adopt: true,
-});
-
-const enrichCompanyData = defineWorkflow(
-  "account_enrichment_workflow",
-  {
-    input: z.object({
-      linkedinUrlOrHandle: z.string().optional(),
-      domain: z.string().optional(),
-    }),
-    output: z.object({
-      company_id: z.string().optional(),
-      company_name: z.string().optional(),
-      domain: z.string().optional(),
-      website: z.string().optional(),
-      linkedin_url: z.string().optional(),
-      employee_count: z.number().optional(),
-    }),
-    uses: { linkedin },
-  },
-  ({ input, uses }) => {
-    // Keep the reusable tool safe when called outside the play. The play's
-    // managed segment already excludes rows without either identifier.
-    if (!input.linkedinUrlOrHandle && !input.domain) {
-      return {};
-    }
-
-    if (input.linkedinUrlOrHandle) {
-      const result = uses.linkedin.enrichCompany({
-        linkedinUrl: input.linkedinUrlOrHandle.startsWith("http")
-          ? input.linkedinUrlOrHandle
-          : `https://www.linkedin.com/company/${input.linkedinUrlOrHandle}`,
-      });
-
-      return {
-        company_id: result.company_id,
-        company_name: result.company_name,
-        domain: result.domain,
-        website: result.website,
-        linkedin_url: result.linkedin_url,
-        employee_count: result.employee_count,
-      };
-    }
-
-    const result = uses.linkedin.enrichCompanyFromDomain({
-      domain: input.domain,
-    });
-
-    return {
-      company_id: result.company_id,
-      company_name: result.company_name,
-      domain: result.domain,
-      website: result.website,
-      linkedin_url: result.linkedin_url,
-      employee_count: result.employee_count,
-    };
-  },
-);
-
-export const accountEnrichment = defineTool("account_enrichment", {
-  folder: toolsFolder,
-  workflow: enrichCompanyData,
-  name: "Account enrichment",
-  description:
-    "Normalize a company identifier and return enriched company data without writing to a CRM.",
-});
-
+// One CRM account row in, one CRM write out. The tool decides what the company
+// is; this workflow decides what may be written about it.
 const enrichCrmAccount = defineWorkflow(
   "enrich_crm_account",
   {
@@ -125,7 +39,10 @@ const enrichCrmAccount = defineWorkflow(
       domain: input.domain,
     });
 
-    // Only the play workflow writes the approved result back to the CRM.
+    // The only CRM write in the skill. `skipIfExist` is what keeps a provider
+    // snapshot from overwriting a value the CRM is authoritative for —
+    // including numeric zero. The two `cargo_` stamps are Cargo's own
+    // bookkeeping, so they are always written.
     uses.crm.updateRecords({
       objectType: "companies",
       matchingPropertyName: "hs_object_id",
@@ -178,6 +95,12 @@ const enrichCrmAccount = defineWorkflow(
   },
 );
 
+// Eligibility lives here rather than in the workflow: a row needs an identifier
+// to enrich from, and a freshness stamp that is missing or over six months old.
+// Destination fill-state is deliberately NOT a condition — an approved refresh
+// has to be able to re-enrich a populated but stale field.
+//
+// Disabled and serial until the pilot is approved.
 export const enrichAccounts = definePlay("enrich_accounts", {
   folder: playsFolder,
   model: crmAccounts,

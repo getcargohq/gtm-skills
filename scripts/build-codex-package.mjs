@@ -380,8 +380,8 @@ if (packagedSkills !== skillDirs.length) {
 }
 if (
   !entries.includes("skills/crm-enrichment/SKILL.md") ||
-  !entries.includes(
-    "skills/crm-enrichment/infra/index.ts",
+  !entries.some((entry) =>
+    /^skills\/crm-enrichment\/infra\/.+\.ts$/.test(entry),
   )
 ) {
   problems.push(

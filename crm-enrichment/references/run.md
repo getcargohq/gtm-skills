@@ -1,6 +1,6 @@
 # Run
 
-Adapt `infra/index.ts` after copying this folder into the consumer
+Adapt `infra/` after copying this folder into the consumer
 project. The first plan is a disabled play and does not deploy from this
 repository.
 
@@ -76,7 +76,7 @@ In this repository run `npm run validate`. In the consumer project:
 
 1. Run `cargo-ai cdk types` after selecting the live CRM connector.
 2. From the copied skill folder, run `node --import tsx evals/contract.mjs` after adapting
-   `infra/index.ts`. It must pass before the plan is reviewed.
+   `infra/`. It must pass before the plan is reviewed.
 3. Run `cargo-ai cdk check`.
 4. Run `cargo-ai cdk plan` and inspect every resource and action payload.
 5. Confirm the plan has one CRM account model and no native `accounts` unification.
@@ -101,8 +101,8 @@ After the approved run completes, report:
 - direct Cargo UI links for the play and tool
 
 End with one recommended `Next step`: remediate failures before continuing, approve recurring daily
-coverage for rows entering the managed segment, or proceed to account deduplication after matching
-key coverage is healthy. Do not end the report with an open-ended offer.
+coverage for rows entering the managed segment, or install `crm-deduplication` after matching-key
+coverage is healthy. Do not end the report with an open-ended offer.
 
 Replace the write `matchingPropertyName` together with the workflow input and
 play columns so the filter, the write match, and the extract all resolve the
