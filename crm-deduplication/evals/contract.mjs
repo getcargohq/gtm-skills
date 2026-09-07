@@ -26,11 +26,14 @@ assert.equal(
   false,
   "deduplication must not deploy a duplicate-candidate staging model",
 );
+// Every merge decision rests on what the CRM returns during the run. A cached
+// connector could serve `findRecords` a stale cluster, which is the one thing
+// the fresh-source guard cannot catch.
 for (const connectorId of ["connector:crm", "connector:manual_review"]) {
   assert.equal(
     byId.get(connectorId).spec.cacheTtlMilliseconds,
-    15 * 24 * 60 * 60 * 1000,
-    `${connectorId} must keep the maximum 15-day cache duration`,
+    undefined,
+    `${connectorId} must not cache: a merge acts on what the CRM returns now`,
   );
 }
 

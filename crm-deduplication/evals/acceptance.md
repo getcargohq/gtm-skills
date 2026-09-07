@@ -34,7 +34,7 @@
   CRM merge; decline or timeout reaches a no-write end.
 - A source row missing from the fresh search stops before scoring as `source_missing_or_changed`.
 - Exactly two CRM merge nodes exist: automatic and human-approved. No other path writes to the CRM.
-- Connector cache duration is 15 days.
+- Neither connector configures a cache, so every duplicate decision reads the CRM live.
 - `deduplicate_accounts` is disabled, uses `noConcurrency`, and is limited to 15 CRM rows.
 
 ## Adaptation and execution

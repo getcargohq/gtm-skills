@@ -31,9 +31,12 @@ The checked graph uses these actions:
 domain. Retain the source CRM row exactly once in the cluster, normalize all candidate values, and
 reject a generic-domain-only match. The search is the fresh CRM reread for that run.
 
-Add one Slack connector, bound to the workspace default, for Cargo's native Human Review node. Set connector cache duration
-to 15 days. Replace `PLACEHOLDER_REVIEW_CHANNEL_ID` with the approved channel before planning. If no
-review connector and channel can be resolved, keep the play disabled and stop before a pilot.
+Add one Slack connector, bound to the workspace default, for Cargo's native Human Review node.
+Replace `PLACEHOLDER_REVIEW_CHANNEL_ID` with the approved channel before planning. If no review
+connector and channel can be resolved, keep the play disabled and stop before a pilot.
+
+Set no connector cache. Every merge decision rests on what the CRM returns during the run, and a
+cached read is the one kind of staleness the fresh-source guard cannot see.
 
 ## Score and select the survivor
 

@@ -9,12 +9,7 @@ import { defineConnector } from "@cargo-ai/cdk";
 // Binds the workspace's DEFAULT HubSpot connector rather than creating one:
 // authorize it once (`cargo-ai cdk add connector/hubspot`) and this
 // declaration resolves to it.
-//
-// The 15-day cache is the maximum the connector allows, and it costs nothing
-// here: every merge decision reads the CRM live through `findRecords` rather
-// than through the cached extract.
 export const crm = defineConnector("crm", {
   integration: "hubspot",
   default: true,
-  cacheTtlMilliseconds: 15 * 24 * 60 * 60 * 1000,
 });
