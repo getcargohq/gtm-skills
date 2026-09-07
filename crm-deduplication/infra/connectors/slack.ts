@@ -7,5 +7,4 @@ import { defineConnector } from "@cargo-ai/cdk";
 export const manualReview = defineConnector("manual_review", {
   integration: "slack",
   default: true,
-  cacheTtlMilliseconds: 15 * 24 * 60 * 60 * 1000,
 });
