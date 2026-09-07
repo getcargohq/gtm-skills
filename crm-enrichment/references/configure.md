@@ -63,19 +63,19 @@ until every candidate has an `include` or `exclude` decision. Record the approve
 exclusions under `field_selection` in the audit contract from
 [`audit.md`](audit.md). Silence does not approve the starting recommendation.
 
-In `infra/index.ts`, edit these together:
+Edit these together:
 
-- `crm`: the adopted CRM connector
-- `crmAccounts`: the live account extractor
-- `enrichCrmAccount`: the write mappings, matching property, and fill-blank guard
-- `enrichAccounts`: the play filter slugs, which must be columns on `crm_accounts`
+- `infra/connectors/crm.ts`: the adopted CRM connector
+- `infra/models/crm-accounts.ts`: the live account extractor
+- `infra/plays/enrich-accounts.ts`: the write mappings, matching property, fill-blank guard, and
+  the play filter slugs, which must be columns on `crm_accounts`
 
 The checked repository example extracts HubSpot companies (`fetchRecords`,
 `objectType: "companies"`) and writes with `updateRecords` matching
 `hs_object_id` and its native `skipIfExist` mapping flag. Create
 `cargo_last_enriched_at` as a datetime and `cargo_enrichment_status` as a string on the company
 object if they are missing, and include both creations in the field-contract approval. Keep one CRM
-shape in the file. The play filter, workflow
+shape across those files. The play filter, workflow
 input, and write matching property must use the same record-id field.
 
 - **Salesforce:** generated Account update matching `Id`. There is no `skipIfExist` — read the
