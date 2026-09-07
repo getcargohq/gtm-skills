@@ -18,7 +18,7 @@ then have an agent tier every company in it against a rubric your team owns.
   the web only to settle a doubt that would change the tier.
 - **Writes the reason next to the tier.** `tier`, `tier_rationale`,
   `tier_evidence_url` and `tiered_at`, on the row that triggered the run.
-- **Needs no key and no seat.** AI Ark and the LLM both run on adopted
+- **Needs no key and no seat.** AI Ark and the LLM both run on the workspace's default
   connections.
 
 ## How it works
@@ -71,8 +71,8 @@ Adds a model, an agent, a play, four segments, and the folders they file into.
 
 | File                            | Resource          | Role                                                         |
 | ------------------------------- | ----------------- | ------------------------------------------------------------ |
-| `infra/connectors/ai-ark.ts`    | `defineConnector` | AI Ark, adopted: no key, no seat, no cookie                  |
-| `infra/connectors/anthropic.ts` | `defineConnector` | the LLM behind the tiering agent, adopted                    |
+| `infra/connectors/ai-ark.ts`    | `defineConnector` | AI Ark on the workspace default: no key, no seat, no cookie  |
+| `infra/connectors/anthropic.ts` | `defineConnector` | the LLM behind the tiering agent, on the workspace default   |
 | `infra/folders/index.ts`        | `defineFolder`    | model / agent / play folders named after the skill           |
 | `infra/models/tam-companies.ts` | `defineModel`     | the universe: the ICP filter, the budget, the tier columns   |
 | `infra/agents/tier-analyst.ts`  | `defineAgent`     | one judgment per company, from the rubric plus web evidence  |

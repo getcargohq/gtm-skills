@@ -1,8 +1,8 @@
 import { defineConnector } from "@cargo-ai/cdk";
 
-// AI Ark: the company source. Adopted, and it runs on Cargo's managed
-// connection, so there is no key, no seat, and no cookie to configure. Every
-// action bills in credits.
+// AI Ark: the company source. It binds the workspace's default connection, and
+// runs on Cargo's managed one, so there is no key, no seat, and no cookie to
+// configure. Every action bills in credits.
 //
 // Two of its actions matter here and they are deliberately split across the
 // two things this skill does:
@@ -16,5 +16,5 @@ import { defineConnector } from "@cargo-ai/cdk";
 //     than a preference, and why the model carries no schedule.
 export const aiArk = defineConnector("ai_ark", {
   integration: "aiArk",
-  adopt: true,
+  default: true,
 });

@@ -6,5 +6,5 @@ import { defineConnector } from "@cargo-ai/cdk";
 // identifier, so a row takes exactly one of them and never both.
 export const linkedin = defineConnector("linkedin", {
   integration: "linkedin",
-  adopt: true,
+  default: true,
 });
