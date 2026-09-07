@@ -6,6 +6,6 @@ import { defineConnector } from "@cargo-ai/cdk";
 // unproven duplicate into a merge.
 export const manualReview = defineConnector("manual_review", {
   integration: "slack",
-  adopt: true,
+  default: true,
   cacheTtlMilliseconds: 15 * 24 * 60 * 60 * 1000,
 });

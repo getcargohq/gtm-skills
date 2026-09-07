@@ -2,7 +2,7 @@
 name: agentic-engagement
 description: 'Deploy an agent that holds email conversations with leads: a sending domain, a mailbox, native sendEmail and listEmailEvents on the agent, a native email trigger on reply and unsubscribe, and a heartbeat that checks thread status when nothing inbound happened. Triggers: "handle email conversations with leads", "agentic engagement", "an agent that replies to inbound email", "stand up a conversation agent on a Cargo mailbox", "native email trigger for lead replies", "keep talking to leads over email". Cargo CDK, defineDomain, defineMailbox, defineAgent, agentNativeTrigger, heartbeat, sendEmail, listEmailEvents. Skip when: you want to send one email right now, which is a native sendEmail from the CLI and needs nothing deployed; or you want a play that blasts a list rather than holding a thread.'
 version: "0.1.0"
-compatibility: "Requires @cargo-ai/cli with @cargo-ai/cdk 1.0.68 or later — native sendEmail and listEmailEvents on defineAgent uses, plus defineDomain, defineMailbox, and agentNativeTrigger. Also needs a Cargo workspace and an authenticated LLM connector."
+compatibility: "Requires @cargo-ai/cli with @cargo-ai/cdk 1.0.73 or later — native sendEmail and listEmailEvents on defineAgent uses, defineDomain, defineMailbox, agentNativeTrigger, and `default: true` on a connector. Also needs a Cargo workspace and an authenticated LLM connector."
 homepage: https://github.com/getcargohq/gtm-skills/tree/main/agentic-engagement
 metadata:
   author: getcargo

@@ -6,9 +6,10 @@ import { defineConnector } from "@cargo-ai/cdk";
 // field, the write action, and the fill-blank guard — one CRM shape per
 // project, never parallel branches.
 //
-// Adopted, not created: authorize it once (`cargo-ai cdk add connector/hubspot`)
-// and this declaration binds to it.
+// Binds the workspace's DEFAULT HubSpot connector rather than creating one:
+// authorize it once (`cargo-ai cdk add connector/hubspot`) and this
+// declaration resolves to it.
 export const crm = defineConnector("crm", {
   integration: "hubspot",
-  adopt: true,
+  default: true,
 });

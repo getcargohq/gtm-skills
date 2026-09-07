@@ -65,7 +65,7 @@ exclusions under `field_selection` in the audit contract from
 
 Edit these together:
 
-- `infra/connectors/crm.ts`: the adopted CRM connector
+- `infra/connectors/crm.ts`: the CRM connector, bound to the workspace default
 - `infra/models/crm-accounts.ts`: the live account extractor
 - `infra/plays/enrich-accounts.ts`: the write mappings, matching property, fill-blank guard, and
   the play filter slugs, which must be columns on `crm_accounts`

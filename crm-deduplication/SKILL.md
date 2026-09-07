@@ -2,7 +2,7 @@
 name: crm-deduplication
 description: 'Keep CRM accounts duplicate-free: audit company identity, build a recurring deduplication play directly on the CRM model, search and score duplicate candidates, merge safe exact matches, and route uncertain clusters to manual review. Triggers: "deduplicate our CRM accounts", "we keep creating duplicate account records", "merge duplicate companies in HubSpot", "set up recurring account deduplication", "review ambiguous company duplicates", "our CRM has duplicate companies". HubSpot, Salesforce, Attio, Slack, Cargo CDK, findRecords, Scoring, Human Review, mergeRecords. Skip when: the request is to add or refresh CRM firmographics rather than merge duplicate records; use crm-enrichment.'
 version: "0.1.0"
-compatibility: "Requires the cargo-cdk skill, a Cargo CDK project, and @cargo-ai/cdk 1.0.68 or later — the row workflow lowers native Scoring, Human Review, and script nodes from a `defineWorkflow` body. Also needs an authenticated CRM connector and a Slack connector for review. The repository example does not deploy or access a CRM until an agent adapts it in the consumer project."
+compatibility: "Requires the cargo-cdk skill, a Cargo CDK project, and @cargo-ai/cdk 1.0.73 or later — the row workflow lowers native Scoring, Human Review, and script nodes from a `defineWorkflow` body, and the connectors bind the workspace default with `default: true`. Also needs an authenticated CRM connector and a Slack connector for review. The repository example does not deploy or access a CRM until an agent adapts it in the consumer project."
 homepage: https://github.com/getcargohq/gtm-skills/tree/main/crm-deduplication
 metadata:
   author: getcargo
