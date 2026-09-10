@@ -2,6 +2,7 @@
 # folders) and the repo scripts. The run-once skills, plugin manifests and
 # generated files predate it and are left as they are.
 node_modules/
+.context/
 .cargo-ai/
 dist/
 package-lock.json
@@ -11,6 +12,7 @@ llms.txt
 !tam-building/**/*.md
 !account-scoring/**/*.md
 !crm-enrichment/**/*.md
+!contact-sourcing/**/*.md
 !CONTRIBUTING.md
 !.agents/skills/**/*.md
 !.claude/skills/**/*.md
@@ -28,3 +30,5 @@ evals/
 scripts/build-codex-package.mjs
 scripts/validate.ts
 scripts/generate-llms-txt.ts
+!contact-sourcing/evals/
+!contact-sourcing/evals/**

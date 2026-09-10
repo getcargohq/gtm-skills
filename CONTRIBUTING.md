@@ -105,7 +105,7 @@ exactly one skill and get exactly one working thing.
 **A folder without a `SKILL.md` is not a skill and does not belong at the root.** A pipeline skill has
 one root `SKILL.md`; supporting agent instructions belong in `references/`, never in nested
 skills.
-Sixteen pipeline examples (`contact-sourcing`, `signal-based-tam`, `ai-sdr`,
+Fifteen pipeline examples (`signal-based-tam`, `ai-sdr`,
 `rep-cockpit`, …) were written before their skills and are kept in history, not
 in the tree: restore one with `git checkout 305cd88 -- <name>`, write its
 `SKILL.md`, and it lands with the skill. The validator refuses a resource folder

@@ -98,3 +98,12 @@
 {"prompt": "Keep talking to leads over email", "expect": "agentic-engagement", "why": "The standing tell: a loop, not one send."}
 {"prompt": "Native email trigger for lead replies", "expect": "agentic-engagement"}
 {"prompt": "I need email addresses for these prospects so I can start conversations", "expect": "find-work-email", "why": "Addresses first; agentic-engagement is the loop you deploy after you have someone to write to."}
+
+// Contact-sourcing installation versus the one-off stakeholder list.
+{"prompt": "build a contact sourcing tool", "expect": "contact-sourcing"}
+{"prompt": "set up stakeholder sourcing", "expect": "contact-sourcing"}
+{"prompt": "rank stakeholders by relevance", "expect": "contact-sourcing"}
+{"prompt": "install contact sourcing", "expect": "contact-sourcing"}
+{"prompt": "return an enriched shortlist per account", "expect": "contact-sourcing"}
+{"prompt": "find stakeholders", "expect": "find-stakeholders"}
+{"prompt": "find the buying committee at Acme", "expect": "find-stakeholders"}
