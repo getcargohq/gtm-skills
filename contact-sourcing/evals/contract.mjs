@@ -236,18 +236,22 @@ const company = {
   company_name: "Example Infrastructure",
 };
 const emailPolicy = {
-  outputMode: "shortlist",
   email: true,
   phone: false,
   emailToolUuid: "52000000-0000-4000-8000-000000000001",
   emailVerificationConnectorUuid: "52000000-0000-4000-8000-000000000003",
 };
 const phonePolicy = {
-  outputMode: "shortlist",
   email: false,
   phone: true,
   phoneToolUuid: "52000000-0000-4000-8000-000000000002",
 };
+const enrichmentPolicies = [
+  { email: false, phone: false },
+  emailPolicy,
+  phonePolicy,
+  { ...emailPolicy, phone: true, phoneToolUuid: phonePolicy.phoneToolUuid },
+];
 
 const exercise = async ({
   policy = {},
@@ -264,11 +268,10 @@ const exercise = async ({
   const config = {
     ...configuration,
     inputMode: "id",
-    outputMode: "ranked",
     email: false,
     phone: false,
     searchLimit: 50,
-    topN: 5,
+    topN: null,
     minimumScore: null,
     ...policy,
   };
@@ -643,7 +646,7 @@ await check(
   },
 );
 await check(
-  "ranked mode has no email, verification or phone nodes",
+  "without enrichment there are no email, verification or phone nodes",
   async () => {
     const { graph, calls } = await exercise();
     assert.equal(
@@ -653,6 +656,56 @@ await check(
       false,
     );
     assert.equal(calls.length, 3);
+  },
+);
+await check(
+  "all or up to N is independent of enrichment and limits only sorted qualified people",
+  async () => {
+    for (const fields of enrichmentPolicies) {
+      for (const topN of [null, 2, 7]) {
+        const { result, calls } = await exercise({
+          policy: { ...fields, topN },
+          rows: ["1", "2", "3", "4", "5"].map((id) => candidate(id)),
+          answers: {
+            1: verdict(10, { status: "not_relevant" }),
+            2: verdict(7),
+            3: verdict(9),
+            4: verdict(10, { status: "insufficient_evidence" }),
+            5: verdict(8),
+          },
+        });
+        const expected =
+          topN === 2 ? ["id:3", "id:5"] : ["id:3", "id:5", "id:2"];
+        assert.deepEqual(
+          result.contacts.map((c) => c.identity),
+          expected,
+        );
+        assert.deepEqual(
+          result.contacts.map((c) => c.rank),
+          expected.map((_, i) => i + 1),
+        );
+        assert.equal(result.coverage.qualified, 3);
+        assert.equal(result.coverage.selected, expected.length);
+        assert.equal(result.insufficientEvidence.length, 1);
+        assert.equal(calls.filter((c) => c.slug === "profile").length, 5);
+        assert.equal(calls.filter((c) => c.slug === "qualify").length, 5);
+        for (const [field, slug] of [
+          ["email", "email_lookup"],
+          ["phone", "phone_lookup"],
+        ]) {
+          assert.deepEqual(
+            calls.filter((c) => c.slug === slug).map((c) => c.identity),
+            fields[field] ? expected : [],
+          );
+        }
+      }
+      const empty = await exercise({
+        policy: { ...fields, topN: 2 },
+        rows: [],
+      });
+      assert.deepEqual(empty.result.contacts, []);
+      assert.equal(empty.result.status, "no_qualified_contacts");
+    }
   },
 );
 await check(
@@ -792,50 +845,53 @@ await check(
   "all installation variants compile and omit unused routes",
   async () => {
     for (const inputMode of ["id", "url", "domain", "multiple"]) {
-      for (const mode of [
-        { outputMode: "ranked", email: false, phone: false },
-        emailPolicy,
-        phonePolicy,
-        {
-          ...emailPolicy,
-          phone: true,
-          phoneToolUuid: phonePolicy.phoneToolUuid,
-        },
-      ]) {
-        const graph = buildContactSourcing({
-          ...configuration,
-          inputMode,
-          ...mode,
-        });
-        validateGraph(graph.nodes);
-        const planned = await compile({
-          nodes: resources().map((resource) =>
-            resource.id === "tool:contact_sourcing"
-              ? {
-                  ...resource,
-                  spec: {
-                    ...resource.spec,
-                    nodes: graph.nodes,
-                    formFields: graph.formFields,
-                  },
-                }
-              : resource,
-          ),
-        });
-        assert.deepEqual(
-          planned.errors,
-          [],
-          "every variant must pass the actual CDK compiler/planner",
-        );
+      for (const topN of [null, 2]) {
+        for (const mode of enrichmentPolicies) {
+          const graph = buildContactSourcing({
+            ...configuration,
+            inputMode,
+            ...mode,
+            topN,
+          });
+          validateGraph(graph.nodes);
+          const planned = await compile({
+            nodes: resources().map((resource) =>
+              resource.id === "tool:contact_sourcing"
+                ? {
+                    ...resource,
+                    spec: {
+                      ...resource.spec,
+                      nodes: graph.nodes,
+                      formFields: graph.formFields,
+                    },
+                  }
+                : resource,
+            ),
+          });
+          assert.deepEqual(
+            planned.errors,
+            [],
+            "every variant must pass the actual CDK compiler/planner",
+          );
 
-        assert.equal(
-          walk(graph.nodes).some((n) => n.slug === "phone_lookup"),
-          !!mode.phone,
-        );
-        assert.equal(
-          walk(graph.nodes).some((n) => n.slug === "email_lookup"),
-          !!mode.email,
-        );
+          assert.equal(
+            walk(graph.nodes).some((n) => n.slug === "phone_lookup"),
+            !!mode.phone,
+          );
+          assert.equal(
+            walk(graph.nodes).some((n) => n.slug === "email_lookup"),
+            !!mode.email,
+          );
+          const selected = graph.nodes.find((n) => n.slug === "selected");
+          assert.equal(!!selected, topN !== null || mode.email || mode.phone);
+          if (selected)
+            assert.equal(
+              selected.config.variables[0].value.expression,
+              topN === null
+                ? "{{nodes.rank.result.contacts}}"
+                : "{{nodes.rank.result.contacts.slice(0, 2)}}",
+            );
+        }
       }
     }
     assert.throws(() =>
@@ -844,13 +900,16 @@ await check(
     assert.throws(() =>
       buildContactSourcing({
         ...configuration,
-        outputMode: "ranked",
         email: true,
+        emailToolUuid: undefined,
       }),
     );
-    assert.throws(() =>
-      buildContactSourcing({ ...configuration, ...emailPolicy, topN: 0 }),
-    );
+    for (const topN of [0, -1, 1.5, NaN, Infinity])
+      for (const fields of enrichmentPolicies)
+        assert.throws(
+          () => buildContactSourcing({ ...configuration, ...fields, topN }),
+          /topN/,
+        );
   },
 );
 
@@ -955,8 +1014,12 @@ await check(
       assert.ok(audit.includes(fragment), fragment);
     for (const fragment of [
       "What company identifier",
-      "Should this tool return",
-      "How many contacts per account?",
+      "How many qualified people should the tool return per company",
+      "Independently, do you need verified work email",
+      "already provides useful evidence",
+      "recommend N",
+      "Otherwise, ask directly",
+      "Do not add a separate audit",
       "Recommend",
       "tradeoff",
       "search limit",

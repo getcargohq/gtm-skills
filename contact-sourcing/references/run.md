@@ -9,7 +9,7 @@ Recommend a few representative accounts: a clear fit, a large company with
 several business units or ambiguous titles, and a weak-fit/no-match account.
 Derive candidates from approved account context. Explain what each tests and
 show their identifiers, criteria version, input/output configuration, search
-limit, provider page limit, top N and requested fields.
+limit, provider page limit, all-or-up-to-N result count and separately requested fields.
 
 Immediately before the preview, read current prices for company resolution,
 Sales Navigator sourcing, LinkedIn profiles, the selected qualification model,
@@ -24,13 +24,15 @@ count on a cache hit or free retry without evidence.
 | Sourcing           | Sum of provider page limits: `ceil(searchLimit / 25) * 25` per resolved account          |
 | Profile retrieval  | At most `searchLimit` unique identified candidates per account                           |
 | AI qualification   | At most one call per successfully retrieved profile, using the actual model/token budget |
-| Email lookup       | At most the selected N per account missing suitable existing work email                  |
+| Email lookup       | When requested, selected people per account missing suitable existing work email         |
 | Email verification | At most newly found emails whose reused tool did not expose equivalent verifier evidence |
-| Phone lookup       | At most the selected N per account missing suitable existing phone data                  |
+| Phone lookup       | When requested, selected people per account missing suitable existing phone data         |
 
 Multiply those units by the fetched applicable prices and add them. Price
 resolution, sourcing, profile retrieval, AI qualification, email/verification and
-phone separately. Ranked mode has no email/verification/phone line item. The
+phone separately. Without enrichment there is no email/verification/phone line
+item, whether returning all or up to N. For enrichment, bound selected people by
+`min(N, searchLimit)` when N is set, or `searchLimit` when returning all. The
 provider-page allowance can exceed the number of profiles examined. Unknown
 provider units or unbounded nested tool retries prevent a defensible maximum:
 inspect or bound them before asking for approval. Output token limits alone do

@@ -1,6 +1,6 @@
 ---
 name: contact-sourcing
-description: 'Build a reusable on-demand tool that sources stakeholders at supplied accounts, qualifies their responsibilities, and ranks contact fit, optionally enriching a selected shortlist. Triggers: "build a contact sourcing tool", "set up stakeholder sourcing", "rank stakeholders by relevance", "install contact sourcing", "return an enriched shortlist per account". LinkedIn, Sales Navigator, OpenAI, Cargo CDK. Skip when: the user wants people at named accounts once today; use find-stakeholders. Existing profiles needing data use enrich-linkedin-profile; CRM field maintenance uses crm-enrichment.'
+description: 'Build a reusable on-demand tool that sources stakeholders at supplied accounts, qualifies their responsibilities, and returns all or up to N ranked by contact fit, with optional enrichment. Triggers: "build a contact sourcing tool", "set up stakeholder sourcing", "rank stakeholders by relevance", "install contact sourcing", "return an enriched shortlist per account". LinkedIn, Sales Navigator, OpenAI, Cargo CDK. Skip when: the user wants people at named accounts once today; use find-stakeholders. Existing profiles needing data use enrich-linkedin-profile; CRM field maintenance uses crm-enrichment.'
 version: "0.1.0"
 compatibility: "Requires the cargo-cdk skill and a Cargo CDK project. Checked with @cargo-ai/cdk 1.0.68 and zod 4.4.3 from the repository lockfile. No CRM, storage model, or play is required. Adapt in the consumer project before deployment."
 homepage: https://github.com/getcargohq/gtm-skills/tree/main/contact-sourcing
@@ -28,8 +28,8 @@ and two customer or partner implementations are still required for approval.
 
 For each supplied account, an on-demand Cargo tool returns the most relevant
 stakeholders found within an approved search limit, ranked by their fit for the
-seller's product or use case. It can return the full qualified ranking or select
-up to N people and enrich their verified work email, phone, or both.
+seller's product or use case. It returns all qualified people or up to N per
+company, independently of optional verified work email and phone enrichment.
 
 Relevance comes from responsibilities and current profile evidence. Buying role
 informs that assessment; seniority alone does not move someone above a relevant
@@ -47,9 +47,10 @@ flowchart TD
   dedup --> evidence["Retrieve profile · structured AI qualification"]
   evidence --> rank["Qualified only · numeric sort · stable ties"]
   evidence --> uncertain["Keep insufficient evidence identifiable"]
-  rank --> full["Return full ranked list"]
-  rank --> select["Select top N"]
-  select --> enrich["Reuse suitable data · requested email/phone only"]
+  rank --> select["Select all or slice top N · maximum only"]
+  select --> requested{"Enrichment requested?"}
+  requested -->|No| full["Return selected ranked people"]
+  requested -->|Yes| enrich["Reuse suitable data · requested email/phone only"]
   enrich --> result["Return selected people · preserve profile and rank · show failures"]
 ```
 
@@ -79,8 +80,11 @@ read its `SKILL.md` directly.
    qualification prompt together. Apply corrections and save approved criteria
    in the consumer's existing context conventions.
 4. **Configure and show.** Follow [configure.md](references/configure.md).
-   Recommend the input, output mode, search limit and any relevance threshold
-   from what was inspected. Explain each choice's effect and tradeoff next to
+   Ask how many qualified people to return per company: all or up to N,
+   independently of enrichment. If the optional CRM analysis already provides
+   useful won-deal evidence, recommend N with a brief reason; otherwise ask
+   directly. Do not add a separate audit. Recommend the input, requested fields,
+   search limit and any relevance threshold from what was inspected. Explain each choice's effect and tradeoff next to
    that decision, ask only what remains unanswered, then build the chosen graph.
    Record choices under `## Decisions` in the consumer copy. A configuration
    approval already given in this session remains valid.
@@ -111,28 +115,29 @@ choice. Derive available facts first; never ask twice for an answered decision.
 Derive before asking. The staged approval checkpoints are separate from missing
 configuration facts; bundle related choices without turning setup into a survey.
 
-| Input                              | Kind                             | How it is answered                                                                                                              | Why it matters                                                        |
-| ---------------------------------- | -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
-| `existing_context_and_connections` | derived                          | Read seller context, personas, connectors and tool releases; inspect CRM connectivity without reading private deal contacts yet | Prevents repeated research and duplicate resources; a CRM is optional |
-| `provider_contract_and_costs`      | derived                          | Read current action schemas, output paths, autocomplete values and cost metadata                                                | Prevents guessed filters and hidden page or verification charges      |
-| `seller_and_personas`              | asked if missing, then confirmed | Establish product/use case; offer optional customer intelligence; approve persona table, Boolean and prompt together            | The tool ranks fit for this seller rather than generic seniority      |
-| `company_input`                    | asked if missing                 | Choose ID, URL, domain, or necessary multiple-input support                                                                     | An upstream ID skips paid resolution; extra identifiers must agree    |
-| `output_and_scope`                 | asked if missing                 | Choose ranking or top N; requested fields; recommended search limit and any threshold/restrictions                              | Search coverage and output count control different costs              |
-| `sample_and_calibration`           | asked                            | Approve exact sample/max cost; assess relevance and missing people                                                              | Static checks cannot prove provider coverage or qualification quality |
+| Input                              | Kind                             | How it is answered                                                                                                                                                           | Why it matters                                                            |
+| ---------------------------------- | -------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| `existing_context_and_connections` | derived                          | Read seller context, personas, connectors and tool releases; inspect CRM connectivity without reading private deal contacts yet                                              | Prevents repeated research and duplicate resources; a CRM is optional     |
+| `provider_contract_and_costs`      | derived                          | Read current action schemas, output paths, autocomplete values and cost metadata                                                                                             | Prevents guessed filters and hidden page or verification charges          |
+| `seller_and_personas`              | asked if missing, then confirmed | Establish product/use case; offer optional customer intelligence; approve persona table, Boolean and prompt together                                                         | The tool ranks fit for this seller rather than generic seniority          |
+| `company_input`                    | asked if missing                 | Choose ID, URL, domain, or necessary multiple-input support                                                                                                                  | An upstream ID skips paid resolution; extra identifiers must agree        |
+| `output_and_scope`                 | asked if missing                 | Choose all or up to N qualified people per company, using useful existing won-deal evidence to recommend N; choose enrichment separately, plus search limit and restrictions | Output count applies even without enrichment; search coverage is separate |
+| `sample_and_calibration`           | asked                            | Approve exact sample/max cost; assess relevance and missing people                                                                                                           | Static checks cannot prove provider coverage or qualification quality     |
 
 ## What you can change
 
 Offer these when relevant, with the recommendation at the actual decision point.
 
-| Variation               | When it is right                                                   | How                                                                                   | What it costs                                                                                      |
-| ----------------------- | ------------------------------------------------------------------ | ------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
-| `input`                 | Upstream already supplies ID, or the operator has URL/domain       | Set `inputMode`; keep only necessary routes                                           | URL/domain adds resolution; ID bypasses it                                                         |
-| `output`                | Plays need flexibility, or the result must be ready to use         | `ranked` returns all qualified; `shortlist` slices top N then enriches                | Shortlist adds requested lookup and verification; full ranking shifts those decisions to the play  |
-| `search_and_criteria`   | Title ambiguity, geography or business-unit differences affect fit | Update approved personas, title filters, optional threshold and restrictions together | Wider search raises profile/AI spend; narrower search can miss people                              |
-| `model`                 | Calibration justifies another supported qualification model        | Change `qualificationModel`, retain the schema and score anchors                      | Changes per-profile cost and judgment; rerun affected examples                                     |
-| `customer_intelligence` | Deal evidence can refine website positioning                       | Read CRM/export contacts only after the operator chooses it                           | Extra analysis and private-data handling; website-only setup is faster                             |
-| `reachable_N`           | Operator explicitly needs N reachable contacts                     | Add a separate maximum attempt/cost budget and report original ranks                  | May enrich lower-ranked people and cost more; never the default                                    |
-| `play`                  | Calibrated results should feed an existing process                 | Confirm population, trigger, ownership and destination before wiring                  | Repeated executions rebill each eligible account; destination actions need their own authorization |
+| Variation               | When it is right                                                   | How                                                                                               | What it costs                                                                                      |
+| ----------------------- | ------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| `input`                 | Upstream already supplies ID, or the operator has URL/domain       | Set `inputMode`; keep only necessary routes                                                       | URL/domain adds resolution; ID bypasses it                                                         |
+| `output`                | The operator wants all relevant people or a bounded list           | `topN: null` returns all qualified; a positive N slices after sorting, with or without enrichment | N caps output and any selected lookup spend; profile/AI spend still follows the search limit       |
+| `enrichment`            | The operator needs contact details with the ranked result          | Set `email`/`phone` independently of the all-or-N choice                                          | Adds only requested lookup/verification for selected people; a play can own this instead           |
+| `search_and_criteria`   | Title ambiguity, geography or business-unit differences affect fit | Update approved personas, title filters, optional threshold and restrictions together             | Wider search raises profile/AI spend; narrower search can miss people                              |
+| `model`                 | Calibration justifies another supported qualification model        | Change `qualificationModel`, retain the schema and score anchors                                  | Changes per-profile cost and judgment; rerun affected examples                                     |
+| `customer_intelligence` | Deal evidence can refine website positioning                       | Read CRM/export contacts only after the operator chooses it                                       | Extra analysis and private-data handling; website-only setup is faster                             |
+| `reachable_N`           | Operator explicitly needs N reachable contacts                     | Add a separate maximum attempt/cost budget and report original ranks                              | May enrich lower-ranked people and cost more; never the default                                    |
+| `play`                  | Calibrated results should feed an existing process                 | Confirm population, trigger, ownership and destination before wiring                              | Repeated executions rebill each eligible account; destination actions need their own authorization |
 
 ## What should not change
 
@@ -147,7 +152,10 @@ Offer these when relevant, with the recommendation at the actual decision point.
   Navigator IDs with numeric LinkedIn IDs or deduplicate people by name.
 - **Qualification precedes selection.** Profile retrieval supplies evidence;
   email/phone lookup supplies contact details later. Ranking by title alone
-  or enriching everyone changes both the outcome and the cost.
+  or applying N before qualification changes which people can be returned.
+- **Count is independent of enrichment.** Return all qualified or slice up to N
+  after sorting, even without contact lookup. N is a maximum; fewer qualifying
+  people means fewer results. Optional enrichment only touches selected people.
 - **Sort numerically with stable ties.** The 0–10 scale has anchors. Selection
   uses an ordinary slice. An LLM does not order the array or assign outreach
   priority; enrichment completion order cannot change the saved ranks.
@@ -172,7 +180,9 @@ Offer these when relevant, with the recommendation at the actual decision point.
 - Unresolved companies cannot source; stable identity deduplication precedes spend.
 - Qualifications preserve profile evidence, current employment, uncertainty and a
   numeric fit score; the returned contacts have deterministic ranks.
-- Only selected N receive requested email/phone enrichment; verified data can be
+- The operator chose all or up to N independently of enrichment; the sorted
+  qualified ranking is sliced before any requested lookups, returning fewer when needed.
+- Only selected people receive requested email/phone enrichment; verified data can be
   reused; failures remain visible without backfill or a repeated profile lookup.
 - The adapted executable contracts, CDK type generation, check and plan pass.
 - The operator approved deployment, then the exact paid sample and maximum cost.

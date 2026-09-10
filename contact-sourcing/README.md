@@ -1,16 +1,17 @@
 # Contact sourcing
 
 Build an on-demand Cargo tool that returns the stakeholders most relevant to a
-seller's product at each supplied account. Choose a full qualified ranking or a
-selected shortlist with verified work email, phone, or both.
+seller's product at each supplied account. Choose all qualified people or up to
+N per company, independently of optional verified work email and phone enrichment.
 
 The workflow resolves a company only when needed, searches current employees,
 deduplicates stable identities, retrieves profiles, qualifies responsibilities,
-and sorts numerically with stable ties. Shortlist mode takes top N before contact
-lookup. It preserves profile evidence and rank even when enrichment fails.
+and sorts numerically with stable ties. A configured N slices the qualified
+ranking before optional contact lookup; fewer qualifying people means fewer
+results. It preserves profile evidence and rank even when enrichment fails.
 
 `SKILL.md` guides a practical building session: research the seller, propose and
-approve personas, choose input/output and search coverage, review the graph,
+approve personas, choose input/count/enrichment and search coverage, review the graph,
 deploy with approval, and calibrate an explicitly priced sample. Closed-won
 customer intelligence is optional. A CRM, model and play are unnecessary.
 
@@ -24,9 +25,11 @@ customer intelligence is optional. A CRM, model and play are unnecessary.
 | `evals/acceptance.md`     | Fresh-workspace blind test and approval evidence                        |
 | `evals/contract.mjs`      | Offline execution of emitted graphs with fictional external responses   |
 
-The checked configuration is **ID → ranked list**, using a fictional capital-
+The checked configuration is **ID → all qualified, no enrichment**, using a fictional capital-
 project scheduling seller. `buildContactSourcing` also emits URL, domain and
-multiple-input variants and email-only, phone-only or combined shortlists. Change
+multiple-input variants. Each supports all or up to N results, with no enrichment,
+email-only, phone-only or both. `topN: null` means all; a positive integer caps
+results. The `email`/`phone` flags select enrichment without an `outputMode`. Change
 only the consumer's configuration and audited output mappings. It declares one
 tool, its folder and three adopted connectors; it declares no recurring trigger.
 See the workflow diagram in `SKILL.md` and the exact output contract in

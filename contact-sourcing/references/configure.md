@@ -47,29 +47,40 @@ is no unscoped fallback. Canonicalization removes URL tracking parameters and
 normalizes the host; redirect/alias mismatches remain unresolved until their
 identity is checked and the adapter is updated deliberately.
 
-## Output: choose flexibility or a ready-to-use result
+## Output: choose the count, then optional enrichment
 
-Explain that the full ranking gives different plays freedom to select their own
-people. An enriched shortlist is ready to consume but pays for fields now and
-commits to one N. Recommend ranked mode when a downstream play owns selection or
-when only relevance is needed; recommend shortlist when the operator needs
-contact details with the result. Ask:
+Explain that returning all qualified people lets a downstream play choose its
+own subset. Returning up to N gives the operator a bounded list of the strongest
+fits. This count is independent of enrichment and does not reduce sourcing or
+profile/qualification spend.
 
-> Should this tool return all qualified contacts ranked by relevance, or only
-> the top N enriched with contact information?
+If the optional CRM analysis already provides useful evidence about relevant
+stakeholders in won deals, use it to recommend N and briefly explain why. For
+example, if the reviewed wins usually involved three relevant stakeholders,
+recommend up to three on that basis, while noting that more qualified people may
+exist. Count people supported by deal evidence, not every associated contact.
+Otherwise, ask directly. Do not add a separate audit or CRM read to choose N.
+Ask for the operator's choice, retaining any answer already given:
 
-`outputMode: ranked` returns every qualified person found within the search limit
-and performs no email lookup, verification or phone lookup. It emits none of those
-nodes. A play can consume `contacts.slice(0, N)` directly.
+> How many qualified people should the tool return per company: all, or up to N?
 
-For `shortlist`, ask:
+If they choose a maximum without specifying the number, ask for N. Set `topN`
+to `null` for all qualified people found within the search limit, or a positive
+integer for up to N. Apply `contacts.slice(0, N)` **after qualification and
+sorting, before optional enrichment**, including when no enrichment is requested.
+N is a maximum: return fewer if fewer qualify. There is no fixed default N.
 
-> How many contacts per account? Do you need verified work email, phone, or both?
+Then explain that contact details are ready to consume but add lookup and
+verification costs; leaving enrichment to a play gives that play control over
+those costs. Recommend from the inspected need, then ask:
 
-Five is a suggested example only. Set `topN` and `email`/`phone`. The native slice
-selects up to N **before** contact lookup, and only the requested fields exist in
-the graph. Fewer qualified contacts return fewer than N. A missing address or
-failed phone lookup never drops a selected person or causes automatic backfill.
+> Independently, do you need verified work email, phone, both, or no enrichment?
+
+Set `email` and `phone` independently of `topN`. With both false, no email,
+verification or phone nodes are emitted. Either all qualified people or up to N
+can be returned with or without enrichment. Only the selected people receive
+requested lookups. A missing address or failed phone lookup never drops a
+selected person or causes automatic backfill.
 If the operator requests N reachable people, explain that lower-ranked lookups
 are a separate variation requiring maximum attempts and additional cost approval.
 
@@ -101,7 +112,7 @@ No email/phone field requires another LinkedIn profile retrieval.
 ## Search coverage and qualification
 
 Explain that the **search limit** controls candidate coverage and profile/AI
-spend; **N** controls how many already-qualified people receive contact lookup.
+spend; **N** caps how many qualified people are returned, whether enriched or not.
 They are separate limits. Recommend a modest page-aligned cap such as 25 or 50
 for a first sample, based on account size and persona breadth; raise it only when
 missed stakeholders justify the added cost. Sales Navigator returns pages of 25:
@@ -163,7 +174,7 @@ returns:
 | `reason`               | Company-resolution/identity failure reason, otherwise null                                                                                                           |
 | `warnings`             | Input warnings, such as a malformed ID ignored in favor of a valid URL/domain                                                                                        |
 | `criteriaVersion`      | Approved criteria version used for this run                                                                                                                          |
-| `contacts`             | Qualified people sorted by numeric score descending, stable identity ascending; selected subset in shortlist mode                                                    |
+| `contacts`             | Qualified people sorted by numeric score descending, stable identity ascending; all or up to N, independently of enrichment                                          |
 | `insufficientEvidence` | Identifiable cases outside the qualified ranking, including failed profile/qualification cases                                                                       |
 | `coverage`             | Returned/examined/unique counts, duplicates, unidentified/conflicting identities, qualified/selected/excluded/insufficient counts, cap flag and stage failure counts |
 
@@ -175,7 +186,7 @@ A contact includes `identity`, `aliases`, `name`, `currentJobTitle`,
 outputs cannot qualify; absent scores on failed/insufficient cases are null.
 Qualified entries must name an approved persona and cite profile evidence.
 
-Shortlist contacts additionally include `email`, `verificationStatus`, `phone`,
+When enrichment is requested, contacts additionally include `email`, `verificationStatus`, `phone`,
 `enrichmentStatus`, `emailStatus` and `phoneStatus`. Unrequested fields have null
 values and `not_requested` status. Requested fields distinguish reused,
 succeeded, missing, failed and unverified; verifier failure is

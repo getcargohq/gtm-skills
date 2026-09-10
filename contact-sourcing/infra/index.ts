@@ -87,9 +87,8 @@ export type ContactSourcingOutput = {
 
 export type Configuration = {
   inputMode: "id" | "url" | "domain" | "multiple";
-  outputMode: "ranked" | "shortlist";
   searchLimit: number;
-  topN: number;
+  topN: number | null; // null returns all qualified; otherwise at most N.
   minimumScore: number | null;
   titleKeywords: string[];
   titleKeywordsExclude: string[];
@@ -110,9 +109,8 @@ export type Configuration = {
 // Settings are installation choices, not new research on every invocation.
 export const configuration: Configuration = {
   inputMode: "id",
-  outputMode: "ranked",
   searchLimit: 50,
-  topN: 5, // PLACEHOLDER: example only; used only in shortlist mode.
+  topN: null, // PLACEHOLDER: ask all or up to N, independently of enrichment.
   minimumScore: null, // PLACEHOLDER: calibrate if a minimum is wanted.
   titleKeywords: ["project controls", "planning", "scheduling", "scheduler"],
   titleKeywordsExclude: ["financial planning", "urban planning"],
@@ -437,7 +435,7 @@ const selected = nodes.selected?.contacts || ranked?.contacts || [];
 const enrichments = Array.isArray(nodes.enrichments) ? nodes.enrichments : [];
 const byIdentity = new Map(enrichments.filter(r => r && r.identity).map(r => [r.identity, r]));
 const contacts = selected.map(row => {
-  if (settings.outputMode === "ranked") return row;
+  if (!settings.email && !settings.phone) return row;
   const data = byIdentity.get(row.identity) || { email: null, verificationStatus: settings.email ? "unknown" : "not_requested",
     phone: null, enrichmentStatus: "failed", emailStatus: settings.email ? "failed" : "not_requested",
     phoneStatus: settings.phone ? "failed" : "not_requested" };
@@ -506,16 +504,12 @@ export function buildContactSourcing(policy: Configuration): WorkflowFromNodes {
   )
     throw new Error("minimumScore must be null or a number from 0 to 10");
   if (
-    policy.outputMode === "shortlist" &&
-    (!Number.isInteger(policy.topN) ||
-      policy.topN < 1 ||
-      (!policy.email && !policy.phone))
+    policy.topN !== null &&
+    (!Number.isInteger(policy.topN) || policy.topN < 1)
   )
-    throw new Error(
-      "A shortlist needs a positive topN and email, phone, or both",
-    );
-  if (policy.outputMode === "ranked" && (policy.email || policy.phone))
-    throw new Error("Ranked mode cannot request email or phone");
+    throw new Error("topN must be null (all qualified) or a positive integer");
+  const enrich = policy.email || policy.phone;
+  const select = policy.topN !== null || enrich;
   if (policy.email && !policy.emailToolUuid)
     throw new Error("Select the existing email tool");
   if (policy.phone && !policy.phoneToolUuid)
@@ -826,10 +820,31 @@ export function buildContactSourcing(policy: Configuration): WorkflowFromNodes {
       ["rank"],
     ),
     node("", "rank", "script", { script: rankScript }, [
-      policy.outputMode === "shortlist" ? "selected" : "finish",
+      select ? "selected" : "finish",
     ]),
   );
-  if (policy.outputMode === "shortlist") {
+  if (select)
+    nodes.push(
+      node(
+        "",
+        "selected",
+        "variables",
+        {
+          variables: [
+            variable(
+              "contacts",
+              expression(
+                policy.topN === null
+                  ? "nodes.rank.result.contacts"
+                  : `nodes.rank.result.contacts.slice(0, ${policy.topN})`,
+              ),
+            ),
+          ],
+        },
+        [enrich ? "has_selected" : "finish"],
+      ),
+    );
+  if (enrich) {
     const afterEmail = policy.phone ? "needs_phone" : "enrichment_result";
     const enrichmentNodes: Node[] = [
       node("e_", "start", "start", {}, ["existing"]),
@@ -950,20 +965,6 @@ export function buildContactSourcing(policy: Configuration): WorkflowFromNodes {
     nodes.push(
       node(
         "",
-        "selected",
-        "variables",
-        {
-          variables: [
-            variable(
-              "contacts",
-              expression(`nodes.rank.result.contacts.slice(0, ${policy.topN})`),
-            ),
-          ],
-        },
-        ["has_selected"],
-      ),
-      node(
-        "",
         "has_selected",
         "branch",
         { condition: expression("nodes.selected.contacts.length > 0") },
@@ -1033,7 +1034,7 @@ export function buildContactSourcing(policy: Configuration): WorkflowFromNodes {
           },
         ]
       : []),
-    ...(policy.outputMode === "shortlist"
+    ...(enrich
       ? [
           {
             slug: "knownContacts",
@@ -1051,7 +1052,7 @@ export const contactSourcing = defineTool("contact_sourcing", {
   folder: toolsFolder,
   name: "Contact sourcing",
   description:
-    "Return stakeholders ranked by seller-specific relevance, optionally enriching a selected shortlist.",
+    "Return all or up to N stakeholders ranked by seller-specific relevance, with optional email/phone enrichment.",
   workflow: defineWorkflowFromNodes<CompanyInput, ContactSourcingOutput>(
     "contact_sourcing_workflow",
     buildContactSourcing(configuration),

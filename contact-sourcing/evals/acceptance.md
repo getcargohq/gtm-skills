@@ -24,7 +24,7 @@ group item graphs, exact scripts and end mappings against fictional provider
 responses. It reverses group results to test preservation of rank. It does not
 call a provider or reproduce the remote engine's complete behavior.
 
-Check all supported input/output variants, not just the checked ID/ranked default:
+Check all 32 input/count/enrichment variants, not just the checked ID/all/no-enrichment default:
 
 - ID bypasses company enrichment; URL/domain resolve before sourcing; multiple
   input uses ID then URL then domain and conflicting/unverified identities stop.
@@ -37,7 +37,9 @@ Check all supported input/output variants, not just the checked ID/ranked defaul
 - Numeric scores, stable ties and practitioner relevance determine ranking.
 - Invalid/out-of-range model output cannot enter the qualified shortlist.
 - Zero matches, fewer than N, optional minimum and provider-page cap are explicit.
-- Ranked mode emits no contact lookup; shortlist mode enriches selected N only;
+- All or up to N is independent of enrichment; the slice follows qualification
+  and sorting, including when no contact details are requested. N is a maximum.
+- No-enrichment configurations emit no contact lookup; requested enrichment touches selected people only;
   email-only emits no phone node and phone-only emits no email or verifier node.
 - Profiles survive unchanged with no second profile call after selection.
 - Lookup/verification failures retain selected people and their original ranks;
@@ -63,13 +65,16 @@ instructions were insufficient, even if an expert could improvise a fix.
    and prompt shown together. Confirm the explanation of ambiguous titles,
    responsibilities and buying-role inference. Give one correction and verify
    all reusable criteria change consistently before approval.
-3. Exercise the ID/ranked installation. Verify that it produces only the
+3. Exercise the ID installation without enrichment, for both all and up to N.
+   Verify that the count question is asked independently of enrichment and
+   that the slice follows qualification/sorting, returning fewer if fewer qualify.
+   Verify that it produces only the
    selected graph, reconciles existing connectors and needs no CRM/model/play.
    Review criteria/configuration and the plan before explicitly authorizing
    deployment. Preserve that approval evidence and the direct tool link.
 4. In a separately approved adaptation, exercise URL and domain paths and then
-   the shortlist with a chosen N other than five. Test email-only, phone-only
-   and both, using real consumer tools whose mappings were inspected. No unused
+   both all and a chosen N with email-only, phone-only and combined enrichment,
+   using real consumer tools whose mappings were inspected. No unused
    branch should survive an installation that does not need it. Confirm the
    email tool's verification contract, including the explicit verifier when
    only an address is returned.
@@ -97,7 +102,10 @@ instructions were insufficient, even if an expert could improvise a fix.
 9. Repeat the optional customer-intelligence path only with an approved CRM or
    export. Seed a mere associated contact and a documented buyer/champion;
    verify association alone is never promoted to proof and private records stay
-   out of public artifacts.
+   out of public artifacts. When this analysis already provides useful evidence
+   about relevant stakeholders in won deals, verify that the installer recommends
+   N with a brief reason grounded in that evidence. Without useful evidence,
+   verify that it asks directly; neither path adds a separate audit for N.
 
 Evidence must include a dated install transcript, adapted graph/plan, approval
 records, representative outputs, criteria before/after feedback, stage costs,

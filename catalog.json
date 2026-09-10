@@ -292,8 +292,8 @@
     {
       "name": "contact-sourcing",
       "kind": "cookbook",
-      "job": "Build a reusable on-demand tool that sources stakeholders at supplied accounts, qualifies their responsibilities, and ranks contact fit, optionally enriching a selected shortlist.",
-      "description": "Build a reusable on-demand tool that sources stakeholders at supplied accounts, qualifies their responsibilities, and ranks contact fit, optionally enriching a selected shortlist. Triggers: \"build a contact sourcing tool\", \"set up stakeholder sourcing\", \"rank stakeholders by relevance\", \"install contact sourcing\", \"return an enriched shortlist per account\". LinkedIn, Sales Navigator, OpenAI, Cargo CDK. Skip when: the user wants people at named accounts once today; use find-stakeholders. Existing profiles needing data use enrich-linkedin-profile; CRM field maintenance uses crm-enrichment.",
+      "job": "Build a reusable on-demand tool that sources stakeholders at supplied accounts, qualifies their responsibilities, and returns all or up to N ranked by contact fit, with optional enrichment.",
+      "description": "Build a reusable on-demand tool that sources stakeholders at supplied accounts, qualifies their responsibilities, and returns all or up to N ranked by contact fit, with optional enrichment. Triggers: \"build a contact sourcing tool\", \"set up stakeholder sourcing\", \"rank stakeholders by relevance\", \"install contact sourcing\", \"return an enriched shortlist per account\". LinkedIn, Sales Navigator, OpenAI, Cargo CDK. Skip when: the user wants people at named accounts once today; use find-stakeholders. Existing profiles needing data use enrich-linkedin-profile; CRM field maintenance uses crm-enrichment.",
       "version": "0.1.0",
       "homepage": "https://github.com/getcargohq/gtm-skills/tree/main/contact-sourcing",
       "group": "Make it run forever",
@@ -334,8 +334,8 @@
         {
           "input": "output_and_scope",
           "kind": "asked if missing",
-          "how": "Choose ranking or top N; requested fields; recommended search limit and any threshold/restrictions",
-          "why": "Search coverage and output count control different costs"
+          "how": "Choose all or up to N qualified people per company, using useful existing won-deal evidence to recommend N; choose enrichment separately, plus search limit and restrictions",
+          "why": "Output count applies even without enrichment; search coverage is separate"
         },
         {
           "input": "sample_and_calibration",
@@ -353,9 +353,15 @@
         },
         {
           "id": "output",
-          "when": "Plays need flexibility, or the result must be ready to use",
-          "how": "ranked` returns all qualified; `shortlist` slices top N then enriches",
-          "cost": "Shortlist adds requested lookup and verification; full ranking shifts those decisions to the play"
+          "when": "The operator wants all relevant people or a bounded list",
+          "how": "topN: null` returns all qualified; a positive N slices after sorting, with or without enrichment",
+          "cost": "N caps output and any selected lookup spend; profile/AI spend still follows the search limit"
+        },
+        {
+          "id": "enrichment",
+          "when": "The operator needs contact details with the ranked result",
+          "how": "Set `email`/`phone` independently of the all-or-N choice",
+          "cost": "Adds only requested lookup/verification for selected people; a play can own this instead"
         },
         {
           "id": "search_and_criteria",
@@ -392,7 +398,8 @@
         "**Resolve before sourcing.** `infra/index.ts` gates every search on a valid, verified company ID. Missing or conflicting identity returns `company_not_resolved`; losing the gate permits an unscoped people search.",
         "**Titles find; evidence qualifies.** Wrong employers and responsibility mismatches are excluded; insufficient evidence stays identifiable outside the shortlist. An advisory seat does not prove primary employment.",
         "**One identity before repeated spend.** Deduplicate stable LinkedIn IDs and canonical URLs before profiles and qualification. Do not equate opaque Sales Navigator IDs with numeric LinkedIn IDs or deduplicate people by name.",
-        "**Qualification precedes selection.** Profile retrieval supplies evidence; email/phone lookup supplies contact details later. Ranking by title alone or enriching everyone changes both the outcome and the cost.",
+        "**Qualification precedes selection.** Profile retrieval supplies evidence; email/phone lookup supplies contact details later. Ranking by title alone or applying N before qualification changes which people can be returned.",
+        "**Count is independent of enrichment.** Return all qualified or slice up to N after sorting, even without contact lookup. N is a maximum; fewer qualifying people means fewer results. Optional enrichment only touches selected people.",
         "**Sort numerically with stable ties.** The 0–10 scale has anchors. Selection uses an ordinary slice. An LLM does not order the array or assign outreach priority; enrichment completion order cannot change the saved ranks.",
         "**Preserve selected people.** Lookup failures retain profile, qualification and rank with explicit statuses. Do not backfill lower-ranked contacts or retrieve LinkedIn profiles again after selection.",
         "**Found is not verified.** Reuse only contact data meeting the approved requirements. A returned address without explicit verification stays unknown.",
@@ -406,7 +413,8 @@
         "Live provider schemas and existing tool output mappings have been checked.",
         "Unresolved companies cannot source; stable identity deduplication precedes spend.",
         "Qualifications preserve profile evidence, current employment, uncertainty and a numeric fit score; the returned contacts have deterministic ranks.",
-        "Only selected N receive requested email/phone enrichment; verified data can be reused; failures remain visible without backfill or a repeated profile lookup.",
+        "The operator chose all or up to N independently of enrichment; the sorted qualified ranking is sliced before any requested lookups, returning fewer when needed.",
+        "Only selected people receive requested email/phone enrichment; verified data can be reused; failures remain visible without backfill or a repeated profile lookup.",
         "The adapted executable contracts, CDK type generation, check and plan pass.",
         "The operator approved deployment, then the exact paid sample and maximum cost.",
         "The sample shows coverage, ranked evidence and actual stage costs; corrections update reusable criteria and affected examples are retested as authorized.",
