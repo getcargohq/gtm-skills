@@ -290,6 +290,140 @@
       "partOf": []
     },
     {
+      "name": "contact-sourcing",
+      "kind": "cookbook",
+      "job": "Build a reusable on-demand tool that sources stakeholders at supplied accounts, qualifies their responsibilities, and returns all or up to N ranked by contact fit, with optional enrichment.",
+      "description": "Build a reusable on-demand tool that sources stakeholders at supplied accounts, qualifies their responsibilities, and returns all or up to N ranked by contact fit, with optional enrichment. Triggers: \"build a contact sourcing tool\", \"set up stakeholder sourcing\", \"rank stakeholders by relevance\", \"install contact sourcing\", \"return an enriched shortlist per account\". LinkedIn, Sales Navigator, OpenAI, Cargo CDK. Skip when: the user wants people at named accounts once today; use find-stakeholders. Existing profiles needing data use enrich-linkedin-profile; CRM field maintenance uses crm-enrichment.",
+      "version": "0.1.0",
+      "homepage": "https://github.com/getcargohq/gtm-skills/tree/main/contact-sourcing",
+      "group": "Make it run forever",
+      "install": "cargo-ai cdk add cookbook/contact-sourcing",
+      "partOf": [],
+      "state": "to-be-approved",
+      "chain": 6,
+      "resources": [
+        "connectors",
+        "folders",
+        "tools"
+      ],
+      "asked": [
+        {
+          "input": "existing_context_and_connections",
+          "kind": "derived",
+          "how": "Read seller context, personas, connectors and tool releases; inspect CRM connectivity without reading private deal contacts yet",
+          "why": "Prevents repeated research and duplicate resources; a CRM is optional"
+        },
+        {
+          "input": "provider_contract_and_costs",
+          "kind": "derived",
+          "how": "Read current action schemas, output paths, autocomplete values and cost metadata",
+          "why": "Prevents guessed filters and hidden page or verification charges"
+        },
+        {
+          "input": "seller_and_personas",
+          "kind": "asked if missing, then confirmed",
+          "how": "Establish product/use case; offer optional customer intelligence; approve persona table, Boolean and prompt together",
+          "why": "The tool ranks fit for this seller rather than generic seniority"
+        },
+        {
+          "input": "company_input",
+          "kind": "asked if missing",
+          "how": "Choose ID, URL, domain, or necessary multiple-input support",
+          "why": "An upstream ID skips paid resolution; extra identifiers must agree"
+        },
+        {
+          "input": "output_and_scope",
+          "kind": "asked if missing",
+          "how": "Choose all or up to N qualified people per company, using useful existing won-deal evidence to recommend N; choose enrichment separately, plus search limit and restrictions",
+          "why": "Output count applies even without enrichment; search coverage is separate"
+        },
+        {
+          "input": "sample_and_calibration",
+          "kind": "asked",
+          "how": "Approve exact sample/max cost; assess relevance and missing people",
+          "why": "Static checks cannot prove provider coverage or qualification quality"
+        }
+      ],
+      "canChange": [
+        {
+          "id": "input",
+          "when": "Upstream already supplies ID, or the operator has URL/domain",
+          "how": "Set `inputMode`; keep only necessary routes",
+          "cost": "URL/domain adds resolution; ID bypasses it"
+        },
+        {
+          "id": "output",
+          "when": "The operator wants all relevant people or a bounded list",
+          "how": "topN: null` returns all qualified; a positive N slices after sorting, with or without enrichment",
+          "cost": "N caps output and any selected lookup spend; profile/AI spend still follows the search limit"
+        },
+        {
+          "id": "enrichment",
+          "when": "The operator needs contact details with the ranked result",
+          "how": "Set `email`/`phone` independently of the all-or-N choice",
+          "cost": "Adds only requested lookup/verification for selected people; a play can own this instead"
+        },
+        {
+          "id": "search_and_criteria",
+          "when": "Title ambiguity, geography or business-unit differences affect fit",
+          "how": "Update approved personas, title filters, optional threshold and restrictions together",
+          "cost": "Wider search raises profile/AI spend; narrower search can miss people"
+        },
+        {
+          "id": "model",
+          "when": "Calibration justifies another supported qualification model",
+          "how": "Change `qualificationModel`, retain the schema and score anchors",
+          "cost": "Changes per-profile cost and judgment; rerun affected examples"
+        },
+        {
+          "id": "customer_intelligence",
+          "when": "Deal evidence can refine website positioning",
+          "how": "Read CRM/export contacts only after the operator chooses it",
+          "cost": "Extra analysis and private-data handling; website-only setup is faster"
+        },
+        {
+          "id": "reachable_N",
+          "when": "Operator explicitly needs N reachable contacts",
+          "how": "Add a separate maximum attempt/cost budget and report original ranks",
+          "cost": "May enrich lower-ranked people and cost more; never the default"
+        },
+        {
+          "id": "play",
+          "when": "Calibrated results should feed an existing process",
+          "how": "Confirm population, trigger, ownership and destination before wiring",
+          "cost": "Repeated executions rebill each eligible account; destination actions need their own authorization"
+        }
+      ],
+      "shouldNotChange": [
+        "**Resolve before sourcing.** `infra/index.ts` gates every search on a valid, verified company ID. Missing or conflicting identity returns `company_not_resolved`; losing the gate permits an unscoped people search.",
+        "**Titles find; evidence qualifies.** Wrong employers and responsibility mismatches are excluded; insufficient evidence stays identifiable outside the shortlist. An advisory seat does not prove primary employment.",
+        "**One identity before repeated spend.** Deduplicate stable LinkedIn IDs and canonical URLs before profiles and qualification. Do not equate opaque Sales Navigator IDs with numeric LinkedIn IDs or deduplicate people by name.",
+        "**Qualification precedes selection.** Profile retrieval supplies evidence; email/phone lookup supplies contact details later. Ranking by title alone or applying N before qualification changes which people can be returned.",
+        "**Count is independent of enrichment.** Return all qualified or slice up to N after sorting, even without contact lookup. N is a maximum; fewer qualifying people means fewer results. Optional enrichment only touches selected people.",
+        "**Sort numerically with stable ties.** The 0–10 scale has anchors. Selection uses an ordinary slice. An LLM does not order the array or assign outreach priority; enrichment completion order cannot change the saved ranks.",
+        "**Preserve selected people.** Lookup failures retain profile, qualification and rank with explicit statuses. Do not backfill lower-ranked contacts or retrieve LinkedIn profiles again after selection.",
+        "**Found is not verified.** Reuse only contact data meeting the approved requirements. A returned address without explicit verification stays unknown.",
+        "**Keep installation bounded.** No CRM, model, play, agent or unused enrichment branch is required. Reuse audited tools and connectors.",
+        "**Approval has separate scopes.** Criteria/deployment approval precedes resource creation; sample and maximum-cost approval precedes paid execution; a full batch, destination write or schedule requires its own scope."
+      ],
+      "doneWhen": [
+        "Approved seller criteria retain source URLs, observed evidence, inferences, exclusions, persona IDs, provider filters and prompt version in consumer context.",
+        "The operator's closed-won research choice is recorded; website-only setup works.",
+        "The compiled graph contains only selected input/output paths and no implicit play.",
+        "Live provider schemas and existing tool output mappings have been checked.",
+        "Unresolved companies cannot source; stable identity deduplication precedes spend.",
+        "Qualifications preserve profile evidence, current employment, uncertainty and a numeric fit score; the returned contacts have deterministic ranks.",
+        "The operator chose all or up to N independently of enrichment; the sorted qualified ranking is sliced before any requested lookups, returning fewer when needed.",
+        "Only selected people receive requested email/phone enrichment; verified data can be reused; failures remain visible without backfill or a repeated profile lookup.",
+        "The adapted executable contracts, CDK type generation, check and plan pass.",
+        "The operator approved deployment, then the exact paid sample and maximum cost.",
+        "The sample shows coverage, ranked evidence and actual stage costs; corrections update reusable criteria and affected examples are retested as authorized.",
+        "The final handoff identifies unperformed live checks and any pending approval evidence; repository approval still requires a fresh demo plus two implementations."
+      ],
+      "cost": "Read current `salesNavigator`, `linkedin`, `openAi` and selected enrichment tool\nand verification metadata immediately before a preview. Record lookup time,\nCLI version, action slugs, units, cache assumptions and model settings.\n\nSeparate company resolution, people sourcing, profile retrieval, AI qualification,\nemail lookup/verification and phone lookup. Sales Navigator pages contain 25\nrecords: the compiled provider limit is `ceil(searchLimit / 25) * 25`, while\nprofile/qualification work is capped at `searchLimit`. Recommend a page multiple\nwhen it suits the account and explain any paid excess. Reaching the cap means\nlimited coverage, even if every retrieved person is qualified.\n\nUse the formula and approval procedure in [run.md](references/run.md). Do not\ninvent fixed prices, free-cache guarantees or a universal relevance threshold.",
+      "composesInto": "- `tam-building` supplies accounts and can pass already-resolved company IDs.\n- `crm-enrichment` supplies reusable company identity/profile components when present.\n- A play can slice `contacts` and own enrichment itself, or consume an enriched\n  shortlist directly; it owns any approved destination write.\n- `find-stakeholders` remains the one-off choice for people at named accounts today."
+    },
+    {
       "name": "crm-enrichment",
       "kind": "cookbook",
       "job": "Keep CRM accounts filled and refresh them when they go stale: a deployed play that fills approved blank firmographics from LinkedIn and re-enrolls a record after six months.",
@@ -468,8 +602,8 @@
       "name": "find-stakeholders",
       "kind": "one-off",
       "job": "Find the buying committee at a target account — every stakeholder matching a set of titles, seniorities, and departments, powered by Cargo.",
-      "description": "Find the buying committee at a target account — every stakeholder matching a set of titles, seniorities, and departments, powered by Cargo. Triggers: \"find the buying committee at Acme\", \"who are the decision makers at this company\", \"find stakeholders\", \"multi-thread this account\", \"who else should I be talking to at this account\". Providers: aiArk. Skip when: you are sourcing across many companies rather than going deep on a few — use find-b2b-leads.",
-      "version": "1.0.0",
+      "description": "Find the buying committee at a target account — every stakeholder matching a set of titles, seniorities, and departments, powered by Cargo. Triggers: \"find the buying committee at Acme\", \"who are the decision makers at this company\", \"find stakeholders\", \"multi-thread this account\", \"who else should I be talking to at this account\". Providers: aiArk. Skip when: you want to build a reusable tool that qualifies and ranks stakeholders for repeated account inputs — use contact-sourcing. Or you are sourcing across many companies rather than going deep on a few — use find-b2b-leads.",
+      "version": "1.0.1",
       "homepage": "https://github.com/getcargohq/gtm-skills",
       "group": "Find the accounts and the people",
       "install": "npx skills add getcargohq/gtm-skills/find-stakeholders",
