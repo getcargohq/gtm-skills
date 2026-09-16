@@ -14,7 +14,7 @@ delivered as one pull request plus one Slack post.
   (runs, usage, models), and whatever `cadence/` already holds, then writes
   `cadence/log/<date>.md`: what moved, what is stuck, what is worth remembering.
 - **Posts.** The same recap, cut to a fifteen-second Slack digest, through
-  `slack.postMessage` on an adopted Slack connector. The channel is locked on the use.
+  `slack.postMessage` on a bound Slack connector. The channel is locked on the use.
 - **Stops.** One pull request, never merged. Slack goes out from the run; the log waits
   for a human merge.
 
@@ -35,14 +35,15 @@ delivered as one pull request plus one Slack post.
    unfurling are locked), appending `Full log: <PR URL>`.
 7. **A human merges** the log. The Slack post has already landed.
 
-Adds 4 resources plus a script bundle.
+Adds 5 resources plus a script bundle.
 
 | File                               | Resource                   | Role                                                              |
 | ---------------------------------- | -------------------------- | ----------------------------------------------------------------- |
 | `infra/agents/standup.ts`          | `defineAgent` (claudeCode) | schedule, repository binding, platform capability, locked Slack use |
 | `infra/agents/standup.prompt.ts`   | (not a resource)           | the recap contract: window, digest shape, limits                  |
 | `infra/connectors/git.ts`          | `defineConnector` (`github`) | the clone, branch, push and PR path, resolved by binding        |
-| `infra/connectors/slack.ts`        | `defineConnector` (`slack`)  | the post path; OAuth, adopted                                   |
+| `infra/connectors/slack.ts`        | `defineConnector` (`slack`)  | the post path; OAuth, bound rather than created                 |
+| `infra/connectors/anthropic.ts`    | `defineConnector` (`anthropic`) | the model the harness runs on, billed and metered            |
 | `infra/folders/index.ts`           | `defineFolder`             | the workspace folder this cookbook's resources are filed in       |
 | `scripts/collect/day.ts`           | (not a resource)           | the entrypoint: dump git / `gh` / cadence files for the day       |
 
@@ -80,8 +81,10 @@ a committed script and the agent is told not to improvise it.
 The recap is the opposite. It is judgement — what actually moved, whether a quiet day
 is signal, who owns the stuck item — and it produces a diff across markdown files plus
 one Slack post. That is what `harness: "claudeCode"` buys: a working tree, the git
-history to read before writing, and a pull request. The LLM `connector` and
-`languageModel` fields are unused and omitted, because the harness brings its own model.
+history to read before writing, and a pull request. It does not buy its own model: the
+harness runs against Cargo's LLM proxy, so `connector` and `languageModel` are required
+here exactly as they are on a `streamText` agent, and they are what the run is billed
+and metered against.
 
 ## Why Slack is a connector action, not a script
 
@@ -102,11 +105,13 @@ time.
 
 ## Placeholders (edit before deploy)
 
-1. **`channelId`** — `infra/agents/standup.ts`: a Slack channel id (`C…`) the adopted
+1. **`channelId`** — `infra/agents/standup.ts`: a Slack channel id (`C…`) the bound
    connector can post to. Invite the bot.
 2. **`STANDUP_TITLE`** — `infra/agents/standup.ts`: the short name in the Slack header.
 3. **`STANDUP_TIMEZONE`** — same file: IANA timezone the recapped calendar day is
    computed in. Change it together with `cron`.
+4. **`languageModel`** — same file: any Anthropic model the workspace's connector can
+   reach. `claudeCode` pairs with the `anthropic` integration and nothing else.
 
 ## What it does not do
 

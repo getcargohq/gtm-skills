@@ -1,6 +1,7 @@
 import { defineAgent } from "@cargo-ai/cdk";
 
 import { standupPrompt } from "./standup.prompt";
+import { anthropic } from "../connectors/anthropic";
 import { slack } from "../connectors/slack";
 import { agentsFolder } from "../folders";
 
@@ -11,8 +12,12 @@ import { agentsFolder } from "../folders";
 // value; it is a diff across the repo — a raw dump, a log entry, maybe a
 // carryover row — plus one Slack post. Only an agent with a working tree can
 // produce the diff, and only a pull request makes the log reviewable before
-// it is what next Monday's plan is written from. There is no `connector` /
-// `languageModel` here on purpose: the harness brings its own model.
+// it is what next Monday's plan is written from.
+//
+// `connector` and `languageModel` are required even here. The harness does not
+// bring its own model: it runs against Cargo's LLM proxy, which bills this
+// connector and meters usage against this slug. Any Anthropic model works with
+// `claudeCode`; see `../connectors/anthropic.ts`.
 //
 // Slack is a Cargo connector action on `uses`, not a script and not a wrapped
 // tool. `channelId` is locked the same way `mailboxUuid` is locked on
@@ -33,6 +38,8 @@ export const standup = defineAgent("standup", {
     "Recaps the GTM day into the cadence log, opens one reviewable pull request, and posts a Slack digest.",
   color: "blue",
   harness: "claudeCode",
+  connector: anthropic,
+  languageModel: "claude-sonnet-5", // PLACEHOLDER — your model of choice
   // @ts-expect-error TS2322: "platform" is not in this package's Capability union yet (cargo#5815)
   capabilities: [{ slug: "platform", config: {} }],
   repository: {

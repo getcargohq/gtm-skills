@@ -14,7 +14,7 @@ Walk every line. A checked template without an evidence-backed consumer adaptati
 - `STANDUP_TITLE` is the short name that should appear in Slack, not the GitHub
   repo slug.
 - `channelId` in `infra/agents/standup.ts` is a real Slack channel id (`C…`) the
-  adopted Slack connector can post to, and the bot has been invited there. A
+  bound Slack connector can post to, and the bot has been invited there. A
   name (`#general`) is the value that collides; autocomplete on the connector
   is how you get the id.
 - `scripts/standup/package.json` exists in the project, and `cargo-ai cdk plan`
@@ -26,6 +26,9 @@ Walk every line. A checked template without an evidence-backed consumer adaptati
   rooted where there is no node_modules, so the collector cannot run.
 - `cargo-ai connection connector list` shows an authorized Slack connector, or
   `cargo-ai cdk add connector/slack` was used to open the OAuth consent.
+- The same list shows an authorized Anthropic connector, and `languageModel` in
+  `infra/agents/standup.ts` names a model it can reach. The harness runs against
+  Cargo's proxy, so a missing one throws at `plan`.
 - `node --import tsx evals/contract.mjs` passes against the adapted graph:
   harness is `claudeCode`, the platform capability is on the agent,
   `postMessage` is on `uses` with `channelId` locked.
@@ -61,7 +64,7 @@ Walk every line. A checked template without an evidence-backed consumer adaptati
 
 - This is one root skill. Its supporting Markdown files live under `references/`,
   and no nested `SKILL.md` exists.
-- Slack posting goes through `slack.actions.postMessage` on the adopted connector
+- Slack posting goes through `slack.actions.postMessage` on the bound connector
   (or `cargo-ai orchestration action execute` of that same action). No
   `SLACK_TOKEN`, no `chat.postMessage` script, no GitHub Action.
 - `evals/contract.mjs` still passes after adaptation: harness is `claudeCode`,

@@ -1,8 +1,8 @@
 import { defineConnector } from "@cargo-ai/cdk";
 
-// The Slack workspace the digest is posted into. OAuth, so adopted: a deploy
-// cannot mint the grant. Authorize it once in the browser
-// (`cargo-ai cdk add connector/slack`) and this declaration binds to it.
+// The Slack workspace the digest is posted into. OAuth, so bound rather than
+// created: a deploy cannot mint the grant. Authorize it once in the browser
+// (`cargo-ai cdk add connector/slack`) and `default: true` binds to it.
 //
 // This is the only Slack path the agent has. There is no SLACK_TOKEN, no
 // chat.postMessage script, and no GitHub Action. The agent calls
@@ -11,5 +11,5 @@ import { defineConnector } from "@cargo-ai/cdk";
 // be ceremony this repo refuses.
 export const slack = defineConnector("slack", {
   integration: "slack",
-  adopt: true,
+  default: true,
 });
