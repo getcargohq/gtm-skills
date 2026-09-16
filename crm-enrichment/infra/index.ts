@@ -14,7 +14,7 @@ import { modelsFolder, playsFolder, toolsFolder } from "./folders";
 // CRM shape in this file.
 const crm = defineConnector("crm", {
   integration: "hubspot",
-  adopt: true,
+  default: true,
 });
 
 export const crmAccounts = defineModel("crm_accounts", {
@@ -27,7 +27,7 @@ export const crmAccounts = defineModel("crm_accounts", {
 
 const linkedin = defineConnector("linkedin", {
   integration: "linkedin",
-  adopt: true,
+  default: true,
 });
 
 const enrichCompanyData = defineWorkflow(
