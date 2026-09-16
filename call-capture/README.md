@@ -137,7 +137,7 @@ spec would need a redeploy. The agent declares no environment of its own at all.
    file satisfying `Recorder` plus an entry in `recorders/index.ts`, and
    `references/recorder-apis.md` carries the endpoints for five more.
 2. **`INTERNAL_DOMAIN`** — your own email domain, or every internal standup is captured as a
-   customer call.
+   customer call. Matched against the domain of each attendee's address, or a subdomain of it.
 
 And one credential, which is **not** in any file: create it once in the workspace with
 `cargo-ai workspaceManagement envVar create --key CALL_RECORDER_API_KEY --secret` and the harness

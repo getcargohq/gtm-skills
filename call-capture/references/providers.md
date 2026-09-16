@@ -122,7 +122,9 @@ Where a recorder signals nothing, the adapter returns the window whole and lets 
 answer null — the overlapping window is the retry, and that is why it overlaps.
 
 What the adapter does **not** own: deduplication, account slugging, the internal-domain filter,
-file layout, the rolling window, `--dry-run`. Those are the same whoever answers, and they are in
+file layout, the rolling window, `--dry-run`, and which arguments the collector accepts at all —
+one it does not recognise stops the run rather than being ignored, since `--dryrun` that captured
+for real is worse than no flag. Those are the same whoever answers, and they are in
 `recorder.ts`. Auth is not shared — Bearer, Basic, two custom headers and a signed GraphQL POST are
 four different things — so each adapter builds its own request; only the 429 backoff is shared,
 through `fetchJson(url, init)`, which takes the whole request so the scheme stays yours.
@@ -142,7 +144,10 @@ Six steps, and the first one is not writing code.
    thin to carry attendees.
 3. **Write `recorders/<slug>.ts` exporting one object satisfying `Recorder`.** Read the credential
    through `recorderKey()` (or `recorderKeyPair()` where the vendor issues two values) inside the
-   request, never at import: the registry imports every adapter on every run.
+   request, never at import: the registry imports every adapter on every run. Call `pageGuard()`
+   once per request in every paginated loop, and end the loop on an empty page — a vendor's
+   `total` or `pages` field is an additional stop, never the only one, because an absent or
+   renamed one otherwise ends the walk after page one and reports a clean run.
 4. **Register it** in `recorders/index.ts` with its label, what the credential holds, its docs URL,
    and `written: "docs"`. The slug is the key and the key is `provider`.
 5. **Run `--dry-run`,** then a real run, then a second real run — which must write nothing, because
@@ -160,10 +165,15 @@ text. Avoma, Fathom, Fireflies, Granola and tl;dv give you a name directly.
 
 **Internal versus external stays in the pipeline.** Gong, Fathom, Grain and Modjo each flag it, and
 the flags do not agree with each other; Avoma's is false on every meeting in some workspaces. So
-every adapter passes attendees through and `recorder.ts` applies one rule —
-`CALL_CAPTURE_INTERNAL_DOMAIN` against the email domain — for all of them. An adapter that filtered
-attendees itself would make the same call read as internal on one recorder and external on the
-next.
+every adapter passes attendees through and `recorder.ts` applies one rule for all of them:
+`INTERNAL_DOMAIN` from `config.ts`, matched against the **domain** of the address — equal to it, or
+a subdomain of it. Not a suffix of the address, which would read `her@notexample.com` as a
+colleague and file the call as internal. An adapter that filtered attendees itself would make the
+same call read as internal on one recorder and external on the next.
+
+Passing attendees through also means the pipeline sees whatever the vendor put in the field,
+including `""` and a display name where an address belongs. Those are reported and ignored rather
+than fatal: one participant a vendor never identified should not end the run.
 
 **Rendering is shared, not per-vendor.** `turns.ts` takes a flat list of "someone said this" and
 renders `**Name:** text`, joining consecutive segments from one speaker. Recorders segment wildly
