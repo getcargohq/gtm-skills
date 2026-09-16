@@ -1,14 +1,14 @@
 # Cargo GTM Skills
 
 [![cargo-ai cli](https://img.shields.io/npm/v/@cargo-ai/cli?label=cargo-ai%20cli&color=black)](https://www.npmjs.com/package/@cargo-ai/cli)
-[![skills.sh](https://img.shields.io/badge/skills.sh-24%20skills-black)](https://www.skills.sh)
+[![skills.sh](https://img.shields.io/badge/skills.sh-25%20skills-black)](https://www.skills.sh)
 [![License](https://img.shields.io/github/license/getcargohq/gtm-skills?color=black)](LICENSE)
 
-24 agent skills, each with one routed job. No account required to read them, and a new
+25 agent skills, each with one routed job. No account required to read them, and a new
 Cargo account starts with **100 free credits, no card**.
 
 ```bash
-npx skills add getcargohq/gtm-skills --all      # all 24
+npx skills add getcargohq/gtm-skills --all      # all 25
 ```
 
 Each skill also installs on its own, when you want exactly one and nothing else:
@@ -17,7 +17,7 @@ Each skill also installs on its own, when you want exactly one and nothing else:
 npx skills add getcargohq/gtm-skills/<skill-name>
 ```
 
-The five **cookbooks** at the bottom of the table install differently, because they are
+The six **cookbooks** at the bottom of the table install differently, because they are
 not only a procedure — each carries an `infra/` of CDK resources that has to land in your
 project's CDK directory, while the procedure goes to your repo's skills layer. `skills add`
 would install the folder whole, putting TypeScript where the CDK loader never looks, so the
@@ -49,8 +49,8 @@ cargo-ai cdk add cookbook/<name>
 | [`find-portfolio-companies`](find-portfolio-companies/SKILL.md)   | Find every portfolio company of an investor or accelerator, then the people inside them.                                          |
 | [`waterfall-enrichment`](waterfall-enrichment/SKILL.md)           | Run a waterfall across several providers so a record one vendor misses is caught by the next.                                     |
 
-**Five of them deploy a pipeline rather than running once.** `tam-building`, `account-scoring`,
-`crm-enrichment`, `call-capture` and `agentic-engagement` are the same jobs as a standing pipeline: each folder holds worked CDK
+**Six of them deploy a pipeline rather than running once.** `tam-building`, `account-scoring`,
+`crm-enrichment`, `call-capture`, `standup` and `agentic-engagement` are the same jobs as a standing pipeline: each folder holds worked CDK
 resources written for some other company, and your agent adapts them into your project and
 deploys them. Every such folder is self-contained (its own models, connectors and folders; no
 shared foundation, no requires graph), so the agent reconciles it with whatever your project
@@ -63,6 +63,7 @@ already declares. More are on their way (`contact-sourcing`, `signal-based-tam`,
 | [`account-scoring`](account-scoring/SKILL.md)              | Every account scored and tiered against your written ICP by an agent that cites its evidence, rationale on the CRM record.               |
 | [`crm-enrichment`](crm-enrichment/SKILL.md)                | CRM accounts stay filled: approved blanks from LinkedIn, freshness after a real write, re-enrolled after six months.                     |
 | [`call-capture`](call-capture/SKILL.md)                    | Yesterday's call transcripts become log entries and, once a claim repeats, context updates — as one pull request you review.             |
+| [`standup`](standup/SKILL.md)                              | The GTM day is recapped into the cadence log and a digest is posted to Slack — as one pull request you review.                           |
 | [`agentic-engagement`](agentic-engagement/SKILL.md)        | An agent holds email conversations with leads from a mailbox you own, waking on reply, unsubscribe, or a heartbeat that checks thread status. |
 
 Works with Claude Code, Codex, Cursor, Windsurf, GitHub Copilot, and any agent that supports the
@@ -70,7 +71,7 @@ Works with Claude Code, Codex, Cursor, Windsurf, GitHub Copilot, and any agent t
 
 ## As an agent plugin — Claude Code, Codex, Cursor
 
-The same 24 skills also install as a native **agent plugin**: one source, three targets. Take
+The same 25 skills also install as a native **agent plugin**: one source, three targets. Take
 this route when you want all of them rather than one, and when you want the two things
 `skills add` cannot deliver:
 
@@ -114,7 +115,7 @@ version is a manual, human-reviewed submission that then serves whatever was app
 node scripts/build-codex-package.mjs      # -> dist/gtm-skills-codex.zip
 ```
 
-It stages the 24 skills under `skills/`, drops the OpenClaw `metadata` block OpenAI rejects,
+It stages the 25 skills under `skills/`, drops the OpenClaw `metadata` block OpenAI rejects,
 writes the directory manifest, and asserts every documented limit — description lengths, the
 30-char display fields, square icons, archive shape — against the finished zip rather than the
 staging directory. Skills only: the hooks are wired with `${CLAUDE_PLUGIN_ROOT}`, which nothing

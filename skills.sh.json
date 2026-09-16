@@ -59,6 +59,7 @@
         "account-scoring",
         "crm-enrichment",
         "call-capture",
+        "standup",
         "agentic-engagement"
       ]
     }
