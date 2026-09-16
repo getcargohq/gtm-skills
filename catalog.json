@@ -390,7 +390,7 @@
       "shouldNotChange": [
         "**Run on the authoritative CRM model.** (`infra/plays/deduplicate-accounts.ts`) The play uses the CRM-backed account extract and CRM record ID. A native account or candidate model introduces another identity system and can target the wrong record.",
         "**Search live CRM rows before scoring.** (`infra/plays/deduplicate-accounts.ts`) `findRecords` refreshes candidate membership for every run. Audit snapshots can become stale before a merge.",
-        "**Search, score, select, then decide.** (`infra/plays/deduplicate-accounts.ts`) Deterministic preparation retains the fresh source exactly once. Native Scoring evaluates the evidence before deterministic survivor selection and the automatic gate.",
+        "**Search, score, select, then decide.** (`infra/scripts/evidence.ts`) Deterministic preparation retains the fresh source exactly once. Native Scoring evaluates the evidence before deterministic survivor selection and the automatic gate.",
         "**Keep the automatic class narrow.** (`infra/plays/deduplicate-accounts.ts`) Exact shared LinkedIn company ID, score at least 60, and no identity, protected-ID, or parent-subsidiary conflict are all required. Every other candidate reaches Human Review.",
         "**Merge only on automatic or approved paths.** (`infra/plays/deduplicate-accounts.ts`) Human approval reaches the reviewed merge. Decline and timeout end without a CRM write.",
         "**Stop stale queued rows.** (`infra/plays/deduplicate-accounts.ts`) A source missing from the fresh search ends before scoring or emitting merge IDs.",
@@ -403,7 +403,7 @@
         "the operator approved matching keys, protected fields, survivor precedence, automatic class, and manual-review destination",
         "the isolated plan contains one CRM connector, one Slack connector, one CRM account model, and one disabled deduplication play, with no staging model",
         "the play runs directly on the CRM model and matches the audited CRM record ID",
-        "its compiled workflow contains CRM `findRecords`, one deterministic preparation script that also selects the survivor, native Scoring, the guarded Branch, native Human Review, and CRM merge actions only on automatic or approved paths",
+        "its compiled workflow contains CRM `findRecords`, one deterministic preparation script bundled from `infra/scripts/evidence.ts` that also selects the survivor, native Scoring, the guarded Branch, native Human Review, and CRM merge actions only on automatic or approved paths",
         "`node --import tsx evals/contract.mjs` passes against the adapted graph",
         "generated consumer types confirm the selected search, merge, and Human Review payloads",
         "the Slack review connector and channel resolve; approval, decline, and timeout reach their intended paths",

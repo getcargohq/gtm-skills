@@ -2,7 +2,7 @@
 name: crm-deduplication
 description: 'Keep CRM accounts duplicate-free: audit company identity, build a recurring deduplication play directly on the CRM model, search and score duplicate candidates, merge safe exact matches, and route uncertain clusters to manual review. Triggers: "deduplicate our CRM accounts", "we keep creating duplicate account records", "merge duplicate companies in HubSpot", "set up recurring account deduplication", "review ambiguous company duplicates", "our CRM has duplicate companies". HubSpot, Salesforce, Attio, Slack, Cargo CDK, findRecords, Scoring, Human Review, mergeRecords. Skip when: the request is to add or refresh CRM firmographics rather than merge duplicate records; use crm-enrichment.'
 version: "0.1.0"
-compatibility: "Requires the cargo-cdk skill, a Cargo CDK project, @cargo-ai/cdk 1.0.73 or later, an authenticated CRM connector, and a Slack connector for review. The repository example does not deploy or access a CRM until an agent adapts it in the consumer project."
+compatibility: "Requires the cargo-cdk skill, a Cargo CDK project, @cargo-ai/cdk 1.0.82 or later, an authenticated CRM connector, and a Slack connector for review. The repository example does not deploy or access a CRM until an agent adapts it in the consumer project."
 homepage: https://github.com/getcargohq/gtm-skills/tree/main/crm-deduplication
 metadata:
   author: getcargo
@@ -153,7 +153,7 @@ The code is a worked example. Offer these adaptations when the audit supports th
   and can target the wrong record.
 - **Search live CRM rows before scoring.** (`infra/plays/deduplicate-accounts.ts`) `findRecords` refreshes candidate
   membership for every run. Audit snapshots can become stale before a merge.
-- **Search, score, select, then decide.** (`infra/plays/deduplicate-accounts.ts`) Deterministic preparation retains the
+- **Search, score, select, then decide.** (`infra/scripts/evidence.ts`) Deterministic preparation retains the
   fresh source exactly once. Native Scoring evaluates the evidence before deterministic survivor
   selection and the automatic gate.
 - **Keep the automatic class narrow.** (`infra/plays/deduplicate-accounts.ts`) Exact shared LinkedIn company ID, score at
@@ -178,9 +178,9 @@ The code is a worked example. Offer these adaptations when the audit supports th
 - the isolated plan contains one CRM connector, one Slack connector, one CRM account model, and one
   disabled deduplication play, with no staging model
 - the play runs directly on the CRM model and matches the audited CRM record ID
-- its compiled workflow contains CRM `findRecords`, one deterministic preparation script that also
-  selects the survivor, native Scoring, the guarded Branch, native Human Review, and CRM merge
-  actions only on automatic or approved paths
+- its compiled workflow contains CRM `findRecords`, one deterministic preparation script bundled
+  from `infra/scripts/evidence.ts` that also selects the survivor, native Scoring, the guarded
+  Branch, native Human Review, and CRM merge actions only on automatic or approved paths
 - `node --import tsx evals/contract.mjs` passes against the adapted graph
 - generated consumer types confirm the selected search, merge, and Human Review payloads
 - the Slack review connector and channel resolve; approval, decline, and timeout reach their intended

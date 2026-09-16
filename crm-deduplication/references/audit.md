@@ -7,7 +7,7 @@ and current account rows without paid calls, review requests, or CRM writes.
 
 Read current records from the CRM-backed `crm_accounts` model using the selected CRM record ID
 (`hs_object_id` in the HubSpot example). Normalize identifiers exactly as the deployed evidence script in
-`infra/plays/deduplicate-accounts.ts` does, classify each cluster once, and rank its survivor
+`infra/scripts/` does, classify each cluster once, and rank its survivor
 deterministically. Write
 `crm-account-dedup-audit-YYYY-MM-DD.json` and matching Markdown with this minimum contract:
 

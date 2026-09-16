@@ -6,6 +6,8 @@
 import assert from "node:assert/strict";
 import { loadResources } from "@cargo-ai/cdk";
 
+import evidence from "../infra/scripts/evidence.ts";
+
 const infraDir = new URL("../infra", import.meta.url).pathname;
 const byId = new Map(
   (await loadResources(infraDir)).map((resource) => [resource.id, resource]),
@@ -107,10 +109,18 @@ assert.deepEqual(
 for (const node of nodes.filter((node) => node.actionSlug === "script")) {
   assert.doesNotMatch(
     node.config.script,
-    /nodes\.script/,
+    /nodes\.script\b/,
     "no script may read another script through its compiler-assigned slug",
   );
 }
+
+// The evidence node must carry the bundle, not a hand-written body: that is
+// what keeps the module this file imports and the code a run executes identical.
+assert.match(
+  evidenceNode.config.script,
+  /Generated from \.\.\/scripts\/evidence\.ts/,
+  "the evidence node must be bundled from infra/scripts/evidence.ts",
+);
 
 // Automatic merge needs BOTH the score threshold and the exact-identity guard.
 const gate = childrenOf(scoreNode)[0];
@@ -182,10 +192,12 @@ assert.equal(
   "decline and timeout must never reach a CRM merge",
 );
 
-// The script body runs for real, against the node slug it reads. A connector
-// node inserted ahead of it renames that slug, and these calls are what catches
-// it.
-const prepareEvidence = new Function("nodes", evidenceNode.config.script);
+// The evidence module runs for real, against the node slugs it reads. A
+// connector node inserted ahead of it renames those slugs, and these calls are
+// what catches it. Imported rather than reconstructed from the compiled node:
+// `js({ path })` bundles this exact module, so calling it here and calling it
+// in a run are the same code.
+const prepareEvidence = (nodes) => evidence({ nodes });
 const company = (id, properties = {}) => ({
   id,
   properties: {
@@ -258,10 +270,18 @@ assert.equal(
   false,
   "a source already absorbed by an earlier merge must stop before scoring",
 );
+// What "stop before scoring" has to mean downstream. The cluster itself is no
+// longer in the payload — nothing at runtime read it — so assert the guarantee
+// it stood for: a source the search no longer returns names nothing to merge.
+assert.equal(
+  stale.primaryId,
+  "",
+  "a missing fresh source must never name a survivor",
+);
 assert.deepEqual(
-  stale.cluster,
+  stale.idsToMerge,
   [],
-  "a missing fresh source must never emit a mergeable cluster",
+  "a missing fresh source must never emit a merge ID",
 );
 
 console.log(
