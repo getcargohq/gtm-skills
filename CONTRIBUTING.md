@@ -156,9 +156,14 @@ weight: it deploys, it shows up in the workspace, and it rots.
   on every run, so a rotation lands with no deploy. Workers, apps and agents
   inherit the whole catalog, which means a harness agent's `repository.env`
   declares **nothing** for a key the workspace holds — and the CDK's type
-  refuses a pointer there for exactly that reason. A connector's credential
-  field, which inherits nothing, reaches the same entry through
-  `workspaceEnv("NAME")` (CDK 1.0.72 or later). Keep `secret("NAME")` for a
+  refuses a pointer there for exactly that reason. A connector is better off
+  with no credential at all: `default: true` binds the connection the workspace
+  already authorized, which is what every connector in this repo does, and the
+  cost is that a deploy cannot mint one — a workspace without the connection
+  fails at deploy rather than at plan, since binding declares no `config` to
+  typecheck. When a connector genuinely has to be created, its credential field
+  inherits nothing and reaches a catalog entry through `workspaceEnv("NAME")`
+  (CDK 1.0.72 or later). Keep `secret("NAME")` for a
   value the deploy itself supplies: it resolves from the deploying machine's
   environment, so the variable has to be exported — or sit in a `.env` that the
   next machine does not have — by whoever deploys, and a rotation only lands on

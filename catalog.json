@@ -62,7 +62,7 @@
         },
         {
           "id": "no-crm-at-all",
-          "when": "You have no CRM, or you do not want to hand this skill a CRM credential",
+          "when": "You have no CRM, or the workspace has no CRM connection and you do not want to authorize one",
           "how": "Take `skip-crm-roundtrip`, then delete `infra/connectors/hubspot.ts` so no CRM connector is registered",
           "cost": "Every other CRM-dependent skill you install later brings a CRM connector of its own; reuse one"
         }
