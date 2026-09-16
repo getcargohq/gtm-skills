@@ -1,13 +1,13 @@
 // Everything the merge decision rests on, derived deterministically: no model,
 // no judgement. The same records always produce the same evidence.
 
-import { jsFn } from "@cargo-ai/cdk";
+import { defineJs } from "@cargo-ai/cdk";
 
 import { agreementOn, clusterAround, identifiesOneCompany } from "./cluster";
 import { type CrmRecord, readRecordId, readSearchResults } from "./records";
 import { rankSurvivors } from "./survivor";
 
-export const deriveEvidence = jsFn(
+export const deriveEvidence = defineJs(
   ({ found, sourceId }: { found: unknown; sourceId: string }) => {
     const records = readSearchResults(found);
     const enrolledId = readRecordId(sourceId);
