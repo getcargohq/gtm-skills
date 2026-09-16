@@ -7,7 +7,7 @@
 // assigned, so inserting a connector node ahead of the script renames them;
 // `evals/contract.mjs` calls this module with the slugs it expects.
 
-import type { ScriptNode } from "@cargo-ai/cdk";
+import type { JsFn } from "@cargo-ai/cdk";
 
 import {
   agreementOn,
@@ -34,7 +34,7 @@ export type Evidence = {
   evidenceSummary: string;
 };
 
-const evidence: ScriptNode<Evidence> = ({ nodes }) => {
+const evidence: JsFn<Evidence> = ({ nodes }) => {
   const records = readSearchResults(nodes.hubspot);
   const sourceId = asText(nodes.start.hs_object_id);
   const source = records.find((record) => record.id === sourceId);
