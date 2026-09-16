@@ -18,16 +18,25 @@
  * rather than escaping to a vendor.
  */
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import {
+  cpSync,
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 
 // Read at module load in recorder.ts, so it has to be set before the import.
 process.env["CALL_CAPTURE_PACE_MS"] = "0";
 process.env["CALL_RECORDER_API_KEY"] = "test-key";
 
 const { RECORDER } = await import("../scripts/collect/config.ts");
-const { ConfigError, recorderKeyPair } = await import(
-  "../scripts/collect/recorder.ts"
-);
+const { backoffSeconds, checkFlags, ConfigError, pageGuard, recorderKeyPair } =
+  await import("../scripts/collect/recorder.ts");
 const { renderTurns } = await import("../scripts/collect/recorders/turns.ts");
 const { RECORDERS, RECORDER_SLUGS, recorderTable, resolve } = await import(
   "../scripts/collect/recorders/index.ts"
@@ -126,6 +135,160 @@ check("the collector's configuration is not in the agent's spec", () => {
         `domain belong in scripts/collect/config.ts, and the credential in the ` +
         `workspace catalog (cargo-ai workspaceManagement envVar create)`,
     );
+  }
+});
+
+check("an argument the collector does not know stops the run", () => {
+  checkFlags(["--dry-run", "--recorder=granola", "--list"]);
+  for (const argv of [["--dryrun"], ["--recorder", "granola"], ["-n"]]) {
+    assert.throws(
+      () => checkFlags(argv),
+      ConfigError,
+      `${argv.join(" ")} was accepted, and would have run something else`,
+    );
+  }
+});
+
+// --------------------------------------------------------------- the transport
+
+check("a 429 with no Retry-After backs off rather than retrying at once", () => {
+  // `Number(null)` is 0 and `Number.isFinite(0)` is true, so reading the
+  // header without a null check spent four retries in the same second.
+  assert.equal(backoffSeconds(null, 0), 8);
+  assert.equal(backoffSeconds("", 1), 16);
+  assert.equal(backoffSeconds("0", 0), 8);
+  assert.equal(backoffSeconds("not-a-number", 0), 8);
+  assert.equal(backoffSeconds("45", 0), 45);
+  // An hour, asked for by the vendor, would hold the whole run open.
+  assert.equal(backoffSeconds("3600", 0), 300);
+});
+
+check("a pagination loop that never terminates is stopped", () => {
+  const guard = pageGuard("probe", 3);
+  guard();
+  guard();
+  guard();
+  assert.throws(guard, /probe: pagination did not terminate after 3 pages/);
+});
+
+// -------------------------------------------------------------- the pipeline
+//
+// `capture()` against a fake recorder, in a copy of the collector under a
+// temporary root — so `cadence/log/` resolves there and these checks write
+// real files. This half is what every adapter shares, and it is where the
+// dedup key, the internal-domain rule and the file layout actually live.
+
+const tree = mkdtempSync(join(tmpdir(), "call-capture-contract-"));
+cpSync(
+  new URL("../scripts/collect", import.meta.url),
+  join(tree, "scripts", "call-capture", "collect"),
+  { recursive: true },
+);
+const pipeline = await import(
+  join(tree, "scripts", "call-capture", "collect", "recorder.ts")
+);
+
+const call = (id, attendees, startAt = "2026-09-15T10:00:00Z") => ({
+  id,
+  startAt,
+  subject: "a call",
+  attendees,
+});
+
+const fake = (calls) => ({
+  provider: "probe",
+  listReady: async () => calls,
+  transcript: async () => "**Ada:** hello",
+  notes: async () => null,
+});
+
+const raw = () => {
+  const dir = join(tree, "cadence", "log", "raw", "calls");
+  try {
+    return readdirSync(dir).sort();
+  } catch {
+    return [];
+  }
+};
+
+check("an address the vendor mangled is survived, not fatal", async () => {
+  // Every adapter passes the vendor's value through with at most a `??`, so
+  // `""` and a bare label both reach here. They used to throw a TypeError out
+  // of accountSlug and take the whole morning's run with them.
+  await pipeline.capture(
+    fake([
+      call("mangled", [
+        { email: "", name: "No address" },
+        { email: "not-an-address", name: "No at sign" },
+        { email: "her@acme.com", name: "Real" },
+      ]),
+    ]),
+  );
+  assert.deepEqual(raw(), ["2026-09-15-acme.md"]);
+});
+
+check("the internal-domain rule matches a domain, not a suffix", async () => {
+  // `endsWith("example.com")` read notexample.com as internal and dropped the
+  // call in silence; a short internal domain makes that routine, since
+  // "me.com" swallows every acme.com contact.
+  await pipeline.capture(
+    fake([
+      call("lookalike", [
+        { email: "us@example.com" },
+        { email: "her@notexample.com" },
+      ]),
+      call("subdomain", [
+        { email: "us@example.com" },
+        { email: "them@mail.example.com" },
+      ]),
+      call("internal", [{ email: "us@example.com" }]),
+    ]),
+  );
+  assert.deepEqual(raw(), ["2026-09-15-acme.md", "2026-09-15-notexample.md"]);
+});
+
+check("a call already anywhere under cadence/log/ is not captured again", async () => {
+  // The scribed entry, not the raw file: a raw capture that has been scribed
+  // and archived must still count as captured.
+  mkdirSync(join(tree, "cadence", "log", "calls"), { recursive: true });
+  writeFileSync(
+    join(tree, "cadence", "log", "calls", "2026-09-14-scribed.md"),
+    "---\nsource: probe already-done\n---\n",
+  );
+  const before = raw();
+  await pipeline.capture(fake([call("already-done", [{ email: "her@acme.com" }])]));
+  assert.deepEqual(raw(), before);
+});
+
+check("two calls with one account on one day both keep a file", async () => {
+  await pipeline.capture(
+    fake([
+      call("second-acme", [{ email: "her@acme.com" }]),
+      call("third-acme", [{ email: "him@acme.com" }]),
+    ]),
+  );
+  assert.ok(raw().includes("2026-09-15-acme-2.md"), raw().join(", "));
+  assert.ok(raw().includes("2026-09-15-acme-3.md"), raw().join(", "));
+});
+
+check("an id the dedup key cannot round-trip fails loudly", async () => {
+  // Written into `source:` and read back with a regex, so an id carrying
+  // anything outside that class reads as never-captured and is re-captured
+  // every morning without ever erroring.
+  await assert.rejects(
+    pipeline.capture(fake([call("has spaces", [{ email: "her@acme.com" }])])),
+    /deduplication key cannot round-trip/,
+  );
+});
+
+check("--dry-run writes nothing", async () => {
+  process.argv.push("--dry-run");
+  try {
+    const before = raw();
+    await pipeline.capture(fake([call("dry", [{ email: "her@beta.io" }])]));
+    assert.deepEqual(raw(), before);
+  } finally {
+    process.argv.splice(process.argv.indexOf("--dry-run"), 1);
   }
 });
 
@@ -319,6 +482,36 @@ check("tldv: x-api-key, page/pages paging, notes as markdown", async () => {
   assert.equal(await tldv.notes("td-1"), "- SSO asked for");
 });
 
+check("tldv: a window with no `pages` field is still walked to the end", async () => {
+  // `pages` is not a documented field name. Defaulting it to 1 meant an
+  // absent or renamed one captured the newest page of a busy window and
+  // reported a clean run.
+  const { tldv } = await import("../scripts/collect/recorders/tldv.ts");
+  routes.clear();
+  route("GET https://pasta.tldv.io/v1alpha1/meetings", (url) => {
+    const page = Number(new URL(url).searchParams.get("page"));
+    return {
+      results:
+        page > 2
+          ? []
+          : [
+              {
+                id: `td-${page}`,
+                name: "Acme call",
+                happenedAt: "2026-01-02T16:00:00Z",
+                invitees: [{ name: "Ada", email: "ada@acme.com" }],
+              },
+            ],
+    };
+  });
+
+  const calls = await tldv.listReady("2026-01-01", "2026-01-03");
+  assert.deepEqual(
+    calls.map((one) => one.id),
+    ["td-1", "td-2"],
+  );
+});
+
 check("modjo: expand always passed, content not text, retention respected", async () => {
   const { modjo } = await import("../scripts/collect/recorders/modjo.ts");
   routes.clear();
@@ -370,6 +563,34 @@ check("modjo: expand always passed, content not text, retention respected", asyn
   assert.equal(
     await modjo.notes("4021"),
     "**MEDDIC**\n\nChampion identified.",
+  );
+});
+
+check("modjo: a window with no `pagination.total` is still walked", async () => {
+  const { modjo } = await import("../scripts/collect/recorders/modjo.ts");
+  routes.clear();
+  route("GET https://api.modjo.ai/v2/calls", (url) => {
+    const page = Number(new URL(url).searchParams.get("page"));
+    return {
+      data:
+        page > 2
+          ? []
+          : [
+              {
+                id: 5000 + page,
+                title: "Acme call",
+                startDate: "2026-01-02T17:00:00Z",
+                transcriptRetentionStatus: "available",
+                contacts: [{ name: "Ada", email: "ada@acme.com" }],
+              },
+            ],
+    };
+  });
+
+  const calls = await modjo.listReady("2026-01-01", "2026-01-03");
+  assert.deepEqual(
+    calls.map((one) => one.id),
+    ["5001", "5002"],
   );
 });
 
@@ -637,6 +858,8 @@ for (const [name, run] of checks) {
 
 if (failed > 0) {
   console.error(`${failed} contract check(s) failed`);
+  console.error(`the pipeline checks left their tree at ${tree}`);
   process.exit(1);
 }
+rmSync(tree, { recursive: true, force: true });
 console.log(`${checks.length} contract checks passed`);
