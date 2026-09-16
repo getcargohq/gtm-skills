@@ -155,6 +155,10 @@ export function recorderTable(): string {
     "for one run. Anything else is a new adapter in scripts/call-capture/",
     "collect/recorders/ plus an entry in its index.ts — see",
     "references/providers.md.",
+    "",
+    "deployed, CALL_RECORDER_API_KEY is a workspace environment variable the",
+    "harness inherits: cargo-ai workspaceManagement envVar create --key",
+    "CALL_RECORDER_API_KEY --secret. Export it to run this by hand.",
   ].join("\n");
 }
 

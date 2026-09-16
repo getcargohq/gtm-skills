@@ -18,6 +18,11 @@
  * credential. `--recorder=<slug>` overrides `CALL_RECORDER` for one run, which
  * is how you try a second recorder without touching the deployed env.
  *
+ * The assignments above are for a run by hand. Deployed, `CALL_RECORDER` comes
+ * from the agent's own env and `CALL_RECORDER_API_KEY` from the workspace
+ * environment variables a harness agent inherits in full — so nothing in this
+ * project holds the key, and rotating it needs no deploy.
+ *
  * Idempotent. A call already present anywhere under `cadence/log/` — raw or
  * long since scribed — is skipped, so re-running costs nothing and the
  * overlapping window is free. Note that the key includes the recorder slug: a
