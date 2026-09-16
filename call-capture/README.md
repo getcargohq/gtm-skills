@@ -34,13 +34,14 @@ one pull request.
 6. **A human merges**, and the next `cargo-ai cdk deploy` syncs `context/` into the workspace
    context repository, where the scorer, the researcher and every other agent read it.
 
-Adds 3 resources plus a script bundle.
+Adds 4 resources plus a script bundle.
 
 | File                            | Resource                     | Role                                                       |
 | ------------------------------- | ---------------------------- | ---------------------------------------------------------- |
 | `infra/agents/call-scribe.ts`   | `defineAgent` (claudeCode)   | schedule, repository binding, env, and the wiring          |
 | `infra/agents/call-scribe.prompt.ts` | (not a resource)        | the scribe's contract: window, cap, repetition bar, limits |
 | `infra/connectors/git.ts`       | `defineConnector` (`github`) | the clone, branch, push and PR path, resolved by binding   |
+| `infra/connectors/anthropic.ts` | `defineConnector` (`anthropic`) | the model the harness runs on, billed and metered          |
 | `infra/folders/index.ts`  | `defineFolder`               | the workspace folder this cookbook's resources are filed in |
 | `scripts/collect/recorder.ts`   | (not a resource)             | the `Recorder` contract and the provider-agnostic pipeline |
 | `scripts/collect/avoma.ts`      | (not a resource)             | the one worked recorder implementation                     |
@@ -84,8 +85,9 @@ against. So the fetch is a committed script and the agent is told not to improvi
 The scribing is the opposite. It is judgement — what was actually agreed, whether this is the same
 objection as last week, whether a vendor call is being misread as pipeline — and it produces a diff
 across a dozen markdown files. That is what `harnessSlug: "claudeCode"` buys: a working tree, the
-git history to read before writing, and a pull request. The LLM `connector` and `languageModel`
-fields are unused and omitted, because the harness brings its own model.
+git history to read before writing, and a pull request. It does not buy its own model: the harness
+runs against Cargo's LLM proxy, so `connector` and `languageModel` are required here exactly as
+they are on a `streamText` agent, and they are what the run is billed and metered against.
 
 ## Supporting a different recorder
 
