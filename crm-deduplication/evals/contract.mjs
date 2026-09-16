@@ -260,6 +260,76 @@ assert.equal(
   "an identity conflict must require human review",
 );
 
+// One company page, written the ways a CRM ends up holding it. Each variant must
+// read as the same page: a false conflict here sends a merge that should be
+// automatic to review, and shows the reviewer a disagreement that is not real.
+const samePage = evidenceFor("source", [
+  company("source"),
+  company("regional", {
+    linkedin_company_page: "https://uk.linkedin.com/company/acme/about/",
+  }),
+  company("mobile", {
+    linkedin_company_page: "https://m.linkedin.com/company/Acme?trk=feed",
+  }),
+]);
+assert.equal(
+  samePage.identityConflict,
+  false,
+  "a regional, mobile, or sub-page LinkedIn URL is the same company page",
+);
+assert.equal(
+  samePage.exactLinkedinUrl,
+  true,
+  "every variant of one company page must agree",
+);
+
+const encodedPage = evidenceFor("source", [
+  company("source", {
+    linkedin_company_page:
+      "https://www.linkedin.com/company/soci%C3%A9t%C3%A9-g%C3%A9n%C3%A9rale",
+  }),
+  company("decoded", {
+    linkedin_company_page: "linkedin.com/company/Société-Générale",
+  }),
+]);
+assert.equal(
+  encodedPage.exactLinkedinUrl,
+  true,
+  "a percent-encoded company page must match its decoded form",
+);
+
+// A numeric page is LinkedIn's company ID, not a vanity handle: it agrees with
+// the ID property rather than conflicting with the handle.
+const numericPage = evidenceFor("source", [
+  company("source"),
+  company("by-id", {
+    linkedin_company_id: undefined,
+    linkedin_company_page: "https://www.linkedin.com/company/123",
+  }),
+]);
+assert.equal(
+  numericPage.identityConflict,
+  false,
+  "a numeric company page must not conflict with a vanity handle",
+);
+assert.equal(
+  numericPage.exactLinkedinId,
+  true,
+  "a numeric company page must count as the company's LinkedIn ID",
+);
+
+const differentPages = evidenceFor("source", [
+  company("source"),
+  company("other", {
+    linkedin_company_page: "https://www.linkedin.com/company/globex",
+  }),
+]);
+assert.equal(
+  differentPages.identityConflict,
+  true,
+  "two different company pages must still conflict",
+);
+
 const parked = { linkedin_company_id: "", linkedin_company_page: "" };
 const parkedDomain = evidenceFor("source", [
   company("source", { ...parked, domain: "google.com" }),

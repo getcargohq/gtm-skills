@@ -62,11 +62,18 @@ const readRecord = (row: unknown): CrmRecord | undefined => {
       : [];
   const fields = Object.fromEntries(entries);
   const lifecycleStage = asText(fields.lifecyclestage);
+  const linkedinIdProperty = asText(fields.linkedin_company_id);
+  const linkedinPage = readLinkedinPage(fields.linkedin_company_page);
 
   return {
     id,
-    linkedinId: asText(fields.linkedin_company_id),
-    linkedinUrl: asLinkedinHandle(fields.linkedin_company_page),
+    // A page addressed by number carries the LinkedIn ID itself. The ID
+    // property wins when both are set: it is what the CRM holds as the ID.
+    linkedinId:
+      linkedinIdProperty !== undefined
+        ? linkedinIdProperty
+        : linkedinPage.companyId,
+    linkedinUrl: linkedinPage.handle,
     domain: asDomain(fields.domain),
     protectedId: asText(fields.protected_business_id),
     parentId: asText(fields.parent_company_id),
@@ -115,16 +122,51 @@ const asDomain = (value: unknown): string | undefined => {
   return domain === "" ? undefined : domain;
 };
 
-const asLinkedinHandle = (value: unknown): string | undefined => {
+// One company page reaches a CRM as `www.`, a country or mobile subdomain, a
+// sub-page such as `/about/`, or percent-encoded, and each has to read as the
+// same page — otherwise two records for one company disagree on an identity key,
+// and a merge that should be automatic goes to review over a conflict that is
+// not real.
+const COMPANY_PAGE =
+  /^(?:https?:\/\/)?(?:[a-z0-9-]+\.)*linkedin\.com\/company(?:\/([^/?#]*))?(?=$|[/?#])/i;
+
+/**
+ * A LinkedIn company page read as the vanity handle LinkedIn addresses it by
+ * — or, when it is addressed by number, as the company's LinkedIn ID. A value
+ * that is not a company page URL is read as the handle the CRM stored.
+ */
+const readLinkedinPage = (
+  value: unknown,
+): { handle: string | undefined; companyId: string | undefined } => {
   const text = asText(value);
   if (text === undefined) {
-    return undefined;
+    return { handle: undefined, companyId: undefined };
   }
 
-  const handle = text
-    .toLowerCase()
-    .replace(/^(?:https?:\/\/)?(?:www\.)?linkedin\.com\/company\//, "")
-    .replace(/[?#].*$/, "")
-    .replace(/\/+$/, "");
-  return handle === "" ? undefined : handle;
+  const page = COMPANY_PAGE.exec(text);
+  const handle =
+    page === null
+      ? text
+          .toLowerCase()
+          .replace(/[?#].*$/, "")
+          .replace(/\/+$/, "")
+      : page[1] === undefined
+        ? ""
+        : decodePathSegment(page[1]).toLowerCase();
+
+  if (handle === "") {
+    return { handle: undefined, companyId: undefined };
+  }
+  return /^\d+$/.test(handle)
+    ? { handle: undefined, companyId: handle }
+    : { handle, companyId: undefined };
+};
+
+const decodePathSegment = (segment: string): string => {
+  try {
+    return decodeURIComponent(segment);
+  } catch {
+    // A malformed escape: compare the segment as written.
+    return segment;
+  }
 };
