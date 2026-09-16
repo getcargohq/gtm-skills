@@ -100,19 +100,24 @@ assert.deepEqual(
   ],
   "the native duplicate score must preserve the approved 60/25/15 policy",
 );
-const survivorNode = childrenOf(scoreNode)[0];
-assert.equal(
-  survivorNode.actionSlug,
-  "script",
-  "scoring must feed deterministic survivor selection",
-);
+// Survivor selection rides in the evidence script, so no script reads another
+// script's output. That coupling is invisible in TypeScript and breaks the
+// moment a node is inserted ahead of the one being read, so forbid it outright
+// rather than test around it.
+for (const node of nodes.filter((node) => node.actionSlug === "script")) {
+  assert.doesNotMatch(
+    node.config.script,
+    /nodes\.script/,
+    "no script may read another script through its compiler-assigned slug",
+  );
+}
 
 // Automatic merge needs BOTH the score threshold and the exact-identity guard.
-const gate = childrenOf(survivorNode)[0];
+const gate = childrenOf(scoreNode)[0];
 assert.equal(
   gate.actionSlug,
   "branch",
-  "survivor selection must feed the guarded automatic-merge branch",
+  "scoring must feed the guarded automatic-merge branch",
 );
 assert.match(
   gate.config.condition.expression,
@@ -177,11 +182,10 @@ assert.equal(
   "decline and timeout must never reach a CRM merge",
 );
 
-// The two script bodies run for real, against the node slugs they read. A
-// connector or script node inserted ahead of either one renames those slugs,
-// and these calls are what catches it.
+// The script body runs for real, against the node slug it reads. A connector
+// node inserted ahead of it renames that slug, and these calls are what catches
+// it.
 const prepareEvidence = new Function("nodes", evidenceNode.config.script);
-const selectSurvivor = new Function("nodes", survivorNode.config.script);
 const company = (id, properties = {}) => ({
   id,
   properties: {
@@ -211,14 +215,13 @@ assert.equal(
   "an exact shared LinkedIn ID without conflicts must reach the automatic gate",
 );
 
-const survivor = selectSurvivor({ script: { result: exact } });
 assert.equal(
-  survivor.primaryId,
+  exact.primaryId,
   "customer",
   "survivor selection must apply the deterministic precedence",
 );
 assert.deepEqual(
-  survivor.idsToMerge,
+  exact.idsToMerge,
   ["source"],
   "survivor selection must return every non-survivor ID",
 );

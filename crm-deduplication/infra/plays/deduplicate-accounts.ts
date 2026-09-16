@@ -20,12 +20,16 @@ const reviewTimeoutMilliseconds = 24 * 60 * 60 * 1000;
 
 // One CRM account row in, one terminal outcome out.
 //
-// Two nodes below are `js(...)` scripts. Their bodies are shipped to the engine
-// as source and read sibling node outputs from its `nodes` global, so they name
-// the slugs the compiler assigned: `nodes.hubspot` is the CRM search, and
-// `nodes.script.result` is what the first script returned. Inserting a
-// connector or script node ahead of either one renames those slugs, so
-// `evals/contract.mjs` executes both bodies against the slugs they expect.
+// One node below is a `js(...)` script. Its body is shipped to the engine as
+// source and reads sibling node outputs from its `nodes` global, so it names
+// the slug the compiler assigned: `nodes.hubspot` is the CRM search. Inserting
+// a connector node ahead of it renames that slug, so `evals/contract.mjs`
+// executes the body against the slug it expects.
+//
+// Survivor selection lives in that same script rather than a second one. It is
+// policy, not evidence, but it ranks the cluster the evidence just built, and
+// splitting the two only bought a second script reading the first one back
+// through its compiler-assigned slug.
 const deduplicateCrmAccount = defineWorkflow(
   "deduplicate_crm_account",
   {
@@ -204,11 +208,33 @@ const deduplicateCrmAccount = defineWorkflow(
           record.parentId !== "" && clusterIds.includes(record.parentId),
       );
 
+      // Which record survives is policy, not evidence, but it reads the same
+      // cluster: the most connected record wins, ties break towards the oldest,
+      // and the last tiebreak is the record ID so two runs over the same
+      // cluster can never disagree.
+      const ranked = cluster
+        .slice()
+        .sort(
+          (left, right) =>
+            Number(right.protectedId !== "") -
+              Number(left.protectedId !== "") ||
+            Number(right.isCustomer) - Number(left.isCustomer) ||
+            right.openDeals - left.openDeals ||
+            right.contacts - left.contacts ||
+            right.activities - left.activities ||
+            right.filledProperties - left.filledProperties ||
+            right.lastActivityAt.localeCompare(left.lastActivityAt) ||
+            left.createdAt.localeCompare(right.createdAt) ||
+            left.id.localeCompare(right.id),
+        );
+
       return {
         sourceFound: source !== undefined,
         hasDuplicates,
         duplicateCount: duplicates.length,
         cluster,
+        primaryId: ranked.length > 0 ? ranked[0].id : "",
+        idsToMerge: ranked.slice(1).map((record) => record.id),
         exactLinkedinId,
         exactLinkedinUrl,
         exactDomain,
@@ -266,46 +292,18 @@ const deduplicateCrmAccount = defineWorkflow(
       ],
     });
 
-    // Which record survives is policy, not evidence: the most connected record
-    // wins, ties break towards the oldest, and the last tiebreak is the record
-    // ID so two runs over the same cluster can never disagree.
-    const survivor = js(({ nodes }) => {
-      const cluster: any[] = Array.isArray(nodes.script.result.cluster)
-        ? nodes.script.result.cluster
-        : [];
-      const ranked = cluster
-        .slice()
-        .sort(
-          (left, right) =>
-            Number(right.protectedId !== "") -
-              Number(left.protectedId !== "") ||
-            Number(right.isCustomer) - Number(left.isCustomer) ||
-            right.openDeals - left.openDeals ||
-            right.contacts - left.contacts ||
-            right.activities - left.activities ||
-            right.filledProperties - left.filledProperties ||
-            right.lastActivityAt.localeCompare(left.lastActivityAt) ||
-            left.createdAt.localeCompare(right.createdAt) ||
-            left.id.localeCompare(right.id),
-        );
-      return {
-        primaryId: ranked.length > 0 ? ranked[0].id : "",
-        idsToMerge: ranked.slice(1).map((record) => record.id),
-      };
-    });
-
     if (score.score >= automaticMergeScore && evidence.autoEligible) {
       uses.crm.mergeRecords({
         objectType: "companies",
-        primaryId: survivor.primaryId,
-        idsToMerge: survivor.idsToMerge,
+        primaryId: evidence.primaryId,
+        idsToMerge: evidence.idsToMerge,
       });
 
       return {
         status: "merged_automatically",
         score: score.score,
-        survivorId: survivor.primaryId,
-        mergedIds: survivor.idsToMerge,
+        survivorId: evidence.primaryId,
+        mergedIds: evidence.idsToMerge,
       };
     }
 
@@ -315,10 +313,10 @@ const deduplicateCrmAccount = defineWorkflow(
       {
         connectorUuid: slack.uuid,
         channelId: reviewChannelId,
-        title: `Review CRM account merge into ${survivor.primaryId}`,
+        title: `Review CRM account merge into ${evidence.primaryId}`,
         content: `Duplicate score: ${score.score}/100
-Survivor: ${survivor.primaryId}
-Records to merge: ${survivor.idsToMerge}
+Survivor: ${evidence.primaryId}
+Records to merge: ${evidence.idsToMerge}
 Identity conflict: ${evidence.identityConflict}
 Protected ID conflict: ${evidence.protectedIdConflict}
 Parent/subsidiary warning: ${evidence.parentOrSubsidiaryWarning}
@@ -331,8 +329,8 @@ ${evidence.evidenceSummary}`,
         approved: () => {
           uses.crm.mergeRecords({
             objectType: "companies",
-            primaryId: survivor.primaryId,
-            idsToMerge: survivor.idsToMerge,
+            primaryId: evidence.primaryId,
+            idsToMerge: evidence.idsToMerge,
           });
           return js(() => "merged_after_review");
         },
@@ -344,8 +342,8 @@ ${evidence.evidenceSummary}`,
     return {
       status: reviewed,
       score: score.score,
-      survivorId: survivor.primaryId,
-      mergedIds: survivor.idsToMerge,
+      survivorId: evidence.primaryId,
+      mergedIds: evidence.idsToMerge,
     };
   },
 );

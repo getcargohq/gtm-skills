@@ -178,9 +178,9 @@ The code is a worked example. Offer these adaptations when the audit supports th
 - the isolated plan contains one CRM connector, one Slack connector, one CRM account model, and one
   disabled deduplication play, with no staging model
 - the play runs directly on the CRM model and matches the audited CRM record ID
-- its compiled workflow contains CRM `findRecords`, deterministic preparation, native Scoring,
-  deterministic survivor selection, the guarded Branch, native Human Review, and CRM merge actions
-  only on automatic or approved paths
+- its compiled workflow contains CRM `findRecords`, one deterministic preparation script that also
+  selects the survivor, native Scoring, the guarded Branch, native Human Review, and CRM merge
+  actions only on automatic or approved paths
 - `node --import tsx evals/contract.mjs` passes against the adapted graph
 - generated consumer types confirm the selected search, merge, and Human Review payloads
 - the Slack review connector and channel resolve; approval, decline, and timeout reach their intended

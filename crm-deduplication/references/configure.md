@@ -91,8 +91,8 @@ as `source_missing_or_changed` before scoring or emitting merge IDs.
 
 - the CDK plan contains only the CRM connector, review connector, CRM account model, and dedup play
 - `deduplicate_accounts` runs directly on `crm_accounts`
-- the graph is CRM search, preparation, native Scoring, deterministic survivor selection, guarded
-  Branch, then CRM merge or native Human Review
+- the graph is CRM search, preparation (evidence and survivor in one script), native Scoring,
+  guarded Branch, then CRM merge or native Human Review
 - automatic merge requires exact shared LinkedIn company ID and every conflict guard
 - Human Review approval reaches the reviewed merge; decline and timeout reach the no-write end
 - the play is disabled, uses `noConcurrency`, and limits the pilot to 15 CRM rows
