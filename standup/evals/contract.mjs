@@ -12,6 +12,7 @@ resetRegistry();
 const stamp = Date.now();
 await import(`../infra/agents/standup.ts?contract=${stamp}`);
 await import(`../infra/connectors/git.ts?contract=${stamp}`);
+await import(`../infra/connectors/anthropic.ts?contract=${stamp}`);
 
 const byId = new Map(resources().map((resource) => [resource.id, resource]));
 
@@ -35,6 +36,26 @@ assert.equal(
   agent.spec.harnessSlug,
   "claudeCode",
   "standup must be a Claude Code harness agent: the output is a repo diff",
+);
+
+// The harness runs against Cargo's LLM proxy, and the proxy is selected by the
+// connector's integration: `claudeCode` with anything but `anthropic`
+// typechecks green and fails at deploy.
+const llm = byId.get("connector:anthropic");
+assert.ok(llm, "defineConnector(anthropic) must exist: the harness needs a model");
+assert.equal(
+  llm.spec.integrationSlug,
+  "anthropic",
+  "claudeCode is proxied to Anthropic: an openAi connector deploys broken",
+);
+assert.ok(
+  agent.spec.connectorUuid,
+  "standup must bind the LLM connector: the harness does not bring its own model",
+);
+assert.equal(
+  typeof agent.spec.languageModelSlug,
+  "string",
+  "standup must name a languageModel: it is what the nightly run is metered against",
 );
 assert.equal(
   (agent.spec.tools ?? []).length,
