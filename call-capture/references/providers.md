@@ -1,10 +1,11 @@
 # Choosing a recorder, and adding one
 
-Nine recorders ship. Picking one is a value in the agent's env; a tenth is one new file and one
-entry in a registry. Neither is a fork of the collector.
+Nine recorders ship. Picking one is a one-line constant; a tenth is one new file and one entry in a
+registry. Neither is a fork of the collector.
 
 ```
 scripts/call-capture/collect/
+  config.ts          the two project choices: which recorder, which domain is "us"
   recorder.ts        the contract + everything true whoever records your calls
   calls.ts           the entrypoint: resolve a slug, then capture
   recorders/
@@ -22,7 +23,7 @@ scripts/call-capture/collect/
 # what ships, and what each wants for a credential
 npx tsx scripts/call-capture/collect/calls.ts --list
 
-# one run, without touching the deployed env
+# one run on another recorder, without editing anything
 CALL_RECORDER_API_KEY=… npx tsx scripts/call-capture/collect/calls.ts --recorder=granola --dry-run
 ```
 
@@ -38,11 +39,24 @@ CALL_RECORDER_API_KEY=… npx tsx scripts/call-capture/collect/calls.ts --record
 | `modjo`     | Modjo         | `Authorization: Bearer`                      | `transcriptRetentionStatus`, and a 410 |
 | `tldv`      | tl;dv         | `x-api-key`                                  | none, webhook only                     |
 
-The deployed selection is `CALL_RECORDER` in the agent's `repository.env`; the credential is a
-workspace environment variable the harness inherits, and the section below covers it.
-**There is no default.** Unset, the collector stops and prints the table above, because a
-valid-but-wrong slug reads the wrong vendor's API perfectly successfully, captures nothing, and
-reports a clean empty run every morning — which is the failure this cookbook is built to avoid.
+The selection is `RECORDER` in `config.ts`:
+
+```ts
+export const RECORDER: RecorderSlug = "avoma";
+```
+
+`RecorderSlug` is `keyof typeof RECORDERS`, so **a slug that is not a recorder does not compile**,
+and the error lists the nine that are. That is the reason this is a constant rather than an
+environment variable on the agent: an env var moves the choice out of the code that consumes it,
+past the compiler, and into a deployed spec where changing it needs a redeploy — while the harness
+re-clones this repository every morning, so an edit here is live on the next run. `--recorder=<slug>`
+still overrides it for a single run, and that flag is the only path by which an unknown slug can
+reach `resolve()`, because a human types it.
+
+What no compiler catches is a **valid-but-wrong** slug: it reads the wrong vendor's API perfectly
+successfully, captures nothing, and reports a clean empty run every morning — the failure this
+cookbook is built to avoid. Nothing can catch that automatically. A reviewer looking at a diff can,
+which is the second reason the choice lives in the repository.
 
 `avoma` is the only entry marked `live`. The other eight were written from each vendor's own
 specification and compile; they have not been run against a real workspace, they say so on every
@@ -177,17 +191,13 @@ without a deploy.
 
 Nothing declares it in the project, and that is the point: a harness agent inherits the whole
 workspace catalog, so the collector reads `process.env.CALL_RECORDER_API_KEY` in the sandbox with
-nothing wiring it there. The agent's `repository.env` carries only what is not in the catalog —
-the recorder choice and the internal domain, both public, both better off in a diff:
+nothing wiring it there. **The agent declares no `env` at all** — the two choices are in
+`config.ts`, the one secret is in the workspace, and a deployed spec is the wrong home for either:
 
-```ts
-repository: {
-  env: {
-    CALL_RECORDER: "avoma",
-    CALL_CAPTURE_INTERNAL_DOMAIN: "example.com",
-  },
-},
-```
+| What                                | Where                | Why there                                                                                     |
+| ----------------------------------- | -------------------- | --------------------------------------------------------------------------------------------- |
+| `RECORDER`, `INTERNAL_DOMAIN`       | `collect/config.ts`  | Choices, not secrets. Compiler-checked, read in review, and live on the next run after a merge |
+| `CALL_RECORDER_API_KEY`             | workspace catalog    | A secret. Never in git, read server-side on every run, rotated without a deploy                |
 
 Three ways to put a credential in a CDK spec, and why none of them is here:
 

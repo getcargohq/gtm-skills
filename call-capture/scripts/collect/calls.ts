@@ -11,17 +11,18 @@
  * Run from the repo root:
  *
  *   npx tsx scripts/call-capture/collect/calls.ts --list
- *   CALL_RECORDER=avoma CALL_RECORDER_API_KEY=… npx tsx scripts/call-capture/collect/calls.ts --dry-run
- *   CALL_RECORDER=avoma CALL_RECORDER_API_KEY=… npx tsx scripts/call-capture/collect/calls.ts
+ *   CALL_RECORDER_API_KEY=… npx tsx scripts/call-capture/collect/calls.ts --dry-run
+ *   CALL_RECORDER_API_KEY=… npx tsx scripts/call-capture/collect/calls.ts
  *
  * `--list` prints the recorders that ship and what each wants for a
- * credential. `--recorder=<slug>` overrides `CALL_RECORDER` for one run, which
- * is how you try a second recorder without touching the deployed env.
+ * credential. `--recorder=<slug>` overrides the selection in `config.ts` for
+ * one run, which is how you try a second recorder without editing anything.
  *
- * The assignments above are for a run by hand. Deployed, `CALL_RECORDER` comes
- * from the agent's own env and `CALL_RECORDER_API_KEY` from the workspace
- * environment variables a harness agent inherits in full — so nothing in this
- * project holds the key, and rotating it needs no deploy.
+ * The recorder and the internal domain are code — `config.ts`, checked by the
+ * compiler and read in review. The credential is the one thing that is not:
+ * deployed it comes from the workspace environment variables a harness agent
+ * inherits in full, so nothing in this project holds the key and rotating it
+ * needs no deploy. The assignment above is for a run by hand.
  *
  * Idempotent. A call already present anywhere under `cadence/log/` — raw or
  * long since scribed — is skipped, so re-running costs nothing and the

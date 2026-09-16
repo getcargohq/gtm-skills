@@ -21,6 +21,8 @@ import {
 } from "node:fs";
 import { join, relative, resolve } from "node:path";
 
+import { INTERNAL_DOMAIN } from "./config";
+
 /** One call, normalized. Producing these is the adapter's job. */
 export type Call = {
   /** The recorder's own id. The only idempotency key this system has. */
@@ -73,11 +75,11 @@ export class HttpError extends Error {
 }
 
 /**
- * Something about the run's configuration is wrong — no recorder selected, an
- * unknown slug, a missing credential. Distinct from every other error on
+ * Something about the run's configuration is wrong — a missing credential, an
+ * unknown slug passed to `--recorder=`. Distinct from every other error on
  * purpose: `calls.ts` prints one of these as a message and exits 1, because a
  * stack trace pointing into an adapter is the wrong thing to read when the
- * answer is "set CALL_RECORDER".
+ * answer is "create the workspace variable".
  */
 export class ConfigError extends Error {}
 
@@ -177,14 +179,9 @@ const RAW_DIR = join(LOG_DIR, "raw", "calls");
 // skipped before any transcript is fetched.
 const LOOKBACK_DAYS = Number(process.env["CALL_CAPTURE_LOOKBACK_DAYS"] ?? "3");
 
-// PLACEHOLDER — your own email domain, set from the agent's repository env. It
-// is how internal-only calls are recognised, and it lives here rather than in
-// an adapter because it has to mean the same thing whoever recorded the call.
-// Most recorders do not flag internal-versus-external at all; the ones that do
-// cannot be trusted to agree, and Avoma's `is_internal` is false on every
-// meeting in some workspaces, including all-internal ones.
-const INTERNAL_DOMAIN =
-  process.env["CALL_CAPTURE_INTERNAL_DOMAIN"] ?? "example.com";
+// How internal-only calls are recognised. It is applied here rather than in an
+// adapter because it has to mean the same thing whoever recorded the call —
+// see `config.ts`, which is where the domain itself is set.
 
 // A personal address is not an account. Slugging by domain would file every
 // unrelated gmail.com guest under one "gmail" account, and the scribe would

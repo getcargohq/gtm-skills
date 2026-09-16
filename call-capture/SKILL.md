@@ -1,6 +1,6 @@
 ---
 name: call-capture
-description: 'Every call the team records is collected into the cadence layer each morning, scribed into a log entry, and — once a claim repeats — promoted into the context knowledge layer, as one reviewable pull request against your GTM repo. Nine recorders ship; a tenth is one adapter file. Triggers: "our call recordings never make it into the knowledge base", "turn our call transcripts into context", "we relearn the same objection every quarter", "scribe yesterday''s calls into the repo every morning", "replace the GitHub Action that summarizes our meetings", "we record on Granola, not Avoma". Cargo CDK, defineAgent, harnessSlug claudeCode, repository env, GitHub, Avoma, Granola, Fathom, Gong, Fireflies, Grain, tl;dv, Modjo, Clari Copilot, cadence, context. Skip when: you want one call summarized right now, which is a read against the recorder''s own API and needs nothing deployed.'
+description: 'Every call the team records is collected into the cadence layer each morning, scribed into a log entry, and — once a claim repeats — promoted into the context knowledge layer, as one reviewable pull request against your GTM repo. Nine recorders ship; a tenth is one adapter file. Triggers: "our call recordings never make it into the knowledge base", "turn our call transcripts into context", "we relearn the same objection every quarter", "scribe yesterday''s calls into the repo every morning", "replace the GitHub Action that summarizes our meetings", "we record on Granola, not Avoma". Cargo CDK, defineAgent, harnessSlug claudeCode, workspace env var, GitHub, Avoma, Granola, Fathom, Gong, Fireflies, Grain, tl;dv, Modjo, Clari Copilot, cadence, context. Skip when: you want one call summarized right now, which is a read against the recorder''s own API and needs nothing deployed.'
 version: "0.1.0"
 compatibility: "Requires @cargo-ai/cli 1.0.89 or later with @cargo-ai/cdk 1.0.67 or later — 1.0.66 brought `harness` and the harness repository spec, 1.0.67 roots the agent at the package.json that declares the CDK rather than at `infra/`, and CLI 1.0.89 added `workspaceManagement envVar`, which is where the recorder's API key goes (the harness inherits the workspace catalog, so nothing here declares a deploy-time secret). On 1.0.66, declare `rootDirectory: \".\"` yourself. Also needs a Cargo workspace, an authenticated LLM connector (the harness runs against Cargo's proxy, so the agent needs a `connector` and `languageModel` like any other), a GTM repository with `context/` and `cadence/` at its root (the shape `cargo-ai cdk init` scaffolds), and an API key for whatever records your calls."
 homepage: https://github.com/getcargohq/gtm-skills/tree/main/call-capture
@@ -85,9 +85,13 @@ is enough.
    repo's own context or the workspace connectors already say — it is the one input here with no
    reliable lookup, and every later step depends on it. Nine ship:
    `npx tsx scripts/call-capture/collect/calls.ts --list` prints them with what each wants for a
-   credential. Set the slug as `CALL_RECORDER` in `infra/call-capture/agents/call-scribe.ts`. There
-   is deliberately no default, because a wrong-but-valid slug reads the wrong vendor's API
-   successfully and reports a clean, empty run every morning.
+   credential. Set it as `RECORDER` in `scripts/call-capture/collect/config.ts` — a typed constant,
+   so a slug that is not a recorder fails `npm run typecheck` and names the nine that are. It is
+   **not** an environment variable on the agent: a choice the compiler can check and a reviewer can
+   see beats a string in a deployed spec, and because the harness clones this repository every
+   morning, editing it takes effect on the next run rather than on the next deploy. What no compiler
+   catches is a wrong-but-valid slug — it reads the wrong vendor's API successfully and reports a
+   clean, empty run every morning — which is the other reason the choice belongs in a diff.
    **Then put its key in the workspace, not in a file.** A harness agent inherits every workspace
    environment variable, so the credential is one CLI call and nothing in this project names its
    value:
@@ -118,16 +122,17 @@ is enough.
    more that do not ship, each with the reason. Whichever recorder you land on, **verify its
    response shapes against the live API before you deploy** — eight of the nine were written from
    vendor documentation and say so on every run, the field names around stable endpoints move, and
-   a wrong one captures nothing while reporting a clean run. Then set
-   `CALL_CAPTURE_INTERNAL_DOMAIN` to your own email domain, or every internal call is captured as a
-   customer one.
+   a wrong one captures nothing while reporting a clean run. Then set `INTERNAL_DOMAIN` in the same
+   `config.ts` to your own email domain, or every internal call is captured as a customer one.
+   Those two constants are the whole configuration surface: everything else the collector needs is
+   either derived or the one credential in the workspace.
 4. **Adapt.** Work the sections below in order: _What should not change_ is what you argue back
    about (say what breaks, then do it if they still want it); _What you can change_ is what you
    offer unprompted (nobody asks for a variant they do not know exists); _What you will be asked_ is
    the floor, and you derive before you ask. If you are asking more than about four questions you
    have skipped lookups. Record what you changed and why under a `## Decisions` section in your copy
    of this file.
-5. **Run the collector by hand once, then plan.** `CALL_RECORDER=<slug> CALL_RECORDER_API_KEY=… npx
+5. **Run the collector by hand once, then plan.** `CALL_RECORDER_API_KEY=… npx
    tsx scripts/call-capture/collect/calls.ts --dry-run` first: it exercises the list call and the
    readiness filter and prints what it would take, writing nothing. Read what it printed — real
    subjects, real dates, real account slugs — because that is the only thing separating a working
@@ -148,9 +153,9 @@ _asked_ genuinely live in the operator's head.
 | Input                                                        | Kind   | How it is answered                                                                                                                                                                                                                                     | Why it matters                                                                                                                                                                                                       |
 | ------------------------------------------------------------ | ------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | repository binding (`infra/agents/call-scribe.ts`)           | value  | **derived**: leave `repository`, `defaultBranch` and `connector` unset and `plan` fills them from the git origin of the checkout, taking the GitHub connector from the project's own. `cargo-ai cdk check` prints what it resolved: confirm the line reads your repo and `./`.                | This is the working tree the harness clones and the only place its output can land. An `owner/name` written by hand is the one value nobody notices is wrong until a pull request opens against a stranger's repository.                                                |
-| recorder (`CALL_RECORDER`)                                   | value  | **asked**, once derivation fails: check the repo's own context and `cargo-ai connection connector list` first, then ask which of the nine slugs (`--list` prints them) records the team's calls. A recorder that is not there is one new adapter file plus an entry, per `references/providers.md`. | It is the one input with no lookup anywhere in the project, and everything downstream is shaped by it. There is no default on purpose: unset stops the run, while a plausible-but-wrong slug reads the wrong vendor's API successfully and captures nothing, reporting a clean empty morning indefinitely. |
+| recorder (`RECORDER` in `scripts/collect/config.ts`)         | value  | **asked**, once derivation fails: check the repo's own context and `cargo-ai connection connector list` first, then ask which of the nine slugs (`--list` prints them) records the team's calls. A recorder that is not there is one new adapter file plus an entry, per `references/providers.md`. | It is the one input with no lookup anywhere in the project, and everything downstream is shaped by it. A typed constant rather than an env var so a slug that is not a recorder fails to compile, and so the one thing no compiler catches — a plausible-but-wrong slug, which reads the wrong vendor's API successfully and reports a clean empty morning indefinitely — is at least in a diff someone reads. |
 | `CALL_RECORDER_API_KEY`                                              | env    | **asked**: the recorder's API key, put in the workspace with `cargo-ai workspaceManagement envVar create --key CALL_RECORDER_API_KEY --secret` (step 3) and named in no file here. A harness agent inherits the workspace catalog, so nothing declares it. Gong and Clari Copilot issue two values; that one variable holds `<first>:<second>` and the adapter splits it.                                  | It is the collector's only credential, and the workspace is the only copy of it that outlives the session that set it. In the catalog it is read server-side on every run, so a rotation needs no deploy; as a `secret()` in the agent's env it is the deploying shell's value, so every deploy needs the key again and a rotation lands only on a re-apply. |
-| `CALL_CAPTURE_INTERNAL_DOMAIN` (`infra/agents/call-scribe.ts`) | value  | **derived**: your own email domain, which the workspace members' addresses already name                                                                                                                                                                | It is how an internal call is told from a customer one. Avoma's `is_internal` is false on every meeting in some workspaces, so it cannot be used; leave the placeholder and every standup is captured as an account.  |
+| `INTERNAL_DOMAIN` (`scripts/collect/config.ts`)              | value  | **derived**: your own email domain, which the workspace members' addresses already name                                                                                                                                                                | It is how an internal call is told from a customer one. Avoma's `is_internal` is false on every meeting in some workspaces, so it cannot be used; leave the placeholder and every standup is captured as an account.  |
 | adapter state (`scripts/collect/recorders/index.ts`)   | value  | **derived**: `--list` prints which adapters were verified against a live workspace (Avoma) and which were written from vendor docs (the other eight). Nothing to decide — it decides how hard you check step 5 before deploying.                          | The contract is compiler-enforced, so a half-written adapter fails to build rather than half-working. Pointed at the wrong API it fails on the first request, which is loud; pointed at the right API with a stale field name it captures nothing and reports a clean empty run every morning. |
 | GitHub connector (`infra/connectors/git.ts`)                 | value  | **derived**: `cargo-ai connection connector list` shows whether one is authorized; if not, `cargo-ai cdk add connector/github` opens the OAuth consent. The declaration is `default: true` because a deploy cannot mint an OAuth grant.                    | It is the agent's entire write path. Without it the run does the work and has nowhere to put it.                                                                                                                      |
 | LLM connector and model (`infra/connectors/anthropic.ts`)    | value  | **derived**: `cargo-ai connection connector list` shows whether an Anthropic connector is authorized; if not, `cargo-ai cdk add connector/anthropic` takes the key. `default: true` because a deploy cannot mint one. Any Anthropic model pairs with `claudeCode`; the agent's `languageModel` is a placeholder to set.        | A harness does not bring its own model — it runs against Cargo's LLM proxy, so this is what the daily run is billed and metered against. Omit either and `defineAgent` throws at `plan`; pair `claudeCode` with an `openAi` connector and it typechecks green and fails at deploy. |
@@ -158,7 +163,8 @@ _asked_ genuinely live in the operator's head.
 
 Checked before moving on, not after the deploy:
 
-- `CALL_RECORDER` names a slug `--list` prints, and it is the recorder the team actually records on
+- `RECORDER` in `config.ts` is the recorder the team actually records on — `npm run typecheck`
+  settles whether the slug exists, nothing settles whether it is the right one but a reviewer
 - `cargo-ai workspaceManagement envVar list` shows a `CALL_RECORDER_API_KEY` entry, marked secret —
   that listing is the deployed credential, and a value only ever exported in a shell is not one
 - the collector was run by hand once and wrote real raw files
@@ -215,14 +221,17 @@ it if you still want it, and records why under `## Decisions` in your copy of th
   and the registry starts implying that nine recorders are tested when one is — which is exactly
   how a convenience becomes a promise nobody checked, on a pipeline whose failure mode is a clean
   empty run.
-- **The recorder's key stays workspace state, not spec state.**
-  (`infra/agents/call-scribe.ts`) Nothing in this project names its value — not a `secret()` in the
-  agent's env, not a `.env` the install appends to, not an `env()` string, which would bake it into
-  `cargo.state.json`. The catalog entry is the only copy that outlives the shell that set it, and it
-  is read server-side on every run, so the key survives a machine change and a rotation lands
-  without a deploy. Move it into the spec and the next deploy is blocked on whoever holds the key
-  having it exported, which on a pipeline that runs unattended at 07:00 is discovered by a morning
-  with no pull request.
+- **Choices stay in code, the secret stays in the workspace, and the agent's spec declares
+  neither.** (`scripts/collect/config.ts`, `infra/agents/call-scribe.ts`) The recorder and the internal domain
+  are typed constants in the repository: the compiler checks the slug against the registry, a
+  reviewer reads both in the diff, and because the harness re-clones every morning an edit lands on
+  the next run rather than the next deploy. The credential is the mirror image — a workspace
+  environment variable the harness inherits, read server-side on every run, so it outlives the
+  shell that set it and a rotation needs no deploy. Neither belongs in `repository.env`, and the
+  agent declares no `env` at all: a choice moved there stops being compiler-checked and leaves the
+  code that consumes it, and the key moved there as a `secret()` blocks the next deploy on whoever
+  runs it having the value exported — which on a pipeline that runs unattended at 07:00 is
+  discovered as a morning with no pull request.
 - **`scripts/call-capture/package.json` stays.** (`scripts/package.json`) It is not
   decoration. The CDK loader imports every `.ts` under the project root except directories carrying a
   `package.json`; delete it and `cargo-ai cdk plan` imports the collector and runs it against the live
@@ -259,8 +268,8 @@ it if you still want it, and records why under `## Decisions` in your copy of th
 
 - `--dry-run` listed the calls it would take, and the run without it wrote those files into
   `cadence/log/raw/calls/` with a `source:` id in each; running it twice wrote nothing the second time
-- `CALL_RECORDER` is set to the recorder the team records on, and the captured `source:` lines carry
-  that slug
+- `RECORDER` in `config.ts` is the recorder the team records on, and the captured `source:` lines
+  carry that slug
 - `cargo-ai workspaceManagement envVar list` shows `CALL_RECORDER_API_KEY` as a secret entry, and
   `grep -r CALL_RECORDER_API_KEY` finds its name in the collector and the docs and its value
   nowhere — the deployed run reads the catalog, so no local shell has to hold the key again

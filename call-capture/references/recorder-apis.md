@@ -1044,8 +1044,9 @@ Fireflies, tl;dv and Circleback hand you a name directly.
 Fathom (`calendar_invitees[].is_external`), Grain (`participants[].scope`), Zoom
 (`participants[].internal_user`) and Modjo (by array membership, and on `speaker.type`) tell you
 directly. The other nine do not, and Avoma's flag is actively wrong in some workspaces — which is
-why the pipeline derives it from attendee email domains against `CALL_CAPTURE_INTERNAL_DOMAIN`, why
-that stays in `recorder.ts`, and why the adapters that DO have a flag deliberately ignore it. One
+why the pipeline derives it from attendee email domains against the `INTERNAL_DOMAIN` in
+`config.ts`, why the rule stays in `recorder.ts`, and why the adapters that DO have a flag
+deliberately ignore it. One
 rule for every recorder is what keeps the same call from reading as internal on one and external on
 the next.
 

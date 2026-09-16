@@ -32,9 +32,9 @@ import { readFileSync } from "node:fs";
 
 // Read at module load in recorder.ts, so it has to be set before the import.
 process.env["CALL_CAPTURE_PACE_MS"] = "0";
-delete process.env["CALL_RECORDER"];
 process.env["CALL_RECORDER_API_KEY"] = "test-key";
 
+const { RECORDER } = await import("../scripts/collect/config.ts");
 const { ConfigError, recorderKeyPair } = await import(
   "../scripts/collect/recorder.ts"
 );
@@ -87,16 +87,23 @@ check("the shipped recorders are listed for a human to choose from", () => {
   for (const slug of RECORDER_SLUGS) {
     assert.ok(table.includes(slug), `--list does not mention ${slug}`);
   }
-  assert.ok(table.includes("CALL_RECORDER"), "--list does not say how to pick");
+  assert.ok(
+    table.includes("config.ts") && table.includes("--recorder="),
+    "--list does not say how to pick",
+  );
 });
 
 // ------------------------------------------------------------------ selection
 
-check("no recorder selected stops the run", () => {
-  assert.throws(() => resolve([]), ConfigError);
+check("the code selection is what runs when no flag is passed", () => {
+  const { entry, recorder } = resolve([]);
+  assert.equal(recorder.provider, RECORDER);
+  assert.equal(entry.recorder, recorder);
 });
 
 check("an unknown slug stops the run and names the alternatives", () => {
+  // Only reachable through the flag: `RECORDER` is typed against the registry
+  // keys, so the same typo in config.ts fails `npm run typecheck` instead.
   assert.throws(
     () => resolve(["--recorder=zoom"]),
     (error) =>
@@ -104,24 +111,21 @@ check("an unknown slug stops the run and names the alternatives", () => {
   );
 });
 
-check("the flag overrides the environment for one run", () => {
-  process.env["CALL_RECORDER"] = "avoma";
-  try {
-    assert.equal(resolve([]).entry.label, "Avoma");
-    assert.equal(resolve(["--recorder=granola"]).entry.label, "Granola");
-    // Typed by a human at a terminal, so the slug is not case-sensitive.
-    assert.equal(resolve(["--recorder=Granola"]).recorder.provider, "granola");
-  } finally {
-    delete process.env["CALL_RECORDER"];
-  }
+check("the flag overrides the code selection for one run", () => {
+  assert.equal(resolve(["--recorder=granola"]).entry.label, "Granola");
+  // Typed by a human at a terminal, so the slug is not case-sensitive.
+  assert.equal(resolve(["--recorder=Granola"]).recorder.provider, "granola");
 });
 
-check("the credential is not declared in the agent's spec", () => {
-  // The invariant `secret()` would break silently until a deploy: the key is a
-  // workspace environment variable the harness inherits, so no local shell has
-  // to hold it and a rotation needs no re-apply. Declared in the spec instead,
-  // the next unattended deploy is blocked on whoever deploys having exported
-  // it — which is discovered as a morning with no pull request.
+check("the collector's configuration is not in the agent's spec", () => {
+  // Two invariants that would break silently, both discovered late.
+  //
+  // A `secret()` credential resolves from the deploying machine, so the next
+  // unattended deploy is blocked on whoever runs it having exported the key —
+  // which shows up as a morning with no pull request. And a choice declared in
+  // `env` here is a choice no compiler checks and no reviewer of the collector
+  // sees: the recorder slug is typed against the registry in config.ts, and an
+  // environment variable would put a plain string back in its place.
   const agent = readFileSync(
     new URL("../infra/agents/call-scribe.ts", import.meta.url),
     "utf8",
@@ -129,11 +133,12 @@ check("the credential is not declared in the agent's spec", () => {
   const declarations = agent
     .split("\n")
     .filter((line) => line.trim().startsWith("//") === false);
-  for (const forbidden of ["secret(", "CALL_RECORDER_API_KEY:"]) {
+  for (const forbidden of ["secret(", "env:", "CALL_RECORDER"]) {
     assert.ok(
       declarations.every((line) => line.includes(forbidden) === false),
-      `call-scribe.ts declares ${forbidden} — the recorder's key belongs in the ` +
-        `workspace catalog (cargo-ai workspaceManagement envVar create), not in the spec`,
+      `call-scribe.ts declares ${forbidden} — the recorder and the internal ` +
+        `domain belong in scripts/collect/config.ts, and the credential in the ` +
+        `workspace catalog (cargo-ai workspaceManagement envVar create)`,
     );
   }
 });

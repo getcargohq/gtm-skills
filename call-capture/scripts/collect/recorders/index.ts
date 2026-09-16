@@ -1,10 +1,10 @@
 /**
  * The recorders this cookbook ships, and how one gets chosen.
  *
- * `CALL_RECORDER=<slug>` in the agent's repository env, or `--recorder=<slug>`
- * when you run the collector by hand. Nothing else changes when you switch:
- * the credential keeps its name, the pipeline keeps its rules, and the entry
- * below is the only place that knows the vendor exists.
+ * `RECORDER` in `../config.ts` names one of the keys below, and
+ * `--recorder=<slug>` overrides it for a single run. Nothing else changes when
+ * you switch: the credential keeps its name, the pipeline keeps its rules, and
+ * the entry below is the only place that knows the vendor exists.
  *
  * Two properties of this file are load-bearing.
  *
@@ -28,6 +28,7 @@
  * has the endpoints for five more, including the ones deliberately not shipped
  * and why.
  */
+import { RECORDER } from "../config";
 import { ConfigError, type Recorder } from "../recorder";
 import { avoma } from "./avoma";
 import { clari } from "./clari";
@@ -54,7 +55,7 @@ export type RecorderEntry = {
   docs: string;
 };
 
-export const RECORDERS: Record<string, RecorderEntry> = {
+export const RECORDERS = {
   avoma: {
     recorder: avoma,
     label: "Avoma",
@@ -118,7 +119,17 @@ export const RECORDERS: Record<string, RecorderEntry> = {
     credential: "API key",
     docs: "https://doc.tldv.io/",
   },
-};
+  // `satisfies` rather than a type annotation: it checks every entry against
+  // RecorderEntry while keeping the keys as literals, which is what makes
+  // `RECORDER` in ../config.ts a compiler-checked choice rather than a string.
+} satisfies Record<string, RecorderEntry>;
+
+/** Every slug the compiler accepts for `RECORDER` in `../config.ts`. */
+export type RecorderSlug = keyof typeof RECORDERS;
+
+// The same registry, indexed by a string a human typed at a terminal. An
+// assignment rather than a cast: it widens the keys and nothing else.
+const BY_SLUG: Record<string, RecorderEntry | undefined> = RECORDERS;
 
 export const RECORDER_SLUGS = Object.keys(RECORDERS).sort();
 
@@ -126,7 +137,7 @@ export const RECORDER_SLUGS = Object.keys(RECORDERS).sort();
 export function recorderTable(): string {
   const headings = ["slug", "recorder", "CALL_RECORDER_API_KEY holds", "state"];
   const cells = RECORDER_SLUGS.map((slug) => {
-    const entry = RECORDERS[slug]!;
+    const entry = BY_SLUG[slug]!;
     return [
       slug,
       entry.label,
@@ -151,10 +162,10 @@ export function recorderTable(): string {
     line(headings),
     ...cells.map(line),
     "",
-    "select one with CALL_RECORDER=<slug>, or --recorder=<slug> to override it",
-    "for one run. Anything else is a new adapter in scripts/call-capture/",
-    "collect/recorders/ plus an entry in its index.ts — see",
-    "references/providers.md.",
+    "the selection is RECORDER in scripts/call-capture/collect/config.ts;",
+    "--recorder=<slug> overrides it for one run. Anything else is a new adapter",
+    "in scripts/call-capture/collect/recorders/ plus an entry in its index.ts",
+    "— see references/providers.md.",
     "",
     "deployed, CALL_RECORDER_API_KEY is a workspace environment variable the",
     "harness inherits: cargo-ai workspaceManagement envVar create --key",
@@ -163,13 +174,14 @@ export function recorderTable(): string {
 }
 
 /**
- * The selected recorder, from `--recorder=` or `CALL_RECORDER`.
+ * The selected recorder: `RECORDER` from `../config.ts`, unless
+ * `--recorder=<slug>` overrode it for this run.
  *
- * There is deliberately NO default. Falling back to whichever adapter happens
- * to be first would mean an unset variable produces a clean, empty, entirely
- * successful-looking run every morning against a recorder you do not use —
- * which is the failure this cookbook spends most of its warnings on. An
- * unreadable configuration stops the run instead.
+ * There is always a selection, and that is deliberate too. The choice is a
+ * typed constant in the repository, so a slug that is not a recorder fails to
+ * compile rather than producing a clean, empty, successful-looking run every
+ * morning — which is the failure this cookbook spends most of its warnings on.
+ * Only the flag can name something unknown, because only a human types it.
  */
 export function resolve(argv: readonly string[] = process.argv.slice(2)): {
   recorder: Recorder;
@@ -178,18 +190,9 @@ export function resolve(argv: readonly string[] = process.argv.slice(2)): {
   const flag = argv
     .find((argument) => argument.startsWith("--recorder="))
     ?.slice("--recorder=".length);
-  const slug = (flag ?? process.env["CALL_RECORDER"] ?? "")
-    .trim()
-    .toLowerCase();
+  const slug = (flag ?? RECORDER).trim().toLowerCase();
 
-  if (slug === "") {
-    throw new ConfigError(
-      "No recorder selected. Set CALL_RECORDER in the agent's repository env " +
-        `(infra/call-capture/agents/call-scribe.ts), or pass --recorder=<slug>.\n\n${recorderTable()}`,
-    );
-  }
-
-  const entry = RECORDERS[slug];
+  const entry = BY_SLUG[slug];
   if (entry === undefined) {
     throw new ConfigError(`Unknown recorder "${slug}".\n\n${recorderTable()}`);
   }
