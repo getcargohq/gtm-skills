@@ -129,6 +129,7 @@ npm run typecheck
 node scripts/company-website/website.mjs plan
 git commit -m 'Set up company website cookbook and manual Cargo release'
 git push -u origin main
+gh repo edit "$WEBSITE_REPOSITORY" --default-branch main
 node "$setup_file" ci-token
 
 printf '\nSetup complete. Project: %s\n' "$WEBSITE_PROJECT"
