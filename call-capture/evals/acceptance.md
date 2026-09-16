@@ -4,14 +4,26 @@ Walk every line. A checked template without an evidence-backed consumer adaptati
 
 ## Before deploy
 
+- `RECORDER` in `scripts/collect/config.ts` names the recorder the team actually records on.
+  `npm run typecheck` proves the slug is one the registry holds; nothing proves it is the right
+  one, so it was confirmed out loud with whoever answered. A recorder that does not ship has a new
+  adapter under `collect/recorders/`, registered under a key equal to its own `provider`.
+- Neither choice is an environment variable on the agent, and the agent declares no `env` at all:
+  a choice in a deployed spec is one no compiler checks, and changing it needs a redeploy where an
+  edit to `config.ts` reaches the next run as soon as it merges.
 - The collector was run by hand once (`CALL_RECORDER_API_KEY=… npx tsx
   scripts/call-capture/collect/calls.ts`) and wrote real raw files into
-  `cadence/log/raw/calls/`, each carrying a `source:` uuid.
+  `cadence/log/raw/calls/`, each carrying a `source:` line naming that recorder and a uuid.
 - Running it a second time wrote nothing. If it re-captured the same calls, the dedup key and the
   `source:` line have drifted apart and every run will duplicate the window.
 - The transcript response shape was checked against the live API, not assumed. A wrong field name
-  here produces a clean, empty run every morning rather than an error.
-- `CALL_CAPTURE_INTERNAL_DOMAIN` is the company's real domain, and an internal-only call in the
+  here produces a clean, empty run every morning rather than an error. Eight of the nine adapters
+  were written from vendor documentation and print a warning saying so on every run: on one of
+  those, this check is the whole acceptance test, and passing it is what earns `written: "live"`.
+- `--dry-run` listed calls whose dates, subjects and account slugs are recognisably real. An
+  adapter reading the wrong timestamp field files everything under one day; one reading no
+  attendees files everything as internal and captures nothing at all.
+- `INTERNAL_DOMAIN` in `scripts/collect/config.ts` is the company's real domain, and an internal-only call in the
   window was **not** captured.
 - `scripts/call-capture/package.json` exists in the project, and `cargo-ai cdk plan` did not
   hit the recorder's API while planning. If it did, that file is missing and the loader is importing
@@ -23,7 +35,11 @@ Walk every line. A checked template without an evidence-backed consumer adaptati
   A trailing `in infra/` means the harness was rooted at the CDK project rather than at the
   package.json that declares `@cargo-ai/cdk`: that directory has no node_modules, so `npx tsx`
   cannot run the collector at all.
-- `CALL_RECORDER_API_KEY` is set in the deploy environment and appears in no committed file.
+- `CALL_RECORDER_API_KEY` is a workspace environment variable —
+  `cargo-ai workspaceManagement envVar list` shows it, marked secret — and its value appears in no
+  committed file and in no `secret()` call. A key that only ever lived in the deploying shell is not
+  deployed: it is one machine away from a morning with no pull request, and a rotation would need a
+  re-apply to land.
 - The cadence paths in the system prompt match what `cadence/README.md` describes, or the new folders
   are introduced deliberately and that README is updated to name them.
 

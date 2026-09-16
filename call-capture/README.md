@@ -24,9 +24,10 @@ one pull request.
 2. **The agent clones the repository** — the project's own, resolved from the checkout's git origin
    at deploy rather than written down. The harness's working tree is the GTM repo itself, which is
    what lets its output be a diff rather than a column value.
-3. **It runs the collector** — `npx tsx scripts/call-capture/collect/calls.ts` — which reads
-   `CALL_RECORDER_API_KEY` from the harness environment, injected by the agent's `repository.env`. The agent
-   is told not to fetch calls itself and not to edit the script's collection rules.
+3. **It runs the collector** — `npx tsx scripts/call-capture/collect/calls.ts` — which takes its
+   recorder and internal domain from `collect/config.ts` in the tree it just cloned, and
+   `CALL_RECORDER_API_KEY` from the workspace environment variables a harness agent inherits in
+   full. The agent is told not to fetch calls itself and not to edit the script's collection rules.
 4. **It scribes** the pending captures, then promotes what repeats.
 5. **It opens one pull request** whose body reports four numbers: captured, scribed fresh, scribed
    from backfill, pending remaining. The remainder is the drain gauge; a number that never falls
@@ -38,14 +39,15 @@ Adds 4 resources plus a script bundle.
 
 | File                            | Resource                     | Role                                                       |
 | ------------------------------- | ---------------------------- | ---------------------------------------------------------- |
-| `infra/agents/call-scribe.ts`   | `defineAgent` (claudeCode)   | schedule, repository binding, env, and the wiring          |
+| `infra/agents/call-scribe.ts`   | `defineAgent` (claudeCode)   | schedule, model, folder — and no env of its own            |
 | `infra/agents/call-scribe.prompt.ts` | (not a resource)        | the scribe's contract: window, cap, repetition bar, limits |
 | `infra/connectors/git.ts`       | `defineConnector` (`github`) | the clone, branch, push and PR path, resolved by binding   |
 | `infra/connectors/anthropic.ts` | `defineConnector` (`anthropic`) | the model the harness runs on, billed and metered          |
 | `infra/folders/index.ts`  | `defineFolder`               | the workspace folder this cookbook's resources are filed in |
 | `scripts/collect/recorder.ts`   | (not a resource)             | the `Recorder` contract and the provider-agnostic pipeline |
-| `scripts/collect/avoma.ts`      | (not a resource)             | the one worked recorder implementation                     |
-| `scripts/collect/calls.ts`      | (not a resource)             | the entrypoint: `await capture(avoma)`                     |
+| `scripts/collect/recorders/`    | (not a resource)             | nine recorder adapters and the registry that names them    |
+| `scripts/collect/config.ts`     | (not a resource)             | the two project choices: which recorder, which domain      |
+| `scripts/collect/calls.ts`      | (not a resource)             | the entrypoint: resolve a slug, then `capture`             |
 
 ## The two halves, and where they land
 
@@ -89,23 +91,33 @@ git history to read before writing, and a pull request. It does not buy its own 
 runs against Cargo's LLM proxy, so `connector` and `languageModel` are required here exactly as
 they are on a `streamText` agent, and they are what the run is billed and metered against.
 
-## Supporting a different recorder
+## Whoever records your calls
 
-The collector is a contract and one implementation, not a fork point.
+The collector is a contract, nine implementations of it, and a slug that picks one.
 `recorder.ts` defines `Recorder` — a `provider` slug and three methods (`listReady`, `transcript`,
 `notes`) — and holds everything that is true whoever records your calls: deduplication, account
-slugging, the internal-domain filter, file layout, the rolling window, `--dry-run`. `avoma.ts` is
-the one implementation. `calls.ts` is three lines of wiring.
+slugging, the internal-domain filter, file layout, the rolling window, `--dry-run`. `recorders/`
+holds one adapter per vendor — Avoma, Granola, Fathom, Gong, Fireflies, Grain, tl;dv, Modjo and
+Clari Copilot — plus the registry. `config.ts` names the one that runs, typed against the
+registry's keys, and `calls.ts` resolves it and calls `capture`.
 
-A different recorder is a new file beside `avoma.ts` and a one-line import swap. The compiler is
-what keeps that honest: a half-written adapter does not typecheck, and the error names the field
-that is missing. Auth deliberately stays in the adapter — Bearer, Basic and a signed GraphQL POST
-are three different things — while the 429 backoff is shared through `fetchJson(url, init)`, which
-takes the whole request.
+```sh
+npx tsx scripts/call-capture/collect/calls.ts --list
+npx tsx scripts/call-capture/collect/calls.ts --recorder=granola --dry-run
+```
 
-There is no `providers/` directory holding all three behind a switch. Shipping implementations Cargo
-does not run means shipping code that rots, and "supported" starts implying "tested" when it means
-"written once from documentation".
+A recorder that is not there is one new file beside the others and one entry in `recorders/index.ts`.
+The compiler is what keeps that honest: a half-written adapter does not typecheck, and the error
+names the field that is missing. Auth deliberately stays in the adapter — Bearer, Basic, two custom
+headers and a signed GraphQL POST are four different things — while the 429 backoff is shared
+through `fetchJson(url, init)`, which takes the whole request.
+
+Two rules keep a registry from becoming a graveyard of code nobody runs. Every entry declares
+whether it was verified against a live workspace (Avoma) or written from the vendor's own
+specification (the other eight), and one written from docs says so on every run. And the five
+recorders in `references/recorder-apis.md` that do **not** ship each carry the reason — a list
+endpoint with no date filter, a transcript that is not JSON, an OAuth token that expires in ten
+minutes — rather than a stub.
 
 ## Why the context is not in this folder
 
@@ -115,12 +127,22 @@ ships none.
 
 ## Placeholders (edit before deploy)
 
-1. **`CALL_CAPTURE_INTERNAL_DOMAIN`** — `infra/agents/call-scribe.ts`: your own email domain, or
-   every internal standup is captured as a customer call.
-2. **`CALL_RECORDER_API_KEY`** — exported before deploy, never committed.
-3. **The recorder** — `scripts/collect/avoma.ts` is the shipped adapter. A different recorder
-   is one new file satisfying `Recorder` plus a one-line import swap in `calls.ts`;
-   `references/providers.md` carries Gong and Fireflies against the same contract.
+Two of them, both in `scripts/collect/config.ts`, because they are choices rather than secrets: in
+code the compiler checks one of them, a reviewer sees both, and an edit reaches the next run as soon
+as it merges — the harness re-clones this repository every morning, while a value in the agent's
+spec would need a redeploy. The agent declares no environment of its own at all.
+
+1. **`RECORDER`** — which of the nine slugs records your calls, typed against the registry, so a
+   slug that is not a recorder fails `npm run typecheck`. A recorder that does not ship is one new
+   file satisfying `Recorder` plus an entry in `recorders/index.ts`, and
+   `references/recorder-apis.md` carries the endpoints for five more.
+2. **`INTERNAL_DOMAIN`** — your own email domain, or every internal standup is captured as a
+   customer call. Matched against the domain of each attendee's address, or a subdomain of it.
+
+And one credential, which is **not** in any file: create it once in the workspace with
+`cargo-ai workspaceManagement envVar create --key CALL_RECORDER_API_KEY --secret` and the harness
+inherits it. Deliberately not a `secret()` in the agent's env, which would need the key in the
+deploying shell on every deploy and a re-apply to pick up a rotation.
 
 ## What it does not do
 
