@@ -102,8 +102,8 @@ check("the code selection is what runs when no flag is passed", () => {
 });
 
 check("an unknown slug stops the run and names the alternatives", () => {
-  // Only reachable through the flag: `RECORDER` is typed against the registry
-  // keys, so the same typo in config.ts fails `npm run typecheck` instead.
+  // Only reachable through the flag; the same typo in config.ts does not
+  // compile.
   assert.throws(
     () => resolve(["--recorder=zoom"]),
     (error) =>
@@ -118,14 +118,10 @@ check("the flag overrides the code selection for one run", () => {
 });
 
 check("the collector's configuration is not in the agent's spec", () => {
-  // Two invariants that would break silently, both discovered late.
-  //
-  // A `secret()` credential resolves from the deploying machine, so the next
-  // unattended deploy is blocked on whoever runs it having exported the key —
-  // which shows up as a morning with no pull request. And a choice declared in
-  // `env` here is a choice no compiler checks and no reviewer of the collector
-  // sees: the recorder slug is typed against the registry in config.ts, and an
-  // environment variable would put a plain string back in its place.
+  // Both spellings typecheck, so the regression would otherwise surface at
+  // someone else's deploy: a `secret()` credential blocks it on whoever runs
+  // it having the key exported, and a choice in `env` is one no compiler
+  // checks and no reader of the collector sees.
   const agent = readFileSync(
     new URL("../infra/agents/call-scribe.ts", import.meta.url),
     "utf8",

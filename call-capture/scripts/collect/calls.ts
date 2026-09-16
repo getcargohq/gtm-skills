@@ -15,14 +15,10 @@
  *   CALL_RECORDER_API_KEY=… npx tsx scripts/call-capture/collect/calls.ts
  *
  * `--list` prints the recorders that ship and what each wants for a
- * credential. `--recorder=<slug>` overrides the selection in `config.ts` for
- * one run, which is how you try a second recorder without editing anything.
+ * credential. `--recorder=<slug>` overrides `config.ts` for one run.
  *
- * The recorder and the internal domain are code — `config.ts`, checked by the
- * compiler and read in review. The credential is the one thing that is not:
- * deployed it comes from the workspace environment variables a harness agent
- * inherits in full, so nothing in this project holds the key and rotating it
- * needs no deploy. The assignment above is for a run by hand.
+ * The assignment above is only for a run by hand: deployed, the key comes from
+ * the workspace environment variables a harness agent inherits.
  *
  * Idempotent. A call already present anywhere under `cadence/log/` — raw or
  * long since scribed — is skipped, so re-running costs nothing and the
@@ -45,8 +41,6 @@ if (process.argv.includes("--list")) {
   try {
     const { recorder, entry } = resolve();
     if (entry.written === "docs") {
-      // Said out loud on every run, because the difference between "compiles"
-      // and "has ever worked" is the whole risk of a registry.
       console.error(
         `note: the ${entry.label} adapter was written from vendor docs and not ` +
           `yet run against a live workspace. Check --dry-run lists real calls ` +

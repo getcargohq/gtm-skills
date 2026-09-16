@@ -2,31 +2,26 @@
  * The recorders this cookbook ships, and how one gets chosen.
  *
  * `RECORDER` in `../config.ts` names one of the keys below, and
- * `--recorder=<slug>` overrides it for a single run. Nothing else changes when
- * you switch: the credential keeps its name, the pipeline keeps its rules, and
- * the entry below is the only place that knows the vendor exists.
+ * `--recorder=<slug>` overrides it for a single run. An entry is the only
+ * place that knows a vendor exists.
  *
- * Two properties of this file are load-bearing.
+ * Two properties are load-bearing.
  *
- * **The key IS the provider slug.** `resolve` refuses an entry whose recorder
- * disagrees with the key it is filed under, because `provider` is written into
- * every capture's `source:` line and compiled into the regex that reads those
- * lines back. A registry that let the two drift would re-capture the whole
- * window every morning, producing files and never erroring.
+ * **The key IS the provider slug**, and `resolve` refuses an entry where the
+ * two disagree. `provider` is written into every capture's `source:` line and
+ * compiled into the regex that reads those lines back, so a drift would
+ * re-capture the whole window every morning, producing files and never
+ * erroring.
  *
- * **`written` is not decoration.** `live` means the adapter has been run
- * against a real workspace and its response shapes are confirmed. `docs` means
- * it was written from the vendor's own specification and compiles, and nothing
- * more. Both are honest; only one has been proven, and printing the difference
- * is what keeps a registry from turning "shipped" into an implied "tested".
- * Move an entry to `live` in the same commit that reports the `--dry-run` it
- * passed against your workspace.
+ * **`written` is a claim about evidence.** `live` means run against a real
+ * workspace; `docs` means written from the vendor's specification and
+ * compiles, and nothing more. Move an entry to `live` in the same commit that
+ * reports the `--dry-run` it passed.
  *
- * Adding a recorder that is not here: write the adapter beside the others,
- * add the entry, and the CLI, the error messages and `--list` pick it up.
- * `references/providers.md` is the procedure and `references/recorder-apis.md`
- * has the endpoints for five more, including the ones deliberately not shipped
- * and why.
+ * Adding one: write the adapter beside the others and add an entry — the CLI,
+ * the error messages and `--list` pick it up. `references/providers.md` is the
+ * procedure, `references/recorder-apis.md` the endpoints, including five that
+ * deliberately do not ship and why.
  */
 import { RECORDER } from "../config";
 import { ConfigError, type Recorder } from "../recorder";
@@ -119,16 +114,14 @@ export const RECORDERS = {
     credential: "API key",
     docs: "https://doc.tldv.io/",
   },
-  // `satisfies` rather than a type annotation: it checks every entry against
-  // RecorderEntry while keeping the keys as literals, which is what makes
-  // `RECORDER` in ../config.ts a compiler-checked choice rather than a string.
+  // `satisfies`, not an annotation: it keeps the keys as literals, which is
+  // what makes `RECORDER` in ../config.ts compiler-checked.
 } satisfies Record<string, RecorderEntry>;
 
 /** Every slug the compiler accepts for `RECORDER` in `../config.ts`. */
 export type RecorderSlug = keyof typeof RECORDERS;
 
-// The same registry, indexed by a string a human typed at a terminal. An
-// assignment rather than a cast: it widens the keys and nothing else.
+// The same registry, indexable by a string a human typed at a terminal.
 const BY_SLUG: Record<string, RecorderEntry | undefined> = RECORDERS;
 
 export const RECORDER_SLUGS = Object.keys(RECORDERS).sort();
@@ -175,13 +168,8 @@ export function recorderTable(): string {
 
 /**
  * The selected recorder: `RECORDER` from `../config.ts`, unless
- * `--recorder=<slug>` overrode it for this run.
- *
- * There is always a selection, and that is deliberate too. The choice is a
- * typed constant in the repository, so a slug that is not a recorder fails to
- * compile rather than producing a clean, empty, successful-looking run every
- * morning — which is the failure this cookbook spends most of its warnings on.
- * Only the flag can name something unknown, because only a human types it.
+ * `--recorder=<slug>` overrode it for this run. Only the flag can name
+ * something unknown — the constant is typed against the keys above.
  */
 export function resolve(argv: readonly string[] = process.argv.slice(2)): {
   recorder: Recorder;
@@ -197,9 +185,8 @@ export function resolve(argv: readonly string[] = process.argv.slice(2)): {
     throw new ConfigError(`Unknown recorder "${slug}".\n\n${recorderTable()}`);
   }
 
-  // The registry key and the slug written into every capture must be the same
-  // string. See the note at the top of this file: this is the one check that
-  // stops the deduplication key drifting away from what is on disk.
+  // The one check that stops the deduplication key drifting away from what is
+  // on disk — see the note at the top of this file.
   if (entry.recorder.provider !== slug) {
     throw new ConfigError(
       `Registry mismatch: "${slug}" is filed under a recorder whose provider is ` +

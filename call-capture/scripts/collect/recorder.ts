@@ -76,10 +76,10 @@ export class HttpError extends Error {
 
 /**
  * Something about the run's configuration is wrong — a missing credential, an
- * unknown slug passed to `--recorder=`. Distinct from every other error on
- * purpose: `calls.ts` prints one of these as a message and exits 1, because a
- * stack trace pointing into an adapter is the wrong thing to read when the
- * answer is "create the workspace variable".
+ * unknown slug passed to `--recorder=`. Separate from every other error so
+ * `calls.ts` can print it as a message and exit 1: a stack trace pointing into
+ * an adapter is the wrong thing to read when the answer is "create the
+ * workspace variable".
  */
 export class ConfigError extends Error {}
 
@@ -106,13 +106,9 @@ export function recorderKey(): string {
 
 /**
  * The same credential where the recorder wants two values — Gong's access key
- * and secret, Clari Copilot's key and password. Set it as `<first>:<second>`
- * and the adapter splits it here.
- *
- * One env name whatever records your calls, which is what keeps a recorder
- * swap to a value and an adapter rather than a change to the deploy wiring.
- * Split on the FIRST colon only: the second half is a secret and secrets
- * contain colons.
+ * and secret, Clari Copilot's key and password. Set it as `<first>:<second>`,
+ * keeping one variable name whatever records your calls. Split on the FIRST
+ * colon only: the second half is a secret and secrets contain colons.
  */
 export function recorderKeyPair(shape: string): [string, string] {
   const raw = recorderKey();
@@ -179,9 +175,8 @@ const RAW_DIR = join(LOG_DIR, "raw", "calls");
 // skipped before any transcript is fetched.
 const LOOKBACK_DAYS = Number(process.env["CALL_CAPTURE_LOOKBACK_DAYS"] ?? "3");
 
-// How internal-only calls are recognised. It is applied here rather than in an
-// adapter because it has to mean the same thing whoever recorded the call —
-// see `config.ts`, which is where the domain itself is set.
+// Applied here rather than in an adapter because it has to mean the same thing
+// whoever recorded the call. `config.ts` is where the domain is set.
 
 // A personal address is not an account. Slugging by domain would file every
 // unrelated gmail.com guest under one "gmail" account, and the scribe would

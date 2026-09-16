@@ -221,17 +221,14 @@ it if you still want it, and records why under `## Decisions` in your copy of th
   and the registry starts implying that nine recorders are tested when one is — which is exactly
   how a convenience becomes a promise nobody checked, on a pipeline whose failure mode is a clean
   empty run.
-- **Choices stay in code, the secret stays in the workspace, and the agent's spec declares
-  neither.** (`scripts/collect/config.ts`, `infra/agents/call-scribe.ts`) The recorder and the internal domain
-  are typed constants in the repository: the compiler checks the slug against the registry, a
-  reviewer reads both in the diff, and because the harness re-clones every morning an edit lands on
-  the next run rather than the next deploy. The credential is the mirror image — a workspace
-  environment variable the harness inherits, read server-side on every run, so it outlives the
-  shell that set it and a rotation needs no deploy. Neither belongs in `repository.env`, and the
-  agent declares no `env` at all: a choice moved there stops being compiler-checked and leaves the
-  code that consumes it, and the key moved there as a `secret()` blocks the next deploy on whoever
-  runs it having the value exported — which on a pipeline that runs unattended at 07:00 is
-  discovered as a morning with no pull request.
+- **Choices stay in code, the secret stays in the workspace, and the agent declares no `env`.**
+  (`scripts/collect/config.ts`, `infra/agents/call-scribe.ts`) The recorder and the internal domain
+  are typed constants, so the compiler checks the slug, a reviewer reads both in the diff, and an
+  edit lands on the next clone rather than the next deploy. The credential is the mirror image: a
+  workspace environment variable read server-side on every run, so it outlives the shell that set
+  it and rotates without a deploy. Move a choice into the spec and nothing checks it; move the key
+  there as a `secret()` and the next deploy is blocked on whoever runs it having the value
+  exported, which on an unattended 07:00 pipeline is discovered as a morning with no pull request.
 - **`scripts/call-capture/package.json` stays.** (`scripts/package.json`) It is not
   decoration. The CDK loader imports every `.ts` under the project root except directories carrying a
   `package.json`; delete it and `cargo-ai cdk plan` imports the collector and runs it against the live

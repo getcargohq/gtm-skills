@@ -1,17 +1,13 @@
 /**
- * Reading a field whose name the vendor does not document.
+ * Reading a field whose name the vendor does not document. Fathom, tl;dv,
+ * Modjo and Clari Copilot all name their date filter in the reference and
+ * leave the meeting object's own timestamp to be discovered from a live
+ * response.
  *
- * Every recorder here documents the parameter you filter a list by. Not all of
- * them document the key the list comes back under — Fathom, tl;dv, Modjo and
- * Clari Copilot all name their date filter in the reference and leave the
- * meeting object's own timestamp to be discovered from a live response.
- *
- * Guessing one is the worst option: a wrong key reads as "no calls", which is
- * a clean empty run every morning rather than an error. So the adapters for
- * those four read a small candidate list, and anything that resolves to no
- * timestamp at all is dropped loudly by name rather than filed under today.
- * `--dry-run` prints the date each call resolved to, which is where you see
- * that the right key was found.
+ * A single guessed key reads as "no calls" — a clean empty run rather than an
+ * error — so those adapters try a candidate list, and a call that resolves to
+ * no timestamp is dropped loudly by name. `--dry-run` prints the date each one
+ * resolved to, which is where you confirm the right key was found.
  */
 
 /** The first candidate key holding a non-empty string. */
