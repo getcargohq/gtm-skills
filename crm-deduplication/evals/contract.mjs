@@ -127,7 +127,7 @@ assert.match(
 assert.match(
   evidenceNode.config.script,
   new RegExp(
-    `default\\(\\{ "found": nodes\\.${search.slug}, "sourceId": nodes\\.start\\.hs_object_id \\}`,
+    `\\(\\{ "found": nodes\\.${search.slug}, "sourceId": nodes\\.start\\.hs_object_id \\}`,
   ),
   "the evidence script must receive the live CRM search and the enrolled record ID",
 );
@@ -203,7 +203,7 @@ assert.equal(
 );
 
 // The evidence module runs for real. Imported rather than reconstructed from
-// the compiled node: `js(evidenceScript, …)` bundles this exact module, so
+// the compiled node: calling `evidenceScript(…)` bundles this exact module, so
 // calling it here and calling it in a run are the same code — and because it
 // takes values rather than reading `nodes.<slug>`, the test hands it values too.
 const company = (id, properties = {}) => ({

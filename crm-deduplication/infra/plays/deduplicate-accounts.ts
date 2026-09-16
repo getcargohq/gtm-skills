@@ -74,7 +74,7 @@ const deduplicateCrmAccount = defineWorkflow(
     // they did not as one arrow. It receives the search and the record ID as
     // values, so it never names the slug either one lives under, and
     // `evidence` is typed from what the script returns.
-    const evidence = js(evidenceScript, {
+    const evidence = evidenceScript({
       found,
       sourceId: input.hs_object_id,
     });
