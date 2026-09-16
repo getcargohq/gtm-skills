@@ -84,8 +84,7 @@ const deduplicateCrmAccount = defineWorkflow(
       const asDomain = (value: unknown) =>
         asText(value)
           .toLowerCase()
-          .replace(/^https?:\/\//, "")
-          .replace(/^www\./, "")
+          .replace(/^(?:https?:\/\/)?(?:www\.)?/, "")
           .split(/[/?#]/)[0]
           .replace(/:\d+$/, "")
           .replace(/\.$/, "");
@@ -113,37 +112,35 @@ const deduplicateCrmAccount = defineWorkflow(
       const identifiesOneCompany = (domain: string) =>
         domain !== "" && !parked.includes(domain);
 
-      // What the search just returned, in the shape the policy below reads.
+      // What the search just returned, in the shape the policy below reads. One
+      // company can match several criteria, so the first row wins and the rest
+      // of its appearances are dropped on the way in.
       const found: any[] = Array.isArray(nodes.hubspot) ? nodes.hubspot : [];
-      const records = found
-        .map((record) => {
-          const fields = (record && record.properties) || {};
-          const populated = Object.values(fields).filter(
+      const unique = new Map<string, any>();
+      for (const record of found) {
+        const id = asText(record && record.id);
+        if (id === "" || unique.has(id)) continue;
+        const fields = (record && record.properties) || {};
+        unique.set(id, {
+          id,
+          linkedinId: asText(fields.linkedin_company_id),
+          linkedinUrl: asHandle(fields.linkedin_company_page),
+          domain: asDomain(fields.domain),
+          protectedId: asText(fields.protected_business_id),
+          parentId: asText(fields.parent_company_id),
+          isCustomer:
+            asText(fields.lifecyclestage).toLowerCase() === "customer",
+          openDeals: asNumber(fields.hs_num_open_deals),
+          contacts: asNumber(fields.num_associated_contacts),
+          activities: asNumber(fields.hs_num_engagements),
+          filledProperties: Object.values(fields).filter(
             (value) => value !== null && value !== undefined && value !== "",
-          );
-          return {
-            id: asText(record && record.id),
-            linkedinId: asText(fields.linkedin_company_id),
-            linkedinUrl: asHandle(fields.linkedin_company_page),
-            domain: asDomain(fields.domain),
-            protectedId: asText(fields.protected_business_id),
-            parentId: asText(fields.parent_company_id),
-            isCustomer:
-              asText(fields.lifecyclestage).toLowerCase() === "customer",
-            openDeals: asNumber(fields.hs_num_open_deals),
-            contacts: asNumber(fields.num_associated_contacts),
-            activities: asNumber(fields.hs_num_engagements),
-            filledProperties: populated.length,
-            lastActivityAt: asText(fields.notes_last_updated),
-            createdAt: asText(fields.createdate),
-          };
-        })
-        // One company can match several criteria; keep its first appearance.
-        .filter(
-          (record, index, all) =>
-            record.id !== "" &&
-            all.findIndex((other) => other.id === record.id) === index,
-        );
+          ).length,
+          lastActivityAt: asText(fields.notes_last_updated),
+          createdAt: asText(fields.createdate),
+        });
+      }
+      const records = Array.from(unique.values());
 
       // The cluster is the enrolled row plus every record sharing an identity
       // key with it. A source the search no longer returns was absorbed by an
