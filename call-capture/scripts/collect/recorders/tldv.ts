@@ -19,6 +19,7 @@ import {
   fetchJson,
   HttpError,
   PACE_MS,
+  pageGuard,
   recorderKey,
   sleep,
   type Call,
@@ -60,7 +61,10 @@ export const tldv: Recorder = {
   async listReady(from, to) {
     const calls: Call[] = [];
 
+    const guard = pageGuard("tldv");
+
     for (let page = 1; ; page++) {
+      guard();
       const query = new URLSearchParams({
         from: `${from}T00:00:00Z`,
         to: `${to}T23:59:59Z`,
@@ -73,7 +77,8 @@ export const tldv: Recorder = {
         pages?: number;
       } = await fetchJson(`${API}/meetings?${query}`, { headers: headers() });
 
-      for (const meeting of body.results ?? []) {
+      const rows = body.results ?? [];
+      for (const meeting of rows) {
         if (meeting.id === undefined) continue;
 
         const startAt = pickTimestamp(meeting, START_KEYS);
@@ -106,7 +111,14 @@ export const tldv: Recorder = {
         });
       }
 
-      if (page >= (body.pages ?? 1)) break;
+      // An empty page is the end. `pages` is an additional stop when it is
+      // there, never the only one: trusting it alone meant an absent or
+      // renamed field ended the walk after page 1, capturing the newest 50
+      // calls of a busy window as though that were the whole window. A short
+      // page is deliberately not treated as the last one either — tl;dv
+      // documents no relationship between `limit` and what a page holds.
+      if (rows.length === 0) break;
+      if (body.pages !== undefined && page >= body.pages) break;
       await sleep(PACE_MS);
     }
 

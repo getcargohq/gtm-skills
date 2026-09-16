@@ -21,6 +21,7 @@ import {
   fetchJson,
   HttpError,
   PACE_MS,
+  pageGuard,
   recorderKey,
   sleep,
   type Call,
@@ -108,8 +109,10 @@ export const fireflies: Recorder = {
 
   async listReady(from, to) {
     const calls: Call[] = [];
+    const guard = pageGuard("fireflies");
 
     for (let skip = 0; ; skip += PAGE_SIZE) {
+      guard();
       const data = await graphql<{ transcripts?: Transcript[] }>(WINDOW_QUERY, {
         fromDate: `${from}T00:00:00.000Z`,
         toDate: `${to}T23:59:59.999Z`,

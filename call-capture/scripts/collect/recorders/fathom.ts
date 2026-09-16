@@ -17,6 +17,7 @@ import {
   fetchJson,
   HttpError,
   PACE_MS,
+  pageGuard,
   recorderKey,
   sleep,
   type Call,
@@ -57,9 +58,11 @@ export const fathom: Recorder = {
 
   async listReady(from, to) {
     const meetings: Meeting[] = [];
+    const guard = pageGuard("fathom");
     let cursor: string | null = null;
 
     do {
+      guard();
       const query = new URLSearchParams({
         created_after: `${from}T00:00:00Z`,
         created_before: `${to}T23:59:59Z`,

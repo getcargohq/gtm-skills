@@ -20,6 +20,7 @@ import {
   fetchJson,
   HttpError,
   PACE_MS,
+  pageGuard,
   recorderKeyPair,
   sleep,
   type Call,
@@ -110,8 +111,10 @@ export const clari: Recorder = {
 
   async listReady(from, to) {
     const calls: Call[] = [];
+    const guard = pageGuard("clari");
 
     for (let skip = 0; ; skip += PAGE_SIZE) {
+      guard();
       const query = new URLSearchParams({
         filterTimeGt: `${from}T00:00:00Z`,
         filterTimeLt: `${to}T23:59:59Z`,

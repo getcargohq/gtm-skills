@@ -24,6 +24,7 @@ import {
   fetchJson,
   HttpError,
   PACE_MS,
+  pageGuard,
   recorderKeyPair,
   sleep,
   type Call,
@@ -89,9 +90,11 @@ export const gong: Recorder = {
 
   async listReady(from, to) {
     const calls: Call[] = [];
+    const guard = pageGuard("gong");
     let cursor: string | null = null;
 
     do {
+      guard();
       const body: Record<string, unknown> = {
         filter: {
           // Both are required on this endpoint. For web-conference calls the

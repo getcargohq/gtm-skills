@@ -20,6 +20,7 @@ import {
   fetchJson,
   HttpError,
   PACE_MS,
+  pageGuard,
   recorderKey,
   sleep,
   type Call,
@@ -55,9 +56,11 @@ export const grain: Recorder = {
 
   async listReady(from, to) {
     const calls: Call[] = [];
+    const guard = pageGuard("grain");
     let cursor: string | null = null;
 
     do {
+      guard();
       const body: Record<string, unknown> = {
         filter: {
           after_datetime: `${from}T00:00:00Z`,

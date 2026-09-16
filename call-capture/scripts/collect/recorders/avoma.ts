@@ -12,6 +12,7 @@ import {
   fetchJson,
   HttpError,
   PACE_MS,
+  pageGuard,
   recorderKey,
   sleep,
   type Call,
@@ -61,8 +62,10 @@ export const avoma: Recorder = {
       `${API}/meetings/?from_date=${from}T00:00:00Z` +
       `&to_date=${to}T23:59:59Z&page_size=100`;
     const raw: AvomaCall[] = [];
+    const guard = pageGuard("avoma");
 
     while (next !== null) {
+      guard();
       const page: { results?: AvomaCall[]; next?: string | null } =
         await fetchJson(next, { headers: headers() });
       raw.push(...(page.results ?? []));

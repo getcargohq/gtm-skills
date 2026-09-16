@@ -21,6 +21,7 @@ import {
   fetchJson,
   HttpError,
   PACE_MS,
+  pageGuard,
   recorderKey,
   sleep,
   type Call,
@@ -70,7 +71,10 @@ export const modjo: Recorder = {
   async listReady(from, to) {
     const calls: Call[] = [];
 
+    const guard = pageGuard("modjo");
+
     for (let page = 1; ; page++) {
+      guard();
       const query = new URLSearchParams({
         from: `${from}T00:00:00Z`,
         to: `${to}T23:59:59Z`,
@@ -120,8 +124,13 @@ export const modjo: Recorder = {
         });
       }
 
-      const total = body.pagination?.total ?? rows.length;
-      if (page * PAGE_SIZE >= total || rows.length === 0) break;
+      // An empty page is the end. `pagination.total` is an additional stop
+      // when it is there rather than the only one: defaulting it to what this
+      // page held ended the walk after page 1 whenever the field was missing
+      // or renamed, and a truncated window looks exactly like a quiet one.
+      if (rows.length === 0) break;
+      const total = body.pagination?.total;
+      if (total !== undefined && page * PAGE_SIZE >= total) break;
       await sleep(PACE_MS);
     }
 

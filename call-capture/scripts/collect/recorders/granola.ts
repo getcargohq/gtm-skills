@@ -20,6 +20,7 @@ import {
   fetchJson,
   HttpError,
   PACE_MS,
+  pageGuard,
   recorderKey,
   sleep,
   type Call,
@@ -64,9 +65,11 @@ export const granola: Recorder = {
 
   async listReady(from, to) {
     const notes: NoteSummary[] = [];
+    const guard = pageGuard("granola");
     let cursor: string | null = null;
 
     do {
+      guard();
       const query = new URLSearchParams({
         created_after: `${from}T00:00:00Z`,
         created_before: `${to}T23:59:59Z`,
@@ -137,9 +140,11 @@ export const granola: Recorder = {
 
   async transcript(id) {
     const turns: Turn[] = [];
+    const guard = pageGuard("granola");
     let cursor: string | null = null;
 
     do {
+      guard();
       await sleep(PACE_MS);
       const query = new URLSearchParams({ page_size: "100" });
       if (cursor !== null) query.set("cursor", cursor);
