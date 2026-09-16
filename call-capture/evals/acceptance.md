@@ -31,7 +31,11 @@ Walk every line. A checked template without an evidence-backed consumer adaptati
   A trailing `in infra/` means the harness was rooted at the CDK project rather than at the
   package.json that declares `@cargo-ai/cdk`: that directory has no node_modules, so `npx tsx`
   cannot run the collector at all.
-- `CALL_RECORDER_API_KEY` is set in the deploy environment and appears in no committed file.
+- `CALL_RECORDER_API_KEY` is a workspace environment variable —
+  `cargo-ai workspaceManagement envVar list` shows it, marked secret — and its value appears in no
+  committed file and in no `secret()` call. A key that only ever lived in the deploying shell is not
+  deployed: it is one machine away from a morning with no pull request, and a rotation would need a
+  re-apply to land.
 - The cadence paths in the system prompt match what `cadence/README.md` describes, or the new folders
   are introduced deliberately and that README is updated to name them.
 

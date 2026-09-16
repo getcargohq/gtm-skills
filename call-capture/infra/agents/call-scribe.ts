@@ -1,4 +1,4 @@
-import { defineAgent, secret } from "@cargo-ai/cdk";
+import { defineAgent } from "@cargo-ai/cdk";
 
 import { callScribePrompt } from "./call-scribe.prompt";
 import { anthropic } from "../connectors/anthropic";
@@ -49,6 +49,42 @@ export const callScribe = defineAgent("call-scribe", {
     // wrong until the first pull request opens against a stranger's repo. Set a
     // field only to override the checkout — a different repo, or a base branch
     // that is not `main`.
+    //
+    // Only what the harness needs ON TOP OF the workspace environment
+    // variables, which a harness agent inherits in full. So the two values
+    // here are the two that belong in code — a choice and a domain, both
+    // public, both reviewable in a diff — and the credential is not here at
+    // all.
+    //
+    // CALL_RECORDER_API_KEY is a workspace environment variable, created once
+    // with the CLI and never written down in this project:
+    //
+    //   export CALL_RECORDER_API_KEY=…   # not committed, not persisted
+    //   cargo-ai workspaceManagement envVar create \
+    //     --key CALL_RECORDER_API_KEY --secret \
+    //     --description "Call recorder API key read by scripts/call-capture"
+    //
+    // (omitting --value reads the exported variable, which keeps the key out
+    // of argv and out of shell history). The harness shell then reads it like
+    // any other variable, so nothing in the collector changes.
+    //
+    // The name is deliberately not the vendor's, so swapping recorder changes
+    // that one entry and CALL_RECORDER below, not this wiring. Where a
+    // recorder issues two values — Gong's access key and secret, Clari
+    // Copilot's key and password — the entry holds `<first>:<second>` and the
+    // adapter splits it, so one variable still covers every recorder.
+    //
+    // A `secret()` reference would work here and is the wrong trade: it
+    // resolves from the DEPLOYING machine's environment at apply time and
+    // sends that value, so the key has to exist in a local shell or a .env for
+    // every deploy, by whoever deploys, and rotating it needs a re-apply to
+    // land. The catalog entry is read server-side on every run, so a rotation
+    // reaches tomorrow's run with no deploy at all.
+    //
+    // `workspaceEnv("CALL_RECORDER_API_KEY")` is not accepted here, and the
+    // type says so: a pointer in this block could only restate a variable the
+    // harness shell already reads. It is for credential fields on OTHER
+    // resources — a connector's access token — where nothing inherits.
     env: {
       // PLACEHOLDER — which recorder records your calls, as one of the slugs
       // in scripts/call-capture/collect/recorders/index.ts. Nine ship;
@@ -58,19 +94,12 @@ export const callScribe = defineAgent("call-scribe", {
       // rather than picking one. A wrong-but-valid slug reads the wrong API
       // successfully and captures nothing, and a morning that reports a clean
       // empty run is the failure nobody notices for a month.
-      CALL_RECORDER: "avoma",
-      // The collector's credential. `secret()` is read from the deploying
-      // environment at apply time and excluded from the content hash, so the
-      // plaintext never enters git and rotating it does not read as drift.
-      // The agent never handles it: only the selected adapter under
-      // scripts/collect/recorders/ reads it.
       //
-      // The name is deliberately not the vendor's, so swapping recorder
-      // changes this value and CALL_RECORDER, not this wiring. Where a
-      // recorder issues two values — Gong's access key and secret, Clari
-      // Copilot's key and password — this holds `<first>:<second>` and the
-      // adapter splits it, so one secret still covers every recorder.
-      CALL_RECORDER_API_KEY: secret("CALL_RECORDER_API_KEY"),
+      // Declared here rather than in the catalog because it is the decision
+      // this pipeline is built around: in code it is in the diff, in review,
+      // and deployed together with the adapter it names. Set it in both places
+      // and you own the precedence question.
+      CALL_RECORDER: "avoma",
       // PLACEHOLDER — your own email domain. It is how the collector tells an
       // internal call from a customer one, for every recorder alike. Most do
       // not flag it at all, and the ones that do cannot be trusted to agree:

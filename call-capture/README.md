@@ -25,9 +25,9 @@ one pull request.
    at deploy rather than written down. The harness's working tree is the GTM repo itself, which is
    what lets its output be a diff rather than a column value.
 3. **It runs the collector** — `npx tsx scripts/call-capture/collect/calls.ts` — which reads
-   `CALL_RECORDER` and `CALL_RECORDER_API_KEY` from the harness environment, injected by the agent's
-   `repository.env`. The agent is told not to fetch calls itself and not to edit the script's
-   collection rules.
+   `CALL_RECORDER` from the harness environment, injected by the agent's `repository.env`, and
+   `CALL_RECORDER_API_KEY` from the workspace environment variables a harness agent inherits in
+   full. The agent is told not to fetch calls itself and not to edit the script's collection rules.
 4. **It scribes** the pending captures, then promotes what repeats.
 5. **It opens one pull request** whose body reports four numbers: captured, scribed fresh, scribed
    from backfill, pending remaining. The remainder is the drain gauge; a number that never falls
@@ -127,7 +127,10 @@ ships none.
 
 1. **`CALL_CAPTURE_INTERNAL_DOMAIN`** — `infra/agents/call-scribe.ts`: your own email domain, or
    every internal standup is captured as a customer call.
-2. **`CALL_RECORDER_API_KEY`** — exported before deploy, never committed.
+2. **`CALL_RECORDER_API_KEY`** — not a placeholder in any file: create it once in the workspace with
+   `cargo-ai workspaceManagement envVar create --key CALL_RECORDER_API_KEY --secret` and the harness
+   inherits it. Deliberately not a `secret()` in the agent's env, which would need the key in the
+   deploying shell on every deploy and a re-apply to pick up a rotation.
 3. **`CALL_RECORDER`** — `infra/agents/call-scribe.ts`: which of the nine slugs records your calls.
    There is no default; unset, the collector stops rather than guessing. A recorder that does not
    ship is one new file satisfying `Recorder` plus an entry in `recorders/index.ts`, and

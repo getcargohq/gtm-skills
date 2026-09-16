@@ -94,8 +94,9 @@ export function recorderKey(): string {
   const key = process.env["CALL_RECORDER_API_KEY"];
   if (key === undefined || key === "") {
     throw new ConfigError(
-      "CALL_RECORDER_API_KEY is not set. It comes from the agent's repository env in " +
-        "infra/call-capture/agents/call-scribe.ts; export it locally to run this by hand.",
+      "CALL_RECORDER_API_KEY is not set. Deployed, it is a workspace environment " +
+        "variable the harness inherits: `cargo-ai workspaceManagement envVar list` " +
+        "shows whether the workspace holds one. Export it to run this by hand.",
     );
   }
   return key;

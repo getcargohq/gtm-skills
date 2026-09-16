@@ -570,8 +570,8 @@ does not imply API access to it; sharing grants UI visibility only. Two webhook 
 OAuth 2.1 with dynamic client registration, access tokens that expire after **ten minutes**, and
 single-use refresh tokens that rotate on every exchange. A daily job would have to persist the
 rotated refresh token somewhere durable and a broken chain needs a human with a browser — which is
-a different shape of resource from `secret("CALL_RECORDER_API_KEY")` and would change the agent's
-wiring rather than just adding an adapter. Revisit when Read.ai ships the personal access tokens it
+a different shape of credential from one static `CALL_RECORDER_API_KEY` in the workspace catalog,
+and would change the agent's wiring rather than just adding an adapter. Revisit when Read.ai ships the personal access tokens it
 names as planned for GA.
 
 **Public API.** Yes — a REST API and an MCP server, both in **open beta**, available to all users

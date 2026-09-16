@@ -38,7 +38,8 @@ CALL_RECORDER_API_KEY=… npx tsx scripts/call-capture/collect/calls.ts --record
 | `modjo`     | Modjo         | `Authorization: Bearer`                      | `transcriptRetentionStatus`, and a 410 |
 | `tldv`      | tl;dv         | `x-api-key`                                  | none, webhook only                     |
 
-The deployed selection is `CALL_RECORDER` in the agent's `repository.env`, beside the credential.
+The deployed selection is `CALL_RECORDER` in the agent's `repository.env`; the credential is a
+workspace environment variable the harness inherits, and the section below covers it.
 **There is no default.** Unset, the collector stops and prints the table above, because a
 valid-but-wrong slug reads the wrong vendor's API perfectly successfully, captures nothing, and
 reports a clean empty run every morning — which is the failure this cookbook is built to avoid.
@@ -158,26 +159,53 @@ is a cost difference as much as a legibility one.
 
 ## The credential
 
-Whatever the recorder, the key arrives the same way and under the same name — the agent's
-`repository.env` in `infra/call-capture/agents/call-scribe.ts`:
+Whatever the recorder, the key arrives the same way and under the same name: as a **workspace
+environment variable**, created once with the CLI.
+
+```sh
+export CALL_RECORDER_API_KEY=…            # this shell only; nothing persists it
+cargo-ai workspaceManagement envVar create --key CALL_RECORDER_API_KEY --secret \
+  --description "Call recorder API key read by scripts/call-capture"
+
+cargo-ai workspaceManagement envVar list  # the entry, never the value
+```
+
+Omitting `--value` reads the exported variable of the same name, which keeps the key out of argv and
+out of shell history. `--secret` encrypts it at rest, and the API never hands it back — `list` shows
+the entry, not the value. Rotation is `envVar update <uuid> --value …`, and it reaches the next run
+without a deploy.
+
+Nothing declares it in the project, and that is the point: a harness agent inherits the whole
+workspace catalog, so the collector reads `process.env.CALL_RECORDER_API_KEY` in the sandbox with
+nothing wiring it there. The agent's `repository.env` carries only what is not in the catalog —
+the recorder choice and the internal domain, both public, both better off in a diff:
 
 ```ts
 repository: {
   env: {
     CALL_RECORDER: "avoma",
-    CALL_RECORDER_API_KEY: secret("CALL_RECORDER_API_KEY"),
     CALL_CAPTURE_INTERNAL_DOMAIN: "example.com",
   },
 },
 ```
 
-The name is deliberately not the vendor's, so a swap changes two values and nothing else — not this
-wiring, not the deploy environment. Keep it a `secret()` reference rather than an `env()` string:
-`env()` bakes the value into the spec hash and therefore into `cargo.state.json`.
+Three ways to put a credential in a CDK spec, and why none of them is here:
 
-Two recorders issue two values rather than one. Gong wants an access key and a secret, Clari
-Copilot a key and a password: set `CALL_RECORDER_API_KEY` to `<first>:<second>` and the adapter
-splits it on the first colon. One secret, whatever records your calls.
+| Written as                                | Value lives            | Costs                                                                                       |
+| ----------------------------------------- | ---------------------- | ------------------------------------------------------------------------------------------- |
+| workspace catalog entry (**this**)         | the workspace, encrypted | Nothing local. Read server-side on every run, so a rotation lands with no deploy            |
+| `secret("CALL_RECORDER_API_KEY")`          | the deploying shell    | Every deploy needs the key exported by whoever deploys, and a rotation lands on a re-apply   |
+| `env("CALL_RECORDER_API_KEY")`             | the spec               | Baked into the content hash and into `cargo.state.json`. Never for a secret                  |
+
+`workspaceEnv("CALL_RECORDER_API_KEY")` is the fourth spelling and the CDK rejects it in a harness
+`env` block, by type: a pointer there could only restate a variable the sandbox shell already reads.
+It is for credential fields on resources that inherit nothing — a connector's access token, where
+`workspaceEnv()` buys exactly what the catalog buys here.
+
+The name is deliberately not the vendor's, so a swap changes one catalog entry and one slug and
+nothing else. Two recorders issue two values rather than one: Gong wants an access key and a secret,
+Clari Copilot a key and a password. Set `CALL_RECORDER_API_KEY` to `<first>:<second>` and the adapter
+splits it on the first colon. One variable, whatever records your calls.
 
 Gong is also the one recorder whose base URL is per company — regional instances are
 `https://<region>.api.gong.io/v2`. Set `CALL_RECORDER_API_BASE` when yours is not the common one.

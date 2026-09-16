@@ -20,10 +20,15 @@
  * which field an adapter reads, which is the regression that would otherwise
  * show up as a clean, empty, successful-looking run.
  *
+ * One assertion is about neither and belongs here anyway: the credential must
+ * not be declared in the agent's spec. It reads the source rather than a type,
+ * because both spellings that break it typecheck.
+ *
  * No network: `fetch` is replaced, and an unrecognised URL fails the eval
  * rather than escaping to a vendor.
  */
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 
 // Read at module load in recorder.ts, so it has to be set before the import.
 process.env["CALL_CAPTURE_PACE_MS"] = "0";
@@ -108,6 +113,28 @@ check("the flag overrides the environment for one run", () => {
     assert.equal(resolve(["--recorder=Granola"]).recorder.provider, "granola");
   } finally {
     delete process.env["CALL_RECORDER"];
+  }
+});
+
+check("the credential is not declared in the agent's spec", () => {
+  // The invariant `secret()` would break silently until a deploy: the key is a
+  // workspace environment variable the harness inherits, so no local shell has
+  // to hold it and a rotation needs no re-apply. Declared in the spec instead,
+  // the next unattended deploy is blocked on whoever deploys having exported
+  // it — which is discovered as a morning with no pull request.
+  const agent = readFileSync(
+    new URL("../infra/agents/call-scribe.ts", import.meta.url),
+    "utf8",
+  );
+  const declarations = agent
+    .split("\n")
+    .filter((line) => line.trim().startsWith("//") === false);
+  for (const forbidden of ["secret(", "CALL_RECORDER_API_KEY:"]) {
+    assert.ok(
+      declarations.every((line) => line.includes(forbidden) === false),
+      `call-scribe.ts declares ${forbidden} — the recorder's key belongs in the ` +
+        `workspace catalog (cargo-ai workspaceManagement envVar create), not in the spec`,
+    );
   }
 });
 
