@@ -2,9 +2,9 @@ import { definePlay, defineWorkflow } from "@cargo-ai/cdk";
 import { z } from "zod";
 
 import { crm } from "../connectors/crm";
-import type { Evidence } from "../scripts/evidence";
 import { slack } from "../connectors/slack";
 import { crmAccounts } from "../models/crm-accounts";
+import evidenceScript from "../scripts/evidence";
 
 // PLACEHOLDER — the Slack channel every review request is posted to. Resolve it
 // against the live workspace and get it approved before deploying.
@@ -20,13 +20,6 @@ const automaticMergeScore = 60;
 const reviewTimeoutMilliseconds = 24 * 60 * 60 * 1000;
 
 // One CRM account row in, one terminal outcome out.
-//
-// The one script node below is `js({ path })`: its body is bundled from
-// `infra/scripts/evidence.ts` and reads sibling node outputs through the
-// runtime it is handed, so it names the slugs the compiler assigned —
-// `nodes.hubspot` is the CRM search. Inserting a connector node ahead of it
-// renames that slug, so `evals/contract.mjs` calls the module against the
-// slugs it expects.
 const deduplicateCrmAccount = defineWorkflow(
   "deduplicate_crm_account",
   {
@@ -58,7 +51,7 @@ const deduplicateCrmAccount = defineWorkflow(
   ({ input, uses, js, scoring, humanReview }) => {
     // The queue can be hours old, so cluster membership is re-derived from the
     // CRM on every run rather than trusted from the extract that enrolled it.
-    uses.crm.findRecords({
+    const found = uses.crm.findRecords({
       objectType: "companies",
       criterias: [
         {
@@ -75,15 +68,16 @@ const deduplicateCrmAccount = defineWorkflow(
 
     // Everything the merge decision rests on, derived deterministically: no
     // model, no judgement. The same records always produce the same evidence.
-    // Everything the merge decision rests on, derived deterministically: no
-    // model, no judgement. The same records always produce the same evidence.
     //
-    // The body lives in `infra/scripts/`, bundled in at define time: it is one
-    // decision spread over policy, coercion, clustering and ranking, and those
-    // read as four named modules where they did not as one arrow. Bundling is
-    // also what lets `evals/contract.mjs` import and call it directly instead
-    // of reconstructing it with `new Function`.
-    const evidence = js<Evidence>({ path: "../scripts/evidence.ts" });
+    // The body lives in `infra/scripts/`: one decision spread over policy,
+    // coercion, clustering and ranking, which read as four named modules where
+    // they did not as one arrow. It receives the search and the record ID as
+    // values, so it never names the slug either one lives under, and
+    // `evidence` is typed from what the script returns.
+    const evidence = js(evidenceScript, {
+      found,
+      sourceId: input.hs_object_id,
+    });
 
     if (!evidence.sourceFound) {
       return { status: "source_missing_or_changed" };

@@ -1,13 +1,13 @@
 // Everything the merge decision rests on, derived deterministically: no model,
 // no judgement. The same records always produce the same evidence.
 //
-// This is the body of the play's single script node, bundled in by
-// `js({ path })`. It reads one sibling node output — `nodes.hubspot`, the CRM
-// search — plus the enrolled row on `nodes.start`. Those are slugs the compiler
-// assigned, so inserting a connector node ahead of the script renames them;
-// `evals/contract.mjs` calls this module with the slugs it expects.
+// This is the body of the play's single script node. It takes what it needs as
+// arguments — the fresh CRM search and the enrolled row's record ID — and never
+// reads `nodes.<slug>`: the play passes the values, and the SDK writes where
+// each one lives at runtime. So nothing here breaks when a node is inserted
+// ahead of the script, and `evals/contract.mjs` calls it with plain values.
 
-import type { JsFn } from "@cargo-ai/cdk";
+import { jsFn } from "@cargo-ai/cdk";
 
 import {
   agreementOn,
@@ -18,25 +18,16 @@ import {
 } from "./cluster";
 import { asText, identifiesOneCompany } from "./normalize";
 
-export type Evidence = {
-  sourceFound: boolean;
-  hasDuplicates: boolean;
-  duplicateCount: number;
-  primaryId: string;
-  idsToMerge: string[];
-  exactLinkedinId: boolean;
-  exactLinkedinUrl: boolean;
-  exactDomain: boolean;
-  identityConflict: boolean;
-  protectedIdConflict: boolean;
-  parentOrSubsidiaryWarning: boolean;
-  autoEligible: boolean;
-  evidenceSummary: string;
+type EvidenceArgs = {
+  /** What `findRecords` returned for the enrolled row's identity keys. */
+  found: unknown;
+  /** The enrolled row's CRM record ID. */
+  sourceId: string;
 };
 
-const evidence: JsFn<Evidence> = ({ nodes }) => {
-  const records = readSearchResults(nodes.hubspot);
-  const sourceId = asText(nodes.start.hs_object_id);
+export default jsFn((args: EvidenceArgs) => {
+  const records = readSearchResults(args.found);
+  const sourceId = asText(args.sourceId);
   const source = records.find((record) => record.id === sourceId);
   const cluster = clusterAround(records, source);
   const duplicates = cluster.filter((record) => record.id !== sourceId);
@@ -83,6 +74,4 @@ const evidence: JsFn<Evidence> = ({ nodes }) => {
       !parentOrSubsidiaryWarning,
     evidenceSummary: summarize(cluster),
   };
-};
-
-export default evidence;
+});

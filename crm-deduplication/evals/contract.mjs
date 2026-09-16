@@ -118,8 +118,18 @@ for (const node of nodes.filter((node) => node.actionSlug === "script")) {
 // what keeps the module this file imports and the code a run executes identical.
 assert.match(
   evidenceNode.config.script,
-  /Generated from \.\.\/scripts\/evidence\.ts/,
+  /Generated from evidence\.ts/,
   "the evidence node must be bundled from infra/scripts/evidence.ts",
+);
+// The script takes the search and the record ID as values; the SDK writes where
+// each lives. Checked here because it is the one place the wiring is visible:
+// the fresh search, not the enrolled extract, and the enrolled row's own ID.
+assert.match(
+  evidenceNode.config.script,
+  new RegExp(
+    `default\\(\\{ "found": nodes\\.${search.slug}, "sourceId": nodes\\.start\\.hs_object_id \\}`,
+  ),
+  "the evidence script must receive the live CRM search and the enrolled record ID",
 );
 
 // Automatic merge needs BOTH the score threshold and the exact-identity guard.
@@ -192,12 +202,10 @@ assert.equal(
   "decline and timeout must never reach a CRM merge",
 );
 
-// The evidence module runs for real, against the node slugs it reads. A
-// connector node inserted ahead of it renames those slugs, and these calls are
-// what catches it. Imported rather than reconstructed from the compiled node:
-// `js({ path })` bundles this exact module, so calling it here and calling it
-// in a run are the same code.
-const prepareEvidence = (nodes) => evidence({ nodes });
+// The evidence module runs for real. Imported rather than reconstructed from
+// the compiled node: `js(evidenceScript, …)` bundles this exact module, so
+// calling it here and calling it in a run are the same code — and because it
+// takes values rather than reading `nodes.<slug>`, the test hands it values too.
 const company = (id, properties = {}) => ({
   id,
   properties: {
@@ -212,8 +220,7 @@ const company = (id, properties = {}) => ({
     ...properties,
   },
 });
-const evidenceFor = (sourceId, found) =>
-  prepareEvidence({ start: { hs_object_id: sourceId }, hubspot: found });
+const evidenceFor = (sourceId, found) => evidence({ found, sourceId });
 
 const exact = evidenceFor("source", [
   company("source"),
