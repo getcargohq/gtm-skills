@@ -520,6 +520,128 @@
       "partOf": []
     },
     {
+      "name": "sending-infrastructure",
+      "kind": "cookbook",
+      "job": "Stand up cold-email sending infrastructure sized to a target volume: lookalike domains registered with DMARC and an apex redirect, a uniform grid of mailboxes on real senders, and warm-up started on every one.",
+      "description": "Stand up cold-email sending infrastructure sized to a target volume: lookalike domains registered with DMARC and an apex redirect, a uniform grid of mailboxes on real senders, and warm-up started on every one. Triggers: \"set up cold email domains\", \"buy sending domains\", \"we need more sending capacity\", \"create outbound mailboxes\", \"our outbound is going to spam\", \"stop sending cold email from our main domain\", \"set up a sending fleet\", \"warm up our new inboxes\". Cargo CDK, defineDomain, defineMailbox, Mailpool. Skip when: the mailboxes already exist and only need warm-up, which is references/warmup.md alone, or when the ask is to send a campaign rather than to build the capacity for one.",
+      "version": "0.1.0",
+      "homepage": "https://github.com/getcargohq/gtm-skills/tree/main/sending-infrastructure",
+      "group": "Make it run forever",
+      "install": "cargo-ai cdk add cookbook/sending-infrastructure",
+      "partOf": [],
+      "state": "to-be-approved",
+      "chain": 1,
+      "resources": [
+        "domains",
+        "folders",
+        "mailboxes"
+      ],
+      "asked": [
+        {
+          "input": "existing_fleet",
+          "kind": "derived",
+          "how": "cargo-ai mailboxManagement mailbox list`, plus the project's declared domains",
+          "why": "A fleet is usually extended, not started; re-buying what exists is pure waste"
+        },
+        {
+          "input": "primary_domain",
+          "kind": "derived",
+          "how": "The signed-in address from `cargo-ai whoami`, confirmed in the plan, never a question",
+          "why": "It is the redirect target and the one domain that must never be in the fleet"
+        },
+        {
+          "input": "senders",
+          "kind": "derived",
+          "how": "Workspace members, presented for confirmation with their real first and last names",
+          "why": "Every From header is one of these humans; a fabricated sender is refused"
+        },
+        {
+          "input": "target_daily_sends",
+          "kind": "asked",
+          "how": "The operator states the steady-state daily cold volume this fleet has to carry",
+          "why": "It is the only input that sizes the fleet, and nothing can look it up"
+        },
+        {
+          "input": "approved_domains",
+          "kind": "asked",
+          "how": "The agent generates candidates, checks availability and price, and the operator picks or supplies their own",
+          "why": "Naming is brand judgment, and an unavailable name is not a choice"
+        },
+        {
+          "input": "local_part_shape",
+          "kind": "asked",
+          "how": "jane@`, `jane.doe@`, or `j.doe@`, chosen once and applied to the whole fleet",
+          "why": "One shape across the fleet is what keeps the addresses reading as human"
+        },
+        {
+          "input": "approved_spend",
+          "kind": "asked",
+          "how": "The operator approves the exact one-time registration and recurring monthly cost from a live quote",
+          "why": "Domains are a one-time charge and mailboxes recur monthly until removed"
+        }
+      ],
+      "canChange": [
+        {
+          "id": "mailboxes_per_domain",
+          "when": "The operator wants fewer domains for the same volume",
+          "how": "Raise the `SENDERS` table in `infra/index.ts`. Three is the recommendation",
+          "cost": "Blast radius: a domain that gets flagged takes every mailbox on it, so more per domain loses more at once"
+        },
+        {
+          "id": "mailbox_type",
+          "when": "Cost matters more than the default trust of the `google` flavour",
+          "how": "Change `type` in `infra/index.ts` to `shared` or `private` and re-quote with `cargo-ai mailboxManagement pricing get",
+          "cost": "A cheaper flavour is a different deliverability profile, unproven against this audience"
+        },
+        {
+          "id": "external_registrar",
+          "when": "The domains are already owned elsewhere and will be delegated, not bought",
+          "how": "Register nothing: point the nameservers at Cargo's mail provider and `adopt: true` the domain. Cargo never buys it, never renews it, and does not expose its zone",
+          "cost": "The zone stays the operator's problem, and DMARC and the redirect stop being one line"
+        },
+        {
+          "id": "dmarc_policy",
+          "when": "The reports are clean and the fleet has sending history",
+          "how": "Move `dmarcPolicy` from `none` to `quarantine`, then `reject`, one step at a time in `infra/index.ts",
+          "cost": "Enforcing before the config is proven bounces your own mail, and the bounce is invisible in Cargo"
+        },
+        {
+          "id": "sender_name_variants",
+          "when": "There are fewer humans available than mailboxes wanted",
+          "how": "Add a second `local` for the same person, e.g. `jane` and `jane.doe`. Keep each variant a real form of that person's real name",
+          "cost": "Every variant moves the fleet closer to fabricated identity; prefer adding a human over a variant"
+        }
+      ],
+      "shouldNotChange": [
+        "**Warm-up is started after deploy, every time.** (`references/warmup.md`) The CDK does not model warm-up, so a clean `cdk deploy` produces a fleet pinned at 5 sends a day forever. Nothing reports this. The plan is green and the capacity never arrives.",
+        "**Warm-up is started only on a mailbox that reports `active`.** (`references/warmup.md`) A newly created mailbox returns `pending` until the provider issues credentials, and `start-warmup` against it returns success and starts nothing. Refresh to `active` first, and verify by counting warm-up states, never by exit code.",
+        "**The primary domain is never in the fleet.** (`infra/index.ts` `PRIMARY_DOMAIN` is excluded from `DOMAINS`) The fleet exists so that a burned sending domain is a disposable one. Put the corporate domain in it and a bad campaign takes the company's real mail with it.",
+        "**`dnsRecords` stays undeclared.** (`infra/index.ts`) Declaring it replaces the entire live zone, including the MX and DKIM records the registrar wrote at purchase and the mailboxes depend on. The domain and the mailboxes both keep reporting `active` while mail stops arriving. `redirectUrl`, `dmarcEmail`, and `dmarcPolicy` are additive and are the supported way to configure the zone.",
+        "**Every mailbox is a real person with a real signature.** (`infra/index.ts` `SENDERS`, `signatureFor`) A fabricated sender is refused under acceptable use. It is also the fastest way to fail a recipient who searches the name.",
+        "**One local-part shape across the whole fleet.** (`infra/index.ts` `SENDERS[].local`) Mixing `jane@` on one domain with `jane.doe@` on another is the pattern that makes generated addresses legible as generated.",
+        "**Mailbox slugs are derived from sender and domain.** (`infra/index.ts`) A hand-written slug that changes between plans reads as a teardown and a rebuild, and the rebuild is a fresh mailbox with a fresh ramp.",
+        "**The ramp is a ceiling, not a target.** (`references/warmup.md`) Sizing a fleet so that one campaign's volume can be spread across it to clear what a single mailbox's ramp would not allow is the evasion case in acceptable use, not a configuration question. Size for steady-state volume.",
+        "**The fleet is bought before it is needed.** Warm-up takes 45 days. A fleet approved the week the campaign launches is a fleet that carries 5 sends a day when it launches.",
+        "**No credentials, registrar logins, or customer data in this repository.**"
+      ],
+      "doneWhen": [
+        "the plan shows one `defineDomain` per approved name and no domain the workspace already owns without `adopt: true`",
+        "the primary domain appears as `redirectUrl` and nowhere in the domain list",
+        "every domain carries a `dmarcEmail` and a `dmarcPolicy`, and no domain declares `dnsRecords`",
+        "the mailbox count equals domains times senders, and every mailbox resolves to a real person",
+        "every mailbox carries a signature and the mailbox folder",
+        "the local-part shape is identical across every domain in the fleet",
+        "`node --import tsx evals/contract.mjs` passes against the adapted example",
+        "`cargo-ai cdk plan` was reviewed and approved before deploy",
+        "every mailbox reports `active`, confirmed by a count and not by the deploy's exit code",
+        "warm-up reports `active` or `pending` on every mailbox in the fleet, confirmed by a count of warm-up states",
+        "the report names the fleet size, the daily ceiling at full ramp, and the calendar date that ceiling arrives",
+        "the operator was told the ramp is a ceiling and not a target"
+      ],
+      "cost": "Two charges with different shapes, and conflating them is how a fleet gets approved on the wrong\nnumber.\n\n**A domain is one-time, plus renewal.** Quote each candidate live before presenting it, which is\nalso the availability check:\n\n```sh\nGET /v1/domainManagement/domains/search?name=<domain>\n# -> { \"name\": \"...\", \"available\": true, \"priceCredits\": <live> }\n```\n\nThere is no `cargo-ai domainManagement` command surface yet, so this is a direct API call. Say that\nto the operator rather than guessing a price, and never present a name without having checked it.\n\n**A mailbox is recurring, every month, until it is removed.** Read the live figures immediately\nbefore every quote; the flavours are priced differently and the numbers move:\n\n```sh\ncargo-ai mailboxManagement pricing get\n```\n\nThere is no pause. `cargo-ai mailboxManagement mailbox remove` is the only way the monthly charge\nstops, and it deletes at the provider too.\n\n**Sends are billed separately**, per message, through the `sendEmail` orchestration action. Read the\ncurrent figure from the provider playbook at quote time. Volume is the cheap part; the fleet is not.\n\nPresent one-time and recurring as two separate lines, multiply the recurring by twelve so the annual\nshape is visible, and get an explicit yes before the first registration. The full spend rules are\n`cargo-gtm/references/cost-discipline.md`.",
+      "composesInto": "`find-b2b-leads` and `build-tam-list` (the audience this fleet sends to), `agentic-engagement` (the\nsequences that run on it), `verify-email-list` (subtract suppressions and unverifiable addresses\nbefore enrolling, never after)."
+    },
+    {
       "name": "tam-building",
       "kind": "cookbook",
       "job": "Stand up your account universe as a deployed pipeline: an AI Ark company search shaped by your ICP, sized for free before it bills, then tiered A / B / C / disqualified by an agent that reads your rubric from the workspace context and web-searches the evidence the sourced row does not carry.",

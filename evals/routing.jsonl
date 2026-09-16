@@ -98,3 +98,10 @@
 {"prompt": "Keep talking to leads over email", "expect": "agentic-engagement", "why": "The standing tell: a loop, not one send."}
 {"prompt": "Native email trigger for lead replies", "expect": "agentic-engagement"}
 {"prompt": "I need email addresses for these prospects so I can start conversations", "expect": "find-work-email", "why": "Addresses first; agentic-engagement is the loop you deploy after you have someone to write to."}
+// sending-infrastructure builds the sending capacity; agentic-engagement runs
+// conversations on a mailbox that already exists. The seam is build vs send.
+{"prompt": "buy some sending domains for cold outreach", "expect": "sending-infrastructure"}
+{"prompt": "set up cold email inboxes and warm them up", "expect": "sending-infrastructure"}
+{"prompt": "our outbound is landing in spam, we should stop sending from our main domain", "expect": "sending-infrastructure"}
+{"prompt": "we need more sending capacity before the Q4 campaign", "expect": "sending-infrastructure"}
+{"prompt": "have an agent reply to leads from our mailbox", "expect": "agentic-engagement"}
