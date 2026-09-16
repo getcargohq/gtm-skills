@@ -3,77 +3,85 @@
 
 import { defineJs } from "@cargo-ai/cdk";
 
+import { type Account, readAccounts } from "./accounts";
 import { agreementOn, clusterAround, identifiesOneCompany } from "./cluster";
-import { type CrmRecord, readRecordId, readSearchResults } from "./records";
-import { rankSurvivors } from "./survivor";
+import { rankBySurvivorPrecedence } from "./survivor";
 
 export const deriveEvidence = defineJs(
-  ({ found, sourceId }: { found: unknown; sourceId: string }) => {
-    const records = readSearchResults(found);
-    const enrolledId = readRecordId(sourceId);
-    const source = records.find((record) => record.id === enrolledId);
-    const cluster = clusterAround(records, source);
-    const duplicates = cluster.filter((record) => record.id !== enrolledId);
+  ({ records, accountId }: { records: unknown; accountId: string }) => {
+    const accounts = readAccounts(records);
+    const account = accounts.find((candidate) => candidate.id === accountId);
+    const cluster = clusterAround(accounts, account);
+    const duplicates = cluster.filter((candidate) => candidate !== account);
     const hasDuplicates = duplicates.length > 0;
 
-    const linkedinId = agreementOn(cluster, "linkedinId");
-    const linkedinUrl = agreementOn(cluster, "linkedinUrl");
-    const domain = agreementOn(cluster, "domain");
-    const protectedId = agreementOn(cluster, "protectedId");
+    const agreement = {
+      linkedinCompanyId: agreementOn(cluster, "linkedinCompanyId"),
+      linkedinHandle: agreementOn(cluster, "linkedinHandle"),
+      domain: agreementOn(cluster, "domain"),
+      protectedBusinessId: agreementOn(cluster, "protectedBusinessId"),
+    };
 
-    const exactLinkedinId = hasDuplicates && linkedinId.sharedByAll;
-    const exactLinkedinUrl = hasDuplicates && linkedinUrl.sharedByAll;
+    const exactLinkedinId =
+      hasDuplicates && agreement.linkedinCompanyId.sharedByAll;
+    const exactLinkedinUrl =
+      hasDuplicates && agreement.linkedinHandle.sharedByAll;
     const exactDomain =
-      hasDuplicates && domain.sharedByAll && identifiesOneCompany(domain.value);
+      hasDuplicates &&
+      agreement.domain.sharedByAll &&
+      identifiesOneCompany(agreement.domain.value);
     const identityConflict =
-      linkedinId.conflicting || linkedinUrl.conflicting || domain.conflicting;
+      agreement.linkedinCompanyId.conflicting ||
+      agreement.linkedinHandle.conflicting ||
+      agreement.domain.conflicting;
 
-    // A record whose parent is also in the cluster is a subsidiary, and a
+    // An account whose parent is also in the cluster is a subsidiary, and a
     // subsidiary is a different company however much it looks like this one.
-    const clusterIds = cluster.map((record) => record.id);
-    const parentOrSubsidiaryWarning = cluster.some((record) => {
+    const clusterIds = cluster.map((candidate) => candidate.id);
+    const parentOrSubsidiaryWarning = cluster.some((candidate) => {
       return (
-        record.parentId !== undefined && clusterIds.includes(record.parentId)
+        candidate.parentCompanyId !== undefined &&
+        clusterIds.includes(candidate.parentCompanyId)
       );
     });
 
-    const [survivor, ...merged] = rankSurvivors(cluster);
+    const [survivor, ...merged] = rankBySurvivorPrecedence(cluster);
 
     return {
-      sourceFound: source !== undefined,
+      accountFound: account !== undefined,
       hasDuplicates,
       duplicateCount: duplicates.length,
       primaryId: survivor === undefined ? undefined : survivor.id,
-      idsToMerge: merged.map((record) => record.id),
+      idsToMerge: merged.map((candidate) => candidate.id),
       exactLinkedinId,
       exactLinkedinUrl,
       exactDomain,
       identityConflict,
-      protectedIdConflict: protectedId.conflicting,
+      protectedIdConflict: agreement.protectedBusinessId.conflicting,
       parentOrSubsidiaryWarning,
       // The only class safe enough to merge unattended.
       autoEligible:
         exactLinkedinId &&
         identityConflict === false &&
-        protectedId.conflicting === false &&
+        agreement.protectedBusinessId.conflicting === false &&
         parentOrSubsidiaryWarning === false,
-      evidenceSummary: summarize(cluster),
+      evidenceSummary: summarizeForReview(cluster),
     };
   },
 );
 
-// For the review message. Protected IDs are reported as present or absent,
-// never printed.
-const summarize = (cluster: CrmRecord[]): string => {
+// One line per account for the Slack review message. Protected business IDs
+// are reported as present or absent, never printed.
+const summarizeForReview = (cluster: Account[]): string => {
   return cluster
-    .map((record) => {
+    .map((account) => {
       return [
-        record.id,
-        `linkedin id ${record.linkedinId === undefined ? "none" : record.linkedinId}`,
-        `linkedin ${record.linkedinUrl === undefined ? "none" : record.linkedinUrl}`,
-        `domain ${record.domain === undefined ? "none" : record.domain}`,
-        `protected ${record.protectedId === undefined ? "no" : "yes"}`,
-        `parent ${record.parentId === undefined ? "none" : record.parentId}`,
+        account.id,
+        `linkedin id ${account.linkedinCompanyId === undefined ? "none" : account.linkedinCompanyId}`,
+        `linkedin ${account.linkedinHandle === undefined ? "none" : account.linkedinHandle}`,
+        `domain ${account.domain === undefined ? "none" : account.domain}`,
+        `protected ${account.protectedBusinessId === undefined ? "no" : "yes"}`,
+        `parent ${account.parentCompanyId === undefined ? "none" : account.parentCompanyId}`,
       ].join(", ");
     })
     .join("\n");

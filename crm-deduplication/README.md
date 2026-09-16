@@ -30,7 +30,7 @@ npx skills add getcargohq/cargo-skills --skill cargo-cdk
 | `infra/connectors/`                   | The CRM slot and the Slack review destination              |
 | `infra/models/crm-accounts.ts`        | The CRM account extract the play runs on                   |
 | `infra/plays/deduplicate-accounts.ts` | The row workflow, its guards, and the trigger              |
-| `infra/scripts/policy.ts`             | Parked domains and survivor precedence — the knobs to adapt |
+| `infra/scripts/policy.ts`             | Generic domains and survivor precedence — the knobs to adapt |
 | `infra/scripts/evidence.ts`           | `deriveEvidence`, the script node's body, declared with `defineJs` |
 | `references/audit.md`                 | Identity coverage, candidate classes, and survivor audit   |
 | `references/configure.md`             | CRM search, scoring, merge, and Human Review configuration |

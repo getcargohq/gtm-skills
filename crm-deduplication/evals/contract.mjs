@@ -127,7 +127,7 @@ assert.match(
 assert.match(
   evidenceNode.config.script,
   new RegExp(
-    `\\(\\{ "found": nodes\\.${search.slug}, "sourceId": nodes\\.start\\.hs_object_id \\}`,
+    `\\(\\{ "records": nodes\\.${search.slug}, "accountId": nodes\\.start\\.hs_object_id \\}`,
   ),
   "the evidence script must receive the live CRM search and the enrolled record ID",
 );
@@ -206,7 +206,7 @@ assert.equal(
 // the compiled node: calling `deriveEvidence(…)` bundles this exact module, so
 // calling it here and calling it in a run are the same code — and because it
 // takes values rather than reading `nodes.<slug>`, the test hands it values too.
-const company = (id, properties = {}) => ({
+const record = (id, properties = {}) => ({
   id,
   properties: {
     linkedin_company_id: "123",
@@ -220,13 +220,14 @@ const company = (id, properties = {}) => ({
     ...properties,
   },
 });
-const evidenceFor = (sourceId, found) => deriveEvidence({ found, sourceId });
+const evidenceFor = (accountId, records) =>
+  deriveEvidence({ records, accountId });
 
-const exact = evidenceFor("source", [
-  company("source"),
-  company("customer", { lifecyclestage: "customer" }),
+const exact = evidenceFor("account", [
+  record("account"),
+  record("customer", { lifecyclestage: "customer" }),
 ]);
-assert.equal(exact.sourceFound, true, "the fresh source must be kept");
+assert.equal(exact.accountFound, true, "the account must be found in the fresh search");
 assert.equal(exact.duplicateCount, 1, "the duplicate candidate must be kept");
 assert.equal(
   exact.autoEligible,
@@ -241,13 +242,13 @@ assert.equal(
 );
 assert.deepEqual(
   exact.idsToMerge,
-  ["source"],
+  ["account"],
   "survivor selection must return every non-survivor ID",
 );
 
-const conflicting = evidenceFor("source", [
-  company("source"),
-  company("conflict", { domain: "other.example" }),
+const conflicting = evidenceFor("account", [
+  record("account"),
+  record("conflict", { domain: "other.example" }),
 ]);
 assert.equal(
   conflicting.identityConflict,
@@ -263,12 +264,12 @@ assert.equal(
 // One company page, written the ways a CRM ends up holding it. Each variant must
 // read as the same page: a false conflict here sends a merge that should be
 // automatic to review, and shows the reviewer a disagreement that is not real.
-const samePage = evidenceFor("source", [
-  company("source"),
-  company("regional", {
+const samePage = evidenceFor("account", [
+  record("account"),
+  record("regional", {
     linkedin_company_page: "https://uk.linkedin.com/company/acme/about/",
   }),
-  company("mobile", {
+  record("mobile", {
     linkedin_company_page: "https://m.linkedin.com/company/Acme?trk=feed",
   }),
 ]);
@@ -283,12 +284,12 @@ assert.equal(
   "every variant of one company page must agree",
 );
 
-const encodedPage = evidenceFor("source", [
-  company("source", {
+const encodedPage = evidenceFor("account", [
+  record("account", {
     linkedin_company_page:
       "https://www.linkedin.com/company/soci%C3%A9t%C3%A9-g%C3%A9n%C3%A9rale",
   }),
-  company("decoded", {
+  record("decoded", {
     linkedin_company_page: "linkedin.com/company/Société-Générale",
   }),
 ]);
@@ -300,9 +301,9 @@ assert.equal(
 
 // A numeric page is LinkedIn's company ID, not a vanity handle: it agrees with
 // the ID property rather than conflicting with the handle.
-const numericPage = evidenceFor("source", [
-  company("source"),
-  company("by-id", {
+const numericPage = evidenceFor("account", [
+  record("account"),
+  record("by-id", {
     linkedin_company_id: undefined,
     linkedin_company_page: "https://www.linkedin.com/company/123",
   }),
@@ -318,9 +319,9 @@ assert.equal(
   "a numeric company page must count as the company's LinkedIn ID",
 );
 
-const differentPages = evidenceFor("source", [
-  company("source"),
-  company("other", {
+const differentPages = evidenceFor("account", [
+  record("account"),
+  record("other", {
     linkedin_company_page: "https://www.linkedin.com/company/globex",
   }),
 ]);
@@ -330,35 +331,35 @@ assert.equal(
   "two different company pages must still conflict",
 );
 
-const parked = { linkedin_company_id: "", linkedin_company_page: "" };
-const parkedDomain = evidenceFor("source", [
-  company("source", { ...parked, domain: "google.com" }),
-  company("other", { ...parked, domain: "google.com" }),
+const noLinkedin = { linkedin_company_id: "", linkedin_company_page: "" };
+const genericDomain = evidenceFor("account", [
+  record("account", { ...noLinkedin, domain: "google.com" }),
+  record("other", { ...noLinkedin, domain: "google.com" }),
 ]);
 assert.equal(
-  parkedDomain.duplicateCount,
+  genericDomain.duplicateCount,
   0,
   "a generic domain alone must never create a duplicate candidate",
 );
 
-const stale = evidenceFor("already-merged", [company("survivor")]);
+const absorbed = evidenceFor("already-merged", [record("survivor")]);
 assert.equal(
-  stale.sourceFound,
+  absorbed.accountFound,
   false,
-  "a source already absorbed by an earlier merge must stop before scoring",
+  "an account already absorbed by an earlier merge must stop before scoring",
 );
 // What "stop before scoring" has to mean downstream. The cluster itself is no
 // longer in the payload — nothing at runtime read it — so assert the guarantee
-// it stood for: a source the search no longer returns names nothing to merge.
+// it stood for: an account the search no longer returns names nothing to merge.
 assert.equal(
-  stale.primaryId,
+  absorbed.primaryId,
   undefined,
-  "a missing fresh source must never name a survivor",
+  "an account missing from the fresh search must never name a survivor",
 );
 assert.deepEqual(
-  stale.idsToMerge,
+  absorbed.idsToMerge,
   [],
-  "a missing fresh source must never emit a merge ID",
+  "an account missing from the fresh search must never emit a merge ID",
 );
 
 console.log(

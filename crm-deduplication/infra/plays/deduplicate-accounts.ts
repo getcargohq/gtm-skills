@@ -51,7 +51,7 @@ const deduplicateCrmAccount = defineWorkflow(
   ({ input, uses, js, scoring, humanReview }) => {
     // The queue can be hours old, so cluster membership is re-derived from the
     // CRM on every run rather than trusted from the extract that enrolled it.
-    const found = uses.crm.findRecords({
+    const records = uses.crm.findRecords({
       objectType: "companies",
       criterias: [
         {
@@ -69,17 +69,17 @@ const deduplicateCrmAccount = defineWorkflow(
     // Everything the merge decision rests on, derived deterministically: no
     // model, no judgement. The same records always produce the same evidence.
     //
-    // The body lives in `infra/scripts/`: one decision spread over policy,
-    // coercion, clustering and ranking, which read as four named modules where
-    // they did not as one arrow. It receives the search and the record ID as
-    // values, so it never names the slug either one lives under, and
-    // `evidence` is typed from what the script returns.
+    // The body lives in `infra/scripts/`, one subject per module: reading
+    // records into accounts, clustering, survivor ranking, and the policy they
+    // read. It receives the search's records and this account's ID as values,
+    // so it never names the slug either lives under, and `evidence` is typed
+    // from what the script returns.
     const evidence = deriveEvidence({
-      found,
-      sourceId: input.hs_object_id,
+      records,
+      accountId: input.hs_object_id,
     });
 
-    if (!evidence.sourceFound) {
+    if (!evidence.accountFound) {
       return { status: "source_missing_or_changed" };
     }
 
