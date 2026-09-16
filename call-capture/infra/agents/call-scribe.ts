@@ -19,9 +19,9 @@ import { agentsFolder } from "../folders";
 // `claudeCode`; see `../connectors/anthropic.ts`.
 //
 // This replaces a scheduled CI workflow that launched a hosted agent. One
-// resource now holds the schedule, the credentials, the repository binding and
-// the instructions, and it is declared in the same project as everything else
-// the workspace runs.
+// resource now holds the schedule, the repository binding and the
+// instructions, declared in the same project as everything else the workspace
+// runs.
 export const callScribe = defineAgent("call-scribe", {
   name: "Call scribe",
   description:
