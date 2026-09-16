@@ -34,13 +34,14 @@ request per initiative — or one workspace pull request when there are none.
    the prompt: one per active initiative, or one workspace pull request.
 6. **A human merges.** The agent never does.
 
-Adds 3 resources plus a script bundle.
+Adds 4 resources plus a script bundle.
 
 | File                               | Resource                     | Role                                                              |
 | ---------------------------------- | ---------------------------- | ----------------------------------------------------------------- |
 | `infra/agents/planner.ts`          | `defineAgent` (claudeCode)   | schedule, repository binding, platform capability                 |
 | `infra/agents/planner.prompt.ts`   | (not a resource)             | the recap contract: window, one-PR-per-initiative rule, limits    |
 | `infra/connectors/git.ts`          | `defineConnector` (`github`) | the clone, branch, push and PR path, resolved by binding          |
+| `infra/connectors/anthropic.ts`    | `defineConnector` (`anthropic`) | the model the harness runs on, billed and metered              |
 | `infra/folders/index.ts`           | `defineFolder`               | the workspace folder this pipeline's resources are filed in       |
 | `scripts/collect/week.ts`          | (not a resource)             | the entrypoint: dump git / `gh` / initiatives / infra for the week |
 
@@ -79,9 +80,10 @@ improvise it.
 The recommendation is the opposite. It is judgement — which initiative is idle,
 whether a declared play ran, who owns the next step — and it produces one diff
 per bet. That is what `harness: "claudeCode"` buys: a working tree, the git
-history to read before writing, and a pull request. The LLM `connector` and
-`languageModel` fields are unused and omitted, because the harness brings its
-own model.
+history to read before writing, and a pull request. It does not buy its own
+model: the harness runs against Cargo's LLM proxy, so `connector` and
+`languageModel` are required here exactly as they are on a `streamText` agent,
+and they are what the run is billed and metered against.
 
 ## Why one pull request per initiative
 
@@ -101,6 +103,9 @@ compete with that initiative.
 
 1. **`PLANNING_TIMEZONE`** — `infra/agents/planner.ts`: IANA timezone the
    previous ISO week is computed in. Change it together with `cron`.
+2. **`languageModel`** — same file: any Anthropic model the workspace's
+   connector can reach. `claudeCode` pairs with the `anthropic` integration and
+   nothing else.
 
 ## What it does not do
 

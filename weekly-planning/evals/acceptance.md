@@ -18,9 +18,12 @@ Walk every line. A checked template without an evidence-backed consumer adaptati
   with no trailing subdirectory. The repo is the one holding `cadence/`, and
   the GitHub grant can push to it. A trailing `in infra/` means the harness was
   rooted where there is no node_modules, so the collector cannot run.
+- `cargo-ai connection connector list` shows an authorized Anthropic connector,
+  and `languageModel` in `infra/agents/planner.ts` names a model it can reach.
+  The harness runs against Cargo's proxy, so a missing one throws at `plan`.
 - `node --import tsx evals/contract.mjs` passes against the adapted graph:
-  harness is `claudeCode`, the platform capability is on the agent, there is
-  no Slack action.
+  harness is `claudeCode` bound to an Anthropic connector and a model, the
+  platform capability is on the agent, there is no Slack action.
 - The cadence and initiatives paths in the system prompt match what
   `cadence/README.md` describes, or the new folders are introduced
   deliberately and that README is updated to name them.
@@ -51,9 +54,9 @@ Walk every line. A checked template without an evidence-backed consumer adaptati
   and no nested `SKILL.md` exists.
 - Recommendations land as pull requests. No Slack token, no `chat.postMessage`
   script, no GitHub Action, no `execute_action`.
-- `evals/contract.mjs` still passes after adaptation: harness is `claudeCode`,
-  the platform capability is on the agent, there is no Slack action, and no
-  tool wraps git or platform.
+- `evals/contract.mjs` still passes after adaptation: harness is `claudeCode`
+  bound to an Anthropic connector, the platform capability is on the agent,
+  there is no Slack action, and no tool wraps git or platform.
 - Platform tools used on the first run were read-only (whoami, runs, usage,
   models). `execute_action` / `execute_action_batch` were not called. If the
   capability was not live yet, each PR says so and the recap continued from

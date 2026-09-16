@@ -1,6 +1,7 @@
 import { defineAgent } from "@cargo-ai/cdk";
 
 import { plannerPrompt } from "./planner.prompt";
+import { anthropic } from "../connectors/anthropic";
 import { agentsFolder } from "../folders";
 
 // The planner: a Claude Code harness agent, not a streamText agent.
@@ -10,9 +11,12 @@ import { agentsFolder } from "../folders";
 // value; it is one or more diffs — a raw dump plus one recommendation file
 // per active initiative (or one workspace file when there are none). Only an
 // agent with a working tree can produce those diffs, and only a pull request
-// makes a recommendation reviewable before it is next week's work. There is
-// no `connector` / `languageModel` here on purpose: the harness brings its
-// own model.
+// makes a recommendation reviewable before it is next week's work.
+//
+// `connector` and `languageModel` are required even here. The harness does not
+// bring its own model: it runs against Cargo's LLM proxy, which bills this
+// connector and meters usage against this slug. Any Anthropic model works with
+// `claudeCode`; see `../connectors/anthropic.ts`.
 //
 // `platform` is the workspace operating surface (cargo#5815): list and query
 // runs, query models, credit usage. Same tools as the platform MCP.
@@ -26,6 +30,8 @@ export const planner = defineAgent("weekly-planning", {
     "Ranks last week's GTM work against active initiatives, declared infra, and live runs, and opens one reviewable pull request per initiative (or one workspace pull request when there are none).",
   color: "blue",
   harness: "claudeCode",
+  connector: anthropic,
+  languageModel: "claude-sonnet-5", // PLACEHOLDER — your model of choice
   // @ts-expect-error TS2322: "platform" is not in this package's Capability union yet (cargo#5815)
   capabilities: [{ slug: "platform", config: {} }],
   repository: {

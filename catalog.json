@@ -826,14 +826,14 @@
       ],
       "doneWhen": [
         "`--dry-run` printed the dump for the previous ISO week, and the run without it wrote `cadence/log/raw/planning/<YYYY-Www>.md`; running it twice that Monday overwrote the same file",
-        "`node --import tsx evals/contract.mjs` passes: harness is `claudeCode`, the platform capability is on the agent, there is no Slack action, and no tool wraps git or platform",
-        "`cargo-ai cdk plan` reports the agent, the GitHub connector and the folder, and does **not** run git or `gh` while planning",
+        "`node --import tsx evals/contract.mjs` passes: harness is `claudeCode` bound to an Anthropic connector and a model, the platform capability is on the agent, there is no Slack action, and no tool wraps git or platform",
+        "`cargo-ai cdk plan` reports the agent, the GitHub and Anthropic connectors and the folder, and does **not** run git or `gh` while planning",
         "with **zero** active initiatives, the first scheduled run opened exactly one unmerged pull request titled `[cadence] workspace <YYYY-Www>` whose diff contains the dump and `cadence/plan/<YYYY-Www>.md` with `## Recommendations`",
         "with **N** active initiatives, it opened exactly N unmerged pull requests, one per slug, each diff containing the dump and exactly one `cadence/plan/<YYYY-Www>-<slug>.md` — never a second initiative in the same diff",
         "a re-run the same Monday opened no additional pull request for a target whose `## Recommendations` section was already on disk",
         "no number in a plan file is absent from the raw dump, a metrics file dated that week, or a platform tool the agent actually called. A platform-tool error is a note on the PR, not a made-up count"
       ],
-      "cost": "The collector talks to git and, when `gh` is installed, to GitHub from the harness environment.\nThose calls are not Cargo connector actions.\n\nThe recurring cost is the harness run itself, once a week, and it scales with how much the agent\nreads — the dump, the week's cadence files, the active initiative files, declared infra, and the\nplatform reads (whoami, runs, usage, models). There is no per-record fan-out. `execute_action` is\non the capability; this recap never calls it.",
+      "cost": "The collector talks to git and, when `gh` is installed, to GitHub from the harness environment.\nThose calls are not Cargo connector actions.\n\nThe recurring cost is the harness run itself, once a week, billed as LLM tokens through the bound\nAnthropic connector, and it scales with how much the agent reads — the dump, the week's cadence\nfiles, the active initiative files, declared infra, and the platform reads (whoami, runs, usage,\nmodels). There is no per-record fan-out. `execute_action` is on the capability; this recap never\ncalls it.",
       "composesInto": "`standup` (the week's daily logs are evidence this recap reads), `call-capture` (scribed calls dated\nin the week are evidence), `tam-building` and `account-scoring` (a declared play that did not run is\nthe gap this recap is for)."
     },
     {
