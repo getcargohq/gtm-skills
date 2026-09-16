@@ -4,7 +4,7 @@ import { z } from "zod";
 import { crm } from "../connectors/crm";
 import { slack } from "../connectors/slack";
 import { crmAccounts } from "../models/crm-accounts";
-import evidenceScript from "../scripts/evidence";
+import { deriveEvidence } from "../scripts/evidence";
 
 // PLACEHOLDER — the Slack channel every review request is posted to. Resolve it
 // against the live workspace and get it approved before deploying.
@@ -74,7 +74,7 @@ const deduplicateCrmAccount = defineWorkflow(
     // they did not as one arrow. It receives the search and the record ID as
     // values, so it never names the slug either one lives under, and
     // `evidence` is typed from what the script returns.
-    const evidence = evidenceScript({
+    const evidence = deriveEvidence({
       found,
       sourceId: input.hs_object_id,
     });

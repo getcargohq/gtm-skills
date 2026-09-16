@@ -6,7 +6,7 @@
 import assert from "node:assert/strict";
 import { loadResources } from "@cargo-ai/cdk";
 
-import evidence from "../infra/scripts/evidence.ts";
+import { deriveEvidence } from "../infra/scripts/evidence.ts";
 
 const infraDir = new URL("../infra", import.meta.url).pathname;
 const byId = new Map(
@@ -203,7 +203,7 @@ assert.equal(
 );
 
 // The evidence module runs for real. Imported rather than reconstructed from
-// the compiled node: calling `evidenceScript(…)` bundles this exact module, so
+// the compiled node: calling `deriveEvidence(…)` bundles this exact module, so
 // calling it here and calling it in a run are the same code — and because it
 // takes values rather than reading `nodes.<slug>`, the test hands it values too.
 const company = (id, properties = {}) => ({
@@ -220,7 +220,7 @@ const company = (id, properties = {}) => ({
     ...properties,
   },
 });
-const evidenceFor = (sourceId, found) => evidence({ found, sourceId });
+const evidenceFor = (sourceId, found) => deriveEvidence({ found, sourceId });
 
 const exact = evidenceFor("source", [
   company("source"),
@@ -282,7 +282,7 @@ assert.equal(
 // it stood for: a source the search no longer returns names nothing to merge.
 assert.equal(
   stale.primaryId,
-  "",
+  undefined,
   "a missing fresh source must never name a survivor",
 );
 assert.deepEqual(
