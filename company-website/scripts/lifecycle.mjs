@@ -1,4 +1,5 @@
 import { execFileSync } from "node:child_process";
+import { statePath } from "@cargo-ai/cdk/deploy";
 import { existsSync, readFileSync } from "node:fs";
 import { join, relative } from "node:path";
 
@@ -76,8 +77,15 @@ export function verifyConnectors(config, response) {
 }
 
 export function assertStateBound(project, cdkDir) {
-  const file = join(cdkDir, "cargo.state.json");
-  if (!existsSync(file)) {
+  const file = statePath(cdkDir);
+  // A deleted committed pointer must not make the CDK fall back to another
+  // location or treat an established project as a fresh installation.
+  for (const candidate of new Set([
+    file,
+    join(project, "cargo.state.json"),
+    join(cdkDir, "cargo.state.json"),
+  ])) {
+    if (existsSync(candidate)) continue;
     let committed = false;
     try {
       execFileSync(
@@ -85,18 +93,21 @@ export function assertStateBound(project, cdkDir) {
         [
           "cat-file",
           "-e",
-          `HEAD:${relative(project, file).split("\\").join("/")}`,
+          `HEAD:${relative(project, candidate).split("\\").join("/")}`,
         ],
         { cwd: project, stdio: "ignore" },
       );
       committed = true;
     } catch {}
-    throw new Error(
-      committed
-        ? "The committed state pointer is missing. Restore it; do not create replacement state."
-        : "Cargo state is absent. Bind existing state, or initialize state through the CLI for a genuinely new project.",
-    );
+    if (committed)
+      throw new Error(
+        "The committed state pointer is missing. Restore it; do not create replacement state.",
+      );
   }
+  if (!existsSync(file))
+    throw new Error(
+      "Cargo state is absent. Bind existing state, or initialize state through the CLI for a genuinely new project.",
+    );
   const state = JSON.parse(readFileSync(file, "utf8"));
   if (!state.stateUuid && !state.resources)
     throw new Error(

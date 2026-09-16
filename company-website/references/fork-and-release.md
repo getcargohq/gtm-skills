@@ -30,6 +30,9 @@ project's installed CLI and inspect `--help` before adapting command flags.
 
 1. Read the actual CDK root and state path from the project. The normal layout
    uses `infra/`; if different, pass the same `--cdk-dir` to helper commands.
+   Current Manifest projects put `cargo.state.json` at the repository root;
+   older projects may retain `infra/cargo.state.json`. The helper delegates
+   resolution to the installed CDK and reports its actual path.
 2. Read `cargo-ai whoami`, git origin and GitHub's default branch. Update
    `infra/company-website/website.json` with these values. Leave `publish` false.
    Choose a unique public app slug before first release and keep it stable after.

@@ -4,6 +4,7 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync,
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { statePath, writeStatePointer } from "@cargo-ai/cdk/deploy";
 import { install, filesToInstall } from "../scripts/install.mjs";
 import { assertStateBound, inspectLive, readConfig, repositoryFromOrigin, verifyConnectors, verifyIdentity, verifyPublic } from "../scripts/lifecycle.mjs";
 import { assertReady, assertUploadable, escapeHtml, sourceHash } from "../infra/apps/website/build-support.mjs";
@@ -115,6 +116,24 @@ try {
     rmSync(file);
     assert.throws(() => assertStateBound(project, join(project, "infra")), /committed state pointer is missing/);
     assert.equal(existsSync(file), false);
+  });
+
+  await test("fresh Manifest uses the actual CDK root pointer and a missing root cannot fall back to legacy state", () => {
+    const fresh = join(temp, "fresh-manifest");
+    const freshInfra = join(fresh, "infra");
+    mkdirSync(freshInfra, { recursive: true });
+    execFileSync("git", ["init", "-q"], { cwd: fresh });
+    writeFileSync(join(freshInfra, "context.ts"), 'import { defineContext } from "@cargo-ai/cdk";\n');
+    writeStatePointer(freshInfra, uuid);
+    const rootPointer = join(fresh, "cargo.state.json");
+    assert.equal(statePath(freshInfra), rootPointer);
+    assert.equal(assertStateBound(fresh, freshInfra), rootPointer);
+    assert.deepEqual(json(rootPointer), { stateUuid: uuid });
+    execFileSync("git", ["add", "cargo.state.json"], { cwd: fresh });
+    execFileSync("git", ["-c", "user.name=Fixture", "-c", "user.email=fixture@example.invalid", "commit", "-qm", "Synthetic root pointer"], { cwd: fresh });
+    rmSync(rootPointer);
+    save(join(freshInfra, "cargo.state.json"), { stateUuid: "other" });
+    assert.throws(() => assertStateBound(fresh, freshInfra), /committed state pointer is missing/);
   });
 
   await test("enabling publication with distributed draft content fails the real CDK load", () => {

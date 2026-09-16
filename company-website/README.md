@@ -8,6 +8,11 @@ remaining files under the project's skills directories. The local installer
 supports a fork before its changes reach upstream and preserves existing files.
 Neither path ships a workspace state file or a root deployment workflow.
 
+For a new environment, use the [terminal setup guide](references/terminal-setup.md).
+Its explicit bootstrap creates a separate company project and adapts the fresh
+Manifest CI. The normal cookbook installer does not alter an existing project's
+release workflow. The bootstrap stops before deploying the maintainer or website.
+
 ## Why these resources exist
 
 - The public Vite app is the customer-facing output. Keeping its package under

@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { execFileSync } from "node:child_process";
+import { statePath } from "@cargo-ai/cdk/deploy";
 import { existsSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
@@ -106,7 +107,8 @@ try {
         JSON.stringify(
           {
             ...target,
-            statePresent: existsSync(join(cdkDir, "cargo.state.json")),
+            stateFile: statePath(cdkDir),
+            statePresent: existsSync(statePath(cdkDir)),
             publish: config.publish,
             maintainer: config.maintainer,
             modelAvailability:

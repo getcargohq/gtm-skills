@@ -35,6 +35,9 @@ CLI's subcommand help before using it; do not copy obsolete command names.
 For a brief, audit or local preview, stop at the requested phase. Defer target
 binding, connector setup and online commands until the work needs a workspace.
 The local app and offline `check` can run without Cargo credentials.
+For an operator starting entirely from a terminal, see the
+[fresh-project setup guide](references/terminal-setup.md). Its bootstrap is only
+for a new, separate Manifest project; do not use it to update an existing one.
 
 1. **Place.** In an existing Manifest project, run
    `cargo-ai cdk add cookbook/company-website`. Without a project, use
