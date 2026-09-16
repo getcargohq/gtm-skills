@@ -1,6 +1,7 @@
 import { defineAgent, secret } from "@cargo-ai/cdk";
 
 import { callScribePrompt } from "./call-scribe.prompt";
+import { anthropic } from "../connectors/anthropic";
 import { agentsFolder } from "../folders";
 
 // The scribe: a Claude Code harness agent, not a streamText agent.
@@ -10,8 +11,12 @@ import { agentsFolder } from "../folders";
 // value; it is a diff across the repo — a raw capture, a log entry, an
 // objection file that just gained its second occurrence. Only an agent with a
 // working tree can produce one, and only a pull request makes it reviewable
-// before it becomes what every other agent believes. There is no `connector` /
-// `languageModel` here on purpose: the harness brings its own model.
+// before it becomes what every other agent believes.
+//
+// `connector` and `languageModel` are required even here. The harness does not
+// bring its own model: it runs against Cargo's LLM proxy, which bills this
+// connector and meters usage against this slug. Any Anthropic model works with
+// `claudeCode`; see `../connectors/anthropic.ts`.
 //
 // This replaces a scheduled CI workflow that launched a hosted agent. One
 // resource now holds the schedule, the credentials, the repository binding and
@@ -23,6 +28,8 @@ export const callScribe = defineAgent("call-scribe", {
     "Collects yesterday's call recordings into the cadence layer, scribes them, and opens one reviewable pull request.",
   color: "blue",
   harness: "claudeCode",
+  connector: anthropic,
+  languageModel: "claude-sonnet-5", // PLACEHOLDER — your model of choice
   repository: {
     // Deliberately partial. `repository`, `defaultBranch`, `rootDirectory` and
     // the GitHub `connector` are all OMITTED so plan and deploy fill them from

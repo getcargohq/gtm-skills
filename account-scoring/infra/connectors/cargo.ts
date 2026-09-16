@@ -7,5 +7,5 @@ import { defineConnector } from "@cargo-ai/cdk";
 // LinkedIn activity, and more.
 export const cargoDb = defineConnector("cargo", {
   integration: "cargo",
-  adopt: true,
+  default: true,
 });
