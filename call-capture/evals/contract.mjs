@@ -188,9 +188,12 @@ const pipeline = await import(
   join(tree, "scripts", "call-capture", "collect", "recorder.ts")
 );
 
-const call = (id, attendees, startAt = "2026-09-15T10:00:00Z") => ({
+// Each check captures on a day of its own, so one of them failing cannot
+// renumber another's files: everything here writes into one tree, because one
+// tree is what the collector has.
+const call = (day, id, attendees) => ({
   id,
-  startAt,
+  startAt: `${day}T10:00:00Z`,
   subject: "a call",
   attendees,
 });
@@ -202,10 +205,12 @@ const fake = (calls) => ({
   notes: async () => null,
 });
 
-const raw = () => {
+const raw = (day) => {
   const dir = join(tree, "cadence", "log", "raw", "calls");
   try {
-    return readdirSync(dir).sort();
+    return readdirSync(dir)
+      .filter((name) => name.startsWith(day))
+      .sort();
   } catch {
     return [];
   }
@@ -217,14 +222,14 @@ check("an address the vendor mangled is survived, not fatal", async () => {
   // of accountSlug and take the whole morning's run with them.
   await pipeline.capture(
     fake([
-      call("mangled", [
+      call("2026-09-10", "mangled", [
         { email: "", name: "No address" },
         { email: "not-an-address", name: "No at sign" },
         { email: "her@acme.com", name: "Real" },
       ]),
     ]),
   );
-  assert.deepEqual(raw(), ["2026-09-15-acme.md"]);
+  assert.deepEqual(raw("2026-09-10"), ["2026-09-10-acme.md"]);
 });
 
 check("the internal-domain rule matches a domain, not a suffix", async () => {
@@ -233,18 +238,20 @@ check("the internal-domain rule matches a domain, not a suffix", async () => {
   // "me.com" swallows every acme.com contact.
   await pipeline.capture(
     fake([
-      call("lookalike", [
+      call("2026-09-11", "lookalike", [
         { email: "us@example.com" },
         { email: "her@notexample.com" },
       ]),
-      call("subdomain", [
+      call("2026-09-11", "subdomain", [
         { email: "us@example.com" },
         { email: "them@mail.example.com" },
       ]),
-      call("internal", [{ email: "us@example.com" }]),
+      call("2026-09-11", "internal", [{ email: "us@example.com" }]),
     ]),
   );
-  assert.deepEqual(raw(), ["2026-09-15-acme.md", "2026-09-15-notexample.md"]);
+  // The lookalike domain is a customer; the subdomain and the internal-only
+  // call are colleagues, and a call with no customer on it is not captured.
+  assert.deepEqual(raw("2026-09-11"), ["2026-09-11-notexample.md"]);
 });
 
 check("a call already anywhere under cadence/log/ is not captured again", async () => {
@@ -255,20 +262,23 @@ check("a call already anywhere under cadence/log/ is not captured again", async 
     join(tree, "cadence", "log", "calls", "2026-09-14-scribed.md"),
     "---\nsource: probe already-done\n---\n",
   );
-  const before = raw();
-  await pipeline.capture(fake([call("already-done", [{ email: "her@acme.com" }])]));
-  assert.deepEqual(raw(), before);
+  await pipeline.capture(
+    fake([call("2026-09-12", "already-done", [{ email: "her@acme.com" }])]),
+  );
+  assert.deepEqual(raw("2026-09-12"), []);
 });
 
 check("two calls with one account on one day both keep a file", async () => {
   await pipeline.capture(
     fake([
-      call("second-acme", [{ email: "her@acme.com" }]),
-      call("third-acme", [{ email: "him@acme.com" }]),
+      call("2026-09-13", "one-acme", [{ email: "her@acme.com" }]),
+      call("2026-09-13", "two-acme", [{ email: "him@acme.com" }]),
     ]),
   );
-  assert.ok(raw().includes("2026-09-15-acme-2.md"), raw().join(", "));
-  assert.ok(raw().includes("2026-09-15-acme-3.md"), raw().join(", "));
+  assert.deepEqual(raw("2026-09-13"), [
+    "2026-09-13-acme-2.md",
+    "2026-09-13-acme.md",
+  ]);
 });
 
 check("an id the dedup key cannot round-trip fails loudly", async () => {
@@ -276,7 +286,9 @@ check("an id the dedup key cannot round-trip fails loudly", async () => {
   // anything outside that class reads as never-captured and is re-captured
   // every morning without ever erroring.
   await assert.rejects(
-    pipeline.capture(fake([call("has spaces", [{ email: "her@acme.com" }])])),
+    pipeline.capture(
+      fake([call("2026-09-14", "has spaces", [{ email: "her@acme.com" }])]),
+    ),
     /deduplication key cannot round-trip/,
   );
 });
@@ -284,9 +296,10 @@ check("an id the dedup key cannot round-trip fails loudly", async () => {
 check("--dry-run writes nothing", async () => {
   process.argv.push("--dry-run");
   try {
-    const before = raw();
-    await pipeline.capture(fake([call("dry", [{ email: "her@beta.io" }])]));
-    assert.deepEqual(raw(), before);
+    await pipeline.capture(
+      fake([call("2026-09-15", "dry", [{ email: "her@beta.io" }])]),
+    );
+    assert.deepEqual(raw("2026-09-15"), []);
   } finally {
     process.argv.splice(process.argv.indexOf("--dry-run"), 1);
   }
