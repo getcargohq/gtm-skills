@@ -16,5 +16,5 @@ import { defineConnector } from "@cargo-ai/cdk";
 //     than a preference, and why the model carries no schedule.
 export const aiArk = defineConnector("ai_ark", {
   integration: "aiArk",
-  adopt: true,
+  default: true,
 });

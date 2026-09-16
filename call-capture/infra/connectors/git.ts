@@ -14,5 +14,5 @@ import { defineConnector } from "@cargo-ai/cdk";
 // deploy cannot mint an OAuth grant.
 export const git = defineConnector("github", {
   integration: "github",
-  adopt: true,
+  default: true,
 });
