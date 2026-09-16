@@ -181,3 +181,24 @@ repo, and that is exactly the drift nobody would otherwise notice.
 ceiling effect rather than a result: every case was generated from the trigger phrases it
 grades, so it proves the triggers do not collide, not that the descriptions route. Real cases
 have to come from real sessions.
+
+## Keeping the toolchain current
+
+[`cargo-deps-update.yml`](.github/workflows/cargo-deps-update.yml) bumps
+`@cargo-ai/cdk` and the `cli-version` pin every morning onto the stable branch
+`automation/cargo-deps`, so a newer version refreshes one pull request rather than
+stacking a second.
+
+The gate is the interesting part. `tsc` cannot see a CDK contract change: the CDK
+validates inside `defineAgent` and friends, at call time, so a cookbook that
+stopped being deployable still typechecks green. The bump is therefore gated on
+`scripts/check-pipelines.mjs`, which runs `cargo-cdk check` and `plan` against
+every cookbook's `infra/`. When that fails, the pull request opens as a draft and
+a Replicas run is launched to fix the cookbooks on the branch — the CDK is
+usually right and the cookbook is usually stale. The prompt it runs on is
+[`.replicas/prompts/fix-cookbooks.md`](.replicas/prompts/fix-cookbooks.md), and
+[`.replicas/README.md`](.replicas/README.md) covers the two secrets it needs.
+
+`scripts/validate.ts` is deliberately not part of that gate: it resolves slugs and
+prices against `getcargohq/cargo-skills`, so it can be red for reasons a bump did
+not cause. `validate.yml` still runs it against the pull request.

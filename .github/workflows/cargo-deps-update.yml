@@ -1,0 +1,262 @@
+name: update cargo deps
+
+# Bumps @cargo-ai/cdk and the CLI pin, then proves every cookbook still checks
+# and plans against them before asking anyone to merge.
+#
+# The gate is the reason this job is not a one-liner. The CDK validates inside
+# `defineAgent` and friends, at call time, so a contract change lands as a
+# runtime throw that `tsc` cannot see: a cookbook that stopped being deployable
+# still typechecks green. When the gate fails, a Replicas run is launched to fix
+# the cookbooks on this job's own branch, because a bump this repo cannot absorb
+# is a content problem — the CDK is usually right and the cookbook is usually
+# stale.
+
+on:
+  schedule:
+    # 07:43 UTC daily. Off the hour, and after cargo-manifest's 07:13 so the two
+    # bump jobs do not land contradictory versions on the same morning.
+    - cron: "43 7 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+# One bump at a time. Two runs force-pushing the same branch would each believe
+# they own it.
+concurrency:
+  group: cargo-deps-update
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    env:
+      BRANCH: automation/cargo-deps
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # Node >= 22.18: the repo's scripts run via native type-stripping.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      # The branch name is stable so a newer version refreshes one PR instead of
+      # stacking a second. That force-push is only safe while the branch holds
+      # nothing but this job's own commits. Once the gate has failed, a Replicas
+      # run or a human may have pushed cookbook fixes onto it, and overwriting
+      # those would silently discard exactly the work this job asked for.
+      - name: refuse to overwrite fixes on the branch
+        id: guard
+        run: |
+          set -euo pipefail
+          if ! git rev-parse --verify "origin/$BRANCH" > /dev/null 2>&1; then
+            echo "held=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          FOREIGN=$(git log --format='%an' "origin/main..origin/$BRANCH" \
+            | { grep -vc '^github-actions\[bot\]$' || true; })
+          [ -n "$FOREIGN" ] || FOREIGN=0
+          if [ "$FOREIGN" -gt 0 ]; then
+            echo "held=true" >> "$GITHUB_OUTPUT"
+            {
+              echo "### Bump held"
+              echo
+              echo "\`$BRANCH\` carries $FOREIGN commit(s) this job did not write."
+              echo "Land or close the open PR and the next run resumes."
+            } >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "held=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: bump to latest
+        id: bump
+        if: steps.guard.outputs.held != 'true'
+        run: |
+          set -euo pipefail
+          npm install --save @cargo-ai/cdk@latest
+          # The CLI is not a dependency of this repo. `cli-version` is the pin the
+          # SessionStart hook installs verbatim, so a command in a SKILL.md meets
+          # the CLI it was written against; it has to be bumped on its own.
+          CLI=$(npm view @cargo-ai/cli version)
+          printf '%s\n' "$CLI" > cli-version
+          echo "cli=$CLI" >> "$GITHUB_OUTPUT"
+          echo "cdk=$(node -p "require('./node_modules/@cargo-ai/cdk/package.json').version")" >> "$GITHUB_OUTPUT"
+
+      - name: stop if nothing changed
+        id: diff
+        if: steps.guard.outputs.held != 'true'
+        run: |
+          if git diff --quiet -- package.json package-lock.json cli-version; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "Cargo tooling is already current." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: install
+        if: steps.diff.outputs.changed == 'true'
+        run: npm ci --ignore-scripts
+
+      # `check-pipelines.mjs` runs `cargo-cdk check` and `plan` on every
+      # cookbook's infra/, which is the only step here that sees a CDK contract
+      # change. This is what would have caught getcargohq/cargo#5865 making
+      # `connector` and `languageModel` hard requirements on harness agents.
+      #
+      # `scripts/validate.ts` is deliberately NOT the gate: it resolves slugs and
+      # prices against getcargohq/cargo-skills, so it can be red for reasons a
+      # bump did not cause and a fixer run could not fix. validate.yml still runs
+      # it against the PR.
+      - name: gate — every cookbook still checks and plans
+        id: gate
+        if: steps.diff.outputs.changed == 'true'
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          node scripts/check-pipelines.mjs 2>&1 | tee /tmp/gate.log
+          npm run typecheck 2>&1 | tee -a /tmp/gate.log
+
+      - name: push the bump
+        if: steps.diff.outputs.changed == 'true'
+        env:
+          CDK: ${{ steps.bump.outputs.cdk }}
+          CLI: ${{ steps.bump.outputs.cli }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch -c "$BRANCH"
+          git add package.json package-lock.json cli-version
+
+          # Message from a file, so the trailers stay one contiguous block with
+          # no blank line between them.
+          {
+            echo "Bump @cargo-ai/cdk to ${CDK} and the CLI pin to ${CLI}"
+            echo
+            echo "Co-Authored-By: Auree Aubert <16732193+aureeaubert@users.noreply.github.com>"
+            echo "Co-Authored-By: replicas-connector[bot] <replicas-connector[bot]@users.noreply.github.com>"
+          } > /tmp/commit-msg.txt
+
+          git commit -F /tmp/commit-msg.txt
+          git push --force --set-upstream origin "$BRANCH"
+
+      # Written on every run, not only on creation. cargo-manifest's equivalent
+      # exits early when the PR already exists, so its body kept advertising the
+      # versions of the first run while the branch carried newer ones.
+      - name: open or refresh the PR
+        if: steps.diff.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CDK: ${{ steps.bump.outputs.cdk }}
+          CLI: ${{ steps.bump.outputs.cli }}
+          GATE: ${{ steps.gate.outcome }}
+        run: |
+          set -euo pipefail
+
+          if [ "$GATE" = "success" ]; then
+            VERDICT="Every cookbook checks and plans against these versions, and \`npm run typecheck\` passed."
+          else
+            VERDICT="**The gate failed.** At least one cookbook no longer checks or plans against these versions, so a Replicas run was launched to fix the cookbooks on this branch. Expect a follow-up commit here; if none arrives, read the gate output below and fix it by hand. Do not merge this as-is, and do not resolve it by reverting the bump — the CDK is usually right and the cookbook is usually stale."
+          fi
+
+          GATE_LOG=$(tail -c 4000 /tmp/gate.log 2>/dev/null || echo "(no gate output)")
+
+          cat > /tmp/body.md <<PRBODY
+          Scheduled bump of the Cargo toolchain.
+
+          | Pin | Version |
+          | --- | --- |
+          | \`@cargo-ai/cdk\` (\`package.json\`) | ${CDK} |
+          | CLI (\`cli-version\`, installed verbatim by the session hook) | ${CLI} |
+
+          ${VERDICT}
+
+          <details><summary>gate output</summary>
+
+          \`\`\`
+          ${GATE_LOG}
+          \`\`\`
+
+          </details>
+
+          Body rewritten on every run of \`.github/workflows/cargo-deps-update.yml\`, so it always describes the commits actually on the branch.
+
+          ---
+
+          <div align="center">
+          <sub>
+          Created with <a href="https://replicas.dev">Replicas</a>
+          </sub><br>
+          <br>
+          <a href="https://app.replicas.dev/workspaces/b223fa71-cdfb-479b-8da4-d359e4fe3cfc"><img alt="Replicas Workspace" src="https://replicas.dev/pr-footer-workspace.svg"></a>
+          </div>
+
+          Co-Authored-By: Auree Aubert <16732193+aureeaubert@users.noreply.github.com>
+          Co-Authored-By: replicas-connector[bot] <replicas-connector[bot]@users.noreply.github.com>
+          PRBODY
+
+          TITLE="Bump @cargo-ai/cdk and the CLI pin"
+          NUM=$(gh pr list --head "$BRANCH" --state open --json number --jq '.[0].number // empty')
+          if [ -n "$NUM" ]; then
+            gh pr edit "$NUM" --title "$TITLE" --body-file /tmp/body.md
+            echo "Refreshed PR #$NUM." >> "$GITHUB_STEP_SUMMARY"
+          elif [ "$GATE" = "success" ]; then
+            gh pr create --base main --head "$BRANCH" --title "$TITLE" --body-file /tmp/body.md
+          else
+            # Draft, because the bump is not mergeable until the cookbooks are
+            # fixed. Whoever fixes them marks it ready.
+            gh pr create --draft --base main --head "$BRANCH" --title "$TITLE" --body-file /tmp/body.md
+          fi
+
+      - name: launch a Replicas run to fix the cookbooks
+        if: steps.diff.outputs.changed == 'true' && steps.gate.outcome == 'failure'
+        env:
+          REPLICAS_API_KEY: ${{ secrets.REPLICAS_API_KEY }}
+          REPLICAS_ENV_ID: ${{ secrets.REPLICAS_ENV_ID }}
+          CDK: ${{ steps.bump.outputs.cdk }}
+          CLI: ${{ steps.bump.outputs.cli }}
+        run: |
+          set -euo pipefail
+
+          missing=""
+          [ -n "${REPLICAS_API_KEY:-}" ] || missing="$missing REPLICAS_API_KEY"
+          [ -n "${REPLICAS_ENV_ID:-}" ] || missing="$missing REPLICAS_ENV_ID"
+          if [ -n "$missing" ]; then
+            echo "The gate failed and no fixer could be launched (missing:$missing)." >&2
+            echo "The draft PR still holds the bump. See .replicas/README.md." >&2
+            exit 1
+          fi
+
+          # No --retry on this POST. Creating a replica is not idempotent: when
+          # the server accepts the request but answers slowly or the connection
+          # drops, a retry starts a SECOND agent on the same branch, and two
+          # agents pushing cookbook fixes to one branch is worse than a launch
+          # that failed loudly. This job going red is the alert.
+          jq -n \
+            --arg name "fix-cookbooks-$(date -u +%FT%H%MZ)" \
+            --arg msg "$(cat .replicas/prompts/fix-cookbooks.md)
+
+          ## This run
+
+          - Branch to work on: \`$BRANCH\` (already pushed, holds the bump commit)
+          - \`@cargo-ai/cdk\`: ${CDK}
+          - CLI pin (\`cli-version\`): ${CLI}
+          - Workflow run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}
+
+          ## Gate output
+
+          \`\`\`
+          $(tail -c 4000 /tmp/gate.log 2>/dev/null || echo '(no gate output)')
+          \`\`\`" \
+            --arg env "$REPLICAS_ENV_ID" \
+            '{name: $name, message: $msg, environment_id: $env,
+              lifecycle_policy: "archive_when_done", size: "small"}' \
+          | curl -sS -f \
+              -X POST https://api.tryreplicas.com/v1/replica \
+              -H "Authorization: Bearer $REPLICAS_API_KEY" \
+              -H "Content-Type: application/json" -d @-
+
+          echo "Launched a fixer run against \`$BRANCH\`." >> "$GITHUB_STEP_SUMMARY"
