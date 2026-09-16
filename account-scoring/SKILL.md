@@ -2,7 +2,7 @@
 name: account-scoring
 description: 'Keep every account scored and tiered against your written ICP by a deployed agent that re-scores as accounts arrive and as the ICP changes, writing the rationale back to the CRM. Triggers: "keep our accounts scored as they arrive", "re-score everything when the ICP changes", "which accounts should the team work first", "our scoring is a spreadsheet nobody trusts", "why is this account tier A", "stand up account tiering". Cargo CDK, defineAgent, cargo_score, cargo_tier, HubSpot, Salesforce, Attio. Skip when: someone hands you a list and wants it qualified once, which is cargo-gtm''s job, not a deployed scorer''s.'
 version: "0.2.0"
-compatibility: "Requires @cargo-ai/cli with @cargo-ai/cdk 1.0.58 or later — 1.0.58 renamed `defineConnector`'s `adopt` to `default`, which all three connectors here use to bind what the workspace already holds. Also needs a Cargo workspace with an authorized CRM connection (HubSpot in the example) and an authenticated LLM connector; nothing here needs a credential in .env, and a deploy cannot mint either connection. Self-contained: carries its own accounts model, CRM, Cargo DB and LLM connectors, and an example ICP under context/."
+compatibility: "Requires @cargo-ai/cli with @cargo-ai/cdk 1.0.58 or later, a Cargo workspace, an authorized CRM connection (HubSpot in the example), and an authenticated LLM connector — nothing here needs a credential in .env, and a deploy cannot mint either connection. Self-contained: carries its own accounts model, CRM, Cargo DB and LLM connectors, and an example ICP under context/."
 homepage: https://github.com/getcargohq/gtm-skills/tree/main/account-scoring
 metadata:
   author: getcargo

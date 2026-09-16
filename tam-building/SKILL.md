@@ -2,7 +2,7 @@
 name: tam-building
 description: 'Stand up your account universe as a deployed pipeline: an AI Ark company search shaped by your ICP, sized for free before it bills, then tiered A / B / C / disqualified by an agent that reads your rubric from the workspace context and web-searches the evidence the sourced row does not carry. Triggers: "our TAM is a stale CSV", "build our account universe", "source companies matching our ICP and rank them", "keep our market list current", "which of these companies are actually worth a rep", "tier the market we just sourced". Cargo CDK, aiArk, countCompanies, fetchCompanies, agent tiering, workspace context, webSearch. Skip when: you want the list once rather than a pipeline that keeps producing it, which is build-tam-list; or the accounts already exist in a CRM or an accounts model and only need judging, which is account-scoring.'
 version: "0.3.0"
-compatibility: "Requires the cargo-cdk skill, a Cargo CDK project, and @cargo-ai/cdk 1.0.58 or later — 1.0.58 renamed `defineConnector`'s `adopt` to `default`, which both connectors here use. AI Ark and the LLM both bind connections the workspace already holds, so this example needs no API key and no LinkedIn seat, user, or cookie. The repository example does not deploy or source anything until an agent adapts it in the consumer project."
+compatibility: "Requires the cargo-cdk skill, a Cargo CDK project, @cargo-ai/cdk 1.0.58 or later, and authenticated AI Ark and LLM connectors — no API key and no LinkedIn seat, user, or cookie needed. The repository example does not deploy or source anything until an agent adapts it in the consumer project."
 homepage: https://github.com/getcargohq/gtm-skills/tree/main/tam-building
 metadata:
   author: getcargo
