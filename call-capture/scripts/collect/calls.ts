@@ -32,14 +32,17 @@
  * recorder that is not there, write an adapter beside the others and register
  * it — see `references/providers.md`.
  */
-import { capture, ConfigError } from "./recorder";
+import { capture, checkFlags, ConfigError } from "./recorder";
 import { recorderTable, resolve } from "./recorders";
 
-if (process.argv.includes("--list")) {
-  console.log(recorderTable());
-} else {
-  try {
-    const { recorder, entry } = resolve();
+try {
+  const argv = process.argv.slice(2);
+  checkFlags(argv);
+
+  if (argv.includes("--list")) {
+    console.log(recorderTable());
+  } else {
+    const { recorder, entry } = resolve(argv);
     if (entry.written === "docs") {
       console.error(
         `note: the ${entry.label} adapter was written from vendor docs and not ` +
@@ -48,13 +51,13 @@ if (process.argv.includes("--list")) {
       );
     }
     await capture(recorder);
-  } catch (error) {
-    // A configuration error is a message, not a stack trace: the reader needs
-    // to know which variable to set, not which line threw.
-    if (error instanceof ConfigError) {
-      console.error(error.message);
-      process.exit(1);
-    }
-    throw error;
   }
+} catch (error) {
+  // A configuration error is a message, not a stack trace: the reader needs
+  // to know which variable to set, not which line threw.
+  if (error instanceof ConfigError) {
+    console.error(error.message);
+    process.exit(1);
+  }
+  throw error;
 }
