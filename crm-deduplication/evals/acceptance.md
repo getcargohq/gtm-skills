@@ -20,7 +20,7 @@
 
 ## Resources and graph
 
-- The isolated plan contains `connector:crm`, `connector:manual_review`, `model:crm_accounts`, and
+- The isolated plan contains `connector:crm`, `connector:slack`, `model:crm_accounts`, and
   `play:deduplicate_accounts` only.
 - No `account_duplicate_candidates` or other staging model exists.
 - The play runs directly on `crm_accounts`; its filter requires the CRM record ID and at least one

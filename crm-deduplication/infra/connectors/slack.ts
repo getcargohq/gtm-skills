@@ -4,7 +4,7 @@ import { defineConnector } from "@cargo-ai/cdk";
 // Human Review node posts through this connector and blocks the run until a
 // reviewer clicks Approve or Decline, so this is the only path that can turn an
 // unproven duplicate into a merge.
-export const manualReview = defineConnector("manual_review", {
+export const slack = defineConnector("slack", {
   integration: "slack",
   default: true,
 });

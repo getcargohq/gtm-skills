@@ -15,7 +15,7 @@ assert.deepEqual(
   new Set(byId.keys()),
   new Set([
     "connector:crm",
-    "connector:manual_review",
+    "connector:slack",
     "model:crm_accounts",
     "play:deduplicate_accounts",
   ]),
@@ -29,7 +29,7 @@ assert.equal(
 // Every merge decision rests on what the CRM returns during the run. A cached
 // connector could serve `findRecords` a stale cluster, which is the one thing
 // the fresh-source guard cannot catch.
-for (const connectorId of ["connector:crm", "connector:manual_review"]) {
+for (const connectorId of ["connector:crm", "connector:slack"]) {
   assert.equal(
     byId.get(connectorId).spec.cacheTtlMilliseconds,
     undefined,
@@ -156,8 +156,8 @@ assert.equal(
 );
 assert.equal(
   review.config.connectorUuid.resourceId,
-  "connector:manual_review",
-  "human review must post through the declared manual-review connector",
+  "connector:slack",
+  "human review must post through the declared Slack review connector",
 );
 assert.match(
   review.config.content.expression,

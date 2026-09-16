@@ -2,7 +2,7 @@ import { definePlay, defineWorkflow } from "@cargo-ai/cdk";
 import { z } from "zod";
 
 import { crm } from "../connectors/crm";
-import { manualReview } from "../connectors/slack";
+import { slack } from "../connectors/slack";
 import { crmAccounts } from "../models/crm-accounts";
 
 // PLACEHOLDER — the Slack channel every review request is posted to. Resolve it
@@ -316,7 +316,7 @@ const deduplicateCrmAccount = defineWorkflow(
     // the cluster out of the automatic class, and the evidence per record.
     const reviewed = humanReview(
       {
-        connectorUuid: manualReview.uuid,
+        connectorUuid: slack.uuid,
         channelId: reviewChannelId,
         title: `Review CRM account merge into ${survivor.primaryId}`,
         content: `Duplicate score: ${score.score}/100
