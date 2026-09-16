@@ -1,0 +1,240 @@
+:root {
+  color-scheme: light;
+  --bg: #fafbf7;
+  --surface: #fff;
+  --ink: #182b24;
+  --muted: #52645a;
+  --line: #d9e1d5;
+  --accent: #17633d;
+  --accent-ink: #fff;
+  --radius: 1.25rem;
+  font-family:
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #101c17;
+  --surface: #192a22;
+  --ink: #edf3e9;
+  --muted: #b3c5b8;
+  --line: #3d5144;
+  --accent: #b4e9a6;
+  --accent-ink: #11231a;
+}
+* {
+  box-sizing: border-box;
+}
+html {
+  scroll-padding-top: 2rem;
+}
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  line-height: 1.6;
+}
+a {
+  color: inherit;
+  text-underline-offset: 0.25em;
+}
+button,
+input {
+  font: inherit;
+}
+button,
+a {
+  -webkit-tap-highlight-color: transparent;
+}
+:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 5px;
+}
+.shell {
+  width: min(1180px, calc(100% - 3rem));
+  margin-inline: auto;
+}
+.skip {
+  position: absolute;
+  top: 0.5rem;
+  left: 0.5rem;
+  padding: 0.7rem 1rem;
+  background: var(--surface);
+  z-index: 3;
+  transform: translateY(-200%);
+}
+.skip:focus {
+  transform: none;
+}
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  padding: 1.6rem 0;
+  border-bottom: 1px solid var(--line);
+}
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 1rem;
+  font-weight: 750;
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+.brand-mark {
+  font-size: 2rem;
+  line-height: 1;
+  color: var(--accent);
+}
+nav {
+  display: flex;
+  align-items: center;
+  gap: 1.1rem;
+  flex-wrap: wrap;
+  font-size: 0.85rem;
+}
+nav a,
+footer a {
+  text-decoration: none;
+}
+button {
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 3rem;
+  padding: 0.45rem 0.85rem;
+  cursor: pointer;
+}
+.hero {
+  padding: clamp(4rem, 10vw, 8rem) 0;
+  max-width: 920px;
+}
+.draft {
+  border: 1px dashed var(--line);
+  padding: 0.5rem 0.8rem;
+  display: inline-block;
+  font-size: 0.8rem;
+  border-radius: 0.4rem;
+  margin: 0 0 2rem;
+  color: var(--muted);
+}
+.eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 0.78rem;
+  font-weight: 650;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+.eyebrow span {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: currentColor;
+}
+h1 {
+  font-size: clamp(2.7rem, 7vw, 6.4rem);
+  line-height: 1.02;
+  font-weight: 550;
+  letter-spacing: -0.055em;
+  margin: 1.5rem 0;
+  text-wrap: balance;
+  overflow-wrap: anywhere;
+}
+.lead {
+  max-width: 610px;
+  color: var(--muted);
+  font-size: clamp(1.05rem, 2vw, 1.25rem);
+}
+.cta {
+  display: inline-flex;
+  justify-content: space-between;
+  gap: 2rem;
+  align-items: center;
+  max-width: 100%;
+  padding: 1rem 1.3rem;
+  margin-top: 1.8rem;
+  border-radius: 3rem;
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-weight: 600;
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+#approach {
+  padding: 2rem 0 6rem;
+  border-top: 1px solid var(--line);
+}
+.section-heading {
+  margin: 2rem 0;
+}
+h2 {
+  font-size: clamp(1.8rem, 3vw, 2.7rem);
+  font-weight: 500;
+  letter-spacing: -0.035em;
+  line-height: 1.15;
+}
+.features {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+}
+.feature {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 1.6rem;
+  overflow-wrap: anywhere;
+}
+.number {
+  color: var(--accent);
+  font-family: ui-monospace, monospace;
+  font-size: 0.8rem;
+}
+h3 {
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin: 2rem 0 0.6rem;
+}
+.feature p {
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+footer {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1.3rem;
+  border-top: 1px solid var(--line);
+  padding: 2rem 0;
+  font-size: 0.85rem;
+}
+@media (max-width: 700px) {
+  .features {
+    grid-template-columns: 1fr;
+  }
+  .hero {
+    padding: 3.5rem 0;
+  }
+  .shell {
+    width: calc(100% - 2rem);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation: none !important;
+    transition: none !important;
+  }
+}

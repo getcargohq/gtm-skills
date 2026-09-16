@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "workspaceUuid": "",
+  "repository": "",
+  "defaultBranch": "main",
+  "appSlug": "company-website",
+  "publish": false,
+  "maintainer": true,
+  "languageModel": "claude-sonnet-5"
+}
