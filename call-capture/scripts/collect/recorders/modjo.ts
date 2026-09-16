@@ -2,27 +2,18 @@
  * Modjo. Written from the vendor's own OpenAPI document, not yet run against a
  * live workspace: check it with `--dry-run` before you deploy it.
  *
- * Four Modjo specifics.
+ * The published base URL is wrong: the spec declares
+ * `https://api.modjo.ai//v2`, with a double slash, and that path 404s — so a
+ * generated client is broken out of the box and the single slash below is what
+ * answers.
  *
- * The published base URL is wrong. Modjo's spec declares the server as
- * `https://api.modjo.ai//v2`, with a double slash, and repeats it in prose;
- * that path 404s, and the single slash below is what answers. A generated
- * client is broken out of the box for this reason.
+ * `expand` SWAPS fields rather than adding them: `contactIds` without it,
+ * `contacts` with it. It is always passed so the response keeps one shape.
  *
- * `expand` SWAPS fields rather than adding them. Without `expand=contacts` the
- * call carries `contactIds`; with it, `contacts` and no `contactIds`. So the
- * expansion is always passed rather than sometimes, and the response shape
- * stays one shape.
- *
- * An empty transcript is ambiguous. A call still processing answers with an
- * empty `data` array rather than an error, which is indistinguishable from a
- * call where nobody spoke — so `listReady` filters on `status` and the empty
- * array is then treated as "not ready yet" and retried by the window.
- *
- * Retention deletes content. `transcriptRetentionStatus` goes from `available`
- * to `deleted`, and a deleted transcript answers **410 Gone**, not 404. That is
- * terminal: the call is skipped every run until it leaves the window, which is
- * correct — there is nothing left to capture.
+ * An empty `data` array is a call still processing, not a call where nobody
+ * spoke, which is why `listReady` filters on `status` and the empty array is
+ * retried by the window. A transcript already reaped by retention answers
+ * **410 Gone** rather than 404, and that is terminal.
  *
  * Docs: https://api.modjo.ai/v2/docs
  */
@@ -111,10 +102,9 @@ export const modjo: Recorder = {
           continue;
         }
 
-        // `contacts` are the external participants and `users` the internal
-        // team — the array membership IS Modjo's internal/external flag. Both
-        // are passed through and the pipeline sorts them by domain, so the
-        // same rule applies whoever recorded the call.
+        // Array membership IS Modjo's internal/external flag: `contacts`
+        // external, `users` the team. Both pass through so the pipeline's
+        // domain rule decides.
         const attendees = [...(call.contacts ?? []), ...(call.users ?? [])].map(
           (person) => ({
             name: fullName(person),

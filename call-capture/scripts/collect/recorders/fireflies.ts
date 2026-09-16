@@ -2,27 +2,19 @@
  * Fireflies. Written from the vendor's own GraphQL schema docs, not yet run
  * against a live workspace: check it with `--dry-run` before you deploy it.
  *
- * One endpoint, POST only, so the shape of this adapter is different from the
- * REST ones: there are no paths to get wrong, only field selections.
+ * One endpoint, POST only, so there are no paths to get wrong — only field
+ * selections.
  *
- * The list selects metadata and readiness and nothing heavy. Fireflies would
- * happily return every sentence of every call in the window from that one
- * query, and the earlier note in this cookbook suggested exactly that — but a
- * three-day window of sentences is a single response measured in megabytes,
- * and it is fetched again every morning for calls that were captured days ago.
- * So sentences are selected per call in `transcript`, after the pipeline has
- * already dropped everything it has seen before.
+ * The list selects metadata and readiness, nothing heavy. One query could
+ * return every sentence in the window, but that is megabytes re-fetched every
+ * morning for calls captured days ago, so sentences are selected per call in
+ * `transcript`, after the pipeline has dropped what it has seen.
  *
- * `meeting_info.summary_status` is a real readiness signal, which most
- * recorders here do not have. Only `processing` is treated as not-ready:
- * `failed` and `skipped` refer to the SUMMARY, and a call whose summary failed
- * usually still has a transcript worth scribing.
+ * Only `summary_status: processing` counts as not-ready: `failed` and
+ * `skipped` describe the SUMMARY, and such a call usually still has a
+ * transcript worth scribing.
  *
- * Watch the plan limits, because they are per day and small: 50 requests a day
- * on Free and 500 on Pro, against one request per call here. Business and
- * Enterprise are 60 a minute instead, which is what this pipeline's pacing
- * assumes.
- *
+ * The plan limits are small and per day — see `references/recorder-apis.md`.
  * Docs: https://docs.fireflies.ai/graphql-api/query/transcripts
  */
 import {

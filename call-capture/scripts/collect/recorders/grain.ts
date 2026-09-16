@@ -2,27 +2,18 @@
  * Grain. Written from the vendor's own developer reference, not yet run
  * against a live workspace: check it with `--dry-run` before you deploy it.
  *
- * Two headers, and the second one is not optional. `Public-Api-Version` is how
- * Grain introduces and retires fields; omit it and the request is rejected
- * rather than defaulted. The version below is pinned on purpose — a floating
- * one would change response shapes under a pipeline nobody is watching.
- *
- * The list is a POST despite being a read, and `include` is what decides
- * whether participants and the AI summary come back at all. Without
- * `participants: true` there are no attendee emails, and with no emails the
+ * Two headers, and `Public-Api-Version` is not optional: omit it and the
+ * request is rejected rather than defaulted. It is pinned below on purpose,
+ * since a floating version would change response shapes under a pipeline
+ * nobody is watching. The list is a POST despite being a read, and `include`
+ * decides whether participants come back at all — without their emails the
  * pipeline files every call as internal.
  *
- * A vendor documentation bug to know about: Grain's reference describes
- * `before_datetime` as returning recordings that START AFTER the date, and
- * `after_datetime` as before it — the two descriptions are transposed relative
- * to the parameter names. The names are used the way they read here. If
- * `--dry-run` lists a window you did not ask for, that is why, and swapping
- * the two values is the fix.
+ * Grain's reference transposes `before_datetime` and `after_datetime` against
+ * what their names say. They are used here the way the names read, so if
+ * `--dry-run` lists a window you did not ask for, swap the two values.
  *
- * A workspace token reads the whole workspace and needs Business or
- * Enterprise; a personal token reads only what its user can see, which on a
- * team is a subset of the calls you expect to scribe.
- *
+ * Token scope and plan requirements: `references/recorder-apis.md`.
  * Docs: https://developers.grain.com/
  */
 import {
@@ -72,10 +63,10 @@ export const grain: Recorder = {
           after_datetime: `${from}T00:00:00Z`,
           before_datetime: `${to}T23:59:59Z`,
         },
-        // `participants` is what makes the internal-domain filter work at all;
-        // `ai_summary` is the notes fallback, and both are free here where a
+        // `participants` is what makes the internal-domain filter work at all
+        // and `ai_summary` is the notes fallback — both free here, where a
         // second request per call would not be. `attendance` and
-        // `private_notes` are personal-token only, so they are not asked for.
+        // `private_notes` are personal-token only.
         include: { participants: true, ai_summary: true },
       };
       if (cursor !== null) body["cursor"] = cursor;
@@ -112,9 +103,8 @@ export const grain: Recorder = {
       if (cursor !== null) await sleep(PACE_MS);
     } while (cursor !== null);
 
-    // No readiness flag. The window is returned whole; `transcript` answering
-    // null is what "still processing" looks like, and tomorrow's overlapping
-    // window is the retry.
+    // No readiness flag. A null `transcript` is what "still processing" looks
+    // like, and tomorrow's overlapping window is the retry.
     return calls;
   },
 

@@ -7,10 +7,10 @@
  * window, and the run itself.
  *
  * To support a recorder that is not in `recorders/`, write one object
- * satisfying `Recorder` beside the ones there and register it. TypeScript is
- * what keeps the boundary honest: an adapter that cannot satisfy this type is
- * telling you something real about the API, and an adapter cannot reach into
- * the pipeline below because it does not import it.
+ * satisfying `Recorder` beside the ones there and register it. The type is
+ * what keeps the boundary honest, in both directions: an adapter that cannot
+ * satisfy it is telling you something real about the API, and no adapter can
+ * reach into the pipeline below because none of them import it.
  */
 import {
   existsSync,
@@ -85,12 +85,8 @@ export class ConfigError extends Error {}
 
 /**
  * The recorder's credential, read when a request is about to be made rather
- * than at import.
- *
- * Lazy for a structural reason: `recorders/index.ts` imports every adapter so
- * a slug can be resolved to one at run time, so an import-time check in any
- * single adapter would fail every run — including the runs of the eight
- * recorders it is not using.
+ * than at import — `recorders/index.ts` imports every adapter to resolve a
+ * slug, so an import-time check in one would fail the runs of the other eight.
  */
 export function recorderKey(): string {
   const key = process.env["CALL_RECORDER_API_KEY"];

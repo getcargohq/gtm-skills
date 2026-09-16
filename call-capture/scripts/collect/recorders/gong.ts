@@ -2,36 +2,22 @@
  * Gong. Written from the vendor's own API reference, not yet run against a
  * live workspace: check it with `--dry-run` before you deploy it.
  *
- * Four things are specific to Gong and each one is a failure mode if missed.
- *
- * The credential is two values. `CALL_RECORDER_API_KEY` holds
- * `<accessKey>:<accessKeySecret>` and this adapter base64s the pair into a
- * Basic header — which is why the pipeline's one env name still fits a
- * recorder that issues two.
- *
- * The base URL is per company. `https://api.gong.io/v2` is the common one, but
- * regional instances are `https://<region>.api.gong.io/v2` and Gong tells you
- * which in Company Settings → API. Set `CALL_RECORDER_API_BASE` when yours is
- * not the common one; a wrong host is a 4xx on the first request, which is the
- * loud kind of wrong.
+ * `CALL_RECORDER_API_KEY` holds `<accessKey>:<accessKeySecret>`, base64'd into
+ * a Basic header here. The base URL is per company: regional instances are
+ * `https://<region>.api.gong.io/v2`, so set `CALL_RECORDER_API_BASE` when
+ * yours is not the common one.
  *
  * Speaker names are a join, not a field. The transcript carries `speakerId`
  * and never a name, and the mapping lives on the call's `parties`, which only
- * the list request asks for. So `listReady` keeps the party list and
- * `transcript` reads it — a transcript fetched without a prior list is
- * unattributable text.
+ * the list request asks for — so `listReady` keeps the party list and
+ * `transcript` reads it.
  *
- * Content is opt-in and its absence is ambiguous. Each field under
- * `content` is returned only when its `contentSelector` flag was set AND Gong
- * generated it, so a missing key means "not asked for, or not produced" and
- * never "empty". Gong also documents that it adds JSON fields without warning,
- * so everything here is read defensively rather than destructured.
+ * Every field under `content` arrives only when its `contentSelector` flag was
+ * set AND Gong generated it, so a missing key never means "empty"; Gong also
+ * adds JSON fields without warning, so responses are read defensively rather
+ * than destructured.
  *
- * Scopes needed: `api:calls:read:extensive` and `api:calls:read:transcript`.
- * `media` is deliberately not requested — it needs a third scope, and asking
- * for it without the grant fails the whole list request rather than dropping
- * one field.
- *
+ * Scopes and quotas: `references/recorder-apis.md`.
  * Docs: https://help.gong.io/apidocs/introduction-2
  */
 import {
@@ -118,6 +104,8 @@ export const gong: Recorder = {
           exposedFields: {
             parties: true,
             content: { brief: true, keyPoints: true, outline: true },
+            // `media` is not asked for: it needs a third scope, and asking
+            // without the grant fails the whole list request.
           },
         },
       };
@@ -166,9 +154,8 @@ export const gong: Recorder = {
       if (cursor !== null) await sleep(PACE_MS);
     } while (cursor !== null);
 
-    // Gong has no readiness flag of any kind. The window is returned whole and
-    // a call still being processed answers `transcript` with nothing, which the
-    // overlapping window retries tomorrow.
+    // No readiness flag of any kind, so the window comes back whole and a
+    // still-processing call answers `transcript` with nothing.
     return calls;
   },
 
@@ -217,9 +204,8 @@ export const gong: Recorder = {
   },
 
   async notes(id) {
-    // There is no notes endpoint. Gong's AI content arrives on the list
-    // request, so this is a read of what listReady already holds — and null
-    // when this adapter is driven a call at a time by hand.
+    // No notes endpoint: the AI content arrives on the list request, so this
+    // reads what listReady holds and is null if it never ran.
     const content = contents.get(id);
     if (content === undefined) return null;
 

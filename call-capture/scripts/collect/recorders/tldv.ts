@@ -2,20 +2,17 @@
  * tl;dv. Written from the vendor's own API reference, not yet run against a
  * live workspace: check it with `--dry-run` before you deploy it.
  *
- * The API is labelled `v1alpha1` by tl;dv itself and it says breaking changes
- * are expected, so this is the adapter here most likely to need a field name
- * changed. Auth is `x-api-key`, a custom header, not `Authorization`.
+ * tl;dv labels the API `v1alpha1` and expects breaking changes, so this is the
+ * adapter here most likely to need a field name changed. Auth is the custom
+ * header `x-api-key`, not `Authorization`.
  *
- * Access follows the MEETING ORGANIZER'S plan, not yours. A meeting organized
- * by someone on the free tier is invisible to the API even when it is right
- * there in your web app, so a call the collector never sees is a plan question
- * before it is a bug.
+ * Access follows the MEETING ORGANIZER'S plan, not yours: a meeting organized
+ * by someone on the free tier is invisible to the API while sitting in your
+ * web app, so a call the collector never sees is a plan question before it is
+ * a bug.
  *
- * Page-and-total pagination, with a hard ceiling: a query cannot reach past
- * 10,000 results, at which point tl;dv asks you to narrow the range. A
- * three-day window is nowhere near it; a first-time backfill is, and the fix
- * is to walk it in windows rather than widening one.
- *
+ * The pagination ceiling that matters on a backfill is in
+ * `references/recorder-apis.md`.
  * Docs: https://doc.tldv.io/
  */
 import {
@@ -88,10 +85,9 @@ export const tldv: Recorder = {
           continue;
         }
 
-        // `invitees` is documented as "invited, or participated" — the two are
-        // not distinguished, so an invitee who never joined is still an
-        // attendee here. That is the same shape the other recorders give and
-        // the pipeline slugs the account from domains, so it is harmless.
+        // `invitees` is "invited, or participated" with no way to tell which,
+        // so someone who never joined is still an attendee here — harmless,
+        // since the account is slugged from domains.
         const attendees = [
           ...(meeting.invitees ?? []),
           ...(meeting.organizer === null || meeting.organizer === undefined
@@ -114,9 +110,8 @@ export const tldv: Recorder = {
       await sleep(PACE_MS);
     }
 
-    // No readiness flag on the meeting; tl;dv's only signal is the
-    // `TranscriptReady` webhook, which a polling collector does not see. So
-    // the window is returned whole and a null transcript is the retry.
+    // The only signal is the `TranscriptReady` webhook, which a polling
+    // collector never sees, so a null transcript is the retry.
     return calls;
   },
 

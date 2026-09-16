@@ -2,27 +2,17 @@
  * What has to hold about the recorder registry, checked on every run of
  * `npm run validate` (scripts/check-pipelines.mjs executes this file).
  *
- * Two kinds of assertion, and the first kind is why this file exists at all.
+ * The invariant no type can express, and whose violation is silent: a
+ * registry key must equal its recorder's `provider`, because that slug is
+ * written into every capture's `source:` line and compiled into the regex that
+ * reads those lines back. Filed under the wrong key, the collector stops
+ * recognising what it captured and re-captures the window every morning
+ * without ever erroring.
  *
- * The registry has one invariant that cannot be expressed in the type system
- * and whose violation is silent: a key must equal its recorder's `provider`,
- * because that slug is written into every capture's `source:` line and
- * compiled into the regex that reads those lines back. File an adapter under
- * the wrong key and nothing errors — the collector simply stops recognising
- * what it already captured and re-captures the window every morning until
- * someone notices the repository growing.
- *
- * The second kind pins each adapter against the field names in
- * `references/recorder-apis.md`, by serving one canned response shaped the way
- * that vendor documents and asserting what the adapter made of it. It cannot
- * prove the vendor's documentation is right — only `--dry-run` against a real
- * workspace does that. It does prove that a refactor has not quietly changed
- * which field an adapter reads, which is the regression that would otherwise
- * show up as a clean, empty, successful-looking run.
- *
- * One assertion is about neither and belongs here anyway: the credential must
- * not be declared in the agent's spec. It reads the source rather than a type,
- * because both spellings that break it typecheck.
+ * The per-adapter checks serve one canned response shaped the way that vendor
+ * documents it. They cannot prove the documentation is right — only
+ * `--dry-run` against a real workspace does — but they do prove a refactor has
+ * not changed which field an adapter reads.
  *
  * No network: `fetch` is replaced, and an unrecognised URL fails the eval
  * rather than escaping to a vendor.

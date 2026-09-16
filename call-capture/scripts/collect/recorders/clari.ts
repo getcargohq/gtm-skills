@@ -3,27 +3,17 @@
  * document, not yet run against a live workspace: check it with `--dry-run`
  * before you deploy it.
  *
- * The credential is two values and neither is `Authorization`. Clari wants
- * `X-Api-Key` and `X-Api-Password`, so `CALL_RECORDER_API_KEY` holds
- * `<key>:<password>` and this adapter splits it — the one env name still fits.
+ * Two values, neither of them `Authorization`: `CALL_RECORDER_API_KEY` holds
+ * `<key>:<password>` for the `X-Api-Key` and `X-Api-Password` headers.
  *
- * `status` is a real readiness signal and it is mostly failure modes:
- * `PROCESSED` and `POST_PROCESSING_DONE` are the two that mean there is
- * something to read. Everything else is either pending (`SCHEDULED`,
- * `PROCESSING`, `WAITING_IN_QUEUE`) or terminal (`ERROR_IN_TRANSCRIBE`,
- * `UNABLE_TO_JOIN`, `CALL_DID_NOT_HAPPEN`, and nine more). Filtering on the
- * two good ones rather than excluding the bad ones is the choice that survives
- * Clari adding a fourteenth failure.
+ * `status` is a real readiness signal, and filtering on the two values that
+ * mean "there is something to read" rather than excluding the twelve failures
+ * survives Clari adding a thirteenth. Transcripts are not on the list, but
+ * `/call-details` carries the transcript, the summary AND the participant
+ * arrays, so one request per call serves both methods.
  *
- * Transcripts are not on the list. `/call-details` is one request per call and
- * carries the transcript, the summary AND the participant arrays that name the
- * `personId`s in it — so it is fetched once per call and both `transcript` and
- * `notes` read that one response.
- *
- * The weekly cap is the unusual limit: 10 requests a second, but also 100,000
- * a week resetting Sunday 00:00 GMT. A daily three-day window is nothing
- * against it; a full-history backfill is worth budgeting.
- *
+ * The full status list and the weekly request cap are in
+ * `references/recorder-apis.md`.
  * Docs: https://api-doc.copilot.clari.com/
  */
 import {
@@ -148,10 +138,9 @@ export const clari: Recorder = {
           continue;
         }
 
-        // Three arrays, and the split between them is Clari's own
-        // internal/external judgement. All three are passed through and the
-        // pipeline applies its own domain rule, so one recorder's definition
-        // of internal cannot quietly become this repository's.
+        // The split between the three arrays is Clari's own internal/external
+        // judgement. All three are passed through so the pipeline's one domain
+        // rule decides, not a vendor's.
         calls.push({
           id: call.id,
           startAt,

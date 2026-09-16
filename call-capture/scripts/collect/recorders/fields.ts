@@ -23,12 +23,10 @@ export function pickString(
 }
 
 /**
- * The first candidate key holding something a Date can parse, as ISO.
- *
- * Accepts epoch milliseconds as well as a string, because Read.ai and
- * Fireflies both hand back numbers where the neighbouring field is a
- * timestamp, and an adapter that only accepted strings would silently skip
- * every call on those.
+ * The first candidate key holding something a Date can parse, as ISO. Epoch
+ * milliseconds count: Fireflies and Read.ai both hand back numbers where the
+ * neighbouring field is a string, and a string-only read would silently skip
+ * every call.
  */
 export function pickTimestamp(
   record: Record<string, unknown>,

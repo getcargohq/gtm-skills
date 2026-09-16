@@ -5,22 +5,11 @@
  * The API is on every plan including the free one, which makes this the
  * cheapest of the recorders here to try the pipeline against.
  *
- * Three things to know.
- *
- * Auth is `X-Api-Key`, not `Authorization` — a Bearer header here fails as
- * unauthenticated no matter how correct the key is.
- *
- * The rate limit is two limits. 60 requests a minute in general, but 30 for
- * "heavy" ones, which is every `/recordings/…` call — so both transcript and
- * summary are heavy, and the pace floor below is 2s rather than the pipeline's
- * default second. Under load Fathom documents dropping heavy requests to 5 a
- * minute, at which point the 429 backoff in `fetchJson` is what carries the
- * run.
- *
- * `calendar_invitees[].is_external` is a real flag and is deliberately not
- * used. Internal-versus-customer stays derived from email domains in
- * `recorder.ts`, because the day one recorder's flag is trusted is the day two
- * recorders disagree about what an internal call is and the log splits.
+ * Auth is `X-Api-Key`, not `Authorization` — a Bearer header fails as
+ * unauthenticated however correct the key is. And the rate limit is two
+ * limits: 60 requests a minute in general but 30 for "heavy" ones, which is
+ * every `/recordings/…` call, hence the 2s pace floor below rather than the
+ * pipeline's default second.
  *
  * Docs: https://developers.fathom.ai/quickstart
  */
@@ -85,11 +74,9 @@ export const fathom: Recorder = {
       if (cursor !== null) await sleep(PACE_MS);
     } while (cursor !== null);
 
-    // No page size is exposed and the pages are small, so a busy window is
-    // several round trips. include_transcript and include_summary would inline
-    // the bodies here, but they make the whole list request a heavy one and
-    // are refused outright for OAuth-connected apps — so this stays metadata,
-    // and the bodies are fetched per call.
+    // No page size is exposed, so a busy window is several round trips.
+    // include_transcript and include_summary would inline the bodies but make
+    // the whole request heavy, and are refused for OAuth-connected apps.
     const calls: Call[] = [];
     for (const meeting of meetings) {
       const id = meeting.recording_id;
@@ -105,12 +92,14 @@ export const fathom: Recorder = {
       }
 
       calls.push({
-        // The id is an integer in the response and a string everywhere in this
-        // pipeline: it is written into the `source:` line and read back out of
-        // it, and a number that round-trips through a file is a string.
+        // An integer in the response, a string everywhere here: it round-trips
+        // through the `source:` line, and that makes it text.
         id: String(id),
         startAt,
         subject: pickString(meeting, TITLE_KEYS) ?? "call",
+        // `is_external` on each invitee is a real flag and is passed over:
+        // the pipeline's one domain rule decides, or two recorders end up
+        // disagreeing about what an internal call is.
         attendees: (meeting.calendar_invitees ?? []).map((invitee) => ({
           name: invitee.name,
           email: invitee.email,
@@ -118,9 +107,8 @@ export const fathom: Recorder = {
       });
     }
 
-    // Fathom has no readiness flag. The whole window is returned and a call
-    // whose transcript is still processing comes back null, which the
-    // overlapping window picks up tomorrow.
+    // No readiness flag. A still-processing transcript comes back null, which
+    // the overlapping window picks up tomorrow.
     return calls;
   },
 

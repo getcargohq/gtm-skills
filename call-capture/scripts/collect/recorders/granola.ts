@@ -2,27 +2,18 @@
  * Granola. Written from the vendor's own OpenAPI document, not yet run against
  * a live workspace: check it with `--dry-run` before you deploy it.
  *
- * Two things shape this adapter and neither is optional.
+ * `GET /v1/notes` returns id, title and timestamps and no attendees, so
+ * `listReady` fetches each note's detail to get them — a request per note per
+ * run, which is why the summary that detail carries is kept for `notes()`
+ * rather than fetched again. Attendees are not optional: the pipeline decides
+ * internal-versus-customer from their domains, so a note without them files as
+ * internal.
  *
- * The list endpoint is thin. `GET /v1/notes` returns id, title and timestamps
- * and nothing else — no attendees — so `listReady` fetches the detail of every
- * note in the window to get them. That is a request per note per run, which is
- * why the summary each detail carries is kept and handed back by `notes()`
- * rather than fetched again. Attendees are not optional here: the pipeline
- * decides internal-versus-customer from their email domains, so a note
- * returned without them is a note filed as internal.
+ * `?include=transcript` looks cheaper than the paged endpoint and answers
+ * `TRANSCRIPT_TOO_LARGE` on exactly the long calls most worth scribing, so the
+ * paged one is walked from the start.
  *
- * The transcript endpoint is paged, and the inline shortcut is a trap.
- * `GET /v1/notes/{id}?include=transcript` looks cheaper and then answers
- * `TRANSCRIPT_TOO_LARGE` on exactly the long calls you most want scribed, so
- * this walks the paged endpoint from the start rather than treating that as an
- * error case.
- *
- * API keys need a Business or Enterprise plan. A workspace key reads public
- * notes plus the spaces with "Allow Granola API access" turned on, so a note
- * missing from `--dry-run` that is visible in the app is a space setting, not
- * a window bug.
- *
+ * Plan and space visibility: `references/recorder-apis.md`.
  * Docs: https://docs.granola.ai · spec: https://docs.granola.ai/openapi.json
  */
 import {
@@ -138,11 +129,9 @@ export const granola: Recorder = {
       });
     }
 
-    // Granola signals nothing about readiness — there is no `transcript_ready`
-    // and `summary_markdown` being null is not documented as a proxy for one.
-    // So the whole window is returned and readiness is discovered by
-    // `transcript()` coming back null, which the overlapping window covers on
-    // the next run.
+    // No readiness signal at all, and a null `summary_markdown` is not
+    // documented as a proxy for one. So the window comes back whole and a null
+    // `transcript()` is what the overlapping window retries tomorrow.
     return calls;
   },
 

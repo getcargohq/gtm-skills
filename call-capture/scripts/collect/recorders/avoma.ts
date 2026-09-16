@@ -1,15 +1,12 @@
 /**
- * Avoma — the adapter that has been run against a live workspace.
+ * Avoma — the only adapter here run against a live workspace, and the one to
+ * read first when you write another: the rest follow its shape, and where they
+ * differ it is because the vendor differs.
  *
- * It is the one to read first when you write a new one: the others in this
- * directory follow its shape, and where they differ it is because the vendor
- * differs, not because the pattern does.
- *
- * Verify the transcript response shape against the live API before you trust
- * any adapter here, including this one; the endpoints are stable and the field
- * names around them have moved. The one-line curl is in
- * `references/recorder-apis.md`, and `--dry-run` exercises `listReady` without
- * writing anything.
+ * Verify response shapes against the live API even so. The endpoints are
+ * stable and the field names around them have moved;
+ * `references/recorder-apis.md` has the curl, and `--dry-run` exercises
+ * `listReady` without writing anything.
  */
 import {
   fetchJson,
@@ -72,13 +69,11 @@ export const avoma: Recorder = {
       next = page.next ?? null;
     }
 
-    // `transcript_ready` and `notes_ready` are false until processing
-    // finishes, and ABSENT rather than false on anything not yet held. That is
-    // the whole reason the pipeline's window overlaps the previous run.
+    // `transcript_ready` and `notes_ready` are ABSENT rather than false on
+    // anything not yet held, which is why the window overlaps the last run.
     //
-    // `is_internal` is deliberately not used: some workspaces return false on
-    // every meeting, including all-internal ones. The pipeline derives that
-    // from attendee domains instead.
+    // `is_internal` is not used: some workspaces return false on every
+    // meeting, including all-internal ones.
     return raw
       .filter(
         (call) =>
