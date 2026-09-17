@@ -127,7 +127,7 @@ assert.match(
 assert.match(
   evidenceNode.config.script,
   new RegExp(
-    `\\(\\{ "records": nodes\\.${search.slug}, "accountId": nodes\\.start\\.hs_object_id \\}`,
+    `\\(\\{ records: nodes\\.${search.slug}, accountId: nodes\\.start\\.hs_object_id \\}`,
   ),
   "the evidence script must receive the live CRM search and the enrolled record ID",
 );
