@@ -8,12 +8,13 @@
   the installer file plan. A changed graph slug must fail these evaluations.
 - Run `python3 -m unittest discover -s account-scoring/evals -p 'test_*.py'`.
   Test every boundary/category, gates, interactions, missingness, determinism,
-  immature outcomes, lost null labels, grouped splits and correct lift denominators.
+  immature outcomes, lost null labels, grouped splits, reviewed numeric bands,
+  scorer-derived historical predictions, cache migration and provenance handling.
 - Run `node account-scoring/scripts/build.mjs --check`; generated Markdown and Python
   source strings must match canonical contracts. No independent copy of score math.
 - Two synthetic sellers have different products, feature shortlists and outcome
-  definitions and use the same scorer. This verifies fixture differences and the
-  methodology contract; it is not a live discovery-agent evaluation.
+  definitions and use the same scorer. This verifies scorer portability across
+  hand-authored contracts; it does not verify discovery or shortlist relevance.
 - `cargo-ai cdk types`, `check` and `plan` pass; generated schemas never enter git.
   Repository validation, typecheck, formatting and routing corpus checks pass.
 
@@ -48,7 +49,9 @@ These remain unchecked until supported by run links and readback evidence.
 - [ ] Score one eligible CRM account and read back the correct ID, score/tier/rationale.
 - [ ] Missing critical data returns insufficient_data without replacing the valid score.
 - [ ] Malformed outputs, empty/mismatched writes and runtime errors cannot stamp success.
-- [ ] Pre-existing pilot rows, stale rows and fresh rows on a changed approved version run.
+- [ ] Late write failures exhaust the retry cap; prior successful evidence survives.
+- [ ] Custom-column attempt counters persist through source syncs and reach the next run.
+- [ ] Pre-existing pilot rows, stale rows and changed versions run within the batch limit.
 - [ ] Fresh rows stay excluded after the pipeline's own writes; no recursive scoring.
 - [ ] Every tier segment consumes the actual CRM output and reconciles after refresh.
 - [ ] Cache hits avoid repeat purchases and custom refresh routes honor the approved cost.

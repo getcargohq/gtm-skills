@@ -38,8 +38,7 @@ This index measures structural fit, not readiness or a probability. Python compu
       "hypothesis": "Synthetic mechanism for testing, not empirical evidence.",
       "live_extract": {
         "kind": "crm",
-        "property": "numberofemployees",
-        "as_of_property": "hs_lastmodifieddate"
+        "property": "numberofemployees"
       },
       "historical_source": "Dated CRM property history or verified historical company source.",
       "sufficient_evidence": "Dated account-level evidence covering the defined organization.",

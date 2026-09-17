@@ -3,7 +3,7 @@ import hashlib
 import json
 import math
 import sys
-from scorer import label_outcome
+from scorer import label_outcome, score, numeric_band, validate_scale, validate_contract, require
 
 
 def grouped_split(rows, seed="account-fit-v1", holdout_fraction=0.2):
@@ -30,7 +30,9 @@ def eligible(rows, mature_only=False):
     return cohort
 
 
-def lift_table(rows, feature, mature_only=False, target_outcome="Tier 1"):
+def lift_table(rows, feature, mature_only=False, target_outcome="Tier 1", bands=None):
+    if bands is not None:
+        validate_scale({"kind": "number", "bands": bands, "missing_points": 0})
     cohort = eligible(rows, mature_only)
     count = len(cohort)
     tier1 = sum(r["outcome_tier"] == target_outcome for r in cohort)
@@ -42,7 +44,9 @@ def lift_table(rows, feature, mature_only=False, target_outcome="Tier 1"):
         value = observation["value"] if observation["snapshot_quality"] in ("exact", "reconstructed") else None
         if value is None:
             missing_count += 1
-        # No automatic buckets: caller applies only reviewed transformations.
+        elif bands is not None:
+            band = numeric_band(bands, value)
+            value = {"min": band["min"], "max": band["max"]}
         groups.setdefault(json.dumps(value, sort_keys=True), []).append(row)
     report = []
     for value, group in sorted(groups.items()):
@@ -72,8 +76,24 @@ def validation_metrics(rows, top_tier="A", mature_only=False, target_outcome="Ti
                 all_accounts_baseline_precision=baseline)
 
 
-def calibration_report(data):
-    rows=[dict(r,**label_outcome(r,data["contract"])) for r in data["episodes"]]
+def calibration_report(data, allow_synthetic=False):
+    features, contract = data["feature_contract"], data["contract"]
+    validate_contract(features, contract)
+    rules = {r["feature"]: r for r in contract["rules"]}
+    require(set(data["feature_names"]) <= set(rules), "analysis feature outside frozen contract")
+    rows = []
+    for r in data["episodes"]:
+        snapshot = r["snapshot"]
+        require(snapshot["account_id"] == r["account_id"], "historical snapshot account mismatch")
+        require(snapshot["snapshot_at"] == r["fit_snapshot_at"], "historical snapshot anchor mismatch")
+        prediction = score(snapshot, contract["version"], features, contract, allow_synthetic)
+        require(prediction["scoring_status"] != "error", "invalid historical score: " + "; ".join(prediction["data_quality_notes"]))
+        # Caller-supplied predictions never enter the metrics. Both paths use score().
+        analysis_features = {name: (dict(item, value=None, snapshot_quality="missing")
+                                    if name in prediction["missing_features"] else item)
+                             for name, item in snapshot["features"].items()}
+        rows.append(dict(r, **label_outcome(r, contract), predicted_fit_tier=prediction["tier"],
+                         features=analysis_features, fit_result=prediction))
     mode=data.get("analysis_mode","exploratory")
     if mode not in ("exploratory","holdout"):
         raise ValueError("unsupported analysis mode")
@@ -94,9 +114,10 @@ def calibration_report(data):
             raise ValueError("empty development or holdout population")
     else:
         development=validation=rows
-    result={"validation_status":mode,"limitations":["No automatic fitting or feature selection; validation predictions must come from frozen development rules."]}
+    result={"validation_status":mode,"limitations":["No automatic fitting or feature selection; predictions are computed from the supplied frozen contracts and historical snapshots."]}
+    result["predictions"] = [{"account_id": r["account_id"], "fit_result": r["fit_result"]} for r in rows]
     for mature,key in [(False,"all_labeled"),(True,"mature_only")]:
-        result[key]={"development_features":{f:lift_table(development,f,mature,data["contract"]["outcome"]["thresholds"][-1]["tier"]) for f in data["feature_names"]},
+        result[key]={"development_features":{f:lift_table(development,f,mature,contract["outcome"]["thresholds"][-1]["tier"],bands=rules[f].get("bands")) for f in data["feature_names"]},
                      "validation":validation_metrics(validation,top_tier=data["contract"]["thresholds"][-1]["tier"],mature_only=mature,target_outcome=data["contract"]["outcome"]["thresholds"][-1]["tier"])}
     return result
 

@@ -26,10 +26,10 @@ flowchart TD
   status -->|No| preserve[Persist attempt status; preserve prior CRM score]
   status -->|Yes| explain[Agent explains trusted result]
   explain --> write[Write trusted score at CRM ID]
-  write --> verify[Read back values, then stamp success]
+  write --> verify[Verify update response, then stamp success]
 ```
 
-Follow [SKILL.md](SKILL.md) for the installation and ten calibration phases. The four
+Follow [SKILL.md](SKILL.md) for installation and [calibration](references/calibration.md) for the ten phases. The four
 interview topics are sources/access, success/cohort, feature contract, and model/
 operation. Propose decisions after inspection. Paid scope and deployment approvals
 remain distinct checkpoints. Calibration-only work uses the same skill and stops
@@ -39,7 +39,7 @@ before activation; a supplied list qualified once goes to `score-leads`.
 | ------------------------------- | ------------------------------------------------------------------------------------------ |
 | `infra/models/accounts.ts`      | HubSpot account extract; cached evidence, snapshot and attempt metadata                    |
 | `infra/runtime/scorer.py`       | Single rule engine: input validation, bands, gates, interactions, nulls and outcome labels |
-| `infra/runtime/calibration.py`  | Offline account-grouped splitting, descriptive lift and validation metrics                 |
+| `infra/runtime/calibration.py`  | Offline grouped splits, banded lift and validation using the same scorer                   |
 | `infra/context/*.yaml`          | Synthetic drafts to replace with approved seller-specific contracts                        |
 | `scripts/build.mjs`             | Embed Python/contracts, generate Markdown, archive approved versions                       |
 | `infra/tools/compute-fit.ts`    | Native Python action with normalized snapshot and contract reference only                  |
@@ -53,11 +53,16 @@ then documented pre-close/close fallback. Weekly live sweep and three-month stal
 are examples to approve after costing; changed approved versions also require backfill.
 There is no default customer outcome formula, champion gate or approved live model.
 
-The source adapters implemented here are audited CRM properties and cached custom
-feature evidence. Calibration determines which authorized enrichment/research routes
+The source adapters implemented here read current CRM properties and custom feature
+evidence from a cache the installer must populate. No cache-population or refresh
+route ships in this template. Calibration determines which authorized enrichment/research routes
 must fill or refresh that cache; those customer-specific routes require verification
 and priced scope before implementation. Missing critical evidence stops the score.
-The play does not make speculative provider calls or retrain itself.
+The play does not make speculative provider calls or retrain itself. Discovery is an
+agent-led calibration procedure; synthetic fixtures test scorer portability only.
+The disabled play limits each sweep to 25 accounts and each unsuccessful scoring
+cycle to three attempts per version. Apply an approved pilot ID filter before enabling
+and review the full version-backfill scope and cost separately.
 
 From this repository:
 

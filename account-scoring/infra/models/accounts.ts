@@ -12,6 +12,18 @@ export const accounts = defineModel("accounts", {
   additionalColumns: [
     {
       kind: "custom",
+      slug: "fit_attempt_version",
+      type: "string",
+      label: "Attempted scoring version",
+    },
+    {
+      kind: "custom",
+      slug: "fit_attempt_count",
+      type: "number",
+      label: "Consecutive attempts for this version",
+    },
+    {
+      kind: "custom",
       slug: "fit_last_scored_snapshot",
       type: "string",
       label: "Last verified score snapshot",

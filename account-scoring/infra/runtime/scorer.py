@@ -6,7 +6,7 @@ The caller supplies a snapshot and a reference; contracts are deployment assets.
 import hashlib
 import json
 import math
-from datetime import datetime
+from datetime import datetime, timezone
 from decimal import Decimal, ROUND_HALF_UP
 
 
@@ -28,7 +28,13 @@ def digest(value):
 
 
 def instant(value):
-    require(isinstance(value, str), "timestamp must be an ISO string")
+    # HubSpot may return epoch milliseconds as a number or decimal string.
+    if number(value) or (isinstance(value, str) and value.isdecimal()):
+        try:
+            return datetime.fromtimestamp(float(value) / 1000, timezone.utc)
+        except (OverflowError, OSError) as error:
+            raise ValueError("invalid epoch milliseconds") from error
+    require(isinstance(value, str), "timestamp must be ISO or epoch milliseconds")
     parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
     require(parsed.tzinfo is not None, "timestamp needs timezone")
     return parsed
@@ -62,10 +68,15 @@ def contribution(rule, value):
     if rule["kind"] == "category":
         require(isinstance(value, str) and value in rule["points"], "unknown category")
         return rule["points"][value]
+    return numeric_band(rule["bands"], value)["points"]
+
+
+def numeric_band(bands, value):
+    """One min-inclusive/max-exclusive transformation for scoring and analysis."""
     require(number(value), "numeric value required (booleans are not numbers)")
-    for band in rule["bands"]:
+    for band in bands:
         if (band["min"] is None or value >= band["min"]) and (band["max"] is None or value < band["max"]):
-            return band["points"]
+            return band
     raise ValueError("uncovered value")
 
 
@@ -146,27 +157,32 @@ def matches(conditions, values):
     return True
 
 
+def validate_observation(item, f, at):
+    require(set(item) == {"value", "as_of", "source_or_evidence_reference", "snapshot_quality", "extraction_version"}, "invalid provenance shape")
+    require(item["source_or_evidence_reference"] is None or isinstance(item["source_or_evidence_reference"], str), "invalid evidence reference")
+    value, quality = item["value"], item["snapshot_quality"]
+    require(quality in ("exact", "reconstructed", "current_proxy", "missing"), "invalid snapshot quality")
+    require(item["extraction_version"] == f["extraction_version"], "extraction version mismatch")
+    if value is None:
+        require(quality == "missing" and item["as_of"] is None, "missing provenance mismatch")
+        return
+    require(quality != "missing" and isinstance(item["source_or_evidence_reference"], str) and item["source_or_evidence_reference"], "evidence required")
+    require(instant(item["as_of"]) <= at, "evidence after snapshot")
+    if f["type"] == "number":
+        require(number(value) and value >= f["minimum"], "invalid number")
+    else:
+        require(isinstance(value, str) and value in f["values"], "unknown category; normalize unknown to null")
+
+
 def validate_snapshot(snapshot, features):
-    require(set(snapshot) == {"account_id", "snapshot_at", "feature_contract_version", "features"}, "unexpected snapshot fields")
+    require(set(snapshot) - {"data_quality_notes"} == {"account_id", "snapshot_at", "feature_contract_version", "features"}, "unexpected snapshot fields")
+    require(isinstance(snapshot.get("data_quality_notes", []), list) and all(isinstance(n, str) for n in snapshot.get("data_quality_notes", [])), "invalid data quality notes")
     require(isinstance(snapshot["account_id"], str) and snapshot["account_id"], "account ID required")
     at = instant(snapshot["snapshot_at"])
     require(snapshot["feature_contract_version"] == features["version"], "snapshot feature version mismatch")
     require(set(snapshot["features"]) == {f["name"] for f in features["features"]}, "unexpected/missing feature keys")
     for f in features["features"]:
-        item = snapshot["features"][f["name"]]
-        require(set(item) == {"value", "as_of", "source_or_evidence_reference", "snapshot_quality", "extraction_version"}, "invalid provenance shape")
-        value, quality = item["value"], item["snapshot_quality"]
-        require(quality in ("exact", "reconstructed", "current_proxy", "missing"), "invalid snapshot quality")
-        require(item["extraction_version"] == f["extraction_version"], "extraction version mismatch")
-        if value is None:
-            require(quality == "missing" and item["as_of"] is None, "missing provenance mismatch")
-            continue
-        require(quality != "missing" and isinstance(item["source_or_evidence_reference"], str) and item["source_or_evidence_reference"], "evidence required")
-        require(instant(item["as_of"]) <= at, "evidence after snapshot")
-        if f["type"] == "number":
-            require(number(value) and value >= f["minimum"], "invalid number")
-        else:
-            require(isinstance(value, str) and value in f["values"], "unknown category; normalize unknown to null")
+        validate_observation(snapshot["features"][f["name"]], f, at)
 
 
 def score(snapshot, contract_ref, features, contract, allow_synthetic=False):
@@ -184,11 +200,12 @@ def score(snapshot, contract_ref, features, contract, allow_synthetic=False):
         require(contract["approval"]["reference"] and features["approval"]["reference"], "approval evidence required")
         require(allow_synthetic or (not contract["synthetic"] and not features["synthetic"]), "synthetic contract cannot score live accounts")
         validate_snapshot(snapshot, features)
+        result["data_quality_notes"].extend(snapshot.get("data_quality_notes", []))
         values, critical_missing = {}, []
         for f in features["features"]:
             item = snapshot["features"][f["name"]]
             age = (instant(snapshot["snapshot_at"]) - instant(item["as_of"])).total_seconds()/86400 if item["as_of"] else None
-            unsupported = item["snapshot_quality"] == "current_proxy" or (age is not None and age > f["refresh_days"])
+            unsupported = item["snapshot_quality"] == "current_proxy" or (f["live_extract"]["kind"] == "cached_evidence" and age is not None and age > f["refresh_days"])
             value = None if unsupported else item["value"]
             values[f["name"]] = value
             if value is None:
@@ -261,26 +278,51 @@ def label_outcome(episode, contract):
     return result
 
 
+def crm_id(row):
+    ids = [str(row[key]) for key in ("id", "hs_object_id") if row.get(key) is not None and str(row[key])]
+    require(ids and len(set(ids)) == 1, "CRM record ID missing or conflicting")
+    return ids[0]
+
+
 def normalize(row, features, now):
-    """CRM baseline + cached approved custom extraction; never interpret prose."""
-    account_id = str(row["id"])
-    cached = json.loads(row.get("custom__fit_evidence") or "{}")
-    require(not cached or (cached["account_id"] == account_id and cached["feature_contract_version"] == features["version"]), "evidence identity/version mismatch")
-    snapshot = {"account_id": account_id, "snapshot_at": now, "feature_contract_version": features["version"], "features": {}}
+    """Observe the current CRM extract; cache refresh is a separate operation."""
+    account_id = crm_id(row)
+    at = instant(now)
+    notes = []
+    try:
+        cached = json.loads(row.get("custom__fit_evidence") or "{}")
+        require(isinstance(cached, dict), "cache must be an object")
+    except (ValueError, TypeError) as error:
+        cached = {}
+        notes.append("cache discarded: " + str(error))
+    # Identity corruption is different from a routine contract migration: fail closed.
+    require(not cached or cached.get("account_id") == account_id, "evidence identity mismatch")
+    if cached and cached.get("feature_contract_version") != features["version"]:
+        notes.append("cache discarded: feature_contract_version mismatch; refresh required")
+        cached = {}
+    snapshot = {"account_id": account_id, "snapshot_at": now, "feature_contract_version": features["version"], "features": {}, "data_quality_notes": notes}
     for f in features["features"]:
         empty = {"value": None, "as_of": None, "source_or_evidence_reference": None, "snapshot_quality": "missing", "extraction_version": f["extraction_version"]}
         source = f["live_extract"]
-        if source["kind"] == "crm":
-            value = row.get(source["property"])
-            as_of = row.get(source["as_of_property"])
-            if value is not None and value != "" and as_of:
-                if f["type"] == "number":
-                    require(type(value) is not bool, "boolean is not a count")
-                    value = float(value)
-                empty = {"value": value, "as_of": as_of, "source_or_evidence_reference": "hubspot:companies:" + account_id + ":" + source["property"], "snapshot_quality": "exact", "extraction_version": f["extraction_version"]}
-        else:
-            require(source["kind"] == "cached_evidence", "unimplemented extraction route")
-            empty = cached.get("features", {}).get(f["name"], empty)
-        snapshot["features"][f["name"]] = empty
+        require(source["kind"] in ("crm", "cached_evidence"), "unimplemented extraction route")
+        item = empty
+        try:
+            if source["kind"] == "crm":
+                value = row.get(source["property"])
+                if value is not None and value != "":
+                    if f["type"] == "number":
+                        require(type(value) is not bool, "boolean is not a count")
+                        value = float(value)
+                    # This dates our observation of the extract, not a property update.
+                    item = {"value": value, "as_of": now, "source_or_evidence_reference": "hubspot:companies:" + account_id + ":" + source["property"], "snapshot_quality": "exact", "extraction_version": f["extraction_version"]}
+            else:
+                item = dict(cached.get("features", {}).get(f["name"], empty))
+                if item.get("as_of") is not None:
+                    item["as_of"] = instant(item["as_of"]).isoformat()
+            validate_observation(item, f, at)
+        except (ValueError, KeyError, TypeError, AttributeError, OverflowError, OSError) as error:
+            item = empty
+            notes.append(f["name"] + ": discarded evidence: " + str(error))
+        snapshot["features"][f["name"]] = item
     validate_snapshot(snapshot, features)
     return snapshot

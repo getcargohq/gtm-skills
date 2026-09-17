@@ -68,7 +68,13 @@ const code = await format(
     )}\nexport const scoringVersion = ${JSON.stringify(c.version)};\nexport const featureVersion = ${JSON.stringify(f.version)};\nexport const tierNames = ${JSON.stringify(c.thresholds.map((t) => t.tier))} as const;\nexport const scoringContext = ${JSON.stringify(markdown)};\nexport const sourceHash = ${JSON.stringify(createHash("sha256").update(source).digest("hex"))};\n`,
   { parser: "typescript" },
 );
-if (args.includes("--approved")) {
+const liveCapable =
+  c.approval.state === "approved" &&
+  f.approval.state === "approved" &&
+  !c.synthetic &&
+  !f.synthetic;
+// This guard is mandatory for every live-capable bundle, even without --approved.
+if (liveCapable) {
   if (!/^[a-zA-Z0-9_-]+$/.test(c.version))
     throw new Error("Unsafe version path");
   for (const [kind, value] of [

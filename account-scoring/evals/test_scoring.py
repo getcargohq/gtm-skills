@@ -37,8 +37,6 @@ class ScoringTests(unittest.TestCase):
         self.assertNotEqual({f['name'] for f in self.f['features']},{f['name'] for f in other_f['features']})
         self.assertNotEqual(self.c['outcome'],other_c['outcome'])
         for fc,sc in [(self.f,self.c),(other_f,other_c)]:
-            self.assertNotIn('target_market_size',json.dumps(fc))
-            self.assertNotIn('champion',json.dumps(sc))
             validate_contract(fc,sc)
 
     def test_every_numeric_boundary_and_unknown(self):
@@ -94,7 +92,7 @@ class ScoringTests(unittest.TestCase):
 
     def test_stale_proxy_and_version_drift(self):
         for field,value in [('snapshot_quality','current_proxy'),('as_of','2020-01-01T00:00:00Z')]:
-            s=snapshot(self.f);s['features']['employee_count'][field]=value
+            s=snapshot(self.f);s['features']['deployment_architecture'][field]=value
             self.assertEqual(self.compute(s)['scoring_status'],'insufficient_data')
         s=snapshot(self.f);s['feature_contract_version']='wrong'
         self.assertEqual(self.compute(s)['scoring_status'],'error')
@@ -140,18 +138,70 @@ class ScoringTests(unittest.TestCase):
             for v in failed['observations'].values():v['value']=0
             self.assertEqual(label_outcome(failed,c)['outcome_tier'],'Tier 3')
 
-    def test_holdout_discovery_never_uses_test_accounts(self):
+    def test_holdout_uses_frozen_scorer_and_development_bands(self):
         observations={d['name']:{'state':'observed','value':50000} for d in self.c['outcome']['dimensions']}
-        rows=[dict(account_id=str(i),episode_id=str(i),kind='acquisition',stage='closed_won',age_days=200,observations=observations,split='development' if i==0 else 'holdout',features={'test':dict(value='dev-only' if i==0 else 'test-only',snapshot_quality='exact')},predicted_fit_tier='A') for i in range(2)]
-        data=dict(contract=self.c,episodes=rows,feature_names=['test'],analysis_mode='holdout',discovery_scope='development')
-        report=calibration_report(data)
-        groups=report['all_labeled']['development_features']['test']['groups']
-        self.assertEqual([g['value'] for g in groups],['dev-only'])
-        self.assertEqual(report['all_labeled']['validation']['accounts'],1)
+        rows=[]
+        for i in range(2):
+            snap=snapshot(self.f, {'employee_count':100 if i==0 else 600, 'deployment_architecture':'cloud' if i==0 else 'on_prem'})
+            snap['account_id']=str(i)
+            rows.append(dict(account_id=str(i),episode_id=str(i),kind='acquisition',stage='closed_won',age_days=200,observations=observations,split='development' if i==0 else 'holdout',snapshot=snap,fit_snapshot_at=snap['snapshot_at'],predicted_fit_tier='A'))
+        data=dict(feature_contract=self.f,contract=self.c,episodes=rows,feature_names=['employee_count'],analysis_mode='holdout',discovery_scope='development')
+        report=calibration_report(data,allow_synthetic=True)
+        groups=report['all_labeled']['development_features']['employee_count']['groups']
+        self.assertEqual([g['value'] for g in groups],[{'min':50,'max':500}])
+        metrics=report['all_labeled']['validation']
+        self.assertEqual(metrics['accounts'],1)
+        self.assertEqual(metrics['top_tier_count'],0)  # supplied "A" cannot override Python's C
+        self.assertEqual(report['predictions'][1]['fit_result']['tier'],'C')
+        with self.assertRaises(ValueError):calibration_report(data)  # synthetic is test-only
         data['discovery_scope']='all'
-        with self.assertRaises(ValueError):calibration_report(data)
-        data['discovery_scope']='development';rows[1]['account_id']='0'
-        with self.assertRaises(ValueError):calibration_report(data)
+        with self.assertRaises(ValueError):calibration_report(data,True)
+        data['discovery_scope']='development';rows[1]['account_id']='0';rows[1]['snapshot']['account_id']='0'
+        with self.assertRaises(ValueError):calibration_report(data,True)
+        rows[1]['snapshot']['account_id']='wrong'
+        with self.assertRaisesRegex(ValueError,'account mismatch'):calibration_report(data,True)
+
+    def test_numeric_lift_uses_scoring_boundaries_and_null_group(self):
+        rule=self.c['rules'][0]
+        rows=[dict(account_id=str(i),kind='acquisition',stage='closed_won',outcome_tier='Tier 1' if i<2 else 'Tier 3',outcome_mature=True,features={'employee_count':dict(value=value,snapshot_quality='exact')}) for i,value in enumerate([49,50,499,500,None])]
+        table=lift_table(rows,'employee_count',bands=rule['bands'])
+        groups={json.dumps(g['value'],sort_keys=True):g for g in table['groups']}
+        self.assertEqual(groups[json.dumps({'min':50,'max':500},sort_keys=True)]['accounts'],2)
+        self.assertEqual(groups['null']['accounts'],1)
+        for group in table['groups']:self.assertEqual(group['missingness'],1/5)
+        bad=copy.deepcopy(rule['bands']);bad[1]['min']=51
+        with self.assertRaises(ValueError):lift_table(rows,'employee_count',bands=bad)
+
+    def test_crm_observation_ignores_record_modification_date(self):
+        row={'hs_object_id':'synthetic-account','numberofemployees':'100','custom__fit_evidence':json.dumps(snapshot(self.f))}
+        for modified in [None,'2000-01-01T00:00:00Z','2026-01-01T00:00:00Z',1767225600000]:
+            row['hs_lastmodifieddate']=modified
+            s=normalize(row,self.f,'2026-01-01T00:00:00Z')
+            self.assertEqual(s['features']['employee_count']['as_of'],s['snapshot_at'])
+            self.assertEqual(self.compute(s)['score'],100)
+        row['id']='conflicting-id'
+        with self.assertRaisesRegex(ValueError,'conflicting'):normalize(row,self.f,'2026-01-01T00:00:00Z')
+
+    def test_cache_migrations_missing_evidence_and_epoch_timestamps(self):
+        row={'id':'synthetic-account','numberofemployees':'100'}
+        cached=snapshot(self.f)
+        cached['feature_contract_version']='previous'
+        row['custom__fit_evidence']=json.dumps(cached)
+        r=self.compute(normalize(row,self.f,'2026-01-01T00:00:00Z'))
+        self.assertEqual(r['scoring_status'],'insufficient_data')
+        self.assertTrue(any('feature_contract_version' in n for n in r['data_quality_notes']))
+        for key,value,reason in [('extraction_version','previous','extraction version'),('as_of','bad-date','discarded evidence'),('as_of','9'*40,'discarded evidence'),('value','unknown','unknown category')]:
+            cached=snapshot(self.f);cached['features']['deployment_architecture'][key]=value
+            row['custom__fit_evidence']=json.dumps(cached)
+            r=self.compute(normalize(row,self.f,'2026-01-01T00:00:00Z'))
+            self.assertEqual(r['scoring_status'],'insufficient_data')
+            self.assertTrue(any(reason in n for n in r['data_quality_notes']))
+        for timestamp in [1767225600000,'1767225600000']:
+            cached=snapshot(self.f);cached['features']['deployment_architecture']['as_of']=timestamp
+            row['custom__fit_evidence']=json.dumps(cached)
+            self.assertEqual(self.compute(normalize(row,self.f,'2026-01-01T00:00:00Z'))['score'],100)
+        row['custom__fit_evidence']='invalid JSON'
+        self.assertEqual(self.compute(normalize(row,self.f,'2026-01-01T00:00:00Z'))['scoring_status'],'insufficient_data')
 
     def test_grouped_splits_and_lift_denominator(self):
         split=grouped_split([dict(account_id='a',episode_id='a1'),dict(account_id='a',episode_id='a2')])

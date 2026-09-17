@@ -55,6 +55,7 @@ assert.equal(model.extractorSlug, "fetchRecords");
 assert.equal(model.datasetUuid.resourceId, "connector:hubspot");
 assert.equal(model.schedule, undefined);
 assert.equal(play.isEnabled, false);
+assert.equal(play.limit, 25);
 assert.equal(play.runCreationRule, "noConcurrency");
 assert.deepEqual(
   new Set(play.changeKinds),
@@ -107,10 +108,11 @@ assert.ok(
   writes.every(
     (n) =>
       n.config.matchingPropertyName === "hs_object_id" &&
-      n.config.matchingValue.expression.includes("nodes.start.id"),
+      n.config.matchingValue.expression.includes("nodes.script.result.id"),
   ),
 );
 assert.ok(writes.every((n) => !n.fallbackOnFailure));
+assert.ok(!play.nodes.some((n) => n.actionSlug === "getRecord"));
 const numeric = writes[0].config.mappings.filter((m) =>
   ["cargo_score", "cargo_tier"].includes(m.propertyName),
 );
@@ -241,6 +243,11 @@ function runGraph(graph, input, state) {
       if (state.wrongVersion) nodes[node.slug].scoring_version = "unapproved";
     } else if (node.actionSlug === "branch") next = cfg.condition ? 0 : 1;
     else if (node.actionSlug === "modelCustomColumn") {
+      if (
+        state.failFinalModel &&
+        cfg.mappings.some((m) => m.columnSlug === "fit_scored_at")
+      )
+        throw new Error("fixture final model failure");
       for (const m of cfg.mappings) state.local[m.columnSlug] = m.value;
       nodes[node.slug] = { custom: structuredClone(state.local) };
     } else if (node.kind === "agent") {
@@ -255,13 +262,28 @@ function runGraph(graph, input, state) {
       node.kind === "connector" &&
       node.actionSlug === "updateRecords"
     ) {
-      if (state.failWrite) throw new Error("fixture CRM outage");
+      if (
+        state.failWrite ||
+        (state.failStamp &&
+          cfg.mappings.some((m) => m.propertyName === "cargo_last_updated_at"))
+      )
+        throw new Error("fixture CRM outage");
       state.writes++;
       if (state.emptyWrite) nodes[node.slug] = [];
       else {
         for (const m of cfg.mappings)
           state.crm.properties[m.propertyName] = String(m.value);
         nodes[node.slug] = [structuredClone(state.crm)];
+        if (
+          state.badReadback &&
+          cfg.mappings.some((m) => m.propertyName === "cargo_score")
+        )
+          delete nodes[node.slug][0].properties.cargo_score;
+        if (
+          state.badStamp &&
+          cfg.mappings.some((m) => m.propertyName === "cargo_last_updated_at")
+        )
+          nodes[node.slug][0].properties.cargo_last_updated_at = "bad-date";
       }
     } else if (node.kind === "connector" && node.actionSlug === "getRecord")
       nodes[node.slug] = structuredClone(state.crm);
@@ -282,7 +304,15 @@ assert.equal(state.crm.properties.cargo_tier, "A");
 assert.ok(state.local.fit_scored_at);
 assert.equal(JSON.parse(state.local.fit_last_scored_result).score, 100);
 assert.equal(state.agentCalls, 1);
-for (const mode of ["emptyWrite", "failWrite", "malformed"]) {
+for (const mode of [
+  "emptyWrite",
+  "failWrite",
+  "malformed",
+  "badReadback",
+  "failStamp",
+  "badStamp",
+  "failFinalModel",
+]) {
   state = stateFor({ [mode]: true });
   assert.throws(() => runGraph(play.nodes, row, state));
   assert.equal(state.local.fit_scored_at, undefined);
@@ -308,6 +338,75 @@ result = runGraph(play.nodes, fixtureRow(), state);
 assert.equal(result.status, "insufficient_data");
 assert.equal(state.writes, 0);
 assert.equal(state.crm.properties.cargo_score, "55");
+
+// Each late failure must preserve prior successful evidence and stop paid retries.
+const retryConditions = play.filter.groups[0].conditions;
+assert.ok(
+  retryConditions.some(
+    (c) =>
+      c.columnSlug === "custom__fit_attempt_count" &&
+      c.operator === "lowerThan" &&
+      c.value === 3,
+  ),
+);
+const rowWithState = (state) => ({
+  ...row,
+  ...Object.fromEntries(
+    Object.entries(state.local).map(([k, v]) => [`custom__${k}`, v]),
+  ),
+});
+for (const mode of ["failStamp", "badStamp", "failFinalModel"]) {
+  const previous = {
+    fit_last_scored_snapshot: '{"previous":"snapshot"}',
+    fit_last_scored_result: '{"score":55,"tier":"B"}',
+    fit_scored_at: "2020-01-01T00:00:00Z",
+    fit_scoring_version: "previous",
+  };
+  state = stateFor({ [mode]: true, local: { ...previous } });
+  for (let i = 1; i <= 3; i++) {
+    assert.throws(() => runGraph(play.nodes, rowWithState(state), state));
+    assert.equal(state.local.fit_attempt_count, i);
+    for (const [k, v] of Object.entries(previous))
+      assert.equal(state.local[k], v);
+  }
+  state[mode] = false;
+  result = runGraph(play.nodes, rowWithState(state), state);
+  assert.equal(result.status, "retry_exhausted");
+  assert.equal(state.agentCalls, 3);
+  // A reviewed version change creates a new allowance; success resets the count.
+  state.local.fit_attempt_version = "previous";
+  result = runGraph(play.nodes, rowWithState(state), state);
+  assert.equal(result.scored, true);
+  assert.equal(state.local.fit_attempt_count, 0);
+}
+state = stateFor();
+result = runGraph(
+  play.nodes,
+  { ...row, id: undefined, hs_object_id: row.id },
+  state,
+);
+assert.equal(result.scored, true);
+state = stateFor();
+assert.throws(
+  () => runGraph(play.nodes, { ...row, hs_object_id: "conflict" }, state),
+  /conflicting/,
+);
+assert.equal(state.agentCalls, 0);
+state = stateFor();
+const outdated = evidence(row);
+outdated.feature_contract_version = "previous";
+result = runGraph(
+  play.nodes,
+  { ...row, custom__fit_evidence: JSON.stringify(outdated) },
+  state,
+);
+assert.equal(result.status, "insufficient_data");
+assert.ok(
+  JSON.parse(state.local.fit_result).data_quality_notes.some((n) =>
+    n.includes("feature_contract_version"),
+  ),
+);
+assert.equal(state.writes, 0);
 
 // The packaged source runs under the backend's async-function wrapper locally.
 // Native Python service execution itself remains a separately approved live test.
@@ -381,9 +480,12 @@ if (!process.env.ACCOUNT_SCORING_INFRA) {
       join(tree, "infra/account-scoring"),
       "--context",
       targetContext,
-      "--approved",
     ];
+    // Archive enforcement is automatic: omitting --approved cannot bypass it.
     execFileSync(process.execPath, buildArgs, { stdio: "pipe" });
+    execFileSync(process.execPath, [...buildArgs, "--approved"], {
+      stdio: "pipe",
+    });
     execFileSync(process.execPath, [...buildArgs, "--check"], {
       stdio: "pipe",
     });

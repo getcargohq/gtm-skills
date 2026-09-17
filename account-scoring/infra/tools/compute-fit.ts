@@ -8,6 +8,7 @@ export const snapshotSchema = z
     account_id: z.string().min(1),
     snapshot_at: z.string(),
     feature_contract_version: z.string(),
+    data_quality_notes: z.array(z.string()).optional(),
     features: z.record(
       z.string(),
       z
