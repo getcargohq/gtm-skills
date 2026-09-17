@@ -27,8 +27,10 @@ disabled. Company facts and design decisions belong in the consuming project.
 
 ## Put it in your project
 
-If this file is already in a project's skills directory, the copy step is done.
-Read `AGENTS.md`, `plan/`, `cadence/`, relevant `context/` and recent outputs first.
+Placement is complete only when `infra/company-website/website.json` and
+`scripts/company-website/website.mjs` exist. A skills-only installation still
+needs the CDK placement below. Read `AGENTS.md`, `plan/`, `cadence/`, relevant
+`context/` and recent outputs first.
 Use `cargo`, then `cargo-project` and `cargo-hosting` from the installed Cargo
 pack for current resource, hosting and deployment mechanics. If missing, install
 the pack with `npx skills add getcargohq/cargo-skills --all`. Check the installed
