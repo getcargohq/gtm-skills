@@ -1,14 +1,14 @@
 # Cargo GTM Skills
 
 [![cargo-ai cli](https://img.shields.io/npm/v/@cargo-ai/cli?label=cargo-ai%20cli&color=black)](https://www.npmjs.com/package/@cargo-ai/cli)
-[![skills.sh](https://img.shields.io/badge/skills.sh-25%20skills-black)](https://www.skills.sh)
+[![skills.sh](https://img.shields.io/badge/skills.sh-26%20skills-black)](https://www.skills.sh)
 [![License](https://img.shields.io/github/license/getcargohq/gtm-skills?color=black)](LICENSE)
 
-25 agent skills, each with one routed job. No account required to read them, and a new
+26 agent skills, each with one routed job. No account required to read them, and a new
 Cargo account starts with **100 free credits, no card**.
 
 ```bash
-npx skills add getcargohq/gtm-skills --all      # all 25
+npx skills add getcargohq/gtm-skills --all      # all 26
 ```
 
 Each skill also installs on its own, when you want exactly one and nothing else:
@@ -17,7 +17,7 @@ Each skill also installs on its own, when you want exactly one and nothing else:
 npx skills add getcargohq/gtm-skills/<skill-name>
 ```
 
-The five **cookbooks** at the bottom of the table install differently, because they are
+The seven **pipelines** at the bottom of the table install differently, because they are
 not only a procedure — each carries an `infra/` of CDK resources that has to land in your
 project's CDK directory, while the procedure goes to your repo's skills layer. `skills add`
 would install the folder whole, putting TypeScript where the CDK loader never looks, so the
@@ -49,8 +49,8 @@ cargo-ai cdk add cookbook/<name>
 | [`find-portfolio-companies`](find-portfolio-companies/SKILL.md)   | Find every portfolio company of an investor or accelerator, then the people inside them.                                          |
 | [`waterfall-enrichment`](waterfall-enrichment/SKILL.md)           | Run a waterfall across several providers so a record one vendor misses is caught by the next.                                     |
 
-**Five of them deploy a pipeline rather than running once.** `tam-building`, `account-scoring`,
-`crm-enrichment`, `call-capture`, `agentic-engagement` and `company-website` are the same jobs as a standing pipeline: each folder holds worked CDK
+**Seven of them deploy a pipeline rather than running once.** `tam-building`, `account-scoring`,
+`crm-enrichment`, `crm-deduplication`, `call-capture`, `agentic-engagement` and `company-website` are the same jobs as a standing pipeline: each folder holds worked CDK
 resources written for some other company, and your agent adapts them into your project and
 deploys them. Every such folder is self-contained (its own models, connectors and folders; no
 shared foundation, no requires graph), so the agent reconciles it with whatever your project
@@ -62,6 +62,7 @@ already declares. More are on their way (`contact-sourcing`, `signal-based-tam`,
 | [`tam-building`](tam-building/SKILL.md)                    | Your account universe sourced from AI Ark on an ICP filter sized for free, then tiered A/B/C by an agent reading your rubric.            |
 | [`account-scoring`](account-scoring/SKILL.md)              | Every account scored and tiered against your written ICP by an agent that cites its evidence, rationale on the CRM record.               |
 | [`crm-enrichment`](crm-enrichment/SKILL.md)                | CRM accounts stay filled: approved blanks from LinkedIn, freshness after a real write, re-enrolled after six months.                     |
+| [`crm-deduplication`](crm-deduplication/SKILL.md)          | Duplicate CRM accounts merge on exact identity alone; everything less certain waits for a human in Slack.                                |
 | [`call-capture`](call-capture/SKILL.md)                    | Yesterday's call transcripts become log entries and, once a claim repeats, context updates — as one pull request you review.             |
 | [`agentic-engagement`](agentic-engagement/SKILL.md)        | An agent holds email conversations with leads from a mailbox you own, waking on reply, unsubscribe, or a heartbeat that checks thread status. |
 | [`company-website`](company-website/SKILL.md) | Build or recreate a public company website, capture its design system, and maintain it from your coding harness. Optionally collect company visits and sessions in Cargo. |

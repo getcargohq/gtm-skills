@@ -1,37 +1,32 @@
 /**
- * The Avoma adapter: the one worked implementation of `Recorder`.
+ * Avoma — the only adapter here run against a live workspace, and the one to
+ * read first when you write another: the rest follow its shape, and where they
+ * differ it is because the vendor differs.
  *
- * This is the file a coding agent replaces to support a different recorder.
- * It is the whole surface — auth, endpoints, pagination, readiness, response
- * shapes — and nothing outside it needs to change. `references/providers.md`
- * carries Gong and Fireflies against this same contract.
- *
- * Verify the transcript response shape against the live API before you trust
- * it; the endpoint is stable and the field names around it have moved. The
- * one-line check is in that reference, and `--dry-run` exercises `listReady`
- * without writing anything.
+ * Verify response shapes against the live API even so. The endpoints are
+ * stable and the field names around them have moved;
+ * `references/recorder-apis.md` has the curl, and `--dry-run` exercises
+ * `listReady` without writing anything.
  */
 import {
   fetchJson,
   HttpError,
   PACE_MS,
+  pageGuard,
+  recorderKey,
   sleep,
   type Call,
   type Recorder,
-} from "./recorder";
+} from "../recorder";
+import { renderTurns, type Turn } from "./turns";
 
 const API = "https://api.avoma.com/v1";
 
-const API_KEY = process.env["CALL_RECORDER_API_KEY"];
-if (API_KEY === undefined || API_KEY === "") {
-  console.error(
-    "CALL_RECORDER_API_KEY is not set. It comes from the agent's repository env " +
-      "in infra/call-capture/agents/call-scribe.ts; export it locally to run this by hand.",
-  );
-  process.exit(1);
-}
-
-const headers = { Authorization: `Bearer ${API_KEY}` };
+// A function, not a const: the key is read when a request is made, because
+// this module is imported on every run whatever recorder was selected.
+const headers = (): Record<string, string> => ({
+  Authorization: `Bearer ${recorderKey()}`,
+});
 
 type AvomaCall = {
   uuid: string;
@@ -67,21 +62,21 @@ export const avoma: Recorder = {
       `${API}/meetings/?from_date=${from}T00:00:00Z` +
       `&to_date=${to}T23:59:59Z&page_size=100`;
     const raw: AvomaCall[] = [];
+    const guard = pageGuard("avoma");
 
     while (next !== null) {
+      guard();
       const page: { results?: AvomaCall[]; next?: string | null } =
-        await fetchJson(next, { headers });
+        await fetchJson(next, { headers: headers() });
       raw.push(...(page.results ?? []));
       next = page.next ?? null;
     }
 
-    // `transcript_ready` and `notes_ready` are false until processing
-    // finishes, and ABSENT rather than false on anything not yet held. That is
-    // the whole reason the pipeline's window overlaps the previous run.
+    // `transcript_ready` and `notes_ready` are ABSENT rather than false on
+    // anything not yet held, which is why the window overlaps the last run.
     //
-    // `is_internal` is deliberately not used: some workspaces return false on
-    // every meeting, including all-internal ones. The pipeline derives that
-    // from attendee domains instead.
+    // `is_internal` is not used: some workspaces return false on every
+    // meeting, including all-internal ones.
     return raw
       .filter(
         (call) =>
@@ -102,7 +97,7 @@ export const avoma: Recorder = {
     let payload: { transcript?: unknown; speakers?: unknown };
     try {
       payload = await fetchJson(`${API}/transcriptions/?meeting_uuid=${id}`, {
-        headers,
+        headers: headers(),
       });
     } catch (error) {
       if (error instanceof HttpError) {
@@ -125,15 +120,14 @@ export const avoma: Recorder = {
 
     if (!Array.isArray(payload.transcript)) return null;
 
-    const lines: string[] = [];
+    const turns: Turn[] = [];
     for (const entry of payload.transcript as Record<string, unknown>[]) {
       const text = entry["transcript"];
-      if (typeof text !== "string" || text.trim() === "") continue;
-      const speaker = speakers.get(String(entry["speaker_id"])) ?? "Speaker";
-      lines.push(`**${speaker}:** ${text.trim()}`);
+      if (typeof text !== "string") continue;
+      turns.push({ speaker: speakers.get(String(entry["speaker_id"])), text });
     }
 
-    return lines.length > 0 ? lines.join("\n\n") : null;
+    return renderTurns(turns);
   },
 
   async notes(id) {
@@ -141,7 +135,9 @@ export const avoma: Recorder = {
 
     let notes: { results?: { data?: unknown }[] };
     try {
-      notes = await fetchJson(`${API}/notes/?meeting_uuid=${id}`, { headers });
+      notes = await fetchJson(`${API}/notes/?meeting_uuid=${id}`, {
+        headers: headers(),
+      });
     } catch (error) {
       if (error instanceof HttpError) {
         console.error(`notes ${id} unavailable (${error.status})`);

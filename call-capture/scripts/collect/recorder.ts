@@ -6,11 +6,11 @@
  * whoever answers: deduplication, account slugging, file layout, the rolling
  * window, and the run itself.
  *
- * To support a different recorder, write one object satisfying `Recorder` (see
- * `avoma.ts` for the worked one) and pass it to `capture`. TypeScript is what
- * keeps the boundary honest: an adapter that cannot satisfy this type is
- * telling you something real about the API, and an adapter cannot reach into
- * the pipeline below because it does not import it.
+ * To support a recorder that is not in `recorders/`, write one object
+ * satisfying `Recorder` beside the ones there and register it. The type is
+ * what keeps the boundary honest, in both directions: an adapter that cannot
+ * satisfy it is telling you something real about the API, and no adapter can
+ * reach into the pipeline below because none of them import it.
  */
 import {
   existsSync,
@@ -20,6 +20,8 @@ import {
   writeFileSync,
 } from "node:fs";
 import { join, relative, resolve } from "node:path";
+
+import { INTERNAL_DOMAIN } from "./config";
 
 /** One call, normalized. Producing these is the adapter's job. */
 export type Call = {
@@ -72,8 +74,86 @@ export class HttpError extends Error {
   }
 }
 
+/**
+ * Something about the run's configuration is wrong — a missing credential, an
+ * unknown slug passed to `--recorder=`. Separate from every other error so
+ * `calls.ts` can print it as a message and exit 1: a stack trace pointing into
+ * an adapter is the wrong thing to read when the answer is "create the
+ * workspace variable".
+ */
+export class ConfigError extends Error {}
+
+/**
+ * The recorder's credential, read when a request is about to be made rather
+ * than at import — `recorders/index.ts` imports every adapter to resolve a
+ * slug, so an import-time check in one would fail the runs of the other eight.
+ */
+export function recorderKey(): string {
+  const key = process.env["CALL_RECORDER_API_KEY"];
+  if (key === undefined || key === "") {
+    throw new ConfigError(
+      "CALL_RECORDER_API_KEY is not set. Deployed, it is a workspace environment " +
+        "variable the harness inherits: `cargo-ai workspaceManagement envVar list` " +
+        "shows whether the workspace holds one. Export it to run this by hand.",
+    );
+  }
+  return key;
+}
+
+/**
+ * The same credential where the recorder wants two values — Gong's access key
+ * and secret, Clari Copilot's key and password. Set it as `<first>:<second>`,
+ * keeping one variable name whatever records your calls. Split on the FIRST
+ * colon only: the second half is a secret and secrets contain colons.
+ */
+export function recorderKeyPair(shape: string): [string, string] {
+  const raw = recorderKey();
+  const split = raw.indexOf(":");
+  if (split < 1 || split === raw.length - 1) {
+    throw new ConfigError(
+      `CALL_RECORDER_API_KEY must be ${shape} for this recorder, and this one ` +
+        `has no colon with a value on both sides of it.`,
+    );
+  }
+  return [raw.slice(0, split), raw.slice(split + 1)];
+}
+
 export const sleep = (ms: number): Promise<void> =>
   new Promise((done) => setTimeout(done, ms));
+
+/**
+ * Every argument the collector accepts, checked before anything runs.
+ *
+ * A flag it does not know is a stop rather than something to ignore:
+ * `--dry-run` typed as `--dryrun` was a real capture, and `--recorder granola`
+ * without the `=` ran whatever `config.ts` names. Both are a run that did the
+ * wrong thing while looking exactly like the one that was asked for.
+ */
+export function checkFlags(argv: readonly string[]): void {
+  const unknown = argv.filter(
+    (argument) =>
+      !["--list", "--dry-run"].includes(argument) &&
+      !argument.startsWith("--recorder="),
+  );
+  if (unknown.length > 0) {
+    throw new ConfigError(
+      `unknown argument(s): ${unknown.join(", ")}\n` +
+        `this takes --list, --dry-run and --recorder=<slug>.`,
+    );
+  }
+}
+
+/**
+ * How long to wait after a 429. Most vendors send no `Retry-After` at all, and
+ * `Number(null)` is 0 — so reading the header without this would retry four
+ * times instantly and spend the rest of the rate limit. Clamped at the top
+ * end too: a vendor asking for an hour would hold the whole run open.
+ */
+export function backoffSeconds(header: string | null, attempt: number): number {
+  const asked = header === null ? Number.NaN : Number(header);
+  if (Number.isFinite(asked) && asked > 0) return Math.min(asked, 300);
+  return 2 ** (attempt + 3);
+}
 
 /**
  * Fetch JSON with 429 backoff and a timeout. The caller supplies the whole
@@ -91,10 +171,10 @@ export async function fetchJson<T>(
     });
 
     if (response.status === 429 && attempt < maxAttempts - 1) {
-      const retryAfter = Number(response.headers.get("retry-after"));
-      const waitSeconds = Number.isFinite(retryAfter)
-        ? retryAfter
-        : 2 ** (attempt + 3);
+      const waitSeconds = backoffSeconds(
+        response.headers.get("retry-after"),
+        attempt,
+      );
       console.error(`429, backing off ${waitSeconds.toFixed(0)}s`);
       await sleep(waitSeconds * 1000);
       continue;
@@ -106,6 +186,30 @@ export async function fetchJson<T>(
   }
 
   throw new Error(`request exhausted retries: ${url}`);
+}
+
+/**
+ * A page counter that stops a paginated read that never terminates. Every
+ * loop here ends when the vendor stops handing back a cursor, so a vendor that
+ * echoes one — or ignores an offset and returns a full page for ever — would
+ * otherwise spin until someone notices the quota is gone.
+ *
+ * Call it once per request. It throws rather than returning what it has: a
+ * truncated window that looks complete is the failure this whole collector is
+ * arranged to avoid.
+ */
+export function pageGuard(provider: string, limit = 200): () => void {
+  let pages = 0;
+  return () => {
+    pages++;
+    if (pages > limit) {
+      throw new Error(
+        `${provider}: pagination did not terminate after ${limit} pages. ` +
+          `The window is too wide for one run, or the vendor is repeating a ` +
+          `cursor — either way this run captured nothing rather than part.`,
+      );
+    }
+  };
 }
 
 /** Space out requests: a 429 storm on a backfill day half-captures the run. */
@@ -126,12 +230,8 @@ const RAW_DIR = join(LOG_DIR, "raw", "calls");
 // skipped before any transcript is fetched.
 const LOOKBACK_DAYS = Number(process.env["CALL_CAPTURE_LOOKBACK_DAYS"] ?? "3");
 
-// PLACEHOLDER — your own email domain, set from the agent's repository env. It
-// is how internal-only calls are recognised: Avoma's `is_internal` is false on
-// every meeting in some workspaces, including all-internal ones, so a vendor
-// flag cannot be trusted for this.
-const INTERNAL_DOMAIN =
-  process.env["CALL_CAPTURE_INTERNAL_DOMAIN"] ?? "example.com";
+// Applied here rather than in an adapter because it has to mean the same thing
+// whoever recorded the call. `config.ts` is where the domain is set.
 
 // A personal address is not an account. Slugging by domain would file every
 // unrelated gmail.com guest under one "gmail" account, and the scribe would
@@ -154,13 +254,19 @@ function isoDateOffset(days: number): string {
   return date.toISOString().slice(0, 10);
 }
 
+/** The characters an id may use, because the reader below is a regex. */
+const ID_PATTERN = /^[\w.@|-]+$/;
+
 /**
  * Every id already recorded anywhere under cadence/log/ — raw captures AND
  * scribed entries. Reading both is what stops a call being re-captured months
  * after it was scribed and its raw file archived away.
  */
 function capturedIds(provider: string): Set<string> {
-  const pattern = new RegExp(`source: ${provider} ([\\w.@|-]+)`, "g");
+  // Escaped: a slug carrying a `.` would otherwise match any character there
+  // and recognise another recorder's captures as this one's.
+  const slug = provider.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const pattern = new RegExp(`source: ${slug} ([\\w.@|-]+)`, "g");
   const seen = new Set<string>();
   if (!existsSync(LOG_DIR)) return seen;
 
@@ -176,19 +282,45 @@ function capturedIds(provider: string): Set<string> {
   return seen;
 }
 
+/**
+ * The domain half of an address, or undefined when there is nothing usable
+ * there. Vendors send `""`, a display name, or a bare label for a participant
+ * they never identified, and every adapter passes the value through — so this
+ * is where that has to be survivable rather than nine places.
+ */
+function emailDomain(attendee: { email?: string }): string | undefined {
+  const address = attendee.email ?? "";
+  const at = address.lastIndexOf("@");
+  if (at < 1 || at === address.length - 1) return undefined;
+  return address.slice(at + 1).toLowerCase();
+}
+
+/**
+ * Matched on the domain, not as a suffix of the address. `endsWith` here would
+ * read `her@notexample.com` as internal, and a short internal domain makes
+ * that routine: `me.com` swallows every `acme.com` contact. A subdomain of
+ * your own domain IS you, so those still count as internal.
+ */
+function isInternal(domain: string): boolean {
+  return domain === INTERNAL_DOMAIN || domain.endsWith(`.${INTERNAL_DOMAIN}`);
+}
+
 function externalAttendees(call: Call): { email?: string; name?: string }[] {
-  return call.attendees.filter(
-    (attendee) =>
-      attendee.email !== undefined && !attendee.email.endsWith(INTERNAL_DOMAIN),
-  );
+  return call.attendees.filter((attendee) => {
+    const domain = emailDomain(attendee);
+    return domain !== undefined && !isInternal(domain);
+  });
 }
 
 function accountSlug(call: Call): string {
   const domains = [
     ...new Set(
       externalAttendees(call)
-        .map((attendee) => attendee.email!.split("@")[1]!.toLowerCase())
-        .filter((domain) => !CONSUMER_DOMAINS.has(domain)),
+        .map((attendee) => emailDomain(attendee))
+        .filter(
+          (domain): domain is string =>
+            domain !== undefined && !CONSUMER_DOMAINS.has(domain),
+        ),
     ),
   ].sort();
 
@@ -206,6 +338,17 @@ function freePath(day: string, slug: string): string {
 }
 
 function writeRaw(provider: string, call: Call, body: string): string {
+  // Written now, read back by capturedIds() with a regex. An id carrying
+  // anything outside that class would be read back truncated, which reads as
+  // "never captured" and re-captures the call every morning.
+  if (!ID_PATTERN.test(call.id)) {
+    throw new Error(
+      `${provider} id "${call.id}" has characters the deduplication key cannot ` +
+        `round-trip. Widen ID_PATTERN and capturedIds() together, or normalize ` +
+        `the id in the adapter.`,
+    );
+  }
+
   const day = call.startAt.slice(0, 10);
   const path = freePath(day, accountSlug(call));
   const attendees = call.attendees
@@ -244,9 +387,25 @@ export async function capture(recorder: Recorder): Promise<void> {
   const captured = capturedIds(recorder.provider);
   const ready = await recorder.listReady(from, to);
 
-  const pending = ready.filter(
-    (call) => !captured.has(call.id) && externalAttendees(call).length > 0,
-  );
+  const pending = ready.filter((call) => {
+    if (captured.has(call.id)) return false;
+
+    // Said out loud, because the alternative is a call quietly filed as
+    // internal on the strength of an address the vendor mangled.
+    const unusable = call.attendees.filter(
+      (attendee) =>
+        attendee.email !== undefined &&
+        attendee.email !== "" &&
+        emailDomain(attendee) === undefined,
+    );
+    if (unusable.length > 0) {
+      console.error(
+        `${call.id}: ${unusable.length} attendee address(es) are not addresses, ignored`,
+      );
+    }
+
+    return externalAttendees(call).length > 0;
+  });
 
   console.log(
     `${recorder.provider} ${from}..${to}: ${ready.length} ready, ` +

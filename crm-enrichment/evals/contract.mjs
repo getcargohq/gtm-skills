@@ -1,46 +1,42 @@
+// The enrichment graph's executable contract: the boundaries CDK schema
+// validation cannot express, checked against the compiled resources.
+//
+// It loads through `loadResources`, the same loader `cargo-ai cdk check`,
+// `plan`, and `deploy` use, so what is asserted here is what would deploy.
 import assert from "node:assert/strict";
-import { resetRegistry, resources } from "@cargo-ai/cdk";
+import { loadResources } from "@cargo-ai/cdk";
 
-resetRegistry();
-await import(`../infra/index.ts?contract=${Date.now()}`);
-
-const byId = new Map(resources().map((resource) => [resource.id, resource]));
+const infraDir = new URL("../infra", import.meta.url).pathname;
+const byId = new Map(
+  (await loadResources(infraDir)).map((resource) => [resource.id, resource]),
+);
 
 const nodesFor = (id) => {
   const resource = byId.get(id);
   assert.ok(resource, `${id} must exist`);
-  assert.ok(Array.isArray(resource.spec.nodes), `${id} must have workflow nodes`);
+  assert.ok(Array.isArray(resource.spec.nodes), `${id} must have nodes`);
   return resource.spec.nodes;
 };
-
-const findOne = (nodes, predicate, message) => {
+const onlyIn = (nodes, predicate, message) => {
   const matches = nodes.filter(predicate);
   assert.equal(matches.length, 1, message);
   return matches[0];
 };
-
-const child = (nodes, node) =>
-  nodes.find((candidate) => candidate.uuid === node.childrenUuids[0]);
-
-const children = (nodes, node) =>
+const childrenOf = (nodes, node) =>
   node.childrenUuids.map((uuid) =>
     nodes.find((candidate) => candidate.uuid === uuid),
   );
 
+// The tool: identifier in, company data out, no CRM anywhere.
 const toolNodes = nodesFor("tool:account_enrichment");
-const toolStart = findOne(
+const toolStart = onlyIn(
   toolNodes,
   (node) => node.kind === "native" && node.actionSlug === "start",
   "account_enrichment must have one start node",
 );
-const identifierGate = child(toolNodes, toolStart);
+const identifierGate = childrenOf(toolNodes, toolStart)[0];
 assert.equal(
-  identifierGate?.kind,
-  "native",
-  "the tool's first node must be native",
-);
-assert.equal(
-  identifierGate?.actionSlug,
+  identifierGate.actionSlug,
   "branch",
   "the tool's first node must branch on identifier availability",
 );
@@ -55,13 +51,13 @@ assert.match(
   "the identifier gate must inspect the domain input",
 );
 
-const identifierRoutes = children(toolNodes, identifierGate);
-const providerBranch = findOne(
+const identifierRoutes = childrenOf(toolNodes, identifierGate);
+const providerGate = onlyIn(
   identifierRoutes,
   (node) => node?.kind === "native" && node.actionSlug === "branch",
   "the identifier gate must continue to one provider-routing Branch",
 );
-findOne(
+onlyIn(
   identifierRoutes,
   (node) => node?.kind === "native" && node.actionSlug === "end",
   "the identifier gate must end without a provider call when both identifiers are absent",
@@ -71,7 +67,7 @@ assert.equal(
     (node) => node.kind === "native" && node.actionSlug === "filter",
   ),
   false,
-  "the defineWorkflow tool must express its gates as code-generated Branch nodes",
+  "the tool must express its gates as code-generated Branch nodes",
 );
 
 const providerNodes = toolNodes.filter(
@@ -83,9 +79,9 @@ assert.deepEqual(
   "the tool must expose exactly the LinkedIn-first and domain-fallback routes",
 );
 assert.deepEqual(
-  new Set(providerBranch.childrenUuids),
+  new Set(providerGate.childrenUuids),
   new Set(providerNodes.map((node) => node.uuid)),
-  "the provider actions must be mutually exclusive Branch children",
+  "the provider actions must be mutually exclusive Branch children — at most one paid call per row",
 );
 assert.equal(
   toolNodes.some(
@@ -97,13 +93,14 @@ assert.equal(
   "account_enrichment must not contain CRM connector nodes",
 );
 
+// The play: call the tool, then own the only CRM write.
 const playNodes = nodesFor("play:enrich_accounts");
-const playStart = findOne(
+const playStart = onlyIn(
   playNodes,
   (node) => node.kind === "native" && node.actionSlug === "start",
   "enrich_accounts must have one start node",
 );
-const toolCall = findOne(
+const toolCall = onlyIn(
   playNodes,
   (node) =>
     node.kind === "tool" &&
@@ -111,67 +108,67 @@ const toolCall = findOne(
   "enrich_accounts must contain exactly one account_enrichment Tool node",
 );
 assert.equal(
-  child(playNodes, playStart)?.uuid,
+  childrenOf(playNodes, playStart)[0].uuid,
   toolCall.uuid,
   "account_enrichment must be the play's first workflow node",
-);
-
-const crmNodes = playNodes.filter(
-  (node) =>
-    node.kind === "connector" &&
-    node.connectorUuid?.resourceId === "connector:crm",
-);
-assert.equal(crmNodes.length, 1, "only the play may contain one CRM node");
-const [crmWrite] = crmNodes;
-assert.equal(
-  crmWrite.actionSlug,
-  "updateRecords",
-  "the play's only CRM node must be updateRecords",
-);
-assert.equal(
-  child(playNodes, toolCall)?.uuid,
-  crmWrite.uuid,
-  "the CRM write must immediately consume the account_enrichment result",
-);
-
-const writeProperties = new Set(
-  crmWrite.config.mappings.map((mapping) => mapping.propertyName),
-);
-assert.equal(
-  writeProperties.has("cargo_last_enriched_at"),
-  true,
-  "the play must write the Cargo-owned freshness timestamp",
-);
-assert.equal(
-  writeProperties.has("cargo_enrichment_status"),
-  true,
-  "the play must write the Cargo-owned enrichment status",
-);
-assert.equal(
-  writeProperties.has("last_enriched_at") ||
-    writeProperties.has("enrichment_status"),
-  false,
-  "Cargo-owned operational properties must use the cargo_ prefix",
-);
-
-const playResource = byId.get("play:enrich_accounts");
-const filterConditions = playResource.spec.filter.groups.flatMap(
-  (group) => group.conditions,
-);
-const freshnessConditions = filterConditions.filter(
-  (condition) => condition.columnSlug === "cargo_last_enriched_at",
-);
-assert.deepEqual(
-  new Set(freshnessConditions.map((condition) => condition.operator)),
-  new Set(["isNull", "lowerThan"]),
-  "the play trigger must use the Cargo-owned freshness timestamp",
 );
 assert.equal(
   playNodes.some(
     (node) => node.kind === "connector" && node.integrationSlug === "linkedin",
   ),
   false,
-  "the play must not duplicate provider connector actions",
+  "the play must not duplicate the provider actions the tool owns",
+);
+
+const crmWrite = onlyIn(
+  playNodes,
+  (node) =>
+    node.kind === "connector" &&
+    node.connectorUuid?.resourceId === "connector:crm",
+  "only the play may contain a CRM node, and only one",
+);
+assert.equal(
+  crmWrite.actionSlug,
+  "updateRecords",
+  "the play's only CRM node must be updateRecords",
+);
+assert.equal(
+  childrenOf(playNodes, toolCall)[0].uuid,
+  crmWrite.uuid,
+  "the CRM write must immediately consume the account_enrichment result",
+);
+
+const written = new Set(
+  crmWrite.config.mappings.map((mapping) => mapping.propertyName),
+);
+assert.equal(
+  written.has("cargo_last_enriched_at"),
+  true,
+  "the play must write the Cargo-owned freshness timestamp",
+);
+assert.equal(
+  written.has("cargo_enrichment_status"),
+  true,
+  "the play must write the Cargo-owned enrichment status",
+);
+assert.equal(
+  written.has("last_enriched_at") || written.has("enrichment_status"),
+  false,
+  "Cargo-owned operational properties must use the cargo_ prefix",
+);
+
+// Eligibility and freshness belong to the trigger, not the workflow.
+const conditions = byId
+  .get("play:enrich_accounts")
+  .spec.filter.groups.flatMap((group) => group.conditions);
+assert.deepEqual(
+  new Set(
+    conditions
+      .filter((condition) => condition.columnSlug === "cargo_last_enriched_at")
+      .map((condition) => condition.operator),
+  ),
+  new Set(["isNull", "lowerThan"]),
+  "the play trigger must gate on the Cargo-owned freshness timestamp",
 );
 
 console.log(

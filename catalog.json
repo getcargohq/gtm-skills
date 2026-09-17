@@ -62,7 +62,7 @@
         },
         {
           "id": "no-crm-at-all",
-          "when": "You have no CRM, or you do not want to hand this skill a CRM credential",
+          "when": "You have no CRM, or the workspace has no CRM connection and you do not want to authorize one",
           "how": "Take `skip-crm-roundtrip`, then delete `infra/connectors/hubspot.ts` so no CRM connector is registered",
           "cost": "Every other CRM-dependent skill you install later brings a CRM connector of its own; reuse one"
         }
@@ -200,8 +200,8 @@
     {
       "name": "call-capture",
       "kind": "cookbook",
-      "job": "Every call the team records is collected into the cadence layer each morning, scribed into a log entry, and — once a claim repeats — promoted into the context knowledge layer, as one reviewable pull request against your GTM repo.",
-      "description": "Every call the team records is collected into the cadence layer each morning, scribed into a log entry, and — once a claim repeats — promoted into the context knowledge layer, as one reviewable pull request against your GTM repo. Triggers: \"our call recordings never make it into the knowledge base\", \"turn our call transcripts into context\", \"keep our context updated from sales calls\", \"we relearn the same objection every quarter\", \"scribe yesterday's calls into the repo every morning\", \"replace the GitHub Action that summarizes our meetings\". Cargo CDK, defineAgent, harnessSlug claudeCode, repository env, GitHub, Avoma, Gong, Fireflies, cadence, context. Skip when: you want one call summarized right now, which is a read against the recorder's own API and needs nothing deployed.",
+      "job": "Every call the team records is collected into the cadence layer each morning, scribed into a log entry, and — once a claim repeats — promoted into the context knowledge layer, as one reviewable pull request against your GTM repo. Nine recorders ship; a tenth is one adapter file.",
+      "description": "Every call the team records is collected into the cadence layer each morning, scribed into a log entry, and — once a claim repeats — promoted into the context knowledge layer, as one reviewable pull request against your GTM repo. Nine recorders ship; a tenth is one adapter file. Triggers: \"our call recordings never make it into the knowledge base\", \"turn our call transcripts into context\", \"we relearn the same objection every quarter\", \"scribe yesterday's calls into the repo every morning\", \"replace the GitHub Action that summarizes our meetings\", \"we record on Granola, not Avoma\". Cargo CDK, defineAgent, harnessSlug claudeCode, workspace env var, GitHub, Avoma, Granola, Fathom, Gong, Fireflies, Grain, tl;dv, Modjo, Clari Copilot, cadence, context. Skip when: you want one call summarized right now, which is a read against the recorder's own API and needs nothing deployed.",
       "version": "0.1.0",
       "homepage": "https://github.com/getcargohq/gtm-skills/tree/main/call-capture",
       "group": "Make it run forever",
@@ -218,11 +218,11 @@
         {
           "input": "CALL_RECORDER_API_KEY",
           "kind": "env",
-          "how": "**asked**: the recorder's API key, exported before deploy and never committed. It is declared as a `secret()` in the agent's `repository.env`, so it reaches the collector as an environment variable and nothing else.",
-          "why": "It is the collector's only credential. Deploy without it set and `secret()` fails loudly at apply, which is the behaviour you want; hard-code it instead and it is in `cargo.state.json` forever."
+          "how": "**asked**: the recorder's API key, put in the workspace with `cargo-ai workspaceManagement envVar create --key CALL_RECORDER_API_KEY --secret` (step 3) and named in no file here. A harness agent inherits the workspace catalog, so nothing declares it. Gong and Clari Copilot issue two values; that one variable holds `<first>:<second>` and the adapter splits it.",
+          "why": "It is the collector's only credential, and the workspace is the only copy of it that outlives the session that set it. In the catalog it is read server-side on every run, so a rotation needs no deploy; as a `secret()` in the agent's env it is the deploying shell's value, so every deploy needs the key again and a rotation lands only on a re-apply."
         },
         {
-          "input": "CALL_CAPTURE_INTERNAL_DOMAIN` (`infra/agents/call-scribe.ts`)",
+          "input": "INTERNAL_DOMAIN` (`scripts/collect/config.ts`)",
           "kind": "value",
           "how": "**derived**: your own email domain, which the workspace members' addresses already name",
           "why": "It is how an internal call is told from a customer one. Avoma's `is_internal` is false on every meeting in some workspaces, so it cannot be used; leave the placeholder and every standup is captured as an account."
@@ -252,12 +252,20 @@
           "when": "You want deal reviews, onboardings and retros in the record as well as customer calls",
           "how": "Drop the external-attendee filter in `collect/calls.ts` and file internal captures under their own folder",
           "cost": "Volume roughly doubles and the signal thins: internal calls restate what customers said, so the repetition bar counts the same occurrence twice and promotes it as if two customers had said it"
+        },
+        {
+          "id": "two-recorders",
+          "when": "You are mid-migration between recorders, or sales records on one and CS on another",
+          "how": "Run the collector once per recorder in step 1 of `infra/agents/call-scribe.prompt.ts`: `--recorder=<a>` then `--recorder=<b>`. Both write into the same archive under their own `source:` prefix",
+          "cost": "Deduplication is per-recorder, because the ids are. A call both tools recorded is captured twice and scribed as two entries, and the repetition bar then counts one conversation as two occurrences and promotes it as if two customers had said it"
         }
       ],
       "shouldNotChange": [
         "**The agent does not fetch calls; the script does.** (`scripts/collect/calls.ts`) A fetch loop an agent re-derives every morning is a fetch loop that silently changes shape — a window that drifts, a filter that quietly widens, a field read differently on a day the model was less careful. The raw archive is the one thing here that has to be byte-identical in its rules every day, because everything downstream is diffed against it.",
-        "**`Recorder.provider` stays one field.** (`scripts/collect/recorder.ts`) It is written into every `source:` line and compiled into the regex that reads those lines back. Split it into two literals and the day they drift, the collector stops recognising what it has already captured and re-captures the whole window every morning — producing files, never erroring, until someone notices the repository doubling in size.",
-        "**A recorder swap is a new adapter, not an edit to the pipeline.** (`scripts/collect/recorder.ts`) Deduplication, slugging, the internal-domain filter, the file format and the window are the same whoever records your calls. Move one of them into an adapter to make a vendor fit and the next adapter has to reimplement it, which is how two recorders start writing subtly different frontmatter and the dedup stops seeing half the archive.",
+        "**`Recorder.provider` stays one field, and the registry key equals it.** (`scripts/collect/recorder.ts`, `scripts/collect/recorders/index.ts`) It is written into every `source:` line and compiled into the regex that reads those lines back. Split it into two literals, or file an adapter under a key that disagrees with its own `provider`, and the day they drift the collector stops recognising what it has already captured and re-captures the whole window every morning — producing files, never erroring, until someone notices the repository doubling in size. `resolve()` refuses the mismatch and `evals/contract.mjs` fails on it; leave both in place.",
+        "**A recorder swap is a selection, and a new recorder is a new adapter — never an edit to the pipeline.** (`scripts/collect/recorder.ts`) Deduplication, slugging, the internal-domain filter, the file format and the window are the same whoever records your calls. Move one of them into an adapter to make a vendor fit and the next adapter has to reimplement it, which is how two recorders start writing subtly different frontmatter and the dedup stops seeing half the archive. That includes the internal/external flags four of the recorders offer: they disagree with each other, and one of them is wrong in some workspaces, so every adapter passes attendees through and one domain rule decides.",
+        "**`written: \"live\"` is a claim someone made with evidence.** (`scripts/collect/recorders/index.ts`) It means an adapter was run against a real workspace, and the collector prints a warning on every run of one that was not. Flip it to silence the warning and the registry starts implying that nine recorders are tested when one is — which is exactly how a convenience becomes a promise nobody checked, on a pipeline whose failure mode is a clean empty run.",
+        "**Choices stay in code, the secret stays in the workspace, and the agent declares no `env`.** (`scripts/collect/config.ts`, `infra/agents/call-scribe.ts`) The recorder and the internal domain are typed constants, so the compiler checks the slug, a reviewer reads both in the diff, and an edit lands on the next clone rather than the next deploy. The credential is the mirror image: a workspace environment variable read server-side on every run, so it outlives the shell that set it and rotates without a deploy. Move a choice into the spec and nothing checks it; move the key there as a `secret()` and the next deploy is blocked on whoever runs it having the value exported, which on an unattended 07:00 pipeline is discovered as a morning with no pull request.",
         "**`scripts/call-capture/package.json` stays.** (`scripts/package.json`) It is not decoration. The CDK loader imports every `.ts` under the project root except directories carrying a `package.json`; delete it and `cargo-ai cdk plan` imports the collector and runs it against the live API on every plan.",
         "**The harness root stays the directory holding the `package.json` that declares `@cargo-ai/cdk`.** (`infra/agents/call-scribe.ts`) That is where `node_modules` is, so it is the only place `npx tsx …/collect/calls.ts` resolves — and in the scaffolded layout it is the repository root, which is also where `cadence/` and `context/` live. The binder infers it, so nothing declares it here; what must not change is the outcome. **Check it, do not assume it:** `cargo-ai cdk check` prints the resolved binding, and a line ending `in infra/` means the harness was rooted where there is no package.json and no node_modules. The collector then cannot run at all, and the morning reports clean and empty. On a CLI old enough to resolve it that way, pin `rootDirectory: \".\"` in the repository block until you upgrade.",
         "**The agent opens a pull request and never merges it.** (`infra/agents/call-scribe.prompt.ts`) Everything downstream reads `context/` as fact. Remove the review gate and a hallucinated objection, a misheard number, or a vendor call misread as pipeline becomes what your scorer, your researcher and your SDR all believe — and nothing will ever contradict it, because they read the same file.",
@@ -267,7 +275,10 @@
       ],
       "doneWhen": [
         "`--dry-run` listed the calls it would take, and the run without it wrote those files into `cadence/log/raw/calls/` with a `source:` id in each; running it twice wrote nothing the second time",
-        "on a recorder other than Avoma: the new adapter compiles (a half-written one does not typecheck, and the error names the missing field), `--dry-run` lists real calls through it, and nothing in `scripts/collect/recorder.ts` had to change to make it fit",
+        "`RECORDER` in `config.ts` is the recorder the team records on, and the captured `source:` lines carry that slug",
+        "`cargo-ai workspaceManagement envVar list` shows `CALL_RECORDER_API_KEY` as a secret entry, and `grep -r CALL_RECORDER_API_KEY` finds its name in the collector and the docs and its value nowhere — the deployed run reads the catalog, so no local shell has to hold the key again",
+        "on an adapter marked `docs` rather than `live`: `--dry-run` listed real calls with the right dates and account slugs through it, and one captured file was opened and read — that is what moves it to `live`, and until someone does it a clean run proves nothing",
+        "on a recorder that does not ship: the new adapter compiles (a half-written one does not typecheck, and the error names the missing field), it is registered under a key equal to its own `provider`, `--dry-run` lists real calls through it, and nothing in `scripts/collect/recorder.ts` had to change to make it fit",
         "`cargo-ai cdk plan` reports three resources and does **not** hit the recorder's API while planning",
         "the first scheduled run opened one pull request whose body reports four numbers: captured, scribed fresh, scribed from backfill, and pending remaining",
         "every scribed call has exactly one entry under `cadence/log/calls/`, and no raw file was edited, moved or deleted",
@@ -275,7 +286,7 @@
         "a call where your company was the buyer, not the seller, is filed as vendor intel and appears nowhere as pipeline",
         "after merging and `cargo-ai cdk deploy`, the changed `context/` file is readable from the workspace context repository, and an agent with the `context` capability quotes it back"
       ],
-      "cost": "There are no connector actions in this skill, so it consumes no per-record credits: the collector\ntalks to your recorder directly from the harness environment, under whatever API limits your\nrecording plan already gives you.\n\nThe recurring cost is the harness run itself, once a day, and it scales with how much the agent\nreads — which is the raw captures it scribes. **The per-run cap is the cost control as well as the\nreview control.** A lower cap spreads the same backlog over more days at the same daily cost rather\nthan paying for it all at once, and the pending remainder in the pull request body is how you watch\nwhether it is keeping up.",
+      "cost": "There are no connector actions in this skill, so it consumes no per-record credits: the collector\ntalks to your recorder directly from the harness environment, under whatever API limits your\nrecording plan already gives you. Those limits differ enough between recorders to be worth checking\nonce — a daily three-day window is nothing against Grain's per-minute allowance and is real against\nFireflies' Free tier of a few dozen requests a **day**, and `references/recorder-apis.md` records\neach. The collector paces itself and backs off on a 429 regardless, so the failure is a slow run\nrather than a half-captured one.\n\nThe recurring cost is the harness run itself, once a day, and it scales with how much the agent\nreads — which is the raw captures it scribes. **The per-run cap is the cost control as well as the\nreview control.** A lower cap spreads the same backlog over more days at the same daily cost rather\nthan paying for it all at once, and the pending remainder in the pull request body is how you watch\nwhether it is keeping up.",
       "composesInto": "`account-scoring` and any agent with the `context` capability (they read the ICP and objection files\nthis keeps current), `crm-enrichment` (the account files this writes name the record the enrichment\nfills), `monitor-buying-signals` (the signals this promotes are what a feed then watches for)."
     },
     {
@@ -336,6 +347,120 @@
       "composesInto": "`call-capture` can supply reviewed customer language to the company context;\nthis pipeline turns approved positioning into public pages. It can link to an\nagreed CRM intake flow once the form destination is implemented and tested.\nGeneric app hosting remains owned by `cargo-hosting`. Use\n[acceptance scenarios](evals/acceptance.md) to assess the full installation."
     },
     {
+      "name": "crm-deduplication",
+      "kind": "cookbook",
+      "job": "Keep CRM accounts duplicate-free: audit company identity, build a recurring deduplication play directly on the CRM model, search and score duplicate candidates, merge safe exact matches, and route uncertain clusters to manual review.",
+      "description": "Keep CRM accounts duplicate-free: audit company identity, build a recurring deduplication play directly on the CRM model, search and score duplicate candidates, merge safe exact matches, and route uncertain clusters to manual review. Triggers: \"deduplicate our CRM accounts\", \"we keep creating duplicate account records\", \"merge duplicate companies in HubSpot\", \"set up recurring account deduplication\", \"review ambiguous company duplicates\", \"our CRM has duplicate companies\". HubSpot, Salesforce, Attio, Slack, Cargo CDK, findRecords, Scoring, Human Review, mergeRecords. Skip when: the request is to add or refresh CRM firmographics rather than merge duplicate records; use crm-enrichment.",
+      "version": "0.1.0",
+      "homepage": "https://github.com/getcargohq/gtm-skills/tree/main/crm-deduplication",
+      "group": "Make it run forever",
+      "install": "cargo-ai cdk add cookbook/crm-deduplication",
+      "partOf": [],
+      "state": "to-be-approved",
+      "chain": 6,
+      "resources": [
+        "connectors",
+        "models",
+        "plays"
+      ],
+      "asked": [
+        {
+          "input": "crm",
+          "kind": "derived",
+          "how": "Inspect authenticated connectors, generated action types, and existing CDK resources",
+          "why": "The play must search and merge in the authoritative CRM"
+        },
+        {
+          "input": "deduplication_evidence",
+          "kind": "derived",
+          "how": "Normalize live CRM identifiers, classify candidate clusters, conflicts, and survivor evidence",
+          "why": "Policy approval must be grounded in current records"
+        },
+        {
+          "input": "current_action_costs",
+          "kind": "derived",
+          "how": "Read live CRM and Slack integration metadata immediately before each preview",
+          "why": "The pilot handoff must disclose current cost"
+        },
+        {
+          "input": "approved_policy",
+          "kind": "asked",
+          "how": "Review matching keys, protected fields, survivor precedence, score, and automatic class",
+          "why": "It controls every candidate and automatic merge"
+        },
+        {
+          "input": "manual_review",
+          "kind": "asked",
+          "how": "Select the Slack connector, channel, owner, and timeout",
+          "why": "Uncertain clusters need an accountable decision path"
+        },
+        {
+          "input": "approved_build",
+          "kind": "asked",
+          "how": "Authorize deployment of the adapted resources with the play disabled",
+          "why": "Repository review does not authorize workspace mutation"
+        },
+        {
+          "input": "approved_pilot",
+          "kind": "asked",
+          "how": "Review the live play link and approve the exact merge-capable population",
+          "why": "A disabled play can still mutate CRM records when manually run"
+        }
+      ],
+      "canChange": [
+        {
+          "id": "crm",
+          "when": "The consumer uses Salesforce or Attio",
+          "how": "Replace the checked HubSpot connector, extractor, record ID, search action, merge action, and properties",
+          "cost": "Generated types and merge semantics must be revalidated"
+        },
+        {
+          "id": "matching_keys",
+          "when": "The CRM has an approved durable identity beyond the defaults",
+          "how": "Add the normalized key to search, score, evidence, conflicts, and contract tests",
+          "cost": "Wider matching can create new false-positive classes"
+        },
+        {
+          "id": "survivor_precedence",
+          "when": "Protected lifecycle, billing, tier, or customer policy must win",
+          "how": "Update both survivor implementations and record the exact order",
+          "cost": "A policy change can select a different survivor for every cluster"
+        },
+        {
+          "id": "structured_ai_review",
+          "when": "Ambiguous evidence needs a review aid",
+          "how": "Add priced structured evidence before Human Review only",
+          "cost": "Adds current model cost and a non-deterministic review surface"
+        }
+      ],
+      "shouldNotChange": [
+        "**Run on the authoritative CRM model.** (`infra/plays/deduplicate-accounts.ts`) The play uses the CRM-backed account extract and CRM record ID. A native account or candidate model introduces another identity system and can target the wrong record.",
+        "**Search live CRM rows before scoring.** (`infra/plays/deduplicate-accounts.ts`) `findRecords` refreshes candidate membership for every run. Audit snapshots can become stale before a merge.",
+        "**Search, score, select, then decide.** (`infra/scripts/evidence.ts`) Deterministic preparation retains the fresh source exactly once. Native Scoring evaluates the evidence before deterministic survivor selection and the automatic gate.",
+        "**Keep the automatic class narrow.** (`infra/plays/deduplicate-accounts.ts`) Exact shared LinkedIn company ID, score at least 60, and no identity, protected-ID, or parent-subsidiary conflict are all required. Every other candidate reaches Human Review.",
+        "**Merge only on automatic or approved paths.** (`infra/plays/deduplicate-accounts.ts`) Human approval reaches the reviewed merge. Decline and timeout end without a CRM write.",
+        "**Stop stale queued rows.** (`infra/plays/deduplicate-accounts.ts`) A source missing from the fresh search ends before scoring or emitting merge IDs.",
+        "**Keep one CRM shape in the folder.** Adapt HubSpot in place for Salesforce or Attio. Parallel CRM branches drift from the generated types actually connected.",
+        "**Keep the pilot disabled, serial, and limited.** (`infra/plays/deduplicate-accounts.ts`) The play remains disabled, `noConcurrency`, and limited to 15 CRM rows until the verified pilot is approved for expansion.",
+        "**Keep the repository inert.** It contains no credential, deploy command, customer data, or live merge result."
+      ],
+      "doneWhen": [
+        "the audit JSON, Markdown, and chat summary agree on identifier coverage, candidates, and conflicts",
+        "the operator approved matching keys, protected fields, survivor precedence, automatic class, and manual-review destination",
+        "the isolated plan contains one CRM connector, one Slack connector, one CRM account model, and one disabled deduplication play, with no staging model",
+        "the play runs directly on the CRM model and matches the audited CRM record ID",
+        "its compiled workflow contains CRM `findRecords`, one deterministic preparation script bundled from `infra/scripts/evidence.ts` that also selects the survivor, native Scoring, the guarded Branch, native Human Review, and CRM merge actions only on automatic or approved paths",
+        "`node --import tsx evals/contract.mjs` passes against the adapted graph",
+        "generated consumer types confirm the selected search, merge, and Human Review payloads",
+        "the Slack review connector and channel resolve; approval, decline, and timeout reach their intended paths",
+        "the play is disabled, `noConcurrency`, and limited to 15 CRM rows",
+        "the operator separately approved the disabled deployment and exact merge-capable pilot",
+        "the final report verifies every survivor and absorbed ID and accounts for every terminal outcome"
+      ],
+      "cost": "Immediately before each preview, run `cargo-ai connection integration get <crm>` and\n`cargo-ai connection integration get slack`. Read the current cost metadata for the selected search,\nmerge, and Human Review actions. Record the CLI version, lookup time, action slugs, and applicable\ncosts. If structured AI evidence is added, price it separately.\n\nThe repository does not hard-code action prices. Human approval authorizes only the exact cluster\nshown in that review message. Enabling the recurring schedule is the last approval after the pilot\npasses, not an initial input.",
+      "composesInto": "- `crm-enrichment` when matching-key coverage is too weak for reliable duplicate candidates\n- `account-scoring` after duplicate records have been consolidated into authoritative survivors"
+    },
+    {
       "name": "crm-enrichment",
       "kind": "cookbook",
       "job": "Keep CRM accounts filled and refresh them when they go stale: a deployed play that fills approved blank firmographics from LinkedIn and re-enrolls a record after six months.",
@@ -390,37 +515,37 @@
         {
           "id": "crm",
           "when": "The consumer uses Salesforce or Attio instead of HubSpot",
-          "how": "Keep one CRM shape in `infra/index.ts`. The file is the HubSpot example. **Salesforce:** generated Account update matching `Id`; there is no `skipIfExist` — read the Account first and omit any field that is already populated, including numeric zero. **Attio:** generated company-record update matching the record id; same read-then-omit guard. Do not copy HubSpot's flag.",
+          "how": "Keep one CRM shape in `infra/`. The example is HubSpot. **Salesforce:** generated Account update matching `Id`; there is no `skipIfExist` — read the Account first and omit any field that is already populated, including numeric zero. **Attio:** generated company-record update matching the record id; same read-then-omit guard. Do not copy HubSpot's flag.",
           "cost": "Live generated types must be rechecked; a guessed flag writes or no-ops silently"
         },
         {
           "id": "selected_fields",
           "when": "The approved contract differs from the starting recommendation",
-          "how": "Present every live candidate at the field-selection gate. After approval, change the result schema, destinations, per-field write policy, and both provider mappings in `infra/index.ts`. Industry requires an approved array-to-enum transformation when the CRM destination is a single enum.",
+          "how": "Present every live candidate at the field-selection gate. After approval, change the result schema, destinations, per-field write policy, and both provider mappings in `infra/tools/account-enrichment.ts` and `infra/plays/enrich-accounts.ts`. Industry requires an approved array-to-enum transformation when the CRM destination is a single enum.",
           "cost": "Each added field expands mapping and type review"
         },
         {
           "id": "eligibility",
           "when": "Only a governed subset should be enriched",
-          "how": "Intersect the play filter with approved lifecycle, tier, ownership, or gap conditions (`infra/index.ts` `enrichAccounts`)",
+          "how": "Intersect the play filter with approved lifecycle, tier, ownership, or gap conditions (`infra/plays/enrich-accounts.ts`)",
           "cost": "Narrower scope reduces coverage and paid calls"
         },
         {
           "id": "approved_refresh_behavior",
           "when": "Populated fields must be refreshed after explicit approval",
-          "how": "Drop `skipIfExist` / the read-then-omit guard on the approved fields only, preview the replacements, and compare against a fresh CRM read (`infra/index.ts`)",
+          "how": "Drop `skipIfExist` / the read-then-omit guard on the approved fields only, preview the replacements, and compare against a fresh CRM read (`infra/plays/enrich-accounts.ts`)",
           "cost": "Refresh can overwrite CRM-authoritative values if the preview and the write disagree"
         }
       ],
       "shouldNotChange": [
-        "**The play runs on `crm_accounts` and matches the CRM record id.** (`infra/index.ts`) HubSpot's example uses `hs_object_id`. Sending a Cargo row id, or a native `accounts` id, to a CRM action targets the wrong identifier system; the run looks successful and nothing lands.",
-        "**The tool enriches; the play orchestrates and writes.** (`infra/index.ts`) `account_enrichment` accepts provider identifiers, normalizes them, and returns company data without a CRM connector or write. Its `defineWorkflow` body first branches around rows with no identifier, then routes each eligible row to exactly one provider action. `enrich_accounts` starts with one Tool node targeting `account_enrichment`, applies the approved per-field policy, and owns the only CRM update. A tool that writes to the CRM is not reusable; a play that repeats the provider action bypasses the reviewed tool. Run `node --import tsx evals/contract.mjs` after every adaptation to enforce this compiled graph.",
-        "**One CRM shape in the file.** (`infra/index.ts`) The checked example is HubSpot. Adapt that one file for Salesforce or Attio. Parallel HubSpot/Salesforce/Attio branches drift from the generated types of the CRM that is actually connected.",
-        "**At most one paid route per row, LinkedIn URL first.** (`infra/index.ts` `enrichCrmAccount`) A row without a handle or a domain makes no paid call. A handle that is already an `http` URL is used as-is; otherwise it is prefixed as `https://www.linkedin.com/company/<handle>`.",
-        "**Destinations are live properties on the connected CRM.** (`infra/index.ts`) The HubSpot example writes `linkedin_company_id`, `name`, `domain`, `website`, `linkedin_company_page`, `numberofemployees`, `cargo_last_enriched_at`, and `cargo_enrichment_status`. Provider-derived business properties keep neutral names; Cargo-owned operational stamps use the `cargo_` prefix. Leaving another CRM's names in the file can write provider data into the wrong property.",
-        "**Fill approved blanks only.** (`infra/index.ts` `skipIfExist` or the Salesforce/Attio read-then-omit guard) A stale snapshot overwrites authoritative CRM data, including numeric zero.",
-        "**Eligibility and freshness live in the play trigger.** (`infra/index.ts` `enrichAccounts`) Require an identifier and freshness null or older than six months in the managed segment. Destination fill-state is not an eligibility condition: an approved refresh must be able to re-enrich populated stale fields. The row workflow starts with the reusable tool call instead of repeating trigger conditions as branches. A standalone `defineSegment` or duplicate workflow gate drifts from the play.",
-        "**The first play is disabled and `noConcurrency`.** (`infra/index.ts`) Removing those expands an unapproved pilot.",
+        "**The play runs on `crm_accounts` and matches the CRM record id.** (`infra/plays/enrich-accounts.ts`) HubSpot's example uses `hs_object_id`. Sending a Cargo row id, or a native `accounts` id, to a CRM action targets the wrong identifier system; the run looks successful and nothing lands.",
+        "**The tool enriches; the play orchestrates and writes.** (`infra/tools/`, `infra/plays/`) `account_enrichment` accepts provider identifiers, normalizes them, and returns company data without a CRM connector or write. Its `defineWorkflow` body first branches around rows with no identifier, then routes each eligible row to exactly one provider action. `enrich_accounts` starts with one Tool node targeting `account_enrichment`, applies the approved per-field policy, and owns the only CRM update. A tool that writes to the CRM is not reusable; a play that repeats the provider action bypasses the reviewed tool. Run `node --import tsx evals/contract.mjs` after every adaptation to enforce this compiled graph.",
+        "**One CRM shape in the folder.** (`infra/connectors/crm.ts`) The checked example is HubSpot. Adapt that one connector, and the write that uses it, for Salesforce or Attio. Parallel HubSpot/Salesforce/Attio branches drift from the generated types of the CRM that is actually connected.",
+        "**At most one paid route per row, LinkedIn URL first.** (`infra/tools/account-enrichment.ts`) A row without a handle or a domain makes no paid call. A handle that is already an `http` URL is used as-is; otherwise it is prefixed as `https://www.linkedin.com/company/<handle>`.",
+        "**Destinations are live properties on the connected CRM.** (`infra/plays/enrich-accounts.ts`) The HubSpot example writes `linkedin_company_id`, `name`, `domain`, `website`, `linkedin_company_page`, `numberofemployees`, `cargo_last_enriched_at`, and `cargo_enrichment_status`. Provider-derived business properties keep neutral names; Cargo-owned operational stamps use the `cargo_` prefix. Leaving another CRM's names in the write can send provider data to the wrong property.",
+        "**Fill approved blanks only.** (`infra/plays/enrich-accounts.ts` `skipIfExist` or the Salesforce/Attio read-then-omit guard) A stale snapshot overwrites authoritative CRM data, including numeric zero.",
+        "**Eligibility and freshness live in the play trigger.** (`infra/plays/enrich-accounts.ts`) Require an identifier and freshness null or older than six months in the managed segment. Destination fill-state is not an eligibility condition: an approved refresh must be able to re-enrich populated stale fields. The row workflow starts with the reusable tool call instead of repeating trigger conditions as branches. A standalone `defineSegment` or duplicate workflow gate drifts from the play.",
+        "**The first play is disabled and `noConcurrency`.** (`infra/plays/enrich-accounts.ts`) Removing those expands an unapproved pilot.",
         "**No credentials, deploy commands, or customer data in this repository.**"
       ],
       "doneWhen": [
@@ -442,7 +567,7 @@
         "the post-run report shows before-and-after fill rates, every outcome count, failures, actual credits against estimate, and one recommended next step"
       ],
       "cost": "Immediately before every preview, run `cargo-ai connection integration get linkedin`. Read the\napplicable current entries from `integration.actions.enrichCompany.credits.costs` and\n`integration.actions.enrichCompanyFromDomain.credits.costs`. Record the CLI version, lookup time,\naction slugs, and selected unit costs. Then preview\n`linkedin_url_path * linkedin_url_unit_credits + domain_path * domain_unit_credits`.\n\nThis play runs on eligible `crm_accounts` rows and updates that same CRM record. Eligibility means\nthe row has an identifier and passes freshness and governance filters. Destination fill-state does\nnot control enrollment. The approved per-field write policy decides whether populated stale values\nare preserved or refreshed. Recompute the target and credit preview after approval, then report the\nsegment count.\nDeduplication follows enrichment because the new matching keys improve duplicate detection.\n\nDo not enable the daily schedule until the disabled pilot has passed. Enabling is not an\ninput; it is the last yes after _Done when_.",
-      "composesInto": "`account-scoring` (a filled book is what the scorer can cite), `find-stakeholders` (the buyers at\nevery filled account), `tam-building` (the universe these records join)."
+      "composesInto": "`crm-deduplication` (duplicate records are what makes a filled book wrong), `account-scoring` (a\nfilled book is what the scorer can cite), `find-stakeholders` (the buyers at every filled account),\n`tam-building` (the universe these records join)."
     },
     {
       "name": "enrich-company-data",

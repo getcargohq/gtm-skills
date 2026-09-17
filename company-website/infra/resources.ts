@@ -66,7 +66,12 @@ if (visitors?.enabled) {
         name: "Company website visitors",
         integration: "snitcher",
       });
+  const visitorFolder = defineFolder("company-website-models", {
+    kind: "model",
+    name: "Company website",
+  });
   defineModel("company_website_visitors", {
+    folder: visitorFolder,
     name: "Website visiting companies",
     connector: snitcher,
     extractSlug: "fetchOrganisations",
@@ -77,6 +82,7 @@ if (visitors?.enabled) {
   // tracker and workspace UUID, review, then enable sessions in a second release.
   if (visitors.snitcherWorkspaceUuid) {
     defineModel("company_website_sessions", {
+      folder: visitorFolder,
       name: "Website visitor sessions",
       connector: snitcher,
       extractSlug: "fetchSessions",
