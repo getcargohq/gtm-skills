@@ -1,4 +1,10 @@
 {
+  "crm-deduplication": {
+    "state": "to-be-approved",
+    "chain": 6,
+    "demoWorkspace": null,
+    "implementations": []
+  },
   "crm-enrichment": {
     "state": "to-be-approved",
     "chain": 3,
@@ -14,6 +20,18 @@
   "tam-building": {
     "state": "to-be-approved",
     "chain": 2,
+    "demoWorkspace": null,
+    "implementations": []
+  },
+  "call-capture": {
+    "state": "to-be-approved",
+    "chain": 4,
+    "demoWorkspace": null,
+    "implementations": []
+  },
+  "agentic-engagement": {
+    "state": "to-be-approved",
+    "chain": 5,
     "demoWorkspace": null,
     "implementations": []
   }

@@ -62,16 +62,9 @@ grep -q '"cargo@gtm"' ~/.claude/plugins/installed_plugins.json 2>/dev/null ||
 ## Do the job
 
 ```bash
-# 1. Resolve each company to a cargo business_id
 cargo-ai orchestration action execute-batch \
-  --action '{"kind":"connector","integrationSlug":"cargo","actionSlug":"matchBusiness","config":{}}' \
-  --records '[{"name":"Acme","domain":"acme.com"}]' \
-  --wait-until-finished > matched.json
-
-# 2. Enrich the matched ids
-cargo-ai orchestration action execute-batch \
-  --action '{"kind":"connector","integrationSlug":"cargo","actionSlug":"enrichBusinessFirmographics","config":{}}' \
-  --records "$(jq -c '[.results[] | {business_id}]' matched.json)" \
+  --action '{"kind":"connector","integrationSlug":"aiArk","actionSlug":"enrichCompany","config":{}}' \
+  --records '[{"domain":"acme.com"},{"domain":"globex.com"}]' \
   --wait-until-finished
 ```
 
@@ -85,8 +78,7 @@ or batch UUID to poll with `cargo-ai orchestration run get <uuid>` (2s interval)
 
 | Action | Credits |
 |---|---|
-| `cargo.matchBusiness` | 0.5 |
-| `cargo.enrichBusinessFirmographics` | 0.5 |
+| `aiArk.enrichCompany` | 0.01 |
 
 **Never run this across a full list on the first attempt.** Sample 10–20 records, report the
 observed cost and hit-rate, then get the user to approve the full run — quoting the record count
@@ -95,7 +87,7 @@ with it.
 
 ## Worth knowing
 
-- `matchBusiness` must run first — every other cargo business enrichment keys off the `business_id` it returns.
+- `aiArk.enrichCompany` keys on `domain` — no match step required, which is cheaper than the old two-step flow.
 
 ## Going further
 

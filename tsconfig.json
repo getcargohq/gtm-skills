@@ -18,6 +18,7 @@
     "assets",
     "evals",
     "*/apps/*/**",
-    "*/workers/*/**"
+    "*/workers/*/**",
+    "*/scripts/**"
   ]
 }

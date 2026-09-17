@@ -2,7 +2,8 @@ import assert from "node:assert/strict";
 import { resetRegistry, resources } from "@cargo-ai/cdk";
 
 resetRegistry();
-await import(`../infra/index.ts?contract=${Date.now()}`);
+await import(`../infra/plays/enrich-accounts.ts?contract=${Date.now()}`);
+await import(`../infra/plays/enrich-contacts.ts?contract=${Date.now()}`);
 
 const byId = new Map(resources().map((resource) => [resource.id, resource]));
 

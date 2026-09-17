@@ -2,7 +2,7 @@
 name: crm-enrichment
 description: 'Keep CRM accounts and contacts filled and refresh them when they go stale. The contact pipeline uses one enrichment play with three gated tools: Cargo-native Find Email, Cargo-native Find LinkedIn Profile from Email, and custom Contact LinkedIn Enrichment. Triggers: "keep our CRM accounts filled", "keep our CRM contacts filled", "enrich my CRM", "refresh stale firmographics", "every new CRM company", "every new CRM contact", "contacts are missing emails, LinkedIn URLs, or titles". HubSpot, Salesforce, Attio, Cargo CDK. Skip when: the records are not in a CRM. A supplied company list is enrich-company-data, a supplied LinkedIn URL list is enrich-linkedin-profile, and a one-time email lookup is find-work-email.'
 version: "0.7.0"
-compatibility: "Requires the cargo-cdk skill, a Cargo CDK project, and @cargo-ai/cdk ^1.0.51. Pin the project root zod to 4.4.3 and give tsc NODE_OPTIONS=--max-old-space-size=16384 when checking generated workspace types. The repository example does not deploy or access a CRM until it is adapted in the consumer project."
+compatibility: "Requires the cargo-cdk skill, a Cargo CDK project, @cargo-ai/cdk 1.0.82 or later, and authenticated CRM and LinkedIn connectors. The repository example does not deploy or access a CRM until it is adapted in the consumer project."
 homepage: https://github.com/getcargohq/gtm-skills/tree/main/crm-enrichment
 metadata:
   author: getcargo
@@ -82,7 +82,7 @@ cd <dir>
 npm install
 ```
 
-Reconcile adopted connectors and models with existing project resources. Do not deploy duplicate
+Reconcile default connectors and models with existing project resources. Do not deploy duplicate
 slugs. Append environment requirements to the project `.env.example`; never overwrite it.
 
 Before changing code, audit the live CRM schema and provider outputs using

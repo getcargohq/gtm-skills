@@ -51,10 +51,11 @@ cargo-ai cdk add cookbook/crm-enrichment
 
 Before planning or deploying:
 
-1. Reconcile the adopted CRM and LinkedIn connectors with resources already in the project.
+1. Reconcile the default CRM and LinkedIn connectors with resources already in the project.
 2. Audit live CRM properties and provider outputs.
 3. Instantiate the Cargo-native Find Email and Find LinkedIn Profile from Email tools.
-4. Replace both `REPLACE-WITH-...-TOOL-UUID` placeholders in `infra/index.ts`.
+4. Replace both `REPLACE-WITH-...-TOOL-UUID` placeholders in
+   `infra/plays/enrich-contacts.ts`.
 5. Confirm the native tool contracts. The example expects `email` and `linkedin_url` outputs.
 6. Apply the operator-approved field mappings and eligibility filters.
 7. Typecheck, inspect the compiled graph, and deploy the plays disabled.

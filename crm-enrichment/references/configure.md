@@ -36,7 +36,7 @@ In the live Cargo workspace, instantiate:
 Inspect each deployed tool rather than relying on its display name. Record its UUID, accepted
 inputs, output paths, and unit price.
 
-Replace these placeholders in `infra/index.ts`:
+Replace these placeholders in `infra/plays/enrich-contacts.ts`:
 
 ```ts
 "REPLACE-WITH-FIND-EMAIL-TOOL-UUID";

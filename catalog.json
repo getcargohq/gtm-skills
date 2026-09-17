@@ -16,7 +16,6 @@
       "resources": [
         "agents",
         "connectors",
-        "context",
         "folders",
         "models",
         "plays",
@@ -24,9 +23,9 @@
       ],
       "asked": [
         {
-          "input": "icp` (`infra/context/icp.md`)",
+          "input": "icp` (the repo's root `context/`)",
           "kind": "generated",
-          "how": "**derived**: If the workspace already has closed-won and closed-lost data, extract the industry, size, geography and stack that separate won from lost accounts and propose the ICP from it rather than asking cold.",
+          "how": "**derived**: If the workspace already has closed-won and closed-lost data, extract the industry, size, geography and stack that separate won from lost accounts and propose the ICP from it rather than asking cold. Write it to the knowledge layer at the repository root — `context/icp/` in a scaffolded repo — which the project's own `defineContext` already syncs. This skill declares none: it is a per-workspace singleton, and a second one collides at deploy.",
           "why": "The criteria ARE the prompt. There are no point weights in code, so a vague ICP produces vague scores and the disqualifiers are what cap a bad account at 20."
         },
         {
@@ -63,7 +62,7 @@
         },
         {
           "id": "no-crm-at-all",
-          "when": "You have no CRM, or you do not want to hand this skill a CRM credential",
+          "when": "You have no CRM, or the workspace has no CRM connection and you do not want to authorize one",
           "how": "Take `skip-crm-roundtrip`, then delete `infra/connectors/hubspot.ts` so no CRM connector is registered",
           "cost": "Every other CRM-dependent skill you install later brings a CRM connector of its own; reuse one"
         }
@@ -82,6 +81,99 @@
       ],
       "cost": "One LLM call plus up to two Cargo database calls (`matchBusiness`,\n`enrichBusinessFirmographics`) per account, on arrival and again on the weekly sweep of accounts\nlast scored three or more months ago. It scales with accounts in the model times re-scores, so a\nTAM built by `tam-building` scores at that size. Score a sample before the book.",
       "composesInto": "`routing-engine` (territories and capacity over the scored book), `rep-cockpit`, `ai-sdr`."
+    },
+    {
+      "name": "agentic-engagement",
+      "kind": "cookbook",
+      "job": "Deploy an agent that holds email conversations with leads: a sending domain, a mailbox, native sendEmail and listEmailEvents on the agent, a native email trigger on reply and unsubscribe, and a heartbeat that checks thread status when nothing inbound happened.",
+      "description": "Deploy an agent that holds email conversations with leads: a sending domain, a mailbox, native sendEmail and listEmailEvents on the agent, a native email trigger on reply and unsubscribe, and a heartbeat that checks thread status when nothing inbound happened. Triggers: \"handle email conversations with leads\", \"agentic engagement\", \"an agent that replies to inbound email\", \"stand up a conversation agent on a Cargo mailbox\", \"native email trigger for lead replies\", \"keep talking to leads over email\". Cargo CDK, defineDomain, defineMailbox, defineAgent, agentNativeTrigger, heartbeat, sendEmail, listEmailEvents. Skip when: you want to send one email right now, which is a native sendEmail from the CLI and needs nothing deployed; or you want a play that blasts a list rather than holding a thread.",
+      "version": "0.1.0",
+      "homepage": "https://github.com/getcargohq/gtm-skills/tree/main/agentic-engagement",
+      "group": "Make it run forever",
+      "install": "cargo-ai cdk add cookbook/agentic-engagement",
+      "partOf": [],
+      "state": "to-be-approved",
+      "chain": 5,
+      "resources": [
+        "agents",
+        "connectors",
+        "domains",
+        "folders",
+        "mailboxes"
+      ],
+      "asked": [
+        {
+          "input": "sendingDomain` (`infra/domains/outreach.ts`)",
+          "kind": "value",
+          "how": "**derived**: a domain the workspace already owns is adopted (`adopt: true`). There is no CLI list for sending domains — read `cargo.state.json`, the Cargo UI, or an existing `defineDomain`. Ask for the name only when nothing is found.",
+          "why": "A mailbox cannot be created on a domain the workspace does not own. Registering a second copy of a domain the workspace already has fails instead of binding."
+        },
+        {
+          "input": "mailboxIdentity` (`infra/mailboxes/rep.ts`)",
+          "kind": "asked",
+          "how": "first name, last name, and username of a real person. The From header is what the lead sees.",
+          "why": "A fabricated sender is refused. Domain, username and type are create-only; getting the local part wrong means destroy plus a new inbox."
+        },
+        {
+          "input": "languageModel` (`infra/connectors/openai.ts`)",
+          "kind": "value",
+          "how": "**derived**: whichever LLM connector is already authenticated in the workspace",
+          "why": "Conversation quality and per-turn cost both live here."
+        },
+        {
+          "input": "mailboxCharge",
+          "kind": "asked",
+          "how": "cargo-ai mailboxManagement pricing get` for the chosen type, said out loud as a recurring cost, approved before apply",
+          "why": "A mailbox bills every month until `destroy`. Silence is not approval of a fleet."
+        }
+      ],
+      "canChange": [
+        {
+          "id": "register-domain",
+          "when": "The workspace does not yet own a sending domain",
+          "how": "Drop `adopt: true` on `defineDomain`. Do not add `dnsRecords` unless you mean to replace the whole zone (`infra/domains/outreach.ts`)",
+          "cost": "Registration charges workspace credits and is not refundable. The deploy waits until the domain is `active` before creating the mailbox."
+        },
+        {
+          "id": "mailbox-type",
+          "when": "Shared or private SMTP fits better than Google",
+          "how": "Change `type` on `defineMailbox` (`infra/mailboxes/rep.ts`). `outlook` is not in the union: Graph delivery has not shipped.",
+          "cost": "Type is create-only. Changing it later is a new inbox and a reset ramp. Live `pricing get` for the new flavour."
+        },
+        {
+          "id": "adopt-mailbox",
+          "when": "The inbox already exists in the workspace",
+          "how": "Set `adopt: true` on `defineMailbox` at the existing `username@domain` (`infra/mailboxes/rep.ts`)",
+          "cost": "Adopting never falls back to creating. The wrong address fails deploy instead of minting a second inbox."
+        },
+        {
+          "id": "first-touch-play",
+          "when": "New leads should get a first email without a human starting the chat",
+          "how": "Add a play that calls the engager with a prompt naming the lead, then let this trigger own every reply. Keep the play's send path as a call to the agent, not a second `sendEmail`.",
+          "cost": "A play that sends without going through the agent starts threads the native trigger will never wake, because the trigger keys off chats *this agent* has emailed."
+        }
+      ],
+      "shouldNotChange": [
+        "**The loop is the native email trigger plus the heartbeat.** (`infra/agents/engager.ts`) Trigger `kinds` are `replied` and `unsubscribed` — inbound status. The heartbeat re-wakes a chat whose thread stayed at `sent` so the agent can call `listEmailEvents` and check that status. A cron trigger, or `kinds` that include `opened` / `interacted`, either never continues the thread or writes when nobody asked. `sendEmail` wakes the chats *this* agent has emailed; a send from a play that bypasses the agent is invisible to it. Dropping the heartbeat makes silence a dead chat.",
+        "**`sendEmail` is a native action on the agent. `mailboxUuid` is locked in `config`.** (`infra/agents/engager.ts`) Wrapping it in a tool is ceremony. Leaving the mailbox as a field the agent fills sends from an inbox the trigger is not watching, and the run looks successful. `listEmailEvents` stays on the same agent so a heartbeat can read status instead of inferring it from chat history.",
+        "**A reply carries `inReplyTo` and the full `references` chain, oldest first.** (`infra/agents/engager.prompt.ts`) Passing only the parent Message-ID is how mail clients split the conversation. The next wake then has no thread to continue.",
+        "**Domain, username and type on the mailbox are create-only.** (`infra/mailboxes/rep.ts`) Editing them in place is not an update. It is destroy plus a new inbox, back at five real sends a day, with a new address the lead does not know.",
+        "**`dnsRecords` is omitted unless this file is meant to own the zone.** (`infra/domains/outreach.ts`) Declaring it replaces every live record, including the ones the registrar wrote at purchase.",
+        "**The From name is a real person.** (`infra/mailboxes/rep.ts`) A fabricated sender is a refusal, not a configuration question.",
+        "**No credentials, deploy commands, or customer data in this repository.**"
+      ],
+      "doneWhen": [
+        "`cargo-ai cdk plan` reports the domain, the mailbox and the engager, and the operator approved the monthly mailbox line against a live `pricing get`",
+        "`node --import tsx evals/contract.mjs` passes: the agent trigger is native `email` with `kinds: [\"replied\", \"unsubscribed\"]`, a heartbeat is declared whose prompt names `listEmailEvents`, the engager uses native `sendEmail` and `listEmailEvents`, and `mailboxUuid` is locked on the `sendEmail` use",
+        "the mailbox reaches `active` (`cargo-ai mailboxManagement mailbox refresh-status`) and warm-up has been started (`mailbox start-warmup`) so the send ramp can climb",
+        "a first send to yourself delivers from the declared address",
+        "a reply to that send wakes the engager without a human prompting it",
+        "the agent's reply lands in the same thread in the mailbox (same subject, `In-Reply-To` set), not as a new conversation",
+        "a second reply continues that same thread; an unsubscribe or \"not interested\" produces no further send",
+        "an unanswered first send is still a live chat: the heartbeat is declared, and the agent treats that wake as a status check, not a sequence"
+      ],
+      "cost": "A mailbox is a **monthly, recurring** charge for as long as it exists. Immediately before the\nplan, run `cargo-ai mailboxManagement pricing get` and read `monthlyCredits` for the chosen type.\nSay that number out loud as a per-month cost, not a one-off. `destroy` is the only way it stops.\n\nIf the plan also shows `+ create domain:…`, that registration is a separate, non-refundable\ncharge. Adopting an existing domain does not.\n\nEach delivery is a `sendEmail` native action. Run `cargo-ai connection native-integration\nget` (or `orchestration action list sendEmail`) for the current per-send cost. The engager\nadds one LLM turn per wake, including heartbeats. The per-thread cap is the cost control:\none send per wake, at most one unanswered follow-up, and a stop when the lead closes.\n\nA mailbox that never starts warm-up stays at the floor of five real sends a day. Starting\nwarm-up is what moves the ramp; it takes forty-five days to finish. Check\n`mailbox get-send-allowance` before promising volume.",
+      "composesInto": "`account-scoring` (the engager should be talking to accounts the scorer already ranked),\n`call-capture` (a conversation that becomes a meeting is a call worth scribing),\n`crm-enrichment` (the record the thread is about should already be filled)."
     },
     {
       "name": "apollo-to-cargo",
@@ -106,6 +198,98 @@
       "partOf": []
     },
     {
+      "name": "call-capture",
+      "kind": "cookbook",
+      "job": "Every call the team records is collected into the cadence layer each morning, scribed into a log entry, and — once a claim repeats — promoted into the context knowledge layer, as one reviewable pull request against your GTM repo. Nine recorders ship; a tenth is one adapter file.",
+      "description": "Every call the team records is collected into the cadence layer each morning, scribed into a log entry, and — once a claim repeats — promoted into the context knowledge layer, as one reviewable pull request against your GTM repo. Nine recorders ship; a tenth is one adapter file. Triggers: \"our call recordings never make it into the knowledge base\", \"turn our call transcripts into context\", \"we relearn the same objection every quarter\", \"scribe yesterday's calls into the repo every morning\", \"replace the GitHub Action that summarizes our meetings\", \"we record on Granola, not Avoma\". Cargo CDK, defineAgent, harnessSlug claudeCode, workspace env var, GitHub, Avoma, Granola, Fathom, Gong, Fireflies, Grain, tl;dv, Modjo, Clari Copilot, cadence, context. Skip when: you want one call summarized right now, which is a read against the recorder's own API and needs nothing deployed.",
+      "version": "0.1.0",
+      "homepage": "https://github.com/getcargohq/gtm-skills/tree/main/call-capture",
+      "group": "Make it run forever",
+      "install": "cargo-ai cdk add cookbook/call-capture",
+      "partOf": [],
+      "state": "to-be-approved",
+      "chain": 4,
+      "resources": [
+        "agents",
+        "connectors",
+        "folders"
+      ],
+      "asked": [
+        {
+          "input": "CALL_RECORDER_API_KEY",
+          "kind": "env",
+          "how": "**asked**: the recorder's API key, put in the workspace with `cargo-ai workspaceManagement envVar create --key CALL_RECORDER_API_KEY --secret` (step 3) and named in no file here. A harness agent inherits the workspace catalog, so nothing declares it. Gong and Clari Copilot issue two values; that one variable holds `<first>:<second>` and the adapter splits it.",
+          "why": "It is the collector's only credential, and the workspace is the only copy of it that outlives the session that set it. In the catalog it is read server-side on every run, so a rotation needs no deploy; as a `secret()` in the agent's env it is the deploying shell's value, so every deploy needs the key again and a rotation lands only on a re-apply."
+        },
+        {
+          "input": "INTERNAL_DOMAIN` (`scripts/collect/config.ts`)",
+          "kind": "value",
+          "how": "**derived**: your own email domain, which the workspace members' addresses already name",
+          "why": "It is how an internal call is told from a customer one. Avoma's `is_internal` is false on every meeting in some workspaces, so it cannot be used; leave the placeholder and every standup is captured as an account."
+        }
+      ],
+      "canChange": [
+        {
+          "id": "notes-not-transcripts",
+          "when": "The repo is growing faster than you want, or your recorder's AI notes are genuinely good",
+          "how": "Reorder the fallback in `collect/calls.ts` so notes are fetched first and the transcript is the fallback",
+          "cost": "You lose the verbatim record, so the scribe can no longer quote and nobody can check a summary against what was actually said. Notes are already an interpretation; scribing them is interpreting an interpretation"
+        },
+        {
+          "id": "raise-the-bar",
+          "when": "Your context is filling with claims that turn out to be one customer's opinion",
+          "how": "Raise the repetition bar in `infra/agents/call-scribe.prompt.ts` from two independent occurrences to three, and require them to come from different accounts",
+          "cost": "The knowledge layer lags the field by weeks. A real, fast-moving objection sits unwritten while it is costing you deals"
+        },
+        {
+          "id": "widen-the-cap",
+          "when": "The backfill queue is not draining — the pull request reports a remainder that never falls",
+          "how": "Raise the per-run cap in `infra/agents/call-scribe.prompt.ts`, or leave it and let the daily runs grind through the queue",
+          "cost": "The pull request stops being reviewable, which is the whole control. A diff nobody reads is an auto-merge with extra steps"
+        },
+        {
+          "id": "internal-calls-too",
+          "when": "You want deal reviews, onboardings and retros in the record as well as customer calls",
+          "how": "Drop the external-attendee filter in `collect/calls.ts` and file internal captures under their own folder",
+          "cost": "Volume roughly doubles and the signal thins: internal calls restate what customers said, so the repetition bar counts the same occurrence twice and promotes it as if two customers had said it"
+        },
+        {
+          "id": "two-recorders",
+          "when": "You are mid-migration between recorders, or sales records on one and CS on another",
+          "how": "Run the collector once per recorder in step 1 of `infra/agents/call-scribe.prompt.ts`: `--recorder=<a>` then `--recorder=<b>`. Both write into the same archive under their own `source:` prefix",
+          "cost": "Deduplication is per-recorder, because the ids are. A call both tools recorded is captured twice and scribed as two entries, and the repetition bar then counts one conversation as two occurrences and promotes it as if two customers had said it"
+        }
+      ],
+      "shouldNotChange": [
+        "**The agent does not fetch calls; the script does.** (`scripts/collect/calls.ts`) A fetch loop an agent re-derives every morning is a fetch loop that silently changes shape — a window that drifts, a filter that quietly widens, a field read differently on a day the model was less careful. The raw archive is the one thing here that has to be byte-identical in its rules every day, because everything downstream is diffed against it.",
+        "**`Recorder.provider` stays one field, and the registry key equals it.** (`scripts/collect/recorder.ts`, `scripts/collect/recorders/index.ts`) It is written into every `source:` line and compiled into the regex that reads those lines back. Split it into two literals, or file an adapter under a key that disagrees with its own `provider`, and the day they drift the collector stops recognising what it has already captured and re-captures the whole window every morning — producing files, never erroring, until someone notices the repository doubling in size. `resolve()` refuses the mismatch and `evals/contract.mjs` fails on it; leave both in place.",
+        "**A recorder swap is a selection, and a new recorder is a new adapter — never an edit to the pipeline.** (`scripts/collect/recorder.ts`) Deduplication, slugging, the internal-domain filter, the file format and the window are the same whoever records your calls. Move one of them into an adapter to make a vendor fit and the next adapter has to reimplement it, which is how two recorders start writing subtly different frontmatter and the dedup stops seeing half the archive. That includes the internal/external flags four of the recorders offer: they disagree with each other, and one of them is wrong in some workspaces, so every adapter passes attendees through and one domain rule decides.",
+        "**`written: \"live\"` is a claim someone made with evidence.** (`scripts/collect/recorders/index.ts`) It means an adapter was run against a real workspace, and the collector prints a warning on every run of one that was not. Flip it to silence the warning and the registry starts implying that nine recorders are tested when one is — which is exactly how a convenience becomes a promise nobody checked, on a pipeline whose failure mode is a clean empty run.",
+        "**Choices stay in code, the secret stays in the workspace, and the agent declares no `env`.** (`scripts/collect/config.ts`, `infra/agents/call-scribe.ts`) The recorder and the internal domain are typed constants, so the compiler checks the slug, a reviewer reads both in the diff, and an edit lands on the next clone rather than the next deploy. The credential is the mirror image: a workspace environment variable read server-side on every run, so it outlives the shell that set it and rotates without a deploy. Move a choice into the spec and nothing checks it; move the key there as a `secret()` and the next deploy is blocked on whoever runs it having the value exported, which on an unattended 07:00 pipeline is discovered as a morning with no pull request.",
+        "**`scripts/call-capture/package.json` stays.** (`scripts/package.json`) It is not decoration. The CDK loader imports every `.ts` under the project root except directories carrying a `package.json`; delete it and `cargo-ai cdk plan` imports the collector and runs it against the live API on every plan.",
+        "**The harness root stays the directory holding the `package.json` that declares `@cargo-ai/cdk`.** (`infra/agents/call-scribe.ts`) That is where `node_modules` is, so it is the only place `npx tsx …/collect/calls.ts` resolves — and in the scaffolded layout it is the repository root, which is also where `cadence/` and `context/` live. The binder infers it, so nothing declares it here; what must not change is the outcome. **Check it, do not assume it:** `cargo-ai cdk check` prints the resolved binding, and a line ending `in infra/` means the harness was rooted where there is no package.json and no node_modules. The collector then cannot run at all, and the morning reports clean and empty. On a CLI old enough to resolve it that way, pin `rootDirectory: \".\"` in the repository block until you upgrade.",
+        "**The agent opens a pull request and never merges it.** (`infra/agents/call-scribe.prompt.ts`) Everything downstream reads `context/` as fact. Remove the review gate and a hallucinated objection, a misheard number, or a vendor call misread as pipeline becomes what your scorer, your researcher and your SDR all believe — and nothing will ever contradict it, because they read the same file.",
+        "**One entry per call, keyed on the provider uuid, and raw captures are never touched.** (`infra/agents/call-scribe.prompt.ts`) The uuid in each file's `source:` line is the only idempotency key in this system. Let the agent rewrite entries \"to improve them\" and the run stops being idempotent: a re-run re-litigates history, the diff is unreviewable, and the earlier occurrence the repetition bar counted changes underneath it.",
+        "**A claim reaches `context/` only on its second independent occurrence.** (`infra/agents/call-scribe.prompt.ts`) Drop the bar and the knowledge layer fills with singletons at the same confidence as durable truths. The failure is not noise, it is that nobody can tell which is which any more, and the layer stops being trusted at exactly the moment it is big enough to matter.",
+        "**The collector's window overlaps the previous run.** (`scripts/collect/calls.ts`) Transcripts are not ready when a call ends. A one-day window silently drops every call the recorder was still processing at the cron minute, and because the window only moves forward, those calls are never seen again. The overlap is free: uuids already on disk are skipped before any transcript is fetched."
+      ],
+      "doneWhen": [
+        "`--dry-run` listed the calls it would take, and the run without it wrote those files into `cadence/log/raw/calls/` with a `source:` id in each; running it twice wrote nothing the second time",
+        "`RECORDER` in `config.ts` is the recorder the team records on, and the captured `source:` lines carry that slug",
+        "`cargo-ai workspaceManagement envVar list` shows `CALL_RECORDER_API_KEY` as a secret entry, and `grep -r CALL_RECORDER_API_KEY` finds its name in the collector and the docs and its value nowhere — the deployed run reads the catalog, so no local shell has to hold the key again",
+        "on an adapter marked `docs` rather than `live`: `--dry-run` listed real calls with the right dates and account slugs through it, and one captured file was opened and read — that is what moves it to `live`, and until someone does it a clean run proves nothing",
+        "on a recorder that does not ship: the new adapter compiles (a half-written one does not typecheck, and the error names the missing field), it is registered under a key equal to its own `provider`, `--dry-run` lists real calls through it, and nothing in `scripts/collect/recorder.ts` had to change to make it fit",
+        "`cargo-ai cdk plan` reports three resources and does **not** hit the recorder's API while planning",
+        "the first scheduled run opened one pull request whose body reports four numbers: captured, scribed fresh, scribed from backfill, and pending remaining",
+        "every scribed call has exactly one entry under `cadence/log/calls/`, and no raw file was edited, moved or deleted",
+        "at least one `context/` file in the diff cites two different calls as its occurrences, and no file in the diff cites only one",
+        "a call where your company was the buyer, not the seller, is filed as vendor intel and appears nowhere as pipeline",
+        "after merging and `cargo-ai cdk deploy`, the changed `context/` file is readable from the workspace context repository, and an agent with the `context` capability quotes it back"
+      ],
+      "cost": "There are no connector actions in this skill, so it consumes no per-record credits: the collector\ntalks to your recorder directly from the harness environment, under whatever API limits your\nrecording plan already gives you. Those limits differ enough between recorders to be worth checking\nonce — a daily three-day window is nothing against Grain's per-minute allowance and is real against\nFireflies' Free tier of a few dozen requests a **day**, and `references/recorder-apis.md` records\neach. The collector paces itself and backs off on a 429 regardless, so the failure is a slow run\nrather than a half-captured one.\n\nThe recurring cost is the harness run itself, once a day, and it scales with how much the agent\nreads — which is the raw captures it scribes. **The per-run cap is the cost control as well as the\nreview control.** A lower cap spreads the same backlog over more days at the same daily cost rather\nthan paying for it all at once, and the pending remainder in the pull request body is how you watch\nwhether it is keeping up.",
+      "composesInto": "`account-scoring` and any agent with the `context` capability (they read the ICP and objection files\nthis keeps current), `crm-enrichment` (the account files this writes name the record the enrichment\nfills), `monitor-buying-signals` (the signals this promotes are what a feed then watches for)."
+    },
+    {
       "name": "clay-to-cargo",
       "kind": "one-off",
       "job": "Rebuild a Clay table on Cargo, powered by Cargo — map every Clay enrichment column to its provider action, price the run before it happens, and keep the result as version-controlled code instead of a spreadsheet.",
@@ -115,6 +299,120 @@
       "group": "Coming from another tool",
       "install": "npx skills add getcargohq/gtm-skills/clay-to-cargo",
       "partOf": []
+    },
+    {
+      "name": "crm-deduplication",
+      "kind": "cookbook",
+      "job": "Keep CRM accounts duplicate-free: audit company identity, build a recurring deduplication play directly on the CRM model, search and score duplicate candidates, merge safe exact matches, and route uncertain clusters to manual review.",
+      "description": "Keep CRM accounts duplicate-free: audit company identity, build a recurring deduplication play directly on the CRM model, search and score duplicate candidates, merge safe exact matches, and route uncertain clusters to manual review. Triggers: \"deduplicate our CRM accounts\", \"we keep creating duplicate account records\", \"merge duplicate companies in HubSpot\", \"set up recurring account deduplication\", \"review ambiguous company duplicates\", \"our CRM has duplicate companies\". HubSpot, Salesforce, Attio, Slack, Cargo CDK, findRecords, Scoring, Human Review, mergeRecords. Skip when: the request is to add or refresh CRM firmographics rather than merge duplicate records; use crm-enrichment.",
+      "version": "0.1.0",
+      "homepage": "https://github.com/getcargohq/gtm-skills/tree/main/crm-deduplication",
+      "group": "Make it run forever",
+      "install": "cargo-ai cdk add cookbook/crm-deduplication",
+      "partOf": [],
+      "state": "to-be-approved",
+      "chain": 6,
+      "resources": [
+        "connectors",
+        "models",
+        "plays"
+      ],
+      "asked": [
+        {
+          "input": "crm",
+          "kind": "derived",
+          "how": "Inspect authenticated connectors, generated action types, and existing CDK resources",
+          "why": "The play must search and merge in the authoritative CRM"
+        },
+        {
+          "input": "deduplication_evidence",
+          "kind": "derived",
+          "how": "Normalize live CRM identifiers, classify candidate clusters, conflicts, and survivor evidence",
+          "why": "Policy approval must be grounded in current records"
+        },
+        {
+          "input": "current_action_costs",
+          "kind": "derived",
+          "how": "Read live CRM and Slack integration metadata immediately before each preview",
+          "why": "The pilot handoff must disclose current cost"
+        },
+        {
+          "input": "approved_policy",
+          "kind": "asked",
+          "how": "Review matching keys, protected fields, survivor precedence, score, and automatic class",
+          "why": "It controls every candidate and automatic merge"
+        },
+        {
+          "input": "manual_review",
+          "kind": "asked",
+          "how": "Select the Slack connector, channel, owner, and timeout",
+          "why": "Uncertain clusters need an accountable decision path"
+        },
+        {
+          "input": "approved_build",
+          "kind": "asked",
+          "how": "Authorize deployment of the adapted resources with the play disabled",
+          "why": "Repository review does not authorize workspace mutation"
+        },
+        {
+          "input": "approved_pilot",
+          "kind": "asked",
+          "how": "Review the live play link and approve the exact merge-capable population",
+          "why": "A disabled play can still mutate CRM records when manually run"
+        }
+      ],
+      "canChange": [
+        {
+          "id": "crm",
+          "when": "The consumer uses Salesforce or Attio",
+          "how": "Replace the checked HubSpot connector, extractor, record ID, search action, merge action, and properties",
+          "cost": "Generated types and merge semantics must be revalidated"
+        },
+        {
+          "id": "matching_keys",
+          "when": "The CRM has an approved durable identity beyond the defaults",
+          "how": "Add the normalized key to search, score, evidence, conflicts, and contract tests",
+          "cost": "Wider matching can create new false-positive classes"
+        },
+        {
+          "id": "survivor_precedence",
+          "when": "Protected lifecycle, billing, tier, or customer policy must win",
+          "how": "Update both survivor implementations and record the exact order",
+          "cost": "A policy change can select a different survivor for every cluster"
+        },
+        {
+          "id": "structured_ai_review",
+          "when": "Ambiguous evidence needs a review aid",
+          "how": "Add priced structured evidence before Human Review only",
+          "cost": "Adds current model cost and a non-deterministic review surface"
+        }
+      ],
+      "shouldNotChange": [
+        "**Run on the authoritative CRM model.** (`infra/plays/deduplicate-accounts.ts`) The play uses the CRM-backed account extract and CRM record ID. A native account or candidate model introduces another identity system and can target the wrong record.",
+        "**Search live CRM rows before scoring.** (`infra/plays/deduplicate-accounts.ts`) `findRecords` refreshes candidate membership for every run. Audit snapshots can become stale before a merge.",
+        "**Search, score, select, then decide.** (`infra/scripts/evidence.ts`) Deterministic preparation retains the fresh source exactly once. Native Scoring evaluates the evidence before deterministic survivor selection and the automatic gate.",
+        "**Keep the automatic class narrow.** (`infra/plays/deduplicate-accounts.ts`) Exact shared LinkedIn company ID, score at least 60, and no identity, protected-ID, or parent-subsidiary conflict are all required. Every other candidate reaches Human Review.",
+        "**Merge only on automatic or approved paths.** (`infra/plays/deduplicate-accounts.ts`) Human approval reaches the reviewed merge. Decline and timeout end without a CRM write.",
+        "**Stop stale queued rows.** (`infra/plays/deduplicate-accounts.ts`) A source missing from the fresh search ends before scoring or emitting merge IDs.",
+        "**Keep one CRM shape in the folder.** Adapt HubSpot in place for Salesforce or Attio. Parallel CRM branches drift from the generated types actually connected.",
+        "**Keep the pilot disabled, serial, and limited.** (`infra/plays/deduplicate-accounts.ts`) The play remains disabled, `noConcurrency`, and limited to 15 CRM rows until the verified pilot is approved for expansion.",
+        "**Keep the repository inert.** It contains no credential, deploy command, customer data, or live merge result."
+      ],
+      "doneWhen": [
+        "the audit JSON, Markdown, and chat summary agree on identifier coverage, candidates, and conflicts",
+        "the operator approved matching keys, protected fields, survivor precedence, automatic class, and manual-review destination",
+        "the isolated plan contains one CRM connector, one Slack connector, one CRM account model, and one disabled deduplication play, with no staging model",
+        "the play runs directly on the CRM model and matches the audited CRM record ID",
+        "its compiled workflow contains CRM `findRecords`, one deterministic preparation script bundled from `infra/scripts/evidence.ts` that also selects the survivor, native Scoring, the guarded Branch, native Human Review, and CRM merge actions only on automatic or approved paths",
+        "`node --import tsx evals/contract.mjs` passes against the adapted graph",
+        "generated consumer types confirm the selected search, merge, and Human Review payloads",
+        "the Slack review connector and channel resolve; approval, decline, and timeout reach their intended paths",
+        "the play is disabled, `noConcurrency`, and limited to 15 CRM rows",
+        "the operator separately approved the disabled deployment and exact merge-capable pilot",
+        "the final report verifies every survivor and absorbed ID and accounts for every terminal outcome"
+      ],
+      "cost": "Immediately before each preview, run `cargo-ai connection integration get <crm>` and\n`cargo-ai connection integration get slack`. Read the current cost metadata for the selected search,\nmerge, and Human Review actions. Record the CLI version, lookup time, action slugs, and applicable\ncosts. If structured AI evidence is added, price it separately.\n\nThe repository does not hard-code action prices. Human approval authorizes only the exact cluster\nshown in that review message. Enabling the recurring schedule is the last approval after the pilot\npasses, not an initial input.",
+      "composesInto": "- `crm-enrichment` when matching-key coverage is too weak for reliable duplicate candidates\n- `account-scoring` after duplicate records have been consolidated into authoritative survivors"
     },
     {
       "name": "crm-enrichment",
@@ -130,6 +428,7 @@
       "chain": 3,
       "resources": [
         "connectors",
+        "folders",
         "models",
         "plays",
         "tools"
@@ -361,9 +660,9 @@
     {
       "name": "tam-building",
       "kind": "cookbook",
-      "job": "Stand up your account universe as a deployed pipeline: a Sales Navigator company search split past the 1,000 extraction cap, resolved to real domains, deduped into a shared accounts model.",
-      "description": "Stand up your account universe as a deployed pipeline: a Sales Navigator company search split past the 1,000 extraction cap, resolved to real domains, deduped into a shared accounts model. Triggers: \"our TAM is a stale CSV\", \"build our account universe\", \"the search has more companies than it will export\", \"keep our market list current\", \"size our market then load it\". Cargo CDK, salesNavigator, searchCompanyMetrics, fetchAccountSearch, accounts model. Skip when: you want the list once rather than a pipeline that keeps producing it, which is cargo-gtm's build-tam recipe.",
-      "version": "0.2.0",
+      "job": "Stand up your account universe as a deployed pipeline: an AI Ark company search shaped by your ICP, sized for free before it bills, then tiered A / B / C / disqualified by an agent that reads your rubric from the workspace context and web-searches the evidence the sourced row does not carry.",
+      "description": "Stand up your account universe as a deployed pipeline: an AI Ark company search shaped by your ICP, sized for free before it bills, then tiered A / B / C / disqualified by an agent that reads your rubric from the workspace context and web-searches the evidence the sourced row does not carry. Triggers: \"our TAM is a stale CSV\", \"build our account universe\", \"source companies matching our ICP and rank them\", \"keep our market list current\", \"which of these companies are actually worth a rep\", \"tier the market we just sourced\". Cargo CDK, aiArk, countCompanies, fetchCompanies, agent tiering, workspace context, webSearch. Skip when: you want the list once rather than a pipeline that keeps producing it, which is build-tam-list; or the accounts already exist in a CRM or an accounts model and only need judging, which is account-scoring.",
+      "version": "0.3.0",
       "homepage": "https://github.com/getcargohq/gtm-skills/tree/main/tam-building",
       "group": "Make it run forever",
       "install": "cargo-ai cdk add cookbook/tam-building",
@@ -371,63 +670,106 @@
       "state": "to-be-approved",
       "chain": 2,
       "resources": [
+        "agents",
         "connectors",
         "folders",
         "models",
-        "plays"
+        "plays",
+        "segments"
       ],
       "asked": [
         {
-          "input": "marketSearch",
-          "kind": "manual",
-          "how": "**checked, not written**: Paste the Sales Navigator company search that describes your whole market, however oversized it is",
-          "why": "This is the only input that cannot be derived: it encodes who you sell to. Everything else in this skill is arithmetic on top of it."
+          "input": "icp",
+          "kind": "derived",
+          "how": "Read the workspace context repository first (`cargo-ai context …`, or the project's defineContext directory). Ask only when no ICP is written down anywhere, and then write it to the project's context/icp.md",
+          "why": "It is the one thing that cannot be computed: it encodes who you sell to. Everything else here is arithmetic or judgment on top of it"
         },
         {
-          "input": "searchUrls` (`infra/models/salesnav-companies.ts`)",
-          "kind": "value",
-          "how": "**derived**: cargo-ai orchestration action execute --action salesNavigator.searchCompanyMetrics --data '{\"url\":\"<marketSearch>\"}' returns total_results. Over the cap, split by facet (industry first, descending the LinkedIn taxonomy only where still oversized, then geography, then headcount band) and recount each sub-search until every one is under the cap.",
-          "why": "A search holding 4,000 companies extracts 1,000 and tells you nothing about the missing 3,000. Splitting under the cap is the entire point of this skill."
+          "input": "sourcing_filter",
+          "kind": "derived",
+          "how": "Translate the ICP into AI Ark filter groups (`industry`, `employeeSize`, `companyType`, `employeeRole`, `technologies`, `funding`, …), resolving enum-backed values through `listIndustries` and its siblings",
+          "why": "A flat map is ignored silently and a guessed enum member matches nothing. Either way you source a market nobody described"
         },
         {
-          "input": "limit` (`infra/models/salesnav-companies.ts`)",
-          "kind": "value",
-          "how": "defaults to `1000`; ask only to change it",
-          "why": "This is the upstream cost control. Promotion is 1:1 with extraction, so what you extract is what you pay to enrich."
+          "input": "pool_size",
+          "kind": "derived",
+          "how": "The JSON --action form in references/configure.md: aiArk.countCompanies with the same filter groups. It is free and returns {\"count\": N}",
+          "why": "It is the only number that turns \"is this filter right\" into a question with an answer, and it costs nothing to ask"
+        },
+        {
+          "input": "limit",
+          "kind": "derived",
+          "how": "Defaults to a fraction of the counted pool for the first run; widen once rows land correctly. Ask only to change it",
+          "why": "fetchCompanies` bills per returned record, so this is the invoice. Sourcing wide and filtering later means paying for every company the rubric will throw away"
+        },
+        {
+          "input": "tier_rubric",
+          "kind": "asked",
+          "how": "Propose A / B / C / disqualified from the ICP's own language, then have the operator correct it. It is written to the project's context/tiering-rubric.md, not into the agent prompt",
+          "why": "It is what the whole book gets judged against, and the one thing the operator will want to change next month without a deploy"
+        },
+        {
+          "input": "llm",
+          "kind": "derived",
+          "how": "Inspect the authenticated LLM connectors and pick the one already in use, with its current model slug",
+          "why": "A second LLM connector is a collision at deploy, and a stale model slug fails at run time rather than at plan time"
         }
       ],
       "canChange": [
         {
-          "id": "non-linkedin-source",
-          "when": "You do not want to source from LinkedIn at all, or Sales Nav does not cover your market",
-          "how": "Swap the Sales Nav connector and landing model for the Ark enrichment API (https://ai-ark.com/platform/enrichment-api), keeping `promote-to-accounts` and the `accounts` contract unchanged (`infra/models/salesnav-companies.ts`, `infra/connectors/sales-navigator.ts`)",
-          "cost": "You lose the Sales Nav facet taxonomy that makes the split tactic mechanical, and the splitting has to be redesigned around the new source's own limits"
+          "id": "lookalike-sourcing",
+          "when": "Your best customers describe the ICP better than any facet does, which is usual before a segment is written down",
+          "how": "Add `lookalikeDomains` (up to five domains or LinkedIn URLs) to the model config beside the filter groups (`infra/models/tam-companies.ts`)",
+          "cost": "The pool is shaped by the seeds rather than by anything written down, so it drifts from `icp.md` and `countCompanies` becomes the only way to see what you asked for"
         },
         {
-          "id": "land-without-promoting",
-          "when": "You want to see and filter the raw market before paying to enrich it",
-          "how": "Deploy the landing model only and leave `promote-to-accounts` out until you have decided which rows are worth promoting (`infra/plays/promote-to-accounts.ts`)",
-          "cost": "Nothing reaches `accounts`, so no downstream skill (scoring, contact sourcing, signals) has anything to work with until you promote"
+          "id": "refresh-cadence",
+          "when": "The market moves and a one-time source goes stale",
+          "how": "Give the model a cron and widen `limit` (`infra/models/tam-companies.ts`), then read the deleting-a-schedule warning in that file before you ever remove it again",
+          "cost": "Every run re-bills every returned record, including the rows you already have: a monthly refresh buys the handful of new companies at the price of the whole pool"
         },
         {
-          "id": "sample-first",
-          "when": "The market search is large and you want to see the cost curve before committing",
-          "how": "Set `config.limit` well below the cap and start with one sub-search URL, then widen once rows land correctly (`infra/models/salesnav-companies.ts`)",
-          "cost": "Your TAM is deliberately incomplete until you widen it, so do not score or report on coverage from a sample"
+          "id": "promote-to-shared-accounts",
+          "when": "The project already has an `accounts` model that scoring, routing, and signals all read",
+          "how": "Add a play that upserts tiered rows into that model keyed on its identity column, and leave `tam_companies` as the landing table",
+          "cost": "One more resource and one more dedupe key to keep true; a row that cannot resolve to that key has to be dropped rather than written, or it forks into duplicates the first time it appears elsewhere"
+        },
+        {
+          "id": "sales-navigator-source",
+          "when": "Your market is expressed better by LinkedIn's facet taxonomy than by AI Ark's filter groups",
+          "how": "Swap the connector and the extractor for `salesNavigator.fetchAccountSearch` over a list of search URLs, keeping the agent, the play, and the tier segments unchanged",
+          "cost": "Sales Nav returns no domain, so you add a resolution step of two credited calls per company; and its extraction cap forces splitting one market search into sub-searches and recounting each"
+        },
+        {
+          "id": "deterministic-tiering",
+          "when": "The rubric turns out to be thresholds (headcount band, industry, funding stage) with no judgment in it",
+          "how": "Delete the agent and write the tier in the play from the sourced columns, or push the thresholds up into the sourcing filter where they cost nothing",
+          "cost": "You lose the rationale a rep reads and the web-verified evidence, which is most of what makes a tier trusted rather than obeyed"
         }
       ],
       "shouldNotChange": [
-        "**Every company is resolved to a real domain before it is promoted into `accounts`.** (`infra/plays/promote-to-accounts.ts`) The shared `accounts` model keys on `website`. A domainless account cannot be deduped, so it forks into duplicates the first time the same company appears in another list. This is why a row that cannot be resolved is dropped rather than written.",
-        "**Every search is counted before it is extracted.** (`infra/models/salesnav-companies.ts`) Extracting blind is how you take a silently truncated list: the search holds 4,000 companies, the extractor takes 1,000, and nothing tells you the rest exist.",
-        "**No sub-search sits at or above the extraction cap.** (`infra/models/salesnav-companies.ts`) A search returning exactly the cap is truncated. That is the failure this whole skill exists to prevent, and it is invisible unless you check the number."
+        "**Every filter is counted before it is sourced.** (`infra/models/tam-companies.ts`) `countCompanies` takes the same groups and is free. Sourcing blind is how a filter that reads right returns a market ten times the size you meant, already billed per record, with no signal that anything went wrong.",
+        "**The ICP filter is the narrowing, and there is no post-filter.** (`infra/models/tam-companies.ts`) Every returned record is paid for, so a company the rubric will disqualify was bought before it was judged. A large disqualified segment is a filter that is too wide, not an agent that is too harsh.",
+        "**Filter groups are nested, and enum values come from the autocompletes.** (`infra/models/tam-companies.ts`) A flat `{\"industry\": \"Software\"}` is ignored silently and sources the whole database up to `limit`. A guessed enum member matches nothing and returns an empty sync that looks like a broken connector.",
+        "**The rubric lives in the workspace context, not in the system prompt and not in code.** (`context/tiering-rubric.md` in the project's knowledge layer; `infra/context/` is the example to copy there.) Put it in the prompt and changing what tier A means becomes a deploy, the reason for the change stops being reviewable, and the rep reading the tier can no longer read the same file the agent read.",
+        "**The agent judges and the play writes.** (`infra/agents/tier-analyst.ts`, `infra/plays/tier-companies.ts`) The agent carries no model in `uses`. Give it one and it decides its own routing, at which point an untiered row could be a failed run, a silent skip, or a judgment it chose not to record, and you cannot tell which.",
+        "**Custom columns are written with their bare slugs.** (`infra/plays/tier-companies.ts`) `custom__` is the read-side alias only. The write path nests the declared slug under `custom` itself, so a prefixed slug produces `custom.custom__tier`, the node reports \"Record upserted\", and the value is dropped. The failure looks like a play that ran perfectly over a book with no tiers in it.",
+        "**Eligibility is the stamp, not the tier.** (`infra/plays/tier-companies.ts`) Filter on `tiered_at` being null or stale. Filter on the tier column instead and a run that failed looks identical to a row waiting its turn, while a legitimate `disqualified` verdict gets re-judged forever.",
+        "**`changeKinds: [\"added\"]` stays.** (`infra/plays/tier-companies.ts`) Runs are created for rows entering the segment, so the LLM bill scales with how many companies you sourced. Drop it and it scales with how often the cron fires. After the first sync (play still disabled), enable and execute the play once: `added` does not backfill rows that landed while it was off.",
+        "**A tier ships with its rationale, its evidence, and its stamp, on the same write.** (`infra/plays/tier-companies.ts`) A tier nobody can audit is a number a rep will not trust, and a row marked judged without a judgment is worse than one that was never judged."
       ],
       "doneWhen": [
-        "the sub-search extractions sum to roughly the count of the original whole-market search",
-        "no sub-search returned exactly the cap, which would mean it is still truncated",
-        "promoted accounts appear in `accounts` with a website, deduped across overlapping sub-searches"
+        "`countCompanies` was run for the filter actually deployed, and its number is recorded before any sourcing run",
+        "the sync landed rows, the row count is at or under `limit`, and the extractor's real column names match the workflow input",
+        "every row carries a tier the rubric defines, a rationale naming the deciding lines, and a `tiered_at` stamp",
+        "no row carries a stamp with an empty tier, and no row carries a tier with an empty stamp",
+        "the tier segments (`tam-tier-a`, `tam-tier-b`, `tam-tier-c`, `tam-disqualified`) resolve, and their counts sum to the tiered row count",
+        "the agent's evaluator pass rate is at or above its threshold, and a failing sample reads as a genuinely hard company rather than a missing rubric",
+        "editing `tiering-rubric.md` in the context repo changes the next tier with no deploy",
+        "`node --import tsx evals/contract.mjs` passes against the adapted resources"
       ],
-      "cost": "Counting is a fraction of a credit and is the cheapest insurance here. **Promotion is the\nexpensive step:** every promoted company costs two credited calls (`matchBusiness` +\n`enrichBusinessFirmographics`), because Sales Nav returns no domain and both are needed to resolve\none. A 5,000-company TAM is roughly 10,000 enrichment calls. That is the price of the outcome, not\nwaste, but it is real money and it should be spent on purpose.\n\nThe control is upstream, where the rows are created: `config.limit` and how many sub-search URLs\nyou add. **To spend less, extract less.** Start with one small sub-search, watch it land correctly,\nthen widen.",
-      "composesInto": "`list-building` (the same split tactic for people), `contact-sourcing` (the buyers at every account\nyou just built), `account-scoring`, `signal-based-tam` (watch the universe you just built)."
+      "cost": "Read this before pointing the skill at a market-sized filter.\n\n**Counting is free**, and it is the cheapest insurance in this skill: `aiArk.countCompanies` takes\nthe same filter groups as the search and returns the pool size without billing. Run it for every\ncandidate filter, every time you widen one.\n\n**Sourcing is the spend, and it is per returned record, not per call.** Immediately before every\npreview, run `cargo-ai connection integration get aiArk` and read the current entry under\n`integration.actions.searchCompanies.credits.costs`; the `fetchCompanies` extractor bills on the same\nper-record basis. Record the CLI version, the lookup time, and the unit price. The estimate is\n`limit * unit price`, which is why `limit` is the only control that matters: **to spend less, source\nless.** Start well under the counted pool, watch the rows land and the tiers come back sane, then\nwiden.\n\n**Tiering is one agent run per newly sourced company**, billed as LLM tokens through the bound\nconnector plus whatever web search steps it takes. `maxSteps` is the per-company ceiling and the\nrubric's one-question-one-search rule is what keeps a normal row far below it. Because the play runs\non `changeKinds: [\"added\"]`, steady state is only the companies a sourcing run newly added, plus\nwhatever comes back when its six-month stamp expires. A tick that follows no sourcing run is a no-op.\n\nThe model deliberately carries **no schedule**, because a cron re-runs the same search and re-bills\nevery returned record, including the rows already sitting in the model. Sourcing is a deliberate\nspend; the tiering play is the part that stands. See `refresh-cadence` above for what a recurring\nsource really costs.",
+      "composesInto": "`contact-sourcing` (the buyers at every tier A account), `crm-enrichment` (fill the records these\naccounts become), `signal-based-tam` (watch the universe you just built). `account-scoring` is the\nsibling for a book that already exists, not the next step after this skill has already tiered the\nrow."
     },
     {
       "name": "track-funding-rounds",
