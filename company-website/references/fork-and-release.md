@@ -125,3 +125,12 @@ authorized it. Do not invent a rollback command or replace deployment state.
 
 If the source marker reports a different revision, the HTTP check has not proved
 this release. Check promotion and caches; do not mark the release complete.
+
+## Portable app declarations
+
+Keep the `defineApp` path relative to the active CDK project directory. The CLI
+enters that directory before loading resources. CDK 1.0.81 hashes the path string
+as part of the app specification, so an absolute local path and an absolute CI
+path produce different plans even when their source content matches. The
+resource declaration derives a relative path from its module location, and the
+contract suite checks that moving a checkout preserves the app hash.

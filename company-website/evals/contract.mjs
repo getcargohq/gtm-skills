@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -27,8 +27,8 @@ function test(name, fn) {
 function json(file) { return JSON.parse(readFileSync(file, "utf8")); }
 function save(file, value) { writeFileSync(file, JSON.stringify(value, null, 2) + "\n"); }
 function git(args) { return execFileSync("git", args, { cwd: project, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }); }
-function check() {
-  try { return JSON.parse(execFileSync(join(repo, "node_modules/.bin/cargo-cdk"), ["check", "--dir", join(project, "infra"), "--json"], { cwd: project, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] })); }
+function check(checkout = project) {
+  try { return JSON.parse(execFileSync(join(repo, "node_modules/.bin/cargo-cdk"), ["check", "--dir", join(checkout, "infra"), "--json"], { cwd: checkout, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] })); }
   catch (error) { if (error.stdout) return JSON.parse(error.stdout); throw error; }
 }
 function validGraph(result) { assert.deepEqual(result.loadErrors, []); assert.deepEqual(result.compile.errors, []); }
@@ -153,11 +153,24 @@ try {
     validGraph(publishedGraph);
     const node = publishedGraph.nodes.find(n => n.kind === "app");
     assert.equal(node.id, "app:fixture-website");
-    assert.equal(realpathSync(node.spec.path), realpathSync(app));
-    assert.ok(existsSync(join(node.spec.path, "package-lock.json")));
+    assert.equal(realpathSync(resolve(project, "infra", node.spec.path)), realpathSync(app));
+    assert.ok(existsSync(resolve(project, "infra", node.spec.path, "package-lock.json")));
     assert.deepEqual(node.spec.env, {});
     assert.equal(node.spec.folderUuid.resourceId, "folder:company-website-apps");
     assert.equal(publishedGraph.nodes.find(n => n.kind === "agent").spec.repository.repository, config.repository);
+  });
+
+  await test("moving the checkout preserves the app spec and deployment hash", () => {
+    const moved = join(temp, "ci-checkout");
+    cpSync(project, moved, { recursive: true });
+    const graph = check(moved);
+    validGraph(graph);
+    const before = publishedGraph.nodes.find(n => n.kind === "app");
+    const after = graph.nodes.find(n => n.kind === "app");
+    assert.equal(after.spec.path, "company-website/apps/website");
+    assert.deepEqual(after.spec, before.spec);
+    assert.equal(graph.compile.plan.find(n => n.id === after.id).hash,
+      publishedGraph.compile.plan.find(n => n.id === before.id).hash);
   });
 
   await test("content updates change the app hash while preserving resource IDs and update existing state", () => {

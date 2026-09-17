@@ -5,6 +5,7 @@ import {
   defineFolder,
 } from "@cargo-ai/cdk";
 import { readFileSync } from "node:fs";
+import { relative, sep } from "node:path";
 import { appPath, settings } from "./settings";
 import { maintainerPrompt } from "./agents/maintainer.prompt";
 import {
@@ -69,7 +70,8 @@ if (settings.publish) {
   });
   defineApp(settings.appSlug, {
     name: "Company website",
-    path: appPath,
+    // CDK hashes the path string. Keep it stable across local and CI checkouts.
+    path: relative(process.cwd(), appPath).split(sep).join("/"),
     description: "Public website built from this project's reviewed source.",
     folder,
     // Public bundle: no Cargo SDK login, private context or browser secrets.
