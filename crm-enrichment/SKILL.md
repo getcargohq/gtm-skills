@@ -1,8 +1,8 @@
 ---
 name: crm-enrichment
-description: 'Keep CRM accounts and contacts filled and refresh them when they go stale: deployed plays that fill approved blanks from LinkedIn, re-enroll stale records, and monitor customer champions for job changes. Triggers: "keep our CRM accounts filled", "keep our CRM companies filled", "keep our CRM contacts filled", "enrich my CRM", "CRM enrichment", "old firmographics keep going stale", "every new CRM account", "every new CRM company", "every new CRM contact", "nobody refreshes the company records", "nobody refreshes the contact records", "refresh stale firmographics", "contacts are missing LinkedIn URLs and titles", "monitor our customer champions". HubSpot, Salesforce, Attio, Cargo CDK. Skip when: the records are not in a CRM. A supplied company list is enrich-company-data; a supplied LinkedIn-URL list is enrich-linkedin-profile; a one-time job-change check is track-job-changes.'
-version: "0.9.0"
-compatibility: "Requires the cargo-cdk skill, a Cargo CDK project, and @cargo-ai/cdk ^1.0.51. Pin the project's root zod to 4.4.3 (a mismatch breaks typechecking), and give tsc NODE_OPTIONS=--max-old-space-size=16384 when checking infra against generated workspace types, in CI too. The repository example does not deploy or access a CRM until an agent adapts it in the consumer project."
+description: 'Keep CRM accounts and contacts filled and refresh them when they go stale. The contact pipeline uses one enrichment play with three gated tools: Cargo-native Find Email, Cargo-native Find LinkedIn Profile from Email, and custom Contact LinkedIn Enrichment. Triggers: "keep our CRM accounts filled", "keep our CRM contacts filled", "enrich my CRM", "refresh stale firmographics", "every new CRM company", "every new CRM contact", "contacts are missing emails, LinkedIn URLs, or titles". HubSpot, Salesforce, Attio, Cargo CDK. Skip when: the records are not in a CRM. A supplied company list is enrich-company-data, a supplied LinkedIn URL list is enrich-linkedin-profile, and a one-time email lookup is find-work-email.'
+version: "0.7.0"
+compatibility: "Requires the cargo-cdk skill, a Cargo CDK project, and @cargo-ai/cdk ^1.0.51. Pin the project root zod to 4.4.3 and give tsc NODE_OPTIONS=--max-old-space-size=16384 when checking generated workspace types. The repository example does not deploy or access a CRM until it is adapted in the consumer project."
 homepage: https://github.com/getcargohq/gtm-skills/tree/main/crm-enrichment
 metadata:
   author: getcargo
@@ -21,388 +21,181 @@ metadata:
 
 # CRM enrichment
 
-**State: to-be-approved.** Deploy-verified against a live workspace: not yet. Treat `Done when`
-below as the acceptance test and review `cargo-ai cdk plan` before deploying. Make no outcome claim
-for this skill until it is approved.
+**State: to-be-approved.** This pipeline has not been deploy-verified against a live workspace.
+Review `cargo-ai cdk plan`, the compiled graph, and the live connector schemas before deployment.
 
 ## The outcome
 
-CRM accounts and contacts stay filled. New records get approved blanks written from LinkedIn; a
-record whose successful fill is older than its refresh window comes back. Every play runs directly
-on its CRM extract — `crm_accounts` for companies, `crm_contacts` for people — and writes back
-with that row's CRM record id. It does not overwrite a value that is already there.
+CRM accounts and contacts keep their approved enrichment fields filled without overwriting values
+that already exist. New records are eligible immediately. Successfully written records become
+eligible again after the configured freshness window.
 
-The account path is one play: `enrich_accounts` fills approved firmographics and re-enrolls a
-record after six months. The people path is two plays on the same extract, split by the audited
-customer status, which both filters read from the RELATED account through the
-`contact_primary_company` relationship — contact-side lifecycle is unreliable and is never
-written. `enrich_contacts` fills approved person attributes for non-customer contacts on
-the six-month window. `monitor_champions` watches contacts whose primary company is a customer on
-a 30-day window and compares their live LinkedIn profile against the CRM company: deterministic
-guards first (LinkedIn company identity, then domain), and when the guards cannot confirm the
-company, an AI verdict over the complete profile — dates and concurrent positions included —
-decides whether the PRIMARY employment changed. On a confirmed move it finds the new company by
-identity — domain, then exact name — creating it only when missing, moves the primary
-association and refreshes the title, labels the old company association with the Ex-employee /
-Former employer pair, stamps the product relationship and the move date when empty, writes one
-JOB CHANGE note with the evidence on the contact and both companies, and alerts the former
-account's owner in Slack with the buying role, product relationship, and persona. A second run
-on the same contact creates nothing: the CRM now says the person moved, so the verdict is SAME
-and every memory field is written only when empty. Job changes among customer contacts are time-sensitive warm pipeline;
-standard contact data is not — that is why the cadences differ and why the split lives in the two
-play filters rather than a standalone segment.
+The account path is `enrich_accounts`. It calls `account_enrichment`, selects the LinkedIn company
+route or domain fallback, and writes approved blanks to the CRM.
 
-The checked example in `infra/index.ts` is HubSpot (`hs_object_id`, companies and contacts
-objects, `updateRecords` + `skipIfExist`). Salesforce and Attio are the same file adapted:
-swap the connector, extractor, record-id field, write action, and fill-blank guard. Do not add
-a second CRM branch.
+The contact path is one play, `enrich_contacts`, calling three gated tool resources:
 
-**Three failure modes worth knowing before you start.** If the matching record-id field is wrong,
-the run looks successful and every write targets nothing. If a field's approved write policy is
-lost, a refresh overwrites CRM-authoritative data or preserves the stale value it was meant to
-replace. If a job change is allowed to create a contact, one person becomes two records and the
-relationship history splits — the champion play updates the resolved existing contact, never
-creates one.
+1. Cargo-native **Find Email** runs only when LinkedIn is present and email is blank.
+2. Cargo-native **Find LinkedIn Profile from Email** runs only when email is present and LinkedIn
+   is blank.
+3. Custom **Contact LinkedIn Enrichment** runs only after a LinkedIn URL is available.
 
-The starting recommendation is identity and size for accounts, identity and role for contacts. On
-HubSpot the account fields are `linkedin_company_id`, `name`, `domain`, `website`,
-`linkedin_company_page`, and `numberofemployees`; the contact fields are `linkedin_person_id`,
-`linkedin_profile_url`, and `jobtitle`. The provider's company and person IDs are recommended as
-durable matching keys. Reuse the best compatible CRM property when one exists; otherwise propose
-the string property (`linkedin_company_id`, `linkedin_person_id`) and wait for approval to create
-it. Do not prepend `cargo_` to proposed CRM properties: provider-derived business properties keep
-neutral names, and so does `primary_employment_status` (Active/Left), which describes the person
-rather than Cargo's bookkeeping. Before counting
-the target population or editing CDK, the agent derives the other LinkedIn fields that can map to
-live CRM properties and presents them with their type and transformation costs. The operator
-approves the field contract. That approved contract, not the repository default, controls the
-mappings, per-field write policies, and final cost preview. The audit JSON contract lives in
-[`references/audit.md`](references/audit.md); provider field paths and the selection gate in
-[`references/configure.md`](references/configure.md).
+The contact route matrix is deliberate:
 
-The people path adds one derived audit input the account path does not have: the customer-status
-mapping. The audit identifies which live company property and value this CRM uses to mean
-"customer" (HubSpot example: the primary associated company's `Lifecycle stage = Customer`;
-Salesforce: `Contact.AccountId → Account.<customer status field>`), always through the contact's
-primary company relationship — declared in CDK as the `contact_primary_company` dataset
-relationship, never an arbitrary associated company and never the contact's own lifecycle field.
-The operator confirms that mapping
-before either contact play is built, because it decides which contacts each play owns.
+| Starting identifiers | Calls                                                              | Outcome                                         |
+| -------------------- | ------------------------------------------------------------------ | ----------------------------------------------- |
+| Email and LinkedIn   | Contact LinkedIn Enrichment                                        | Fill approved LinkedIn identity and role blanks |
+| LinkedIn only        | Find Email, then Contact LinkedIn Enrichment                       | Fill email and approved LinkedIn blanks         |
+| Email only           | Find LinkedIn Profile from Email, then Contact LinkedIn Enrichment | Stop without a write if no profile resolves     |
+| Neither              | None                                                               | Stop without a write                            |
 
-Two silent-failure traps live in the same family as the `conjonction` spelling. Blank HubSpot
-values surface as NULL in the Cargo extract, so a filter condition that tests only `isEmpty`
-matches nothing — every blank test pairs `isNull` with `isEmpty`, and the shipped filters do.
-And CRM properties created by hand must match the template verbatim: internal names are frozen
-at creation, enum option values are case-sensitive, and date properties must be date-and-time
-(see [`references/configure.md`](references/configure.md)).
+The custom tool owns provider access and has no CRM access. The play owns every CRM write. The
+checked example targets HubSpot companies and contacts by `hs_object_id`; adapt the connector,
+extractor, record ID, write action, and blank-only behavior for Salesforce or Attio.
 
-Present exactly one row per provider property in the field-selection table. Never combine fields
-into a grouped row: each property names the actual provider used, its own type, provider-route
-availability, CRM destination, fill rate, transformation, recommendation, and operator decision.
-Derive the provider name from the live connector and action instead of hard-coding it. The checked
-example uses LinkedIn.
-
-The duplicate-property audit is about genuine customer-managed duplicates. Do not present CRM
-system properties, HubSpot `hs_*` fields, or generic native properties as duplicates merely because
-they could hold similar data. If no customer-managed duplicate group exists, say
-`No duplicate properties detected`.
-
-## How the CRM remembers
-
-A CRM that only tracks current employees forgets the person the moment they leave. This pipeline
-makes the move itself durable, with a model small enough to reason about:
-
-- **One paired association label** carries the history: contact side "Ex-employee", company side
-  "Former employer", many-to-many. It is created once, by hand, in the HubSpot UI (Settings →
-  Data model → Contacts → Associated objects and labels → Create association label → "A pair of
-  labels") — the Cargo HubSpot connector cannot create labels, but its Create association node
-  lists the existing labels by name and resolves the portal-specific type id itself, so no
-  numeric id is ever hardcoded.
-- **The label carries no judgment.** Who the person was to the account comes from data that
-  already exists: role-then is the buying role on the old customer's deal (HubSpot's native
-  contact-to-deal labels, read for the alert and never written), and role-now is the title and
-  company this pipeline's enrichment already maintains.
-- **Two properties complete the memory**: `cargo_relationship` (used_cargo | never_used_cargo),
-  written only when empty from a configurable default, and a configurable move-date property
-  (default: create `job_change_date`), stamped only on the first detection.
-- **Two plays can then read the same records**: "Ex-employee of a customer + used_cargo" is
-  champion tracking — this play's alert; "Ex-employee of <company> + persona in a target set" is
-  alumni outreach. Neither needs a new data model, only the label and the two properties.
-
-## Guide the operator through every phase
-
-```mermaid
-flowchart LR
-  audit["1. Audit and enrichment recommendation"] -->|"Approve fields and disabled build"| build["2. Build disabled play and tool"]
-  build -->|"Review Cargo links and approve cost"| run["3. Run enrichment"]
-  run --> report["Results report and recommended next step"]
-```
-
-Every substantive message starts with the current phase and ends with a `Next step` section. Give
-the operator one concrete decision or action, say what the agent will do after approval, and name
-what remains blocked. During an in-progress operation, say `No action needed` and name the next
-checkpoint. Never end with a generic offer to help.
-
-1. **Audit and enrichment recommendation.** Present the CRM gaps, duplicate-property result, and
-   one-row-per-property recommendation — for the people path, also the confirmed customer-status
-   mapping and the operational-field reuse decisions. End by asking the operator to approve the
-   complete field contract and authorize building and deploying the resulting Cargo resources in a
-   disabled state. No paid call or CRM write occurs in this phase.
-2. **Disabled plays and tools.** After that approval, walk the operator through the manual
-   prerequisites first — creating the approved CRM properties in the CRM UI (the connector has no
-   create-property action; see [`references/configure.md`](references/configure.md) for the exact
-   names and types), instantiating the "Find LinkedIn URL from email" template tool, and adding
-   the Cargo app to the alert channel — then adapt, type, check, plan, and deploy the reusable
-   tools and the play or plays for the audited path, every play still disabled. The enrichment
-   tool
-   normalizes identifiers and
-   returns provider data without CRM access. Each play calls the tool, applies the approved write
-   policy, and pushes results to the CRM. Inspect the compiled graph before deployment: the tool
-   starts with an identifier Branch (`contact_enrichment` continues into the resolver fallback),
-   and every play starts with one Tool node targeting its tool
-   (`account_enrichment` for `enrich_accounts`; `contact_enrichment` for `enrich_contacts` and
-   `monitor_champions`) before any CRM action. Send a direct Cargo UI link for each resource. Show the exact
-   eligible population, mutually exclusive provider routes, unit prices, and total estimated
-   credits. End by asking the operator to review those links and approve the enrichment run at that
-   stated maximum cost. Do not run or enable anything without that second approval.
-3. **Enrichment and report.** Before any paid batch, probe write-capability on one record — a
-   failed write re-bills the provider on retry — and before the champion play, walk the
-   company-identifier coverage gate ([`references/run.md`](references/run.md)). Then run only the
-   approved population, monitor completion, and report the
-   before-and-after fill rate for every approved property, processed and outcome counts — for the
-   champion play, job-change outcomes and where each alert went — failures,
-   actual credits against estimate, and direct Cargo links. End with a recommended next action:
-   remediate failures, approve recurring daily coverage, or move to deduplication.
+The starting contact field contract is `email`, `linkedin_person_id`, `linkedin_profile_url`, and
+`jobtitle`. The operational fields are `cargo_last_enriched_at` and
+`cargo_enrichment_status`. Reuse compatible existing CRM properties. If a destination does not
+exist, propose it and wait for approval before creating it.
 
 ## Put it in your project
 
-This folder is a **worked example**: real CDK resources written for some other company. The job
-is to end up with the code your company would have written, in your project, and an agent does the
-adapting.
-
-**Install the required authoring skill first.** If `cargo-cdk` is absent, run:
+Install the required authoring skill first. If `cargo-cdk` is absent, run:
 
 ```sh
 npx skills add getcargohq/cargo-skills --skill cargo-cdk
 ```
 
-Then read `.agents/skills/cargo-cdk/SKILL.md` directly; no session reload is needed. Complete its
-bootstrap and use its authoring, state, plan, and deployment rules throughout this pipeline. Stop
-before audit or template work if the skill cannot be installed or read.
+Then read `.agents/skills/cargo-cdk/SKILL.md` and follow its state, plan, and deployment rules.
 
-1. **Install it — the CLI does the copy.** From inside the CDK project,
-   `cargo-ai cdk add cookbook/crm-enrichment` writes this example to `infra/crm-enrichment/` and
-   this procedure to `.claude/skills/crm-enrichment/`. No project yet?
-   `cargo-ai cdk init <dir> --cookbook crm-enrichment && cd <dir> && npm install` does both; this
-   folder never ships a shell. **If you are reading this from the project's `.claude/skills/`, the
-   install already happened — start at step 2.** On a CLI too old to have `add`, copy this folder
-   in as a sibling of what is there by hand; everything below is unchanged.
-2. **Reconcile it with what is already declared.** For every model or connector this example
-   carries that the project already has (a HubSpot connector, an account or contact extract, a
-   Slack connector), rewire the
-   imports to the existing one and drop the copy. Two resources with one slug is a collision at
-   deploy. Each play must keep running on its CRM extract (`crm_accounts` and `crm_contacts` in
-   the example).
-   Append this folder's `.env` needs to the project's `.env.example`; never overwrite it.
-3. **Audit and recommend.** Pick the path the operator asked for — accounts, contacts, or both;
-   audit only what was asked. Re-read the live provider output and CRM property schemas. Follow the
-   field-selection gate in [`references/configure.md`](references/configure.md): present the CRM
-   gaps, duplicate-property result, starting recommendation, optional fields, transformations, and
-   unsupported fields with reasons — for contacts, also the customer-status mapping for
-   confirmation and the operational-field reuse decisions. Stop for approval of the complete field
-   contract and explicit
-   authorization to deploy the resulting resources disabled. Do not calculate the final target,
-   edit CDK, deploy, make a paid call, or write to the CRM while approval is pending.
-4. **Adapt and deploy disabled.** After approval, work the sections below in order: _What should not
-   change_ is what you argue back
-   about (say what breaks, then do it if they still want it); _What you can change_ is what you
-   offer unprompted (nobody asks for a variant they do not know exists); _What you will be asked_
-   is the floor, and you derive before you ask. If you are asking more than about four questions
-   you have skipped lookups. Record what you changed and why under a `## Decisions` section in
-   your copy of this file. From the copied skill folder, run
-   `node --import tsx evals/contract.mjs`, then run
-   `cargo-ai cdk types && cargo-ai cdk check && cargo-ai cdk plan`. Show the diff, and deploy under
-   the phase-one authorization with `isEnabled: false`. Never run `cargo-ai cdk init --force` in a
-   non-empty directory.
-5. **Hand off for cost approval.** Resolve the workspace, play, and tool UUIDs. Send clickable Cargo
-   UI links using the patterns in [`references/run.md`](references/run.md), then show the final
-   target and exact estimated credits. Stop for explicit approval of that run and maximum cost.
-6. **Run and report.** Execute only after the second approval. Monitor the approved scope and return
-   the result report from [`references/run.md`](references/run.md). Walk _Done when_ line by line.
-   Deployed cleanly and produced nothing is the normal failure.
+From the Cargo CDK project, install this example with:
+
+```sh
+cargo-ai cdk add cookbook/crm-enrichment
+```
+
+Or start a project with:
+
+```sh
+cargo-ai cdk init <dir> --cookbook crm-enrichment
+cd <dir>
+npm install
+```
+
+Reconcile adopted connectors and models with existing project resources. Do not deploy duplicate
+slugs. Append environment requirements to the project `.env.example`; never overwrite it.
+
+Before changing code, audit the live CRM schema and provider outputs using
+[`references/audit.md`](references/audit.md). Apply the approved mappings using
+[`references/configure.md`](references/configure.md). Run the disabled pilot and report results
+using [`references/run.md`](references/run.md).
+
+For the two Cargo-native contact tools, instantiate the live workspace templates and replace:
+
+- `REPLACE-WITH-FIND-EMAIL-TOOL-UUID`
+- `REPLACE-WITH-FIND-LINKEDIN-PROFILE-FROM-EMAIL-TOOL-UUID`
+
+Confirm their live input and output contracts. This example expects Find Email to accept
+`linkedin_url`, `first_name`, and `last_name` and return `email`. It expects Find LinkedIn Profile
+from Email to accept `email` and return `linkedin_url`.
 
 ## What you will be asked
 
-**Derive before you ask.** An input with a lookup is looked up, not asked. Only the ones marked
-_asked_ genuinely live in the operator's head.
+Derive what can be discovered before asking the operator. Ask only for decisions that change the
+field contract, target population, or spend.
 
-| Input                      | Kind               | How it is answered                                                                                                                                                                    | Why it matters                                                                            |
-| -------------------------- | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
-| `crm`                      | derived            | Inspect authenticated connectors and existing CDK resources                                                                                                                           | Reusing them prevents a second CRM connector and a second extract                         |
-| `field_candidates`         | derived            | Join live provider paths and types (LinkedIn company fields for accounts, LinkedIn person fields for contacts) to live CRM properties and fill rates                                  | The operator should choose from evidence, not recall provider fields                      |
-| `customer_status_mapping`  | derived, confirmed | Detect the live account property and value that mean "customer", read through the `contact_primary_company` relationship, then present it for confirmation                            | It decides which contacts `enrich_contacts` and `monitor_champions` each own              |
-| `approved_field_contract`  | asked              | Review the recommended base fields, optional candidates, transformations, destinations, operational-field reuse, and exclusions                                                       | It defines every write mapping and authorizes the disabled build                          |
-| `target_population`        | derived            | Count eligible rows by mutually exclusive route after field approval                                                                                                                  | It makes the cost estimate reproducible                                                   |
-| `champion_coverage_policy` | asked              | See the count of customer companies lacking domain, website, and LinkedIn page, then choose: fill them, approve a priced name→domain resolution step, or run only matchable champions | Without it the champion play marks every unmatchable champion Left and fires false alerts |
-| `champion_alert_channel`   | asked              | Name the Slack channel for champion job-change alerts, with the Cargo app already added to it (Slack → channel → Add apps → Cargo)                                                    | A channel without the app fails at send time, not build time, after the paid call         |
-| `approved_run`             | asked              | Review the disabled Cargo links, target, and exact maximum credits                                                                                                                    | It is the explicit gate before any enrichment call                                        |
+| Input                   | Kind    | How it is answered                                                                          | Why it matters                                           |
+| ----------------------- | ------- | ------------------------------------------------------------------------------------------- | -------------------------------------------------------- |
+| `crm_schema`            | derived | Inspect the existing Cargo connector, extracts, and live CRM properties                     | Determines models, IDs, destinations, and write behavior |
+| `provider_schema`       | derived | Inspect the live LinkedIn actions                                                           | Prevents guessed output paths and types                  |
+| `native_tool_contracts` | derived | Instantiate and inspect both Cargo-native tools                                             | Makes the play compile against the deployed tools        |
+| `approved_fields`       | asked   | Present one row per provider field with destination, type, transformation, and write policy | Controls every CRM mutation                              |
+| `eligible_population`   | derived | Count rows with an identifier, stale freshness, and at least one approved blank             | Sets scope and cost                                      |
+| `refresh_cadence`       | asked   | Recommend six months unless the operator has a different governance need                    | Controls repeat spend                                    |
 
-Checked before moving on, not after the deploy:
-
-- `crm`: one authenticated CRM connector, and each play model is that connector's own extract
-  (`crm_accounts` for companies, `crm_contacts` for contacts)
-- `customer_status_mapping`: the detected property, value, and primary-relationship path are
-  confirmed by the operator before either contact play is planned
-- `approved_field_contract`: every selected provider path has a live destination, compatible type
-  or explicit transformation, fill-blank policy, and recorded operator approval
-- `target_population`: eligibility uses identifier, freshness, and approved governance filters;
-  route counts are mutually exclusive and reproduce the credit estimate
-- `approved_run`: direct Cargo UI links resolve, every play is disabled, and the operator approved
-  the stated population and maximum cost
-
-The first operator question comes after the field candidates are derived. Do not ask whether they
-want "more fields" without showing the choices. Present a concise field-contract table and ask
-which recommended and optional rows to include. Do not treat silence as approval of the defaults.
-
-Refreshing populated business fields is outside the base template. If requested, that is
-`approved_refresh_behavior` below, not a silent default.
+No paid call or CRM write occurs during the audit. Build and deploy the resources disabled only
+after the operator approves the field contract. Run a paid pilot only after the operator approves
+the priced population.
 
 ## What you can change
 
-The code is a worked example. These reshapes are expected, and the agent offers them rather than
-waiting to be asked. Every one costs something; that is what makes it a variation and not the default.
+| Variation               | When it is right                                         | How                                                                                                    | What it costs                                              |
+| ----------------------- | -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------- |
+| `crm_shape`             | The consumer uses Salesforce or Attio                    | Replace the connector, extracts, object names, record IDs, write action, and blank-only guard together | Generated types and write semantics must be reverified     |
+| `selected_fields`       | The approved contract differs from the starting fields   | Change tool outputs, CRM destinations, transformations, filters, and mappings together                 | Every added field expands schema and write review          |
+| `eligibility`           | Only a governed subset should be enriched                | Intersect the play filter with approved lifecycle, tier, or ownership conditions                       | Narrower scope reduces coverage and paid calls             |
+| `refresh_cadence`       | Six months does not fit the data policy                  | Change the freshness condition and report the new repeat-spend impact                                  | Faster cadence repeats provider charges more often         |
+| `native_tool_contracts` | The deployed native tools expose different schemas       | Update each `toolRef`, call payload, and result access from the verified live schema                   | A guessed path can create paid calls with no usable result |
+| `profile_provider`      | The workspace uses an equivalent approved profile action | Replace the provider call inside `contact_linkedin_enrichment` and remap its output                    | Coverage, fields, and unit price change                    |
 
-| Variation                   | When it is right                                                                               | How                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         | What it costs                                                                                                 |
-| --------------------------- | ---------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
-| `crm`                       | The consumer uses Salesforce or Attio instead of HubSpot                                       | Keep one CRM shape in `infra/index.ts`. The file is the HubSpot example. **Salesforce:** generated Account and Contact updates matching `Id`; there is no `skipIfExist` — read the record first and omit any field that is already populated, including numeric zero. **Attio:** generated record updates matching the record id; same read-then-omit guard. Do not copy HubSpot's flag. Re-derive the customer-status mapping and the association-preservation behavior on the target CRM. | Live generated types must be rechecked; a guessed flag writes or no-ops silently                              |
-| `selected_fields`           | The approved contract differs from the starting recommendation                                 | Present every live candidate at the field-selection gate. After approval, change the result schema, destinations, per-field write policy, and the provider mappings in `infra/index.ts`. Industry requires an approved array-to-enum transformation when the CRM destination is a single enum.                                                                                                                                                                                              | Each added field expands mapping and type review                                                              |
-| `additional_person_fields`  | The operator wants work emails or phones on contacts, not just identity and role               | Add the approved provider route to `contact_enrichment` (an email finder, an email validator, a phone lookup) and its destinations to the field contract. Phone lookups usually justify a narrower sub-segment, such as active pipeline, rather than every contact.                                                                                                                                                                                                                         | Every added route is a paid call per row at live unit prices; phone lookups cost multiples of an email lookup |
-| `eligibility`               | Only a governed subset should be enriched                                                      | Intersect the play filter with approved lifecycle, tier, ownership, or gap conditions (`infra/index.ts` `enrichAccounts`, `enrichContacts`, `monitorChampions`)                                                                                                                                                                                                                                                                                                                             | Narrower scope reduces coverage and paid calls                                                                |
-| `refresh_cadences`          | The six-month or 30-day windows do not fit the book                                            | Change the freshness filter values in the play triggers, keeping the champion window shorter than the standard one                                                                                                                                                                                                                                                                                                                                                                          | A faster cadence re-bills the same rows more often; a slower champion window ages the job-change signal       |
-| `approved_refresh_behavior` | Populated fields must be refreshed after explicit approval                                     | Drop `skipIfExist` / the read-then-omit guard on the approved fields only — for `enrich_contacts`, also remove the blank-destination filter group — preview the replacements, and compare against a fresh CRM read (`infra/index.ts`)                                                                                                                                                                                                                                                       | Refresh can overwrite CRM-authoritative values if the preview and the write disagree                          |
-| `champion_deferral`         | The operator does not want the champion play creating companies or writing notes automatically | At the policy gate, replace the find-or-create branch with the alert-only behavior: stamp the `partial` outcome, keep the association, and let the Slack alert ask the owner to create the company so the next cycle finishes the move                                                                                                                                                                                                                                                      | Every deferred move waits a full cycle on a human; the warm-pipeline signal ages while it waits               |
-| `crm_memory_defaults`       | The portal already tracks the product relationship, the move date, or personas elsewhere       | Point `cargoRelationshipProperty`, `cargoRelationshipDefault`, and `jobChangeDateProperty` at the audited equivalents (`hs_job_change_detected_date` is a reuse candidate when writable), and swap the alert's persona source                                                                                                                                                                                                                                                               | A second parallel property splits the history the alumni segment will filter on                               |
-| `champion_sequencing`       | The operator wants a detected job change to trigger outreach                                   | Hand the alert off to a play built on `track-job-changes` or `monitor-buying-signals`; the champion play stops at the note and the Slack alert by design                                                                                                                                                                                                                                                                                                                                    | A sequence on a false positive burns the relationship; keep the verdict thresholds conservative first         |
+Keep each optional provider field as its own decision row. State the live unit price and expected
+fill rate before recommending a paid route.
 
 ## What should not change
 
-However far you adapt, these hold. Ask for one anyway and the agent tells you what breaks, then does
-it if you still want it, and records why under `## Decisions` in your copy of this file.
+- **One contact play.** Keep contact orchestration in `enrich_contacts`. Do not add parallel plays
+  for customer status, personas, or lifecycle stages.
+- **Three contact tool resources.** The play uses only Find Email, Find LinkedIn Profile from
+  Email, and Contact LinkedIn Enrichment. Explicit workflow branches can compile the custom tool
+  into several mutually exclusive call nodes, but they all target the same custom resource.
+- **Real branch gating.** Find Email runs only for LinkedIn-only rows. Find LinkedIn Profile from
+  Email runs only for email-only rows. Contact LinkedIn Enrichment runs only with a LinkedIn URL.
+- **No unresolved write.** When email cannot resolve to a LinkedIn URL, stop without a CRM write
+  and without successful freshness.
+- **Tools enrich, plays write.** The custom tool cannot access the CRM. Provider actions cannot be
+  duplicated directly inside the play.
+- **Fill blanks only.** Every business-field mapping uses the CRM-native blank-only flag or an
+  equivalent fresh-read guard. Do not overwrite an authoritative CRM value.
+- **Freshness follows a write.** Stamp `cargo_last_enriched_at` and
+  `cargo_enrichment_status=succeeded` only in the successful CRM write path.
+- **Null-safe filters.** Pair `isNull` and `isEmpty` for every blank string condition because CRM
+  extracts can represent blanks either way.
+- **No contact creation.** Update the triggering CRM row by its record ID. Do not create or merge
+  contacts in this pipeline.
 
-- **Every play runs on its CRM extract and matches the CRM record id.** (`infra/index.ts`) HubSpot's example uses `hs_object_id` on `crm_accounts` and `crm_contacts` alike. Sending a Cargo row id, or a native `accounts`/`contacts` id, to a CRM action targets the wrong identifier system; the run looks successful and nothing lands.
-- **The tools enrich; the plays orchestrate and write.** (`infra/index.ts`) `account_enrichment` and `contact_enrichment` accept provider identifiers, normalize them, and return provider data without a CRM connector or write. Each `defineWorkflow` body first branches around rows with no identifier, then routes each eligible row to exactly one provider route. Every play starts with one Tool node targeting its tool, applies the approved per-field policy, and owns every CRM read and write. A tool that writes to the CRM is not reusable; a play that repeats the provider action bypasses the reviewed tool. Run `node --import tsx evals/contract.mjs` after every adaptation to enforce these compiled graphs.
-- **One CRM shape in the file.** (`infra/index.ts`) The checked example is HubSpot. Adapt that one file for Salesforce or Attio. Parallel HubSpot/Salesforce/Attio branches drift from the generated types of the CRM that is actually connected.
-- **At most one paid route per row, LinkedIn URL first.** (`infra/index.ts` `enrichCrmAccount`, `enrichContactData`) A row without an identifier makes no paid call. A handle that is already an `http` URL is used as-is; otherwise it is prefixed (`https://www.linkedin.com/company/<handle>` for accounts, `https://www.linkedin.com/in/<handle>` for contacts). A contact without a LinkedIn URL takes the email-resolver route — Cargo's "Find LinkedIn URL from email" template tool, the one full paid chain — and an email the resolver cannot map ends without a person-enrichment call. Collapsing the routes double-bills rows or enriches the wrong person.
-- **Destinations are live properties on the connected CRM.** (`infra/index.ts`) The HubSpot example writes `linkedin_company_id`, `name`, `domain`, `website`, `linkedin_company_page`, and `numberofemployees` on companies; `linkedin_person_id`, `linkedin_profile_url`, `jobtitle`, `associatedcompanyid`, and `primary_employment_status` on contacts; and the stamps `cargo_last_enriched_at` and `cargo_enrichment_status` on both. Provider-derived business properties keep neutral names; Cargo-owned operational stamps use the `cargo_` prefix. Leaving another CRM's names in the file can write provider data into the wrong property.
-- **Fill approved blanks only.** (`infra/index.ts` `skipIfExist` or the Salesforce/Attio read-then-omit guard) A stale snapshot overwrites authoritative CRM data, including numeric zero. The champion play's job-change branch is the one recorded exception: on a confirmed move it refreshes the company association, title, and employment status, because preserving them would preserve the wrong employer.
-- **Eligibility and freshness live in the play triggers.** (`infra/index.ts` `enrichAccounts`, `enrichContacts`, `monitorChampions`) Require an identifier and the path's freshness window in the managed segment. The row workflow starts with the reusable tool call instead of repeating trigger conditions as branches. A standalone `defineSegment` or duplicate workflow gate drifts from the play.
-- **The customer-status split is the two contact filters, read through the relationship.** (`infra/index.ts` `contactPrimaryCompany`) `enrich_contacts` owns non-customer contacts on the six-month window; `monitor_champions` owns customer-company contacts on the 30-day window — both reading the RELATED account's customer property through `contact_primary_company`, never the contact's own lifecycle field, which portals do not reliably sync. Widening either filter enrolls the same contact in both plays and bills it twice per cycle; narrowing both drops contacts into a gap nobody refreshes; filtering on the contact's own lifecycle hands the champion play an empty or wrong segment.
-- **One person is one contact, one company is one record.** (`infra/index.ts` `monitorCrmChampion`) A job change updates the resolved existing contact — found by LinkedIn person identity, else the triggering row — and finds the new company by identity, domain then exact name, never a stored id (HubSpot search is raw-exact), creating it only behind the no-match Branch. It moves the primary company and preserves the former relationship. The play never creates, merges, or deletes a contact, and a new employer or work email is never a new identity. Breaking this splits one person across duplicate records and the champion history with them.
-- **Deterministic guards first, AI verdict second, email never.** (`infra/index.ts` `monitorCrmChampion`, `championVerdictWorkflow`) The same-company guards compare LinkedIn company identity first and domain second; only when they cannot confirm does the verdict tool read the complete profile — dates and concurrent positions included — and decide whether the PRIMARY employment changed. A bare current-company comparison flips champions with side positions (communities, advisory seats) between runs; a work email or an email-domain mismatch alone is never identity or proof of a move. Inlining the verdict prompt into branch conditions bills it per condition and makes `includes()` test the prompt text instead of the answer.
-- **Every blank filter condition pairs `isNull` with `isEmpty`.** (`infra/index.ts` play filters) Blank HubSpot values surface as NULL in the Cargo extract, and `isEmpty` alone matches nothing — the play deploys green and enrolls zero rows, silently.
-- **Association labels are resolved by name, never hardcoded as numeric ids.** (`infra/index.ts` association type consts) User-defined label ids are portal-specific sequence numbers; a hardcoded number labels the wrong relationship on the next portal without any error. Resolve every `associationTypeId` from the live connector autocomplete at adaptation, matching the Ex-employee / Former employer pair by its label.
-- **The moved write is idempotent and buying roles are read-only.** (`infra/index.ts` `monitorCrmChampion`) `cargo_relationship` and the move date write only when empty, the labeled association add is a no-op when it exists, and a rerun lands on the SAME branch because the CRM now agrees with LinkedIn — a second run creates nothing. The buying role on the old customer's deal is HubSpot's native contact-to-deal label: it feeds the alert and is never written. Weakening either turns reruns into duplicate history or overwritten judgment.
-- **Every play deploys disabled and `noConcurrency` first.** (`infra/index.ts`) Removing those expands an unapproved pilot.
-- **No credentials, deploy commands, or customer data in this repository.**
+Run the compiled graph contract after every adaptation:
+
+```sh
+node --import tsx crm-enrichment/evals/contract.mjs
+```
 
 ## Done when
 
-- the audit JSON, Markdown, and chat summary agree on every count
-- the audit records an operator-approved field contract with provider paths, live CRM destinations,
-  types, transformations, write policies, and reasons for every exclusion
-- on the people path, the audit records the confirmed customer-status mapping (property, value,
-  primary relationship) and an operational-field decision — reuse or approved creation — for
-  `cargo_last_enriched_at`, `cargo_enrichment_status`, and `primary_employment_status`
-- the CDK plan contains one CRM model per audited object (`crm_accounts`, `crm_contacts`), the
-  `contact_primary_company` relationship — adopted, not duplicated, when the workspace already
-  declares it — and no native `accounts` or `contacts` unification
-- the agent installed and read the `cargo-cdk` skill before auditing or adapting the template
-- the CDK plan contains the reusable tools (`account_enrichment`, `contact_enrichment`,
-  `champion_verdict`) and the
-  disabled plays for the audited path; every play contains one Tool node targeting its enrichment
-  tool before
-  any CRM action, the verdict runs only behind the deterministic guards, and only plays contain
-  CRM actions
-- `node --import tsx evals/contract.mjs` passes against the adapted compiled graphs; each tool
-  begins with an identifier Branch and contains no CRM action, the contact tool's email route ends
-  unresolved rows before the person enrichment, every blank condition pairs `isNull` with
-  `isEmpty`, the Slack payload is `channelId` + `format: "markdown"` + `body`, and no play
-  contains a provider action
-- the approved CRM properties were created in the CRM UI with verbatim internal names,
-  case-sensitive enum options, and date-and-time date properties; the "Find LinkedIn URL from
-  email" template tool is instantiated and its UUID and output path are wired in
-- generated consumer types confirm the selected provider fields, CRM destinations, write and read
-  actions, the Slack alert payload, and fill-blank semantics — including the resolver output path
-  and association type ids this repository marks `PLACEHOLDER`
-- every destination is a live property on the connected CRM
-- the one-record write probe passed — and its stamps were reset — before any paid batch
-- the champion coverage gate ran: the operator saw the count of customer companies lacking
-  identifiers and chose fill, priced resolution, or matchable-only before the champion play
-- each managed segment excludes records without an identifier; the approved per-field write policy
-  decides fill blank versus refresh
-- each play targets its extract and the write matches the audited CRM record id
-- `enrich_accounts` uses the null-or-six-month freshness rule with no destination fill-state
-  filter; `enrich_contacts` uses null-or-six-month freshness on the non-customer side with the
-  blank-destination group intact; `monitor_champions` uses null-or-30-day freshness on the
-  customer side with the primary-company link required; all three evaluate daily with
-  `changeKinds: ["added"]`
-- the first plan shows `isEnabled: false` and `runCreationRule: noConcurrency` on every play
-- route counts are mutually exclusive and reproduce the credit estimate — LinkedIn URL and domain
-  for accounts; LinkedIn URL and email-resolver chain for contacts
-- the Ex-employee / Former employer pair exists in the portal and every `associationTypeId` in
-  the plan is an autocomplete-resolved value, with no numeric id in any node config
-- on a verified job change, the champion play found the new company by domain then exact name or
-  created it, updated the
-  resolved existing contact, moved the
-  primary company, labeled the old company association with the pair, stamped
-  `cargo_relationship` and the move date where empty, refreshed the
-  title, wrote one JOB CHANGE note with the evidence associated to the contact and both
-  companies, and posted the
-  structured alert — buying role, product relationship, and persona included — to the approved
-  channel; a second run on the same contact created zero new objects and left the buying role
-  untouched
-- the phase-two handoff contains working Cargo UI links for every disabled play and tool, plus the
-  exact target and estimated credits
-- the operator explicitly approved the run after reviewing the links and cost
-- the post-run report shows before-and-after fill rates, every outcome count — including
-  job-change outcomes on the people path — failures, actual credits against estimate, and one
-  recommended next step
+- The approved field contract names every destination, type, transformation, and write policy.
+- The native tool UUIDs and live schemas are verified and placeholders are gone.
+- `cargo-ai cdk plan` shows `enrich_contacts` plus exactly the three intended contact tool targets.
+- The compiled graph proves both native calls are branch-gated and every custom enrichment call has
+  a LinkedIn URL.
+- The custom tool contains one LinkedIn profile enrichment action and no CRM connector action.
+- Every successful contact route writes by CRM record ID, fills approved blanks only, and stamps
+  freshness after the write.
+- Email-only rows that do not resolve stop without calling custom enrichment or writing to the CRM.
+- Rows with neither identifier make no paid call.
+- The account path still chooses exactly one provider route and keeps its CRM write in the play.
+- All plays are deployed disabled, then a one-record write probe and approved pilot pass.
+- The final report includes eligible, processed, written, unresolved, failed, fill-rate, and credit
+  counts with direct Cargo resource links.
+
+The detailed acceptance checklist is in [`evals/acceptance.md`](evals/acceptance.md).
 
 ## What it costs
 
-Immediately before every preview, fetch live prices for the path being run. Accounts:
-`cargo-ai connection integration get linkedin`, reading
-`integration.actions.enrichCompany.credits.costs` and
-`integration.actions.enrichCompanyFromDomain.credits.costs`. Contacts: the same LinkedIn lookup
-for `integration.actions.enrichProfile.credits.costs`, plus the live per-row quote of the
-instantiated "Find LinkedIn URL from email" template tool, whose internal waterfall prices its
-own rungs. Record the CLI version, lookup time,
-action slugs, and selected unit costs. Then preview
-`linkedin_url_path * linkedin_url_unit_credits + domain_path * domain_unit_credits` for accounts
-and
-`linkedin_url_path * person_enrich_unit_credits + email_path * (resolver_tool_unit_credits + person_enrich_unit_credits)`
-for contacts — the email route pays the resolver and, only when it resolves, the person
-enrichment. The champion verdict is an AI step billed by the engine on rows the deterministic
-guards cannot confirm; include it in the champion preview. A coverage-gate name→domain
-resolution step is quoted live the same way before it is approved. CRM reads, the note, and the
-Slack alert are not credit-billed. A failed CRM write re-bills the provider on retry — that is
-what the one-record write probe exists to prevent.
+Fetch prices from the live workspace before every run. Quote the unit price for each account
+provider action, both Cargo-native contact tools, and the LinkedIn profile enrichment action.
 
-Each play runs on its eligible extract rows and updates that same CRM record. Eligibility means
-the row has an identifier and passes freshness, customer-status, and governance filters. The
-approved per-field write policy decides whether populated stale values
-are preserved or refreshed. Recompute the target and credit preview after approval, then report the
-segment count.
-Deduplication follows enrichment because the new matching keys improve duplicate detection —
-contact deduplication is the natural next step once `linkedin_person_id` coverage is healthy.
+Per contact, the maximum paid chain is two calls:
 
-Do not enable the daily schedules until the disabled pilots have passed. Enabling is not an
-input; it is the last yes after _Done when_.
+- LinkedIn only: Find Email plus Contact LinkedIn Enrichment.
+- Email only: Find LinkedIn Profile from Email plus Contact LinkedIn Enrichment when resolution
+  succeeds.
+- Both identifiers: Contact LinkedIn Enrichment only.
+- Neither identifier: no paid call.
+
+Show mutually exclusive route counts and calculate the maximum credits before seeking approval.
+A failed CRM write can cause provider calls to be billed again on retry, so test write capability
+on one record before the batch.
 
 ## Composes into
 
-`account-scoring` (a filled book is what the scorer can cite), `find-stakeholders` (the buyers at
-every filled account), `tam-building` (the universe these records join), `track-job-changes` (the
-one-off spot check of the signal the champion play watches continuously), `monitor-buying-signals`
-(where a champion alert becomes a triggered sequence — the champion play stops at the note and the
-Slack alert by design).
+`deduplicate-records` after enrichment, `find-stakeholders` for coverage gaps,
+`segment-accounts` for activation, and `track-job-changes` as a separate one-time movement check.

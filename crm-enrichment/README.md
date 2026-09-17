@@ -1,168 +1,88 @@
 # CRM enrichment
 
-Keep CRM accounts and contacts filled and refresh them when they go stale. New
-records get approved blanks written from LinkedIn; a record whose last
-successful fill is older than its window comes back; customer champions are
-watched for job changes.
+This pipeline keeps approved CRM account and contact fields filled, then re-enrolls successfully
+written records when they become stale. It never overwrites a business value that already exists.
 
-## What it does
+The contact path is one play with three gated tool resources:
 
-- **Fills approved account blanks** from LinkedIn: name, domain, website,
-  LinkedIn page, employee count, and LinkedIn company ID as a durable matching
-  key.
-- **Fills approved contact blanks** from LinkedIn: profile URL, LinkedIn person
-  ID as a durable matching key, and job title — resolving the profile from a
-  work email when the URL is missing.
-- **Monitors customer champions** every 30 days: deterministic company guards
-  first, then an AI verdict over the complete profile — concurrent side
-  positions included — and on a confirmed move it finds the new company by
-  domain then exact name (or creates it), moves the primary association,
-  labels the old one with the Ex-employee / Former employer pair, stamps the
-  product relationship and move date, writes a JOB CHANGE evidence note, and
-  alerts the former account's owner in Slack with the buying role and
-  persona. Reruns create nothing.
-- **Re-enrolls stale records** — six months for accounts and non-customer
-  contacts, 30 days for customer contacts — so the data stays current without
-  manual refreshes.
-- **Never overwrites** a populated value by default. The CRM stays
-  authoritative; the champion play's confirmed job-change branch is the one
-  recorded exception (company, title, employment status).
-- **Separates enrichment from writeback.** The tools return provider data; the
-  plays own every CRM read and write.
-
-## How it works
+1. Cargo-native Find Email
+2. Cargo-native Find LinkedIn Profile from Email
+3. Custom Contact LinkedIn Enrichment
 
 ```mermaid
-flowchart TD
-    accounts["crm_accounts<br/>HubSpot · Salesforce · Attio"]
-    afilter["Managed segment trigger<br/>has identifier · stale or never filled"]
-    aenrich["account_enrichment tool<br/>LinkedIn URL route, else domain route"]
-    awrite["enrich_accounts play<br/>fills approved blanks · stamps freshness"]
-
-    accounts --> afilter --> aenrich --> awrite
-    awrite -->|CRM record ID| accounts
-
-    contacts["crm_contacts<br/>same CRM connector"]
-    rel["contact_primary_company relationship<br/>filters read the account's customer status"]
-    cfilter["Two managed segment triggers<br/>non-customer · 6 months / customer · 30 days"]
-    cenrich["contact_enrichment tool<br/>LinkedIn URL route, else email → resolver tool → profile"]
-    cwrite["enrich_contacts play<br/>fills approved blanks · stamps freshness"]
-    verdict["champion_verdict tool<br/>AI answer: SAME · MOVED · LEFT"]
-    champion["monitor_champions play<br/>guards · find-or-create · same-contact update · note"]
-    slack["Slack alert<br/>former customer account's owner"]
-
-    accounts -.-> rel -.-> cfilter
-    contacts --> cfilter --> cenrich
-    cenrich --> cwrite -->|CRM record ID| contacts
-    cenrich --> champion -->|CRM record ID| contacts
-    champion --> verdict --> champion
-    champion --> slack
+flowchart LR
+  row["CRM contact"] --> linkedin{"LinkedIn present?"}
+  linkedin -->|yes, email blank| emailTool["Find Email<br/>Cargo-native"]
+  linkedin -->|yes, email present| profileTool["Contact LinkedIn Enrichment<br/>custom"]
+  emailTool --> profileTool
+  linkedin -->|no, email present| linkedinTool["Find LinkedIn Profile from Email<br/>Cargo-native"]
+  linkedinTool -->|profile found| profileTool
+  linkedinTool -->|not found| stop["Stop without write"]
+  linkedin -->|no identifiers| stop
+  profileTool --> write["Fill approved CRM blanks<br/>stamp freshness"]
 ```
 
-1. **Audit.** The agent joins live LinkedIn fields to live CRM properties,
-   flags duplicates and transformations — for contacts, also the
-   customer-status mapping and operational-field reuse — and waits for approval
-   of the field contract.
-2. **Build disabled.** It adapts `infra/index.ts`, deploys with every play
-   disabled, and shows Cargo links, target population, and estimated credits.
-3. **Run.** After cost approval, enrichment runs and the agent reports fill
-   rates, outcomes — including job changes — failures, and actual credits.
+The account path remains `enrich_accounts` calling `account_enrichment`. The contact path is only
+`enrich_contacts`; it has no customer split, alerting, relationship mutation, or movement logic.
 
-## Architecture
+## Resources
 
-| Resource                  | Type         | Role                                                             |
-| ------------------------- | ------------ | ---------------------------------------------------------------- |
-| `crm_accounts`            | Model        | CRM account extract; the account play reads and writes here      |
-| `crm_contacts`            | Model        | CRM contact extract; both contact plays read and write here      |
-| `contact_primary_company` | Relationship | Lets both contact filters read the account's customer status     |
-| `account_enrichment`      | Tool         | Normalizes company identifiers, returns provider data            |
-| `contact_enrichment`      | Tool         | Normalizes person identifiers, resolves email → profile          |
-| `champion_verdict`        | Tool         | One AI step: did the PRIMARY employment change?                  |
-| `enrich_contacts`         | Play         | Fills non-customer contact blanks, owns writeback and freshness  |
-| `enrich_accounts`         | Play         | Fills account blanks, owns writeback and freshness               |
-| `monitor_champions`       | Play         | Watches customer contacts, handles job changes, alerts the owner |
-| `slack`                   | Connector    | Carries the champion job-change alert                            |
+| Resource                         | Kind              | Purpose                                                       |
+| -------------------------------- | ----------------- | ------------------------------------------------------------- |
+| `crm_accounts`                   | Model             | CRM company extract                                           |
+| `crm_contacts`                   | Model             | CRM contact extract                                           |
+| `account_enrichment`             | Custom tool       | LinkedIn-first company enrichment with domain fallback        |
+| Find Email                       | Cargo-native tool | Resolve an email for a known LinkedIn profile                 |
+| Find LinkedIn Profile from Email | Cargo-native tool | Resolve a LinkedIn profile for a known email                  |
+| `contact_linkedin_enrichment`    | Custom tool       | Enrich a known LinkedIn profile without CRM access            |
+| `enrich_accounts`                | Play              | Fill approved company blanks                                  |
+| `enrich_contacts`                | Play              | Gate the three contact tools and fill approved contact blanks |
 
-Tools and plays share one workflow contract per path, so mappings cannot
-drift. Each play's filter is its segment; there is no standalone segment. The
-customer-status split between the two contact plays is what expresses the two
-refresh cadences.
+Explicit workflow branches compile the custom contact tool into three mutually exclusive call
+nodes. They are three routes to one custom resource, not three custom tools.
 
-## Placeholders (edit before deploy)
+## Install and adapt
 
-1. **CRM connector and record ID** (`infra/index.ts`): the example is HubSpot
-   (`hs_object_id`); Salesforce uses `Id`, Attio its record id. The wrong field
-   targets nothing while the run still looks successful.
-2. **Field mappings** (`infra/index.ts`): every destination must be a live
-   property on the connected CRM.
-3. **Freshness fields**: `cargo_last_enriched_at` and `cargo_enrichment_status`
-   must exist on each enriched CRM object; `primary_employment_status`
-   (Active/Left) on the contact object.
-4. **Matching keys**: propose `linkedin_company_id` and `linkedin_person_id`
-   if no equivalent properties exist.
-5. **Resolver tool** (`infra/index.ts` `findLinkedinUrlFromEmail`): instantiate
-   Cargo's "Find LinkedIn URL from email" template tool and paste its UUID;
-   confirm its output path on the instantiated release.
-6. **Champion alert channel** (`infra/index.ts`): the Slack channel id, with
-   the Cargo app added to the channel first — a channel without the app fails
-   at send time, after the paid call.
-7. **Association labels** (`infra/index.ts`): create the Ex-employee /
-   Former employer pair once in the HubSpot UI (the connector cannot create
-   labels), then resolve every `RESOLVE-*` placeholder from the connector's
-   association autocomplete by label name — numeric ids are portal-specific
-   and never committed.
-8. **Customer-status mapping** (`infra/index.ts` play filters): the checked
-   example reads the related account's `lifecyclestage = customer` through
-   `contact_primary_company`; confirm how this CRM marks customers, and adopt
-   the relationship if the dataset already declares it.
-9. **Manual property creation**: the connector has no create-property action —
-   create the approved properties in the CRM UI with verbatim names,
-   case-sensitive enum options, and date-and-time date properties; the
-   memory fields (`cargo_relationship`, `job_change_date`) and their defaults
-   are configurable consts in `infra/index.ts`.
+From a Cargo CDK project:
 
-## Cost
+```sh
+cargo-ai cdk add cookbook/crm-enrichment
+```
 
-The audit makes no paid call: it reads schemas and counts eligibility, so the
-cost preview lands before any approval.
+Before planning or deploying:
 
-Account enrichment is one LinkedIn call per eligible row, priced by route:
-`enrichCompany` for a LinkedIn URL, `enrichCompanyFromDomain` as the fallback.
-Contact enrichment is `enrichProfile` for a LinkedIn URL; a row with only an
-email pays the "Find LinkedIn URL from email" template tool and, only when it
-resolves, `enrichProfile` — the one full paid chain. The champion verdict is
-an AI step billed by the engine, and only on rows the deterministic guards
-cannot confirm. Run `cargo-ai connection integration get linkedin` and read
-the instantiated resolver tool's live quote for current unit prices. A row
-with no identifier never calls; CRM reads, the note, and the Slack alert are
-not credit-billed. Probe write-capability on one record before any paid
-batch: a failed write re-bills the provider on retry.
+1. Reconcile the adopted CRM and LinkedIn connectors with resources already in the project.
+2. Audit live CRM properties and provider outputs.
+3. Instantiate the Cargo-native Find Email and Find LinkedIn Profile from Email tools.
+4. Replace both `REPLACE-WITH-...-TOOL-UUID` placeholders in `infra/index.ts`.
+5. Confirm the native tool contracts. The example expects `email` and `linkedin_url` outputs.
+6. Apply the operator-approved field mappings and eligibility filters.
+7. Typecheck, inspect the compiled graph, and deploy the plays disabled.
 
-After a successful fill the record leaves its segment for the length of its
-window — six months for accounts and non-customer contacts, 30 days for
-customer contacts — so the daily schedules only pay for new rows and records
-coming back due.
+The example targets HubSpot. Salesforce and Attio require adapting the connector, extracts,
+record ID fields, write action, and blank-only guard. Keep one CRM shape in the adapted file.
 
-## Done when
+## Contact route behavior
 
-- Audit JSON, Markdown, and chat summary agree on every count
-- The plan shows the tools and every play disabled, one Tool node first in
-  each play, and CRM actions only in plays
-- Every destination is a live property on the connected CRM
-- Rows with no identifier exit before a paid call; unresolved emails exit
-  before the person enrichment
-- Every write matches the audited CRM record ID
-- Route counts are mutually exclusive and reproduce the credit estimate
-- A verified job change finds or creates the new company, updates the same
-  contact, labels the former relationship with the pair, stamps the memory
-  fields, writes the evidence note, and alerts the former account's owner —
-  and a second run creates nothing
-- The post-run report shows fill rates, outcomes, failures, and actual credits
+| Starting state     | Native lookup                    | Custom enrichment          | CRM write                  |
+| ------------------ | -------------------------------- | -------------------------- | -------------------------- |
+| Email and LinkedIn | None                             | Yes                        | Yes                        |
+| LinkedIn only      | Find Email                       | Yes                        | Yes                        |
+| Email only         | Find LinkedIn Profile from Email | Only if a profile resolves | Only if a profile resolves |
+| Neither            | None                             | No                         | No                         |
 
-## Composes into
+Successful writes fill only blank `email`, `linkedin_person_id`, `linkedin_profile_url`, and
+`jobtitle` values, then stamp `cargo_last_enriched_at` and
+`cargo_enrichment_status=succeeded`.
 
-`account-scoring` (a filled book is what the scorer can cite),
-`find-stakeholders` (the buyers at every filled account),
-`tam-building` (the universe these records join),
-`track-job-changes` (the one-off spot check of the champion signal),
-`monitor-buying-signals` (where a champion alert becomes a sequence).
+## Verify
+
+```sh
+npm run typecheck
+node scripts/check-pipelines.mjs
+node --import tsx crm-enrichment/evals/contract.mjs
+```
+
+Then run a one-record write probe before any paid batch. See [the audit contract](references/audit.md),
+[configuration guide](references/configure.md), [runbook](references/run.md), and
+[acceptance checklist](evals/acceptance.md).
