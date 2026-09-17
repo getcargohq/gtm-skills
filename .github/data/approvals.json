@@ -9,7 +9,8 @@
     "state": "to-be-approved",
     "chain": 1,
     "demoWorkspace": null,
-    "implementations": []
+    "implementations": [],
+    "note": "Outcome-calibrated revision: offline checks only; named test workspace and live acceptance pending."
   },
   "tam-building": {
     "state": "to-be-approved",

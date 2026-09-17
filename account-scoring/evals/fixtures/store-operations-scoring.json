@@ -1,0 +1,157 @@
+{
+  "version": "store-operations-score-v1",
+  "seller_id": "store-operations",
+  "synthetic": true,
+  "approval": {
+    "state": "approved",
+    "reference": "synthetic-evaluation-only"
+  },
+  "feature_contract_version": "store-operations-features-v1",
+  "outcome": {
+    "version": "store-operations-outcome-v1",
+    "tier_method": "absolute",
+    "range": [0, 7],
+    "thresholds": [
+      {
+        "tier": "Tier 3",
+        "min": 0
+      },
+      {
+        "tier": "Tier 2",
+        "min": 2
+      },
+      {
+        "tier": "Tier 1",
+        "min": 4
+      }
+    ],
+    "dimensions": [
+      {
+        "kind": "number",
+        "missing_points": 0,
+        "bands": [
+          {
+            "min": null,
+            "max": 5000,
+            "points": 0
+          },
+          {
+            "min": 5000,
+            "max": 20000,
+            "points": 2
+          },
+          {
+            "min": 20000,
+            "max": null,
+            "points": 5
+          }
+        ],
+        "name": "realized_delivery_margin",
+        "source": "Project ledger net of planned partner implementation",
+        "window": "First 90 days",
+        "mature_after_days": 90,
+        "immature_points": 0,
+        "missing_policy": "unavailable",
+        "boundary_conditions": "Lower inclusive, upper exclusive. Known failed observation is an observed zero; uncollected data is unavailable."
+      },
+      {
+        "kind": "number",
+        "missing_points": 0,
+        "bands": [
+          {
+            "min": null,
+            "max": 5,
+            "points": 0
+          },
+          {
+            "min": 5,
+            "max": null,
+            "points": 2
+          }
+        ],
+        "name": "accepted_locations",
+        "source": "Signed location acceptance records",
+        "window": "First 30 days",
+        "mature_after_days": 30,
+        "immature_points": 0,
+        "missing_policy": "unavailable",
+        "boundary_conditions": "Lower inclusive, upper exclusive. Known failed observation is an observed zero; uncollected data is unavailable."
+      }
+    ]
+  },
+  "model_evidence": {
+    "status": "synthetic_only",
+    "report": "No empirical validation or customer approval; fixtures exercise the engine."
+  },
+  "base_points": 0,
+  "rules": [
+    {
+      "id": "store_count-bands",
+      "feature": "store_count",
+      "kind": "number",
+      "missing_points": 0,
+      "bands": [
+        {
+          "min": null,
+          "max": 10,
+          "points": 5
+        },
+        {
+          "min": 10,
+          "max": 100,
+          "points": 45
+        },
+        {
+          "min": 100,
+          "max": null,
+          "points": 60
+        }
+      ]
+    },
+    {
+      "id": "inventory",
+      "feature": "inventory_system",
+      "kind": "category",
+      "missing_points": 0,
+      "points": {
+        "centralized": 25,
+        "per_store": 5
+      }
+    }
+  ],
+  "gates": [],
+  "interactions": [
+    {
+      "id": "multi-store-central",
+      "points": 15,
+      "conditions": [
+        {
+          "feature": "store_count",
+          "operator": "gte",
+          "value": 10
+        },
+        {
+          "feature": "inventory_system",
+          "operator": "eq",
+          "value": "centralized"
+        }
+      ]
+    }
+  ],
+  "rounding": "half_up_integer",
+  "score_range": [0, 100],
+  "thresholds": [
+    {
+      "tier": "C",
+      "min": 0
+    },
+    {
+      "tier": "B",
+      "min": 40
+    },
+    {
+      "tier": "A",
+      "min": 70
+    }
+  ]
+}
