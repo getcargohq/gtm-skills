@@ -1,4 +1,5 @@
 import { defineConfig } from "vite";
+import { visitorTrackingPlugin } from "./visitor-support.mjs";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import {
@@ -10,6 +11,7 @@ import {
 const root = fileURLToPath(new URL(".", import.meta.url));
 export default defineConfig({
   plugins: [
+    visitorTrackingPlugin(root),
     {
       name: "company-content",
       transformIndexHtml(html) {

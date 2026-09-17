@@ -3,10 +3,13 @@ import {
   defineApp,
   defineConnector,
   defineFolder,
+  defineModel,
+  connectorRef,
 } from "@cargo-ai/cdk";
 import { readFileSync } from "node:fs";
 import { relative, sep } from "node:path";
 import { appPath, settings } from "./settings";
+import { assertVisitorBinding } from "./apps/website/visitor-support.mjs";
 import { maintainerPrompt } from "./agents/maintainer.prompt";
 import {
   assertReady,
@@ -15,7 +18,8 @@ import {
 
 // Each conditional owns its dependencies, so website-only mode does not
 // deploy unused agents, connectors or folders. Removing an already-deployed
-// resource is a deletion in the plan: do not toggle these flags to pause it.
+// resource is a deletion candidate: ordinary deploy retains it, --prune removes
+// it. Review removal separately; changing a flag is not a runtime pause switch.
 if (settings.maintainer) {
   // Rewire these handles to the project's existing declarations when present.
   // default:true adopts an authenticated connector; it cannot grant OAuth.
@@ -49,6 +53,36 @@ if (settings.maintainer) {
     triggers: [],
     folder,
   });
+}
+
+const visitors = settings.visitors;
+assertVisitorBinding(appPath, visitors);
+if (visitors?.enabled) {
+  // A discovered connector is referenced, never renamed or deleted by this app.
+  // Otherwise CDK creates a dedicated Cargo credits-backed connector.
+  const snitcher = visitors.connectorUuid
+    ? connectorRef(visitors.connectorUuid)
+    : defineConnector("company_website_snitcher", {
+        name: "Company website visitors",
+        integration: "snitcher",
+      });
+  defineModel("company_website_visitors", {
+    name: "Website visiting companies",
+    connector: snitcher,
+    extractSlug: "fetchOrganisations",
+    config: { url: visitors.siteUrl },
+    // Native autoFetch owns the incremental interval. No extra cron or play.
+  });
+  // The first release provisions the provider workspace. Capture its public
+  // tracker and workspace UUID, review, then enable sessions in a second release.
+  if (visitors.snitcherWorkspaceUuid) {
+    defineModel("company_website_sessions", {
+      name: "Website visitor sessions",
+      connector: snitcher,
+      extractSlug: "fetchSessions",
+      config: { workspaceUuid: visitors.snitcherWorkspaceUuid },
+    });
+  }
 }
 
 if (settings.publish) {

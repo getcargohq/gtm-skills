@@ -1,4 +1,6 @@
 import assert from "node:assert/strict";
+import { operate, providerJavascript } from "../scripts/visitors.mjs";
+import { assertVisitorBinding, sha256, visitorTrackingPlugin } from "../infra/apps/website/visitor-support.mjs";
 import { execFileSync } from "node:child_process";
 import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -52,6 +54,15 @@ try {
     const rootPackage = readFileSync(join(project, "package.json"), "utf8");
     assert.equal(install(source, project).written.length, ours.length);
     assert.equal(readFileSync(join(project, "package.json"), "utf8"), rootPackage);
+  });
+
+  await test("default installation needs no hosted agent, connectors or visitor resources", () => {
+    const graph = check();
+    validGraph(graph);
+    assert.deepEqual(graph.nodes, []);
+    assert.equal(readConfig(infra).maintainer, false);
+    assert.equal(readConfig(infra).visitors.enabled, false);
+    save(configFile, { ...readConfig(infra), maintainer: true });
   });
 
   await test("installed CDK loads the maintainer and adopts connectors without loading app or scripts", () => {
@@ -196,6 +207,84 @@ try {
     const graph = check();
     validGraph(graph);
     assert.deepEqual(graph.nodes.map(n => n.kind).sort(), ["app", "folder"]);
+  });
+
+  await test("visitor opt-in provisions native incremental company and session models without an agent", () => {
+    const visitors = { enabled: true, siteUrl: "https://fixture.cargo.app/", connectorUuid: "", snitcherWorkspaceUuid: "" };
+    save(configFile, { ...config, publish: true, maintainer: false, visitors });
+    let graph = check();
+    validGraph(graph);
+    assert.deepEqual(graph.nodes.filter(n => n.kind === "model").map(n => n.spec.extractorSlug), ["fetchOrganisations"]);
+    assert.equal(graph.nodes.filter(n => n.kind === "connector").length, 1);
+    assert.ok(!graph.nodes.some(n => n.kind === "agent"));
+    save(configFile, { ...config, publish: true, maintainer: false, visitors: { ...visitors, connectorUuid: uuid, snitcherWorkspaceUuid: uuid } });
+    graph = check();
+    validGraph(graph);
+    const models = graph.nodes.filter(n => n.kind === "model");
+    assert.equal(models.length, 2);
+    assert.ok(models.every(n => n.spec.schedule === undefined));
+    assert.ok(!graph.nodes.some(n => n.kind === "connector"));
+    assert.deepEqual(models.find(n => n.spec.extractorSlug === "fetchOrganisations").spec.config, { url: visitors.siteUrl });
+    assert.deepEqual(models.find(n => n.spec.extractorSlug === "fetchSessions").spec.config, { workspaceUuid: uuid });
+    save(configFile, { ...config, publish: true, maintainer: false });
+  });
+
+  await test("browser tracking requires reviewed bytes and a matching enabled model binding", () => {
+    const file = join(app, "visitor-browser.json");
+    const disabled = json(file);
+    assert.deepEqual(visitorTrackingPlugin(app).transformIndexHtml.handler(), []);
+    const browser = { enabled: true, siteUrl: "https://fixture.cargo.app/", privacyPolicyUrl: "/privacy.html", approvedScriptSha256: "" };
+    mkdirSync(join(app, "public"), { recursive: true });
+    const script = "window.fixtureTracker = true;";
+    writeFileSync(join(app, "public/website-visitors-provider.js"), script);
+    save(file, browser);
+    assert.throws(() => assertVisitorBinding(app), /SHA256/);
+    save(file, { ...browser, approvedScriptSha256: sha256(script) });
+    assert.throws(() => assertVisitorBinding(app, { enabled: false }), /same enabled website/);
+    assertVisitorBinding(app, { enabled: true, siteUrl: browser.siteUrl, connectorUuid: "", snitcherWorkspaceUuid: uuid });
+    assert.equal(visitorTrackingPlugin(app).transformIndexHtml.handler().length, 1);
+    writeFileSync(join(app, "public/website-visitors-provider.js"), script + "changed");
+    assert.throws(() => assertVisitorBinding(app), /SHA256/);
+    save(file, disabled);
+    rmSync(join(app, "public/website-visitors-provider.js"));
+  });
+
+  await test("provider snippet capture never executes source and rejects unknown HTML and script hosts", () => {
+    const script = providerJavascript('<script>window.__mustNotRun = true;</script>');
+    assert.match(script, /window.__mustNotRun/);
+    assert.equal(globalThis.__mustNotRun, undefined);
+    assert.throws(() => providerJavascript('<script src="https://cdn.snitcher.com/tracker.js"></script>'), /Unsupported/);
+    for (const input of ['<img src=x onerror=alert(1)>', '<script src="https://snitcher.com.evil.invalid/a"></script>', '<script src="javascript:alert(1)"></script>', '<script src="https://user:secret@cdn.snitcher.com/a"></script>'])
+      assert.throws(() => providerJavascript(input));
+  });
+
+  await test("post-release capture is idempotent, preserves model IDs and rejects a changed snippet", async () => {
+    const captureProject = join(temp, "capture-project");
+    const captureInfra = join(captureProject, "infra/company-website");
+    const captureApp = join(captureInfra, "apps/website");
+    mkdirSync(join(captureProject, "infra"), { recursive: true });
+    save(join(captureProject, "package.json"), {type:"module"});
+    execFileSync("git", ["init", "-q"], {cwd:captureProject});
+    execFileSync("git", ["remote", "add", "origin", "https://github.com/fixture-owner/company-project.git"], {cwd:captureProject});
+    install(source, captureProject);
+    const visitors = {enabled:true,siteUrl:"https://fixture.cargo.app/",connectorUuid:uuid,snitcherWorkspaceUuid:""};
+    save(join(captureInfra,"website.json"), {...config,maintainer:false,visitors});
+    writeStatePointer(join(captureProject,"infra"),uuid);
+    let snippet = '<script>var fixtureTracker = "public-test-id";</script>';
+    const api = {
+      workspaceManagement: {state:{get:async()=>({state:{workspaceUuid:uuid,contents:{resources:{"model:company_website_visitors":{uuid:"company-model"}}}}})}},
+      storage:{model:{get:async id=>{assert.equal(id,"company-model");return {model:{uuid:id,extractorSlug:"fetchOrganisations",config:{url:visitors.siteUrl,_workspaceUuid:uuid,_trackingScript:snippet}}};}}},
+    };
+    const dependencies = {api,cargo:args=>{assert.deepEqual(args,["whoami"]);return {workspace:{uuid}};}};
+    const first = await operate("capture",captureProject,dependencies);
+    const again = await operate("capture",captureProject,dependencies);
+    assert.equal(first.scriptSha256,again.scriptSha256);
+    assert.equal(again.browserEnabled,false);
+    assert.equal(json(join(captureInfra,"website.json")).visitors.snitcherWorkspaceUuid,uuid);
+    const saved = readFileSync(join(captureApp,"public/website-visitors-provider.js"),"utf8");
+    snippet = '<script>var changedTracker = true;</script>';
+    await assert.rejects(operate("capture",captureProject,dependencies), /script changed/);
+    assert.equal(readFileSync(join(captureApp,"public/website-visitors-provider.js"),"utf8"),saved);
   });
 
   await test("source marker ignores outputs and local secrets; changed source changes identity", () => {

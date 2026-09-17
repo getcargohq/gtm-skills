@@ -95,8 +95,27 @@ try {
     verifyIdentity(config, identity, gitRepository(project));
     verifyConnectors(
       config,
-      config.maintainer ? cargo(["connection", "connector", "list"]) : [],
+      config.maintainer || config.visitors?.enabled
+        ? cargo(["connection", "connector", "list"])
+        : [],
     );
+    if (config.visitors?.enabled && config.visitors.connectorUuid) {
+      const schema = cargo([
+        "connection",
+        "connector",
+        "get-dynamic-schema",
+        "--connector-uuid",
+        config.visitors.connectorUuid,
+        "--slug",
+        "getUrl",
+        "--params",
+        "{}",
+      ]);
+      if (schema.uiSchema?.["ui:widget"] === "hidden")
+        throw new Error(
+          "Selected Snitcher connector uses BYO credentials. This module requires Cargo-managed provisioning.",
+        );
+    }
     const target = {
       workspaceUuid: identity.workspace.uuid,
       workspaceUrl: `https://app.getcargo.io/workspaces/${identity.workspace.uuid}`,
@@ -111,8 +130,13 @@ try {
             statePresent: existsSync(statePath(cdkDir)),
             publish: config.publish,
             maintainer: config.maintainer,
-            modelAvailability:
-              "Confirm the chosen model in Cargo before the first agent run.",
+            visitors: config.visitors?.enabled ?? false,
+            ...(config.maintainer
+              ? {
+                  modelAvailability:
+                    "Confirm the chosen model before the first agent run.",
+                }
+              : {}),
           },
           null,
           2,

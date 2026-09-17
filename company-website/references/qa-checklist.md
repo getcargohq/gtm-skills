@@ -108,3 +108,15 @@ Do not turn an unrun check into a pass.
 - [ ] Handoff includes actual verification results, unverified items, supported
       update/recovery instructions, and the append-only output record. If not
       published, label it as a local preview or prepared CI handoff.
+
+## Optional visitor tracking
+
+- Setup records an explicit choice; declining deploys no visitor resources.
+- The provider script and public site binding are reviewed. No Cargo/provider API
+  credentials enter the browser bundle. Optional form/identity capture stays off.
+- Before consent, after rejection and after withdrawal/reload: no tracker request.
+- Acceptance loads it once. Returning preferences, blocked browser storage,
+  Global Privacy Control, privacy controls and other-origin previews work.
+- The disclosure and equal accept/reject controls are readable at mobile/desktop.
+- Verify real native model syncs and data separately from browser installation.
+  Record zero rows as zero rows; synthetic browser fixtures are not visitor data.

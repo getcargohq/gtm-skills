@@ -14,6 +14,12 @@ export const settings: {
   publish: boolean;
   maintainer: boolean;
   languageModel: string;
+  visitors?: {
+    enabled: boolean;
+    siteUrl: string;
+    connectorUuid: string;
+    snitcherWorkspaceUuid: string;
+  };
 } = JSON.parse(
   readFileSync(new URL("./website.json", import.meta.url), "utf8"),
 );

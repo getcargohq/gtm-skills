@@ -57,9 +57,21 @@ ask WEBSITE_MODE 'Mode (new website / faithful recreation / redesign): '
 read -r -p 'Source repository URL, optional: ' WEBSITE_SOURCE_REPOSITORY </dev/tty
 read -r -p 'Existing website URL, optional: ' WEBSITE_SOURCE_URL </dev/tty
 export WEBSITE_SOURCE_REPOSITORY WEBSITE_SOURCE_URL
-secret WEBSITE_GITHUB_TOKEN 'Maintainer GitHub token (Contents + Pull requests write; no Actions/Workflows/Admin): '
-test -n "$WEBSITE_GITHUB_TOKEN" || { echo 'A maintainer GitHub token is required.' >&2; exit 1; }
-secret WEBSITE_ANTHROPIC_API_KEY 'Anthropic API key, or Enter to use a default connector/Cargo credits: '
+read -r -p 'Enable a hosted maintainer for requests inside Cargo? [y/N]: ' choice </dev/tty
+WEBSITE_MAINTAINER=no
+if [[ "$choice" =~ ^([yY]|[yY][eE][sS])$ ]]; then
+  WEBSITE_MAINTAINER=yes
+  secret WEBSITE_GITHUB_TOKEN 'Maintainer GitHub token (Contents + Pull requests write; no Actions/Workflows/Admin): '
+  test -n "$WEBSITE_GITHUB_TOKEN" || { echo 'A maintainer GitHub token is required.' >&2; exit 1; }
+  secret WEBSITE_ANTHROPIC_API_KEY 'Anthropic API key, or Enter for default connector/Cargo credits: '
+fi
+read -r -p 'Track visiting companies and sessions with Cargo/Snitcher? Usage is billed; browser consent is required. [y/N]: ' choice </dev/tty
+WEBSITE_VISITORS=no
+if [[ "$choice" =~ ^([yY]|[yY][eE][sS])$ ]]; then
+  WEBSITE_VISITORS=yes
+  ask WEBSITE_VISITOR_URL 'Exact public HTTPS site URL to track: '
+fi
+export WEBSITE_MAINTAINER WEBSITE_VISITORS
 
 tools_dir="$(mktemp -d "${TMPDIR:-/tmp}/website-setup-tools.XXXXXX")"
 npm install --prefix "$tools_dir" --ignore-scripts --no-audit --no-fund @cargo-ai/cli@1.0.96 @cargo-ai/cdk@1.0.81
@@ -127,7 +139,7 @@ git add .
 npm run lint
 npm run typecheck
 node scripts/company-website/website.mjs plan
-git commit -m 'Set up company website cookbook and manual Cargo release'
+git commit -m 'Set up company website pipeline and manual Cargo release'
 git push -u origin main
 gh repo edit "$WEBSITE_REPOSITORY" --default-branch main
 node "$setup_file" ci-token

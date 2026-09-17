@@ -103,3 +103,4 @@
 {"prompt": "Capture our design system so a website maintainer can follow it", "expect": "company-website"}
 {"prompt": "I forked the company website pipeline and need it in our own Cargo workspace", "expect": "company-website"}
 {"prompt": "Research this prospect website and brief me before our sales call", "expect": "research-account", "why": "Researching another account is a one-off briefing, not maintaining our company website."}
+{"prompt": "Build our company website on Cargo and ask us whether we want Snitcher visitor tracking", "expect": "company-website"}

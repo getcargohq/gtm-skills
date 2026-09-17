@@ -15,6 +15,11 @@ export function readConfig(infra) {
     throw new Error("Choose a stable Cargo app slug.");
   if (!config.defaultBranch || (config.maintainer && !config.languageModel))
     throw new Error("A default branch and maintainer model are required.");
+  if (
+    config.visitors !== undefined &&
+    typeof config.visitors.enabled !== "boolean"
+  )
+    throw new Error("visitors.enabled must be an explicit boolean.");
   return config;
 }
 
@@ -58,11 +63,25 @@ export function verifyIdentity(config, identity, repository) {
 }
 
 export function verifyConnectors(config, response) {
-  if (!config.maintainer) return;
+  const visitorConnector =
+    config.visitors?.enabled && config.visitors.connectorUuid;
+  if (!config.maintainer && !visitorConnector) return;
   const connectors = Array.isArray(response) ? response : response?.connectors;
   if (!Array.isArray(connectors))
     throw new Error("Unrecognized connector-list response.");
-  for (const integration of ["github", "anthropic"]) {
+  if (
+    visitorConnector &&
+    !connectors.some(
+      (c) =>
+        c.uuid === visitorConnector &&
+        c.integrationSlug === "snitcher" &&
+        (!c.workspaceUuid || c.workspaceUuid === config.workspaceUuid),
+    )
+  )
+    throw new Error(
+      "The selected Snitcher connector is not in the target workspace.",
+    );
+  for (const integration of config.maintainer ? ["github", "anthropic"] : []) {
     const matches = connectors.filter(
       (c) =>
         c.integrationSlug === integration &&

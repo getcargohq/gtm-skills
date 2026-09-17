@@ -64,7 +64,7 @@ already declares. More are on their way (`contact-sourcing`, `signal-based-tam`,
 | [`crm-enrichment`](crm-enrichment/SKILL.md)                | CRM accounts stay filled: approved blanks from LinkedIn, freshness after a real write, re-enrolled after six months.                     |
 | [`call-capture`](call-capture/SKILL.md)                    | Yesterday's call transcripts become log entries and, once a claim repeats, context updates — as one pull request you review.             |
 | [`agentic-engagement`](agentic-engagement/SKILL.md)        | An agent holds email conversations with leads from a mailbox you own, waking on reply, unsubscribe, or a heartbeat that checks thread status. |
-| [`company-website`](company-website/SKILL.md) | Build or recreate a public company website on Cargo, capture its design system, and maintain it through reviewed PRs in your own project. |
+| [`company-website`](company-website/SKILL.md) | Build or recreate a public company website, capture its design system, and maintain it from your coding harness. Optionally collect company visits and sessions in Cargo. |
 
 Works with Claude Code, Codex, Cursor, Windsurf, GitHub Copilot, and any agent that supports the
 [skills.sh](https://skills.sh) standard.

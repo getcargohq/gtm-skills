@@ -1,9 +1,9 @@
 # Company website: terminal setup from a fresh environment
 
 This installs this pipeline into a **new, separate company Manifest project**.
-It can create the Cargo workspace, creates a private GitHub repository, connects
-the maintainer, and installs a manual GitHub Actions release. The first release
-deploys the maintainer and company context. The public website is a later release
+It can create the Cargo workspace, creates a private GitHub repository, and
+installs the skill plus a manual GitHub Actions release. The first release
+uses the resources selected by the operator. The public website is released
 after its brief, design and implementation are reviewed.
 
 Validated against Cargo CLI 1.0.96, CDK 1.0.81 and Node 22.23.2 on 2026-09-16.
@@ -68,12 +68,12 @@ Have these credentials available before running the bootstrap:
 - **GitHub operator token:** a classic PAT with `repo`, `read:org`, and `workflow`
   access for the owner creating the private repository. The bootstrap saves this
   to GitHub CLI authentication, never to project files.
-- **GitHub maintainer token:** a separate fine-grained token with repository
+- **Only if the hosted maintainer is selected, GitHub maintainer token:** a separate fine-grained token with repository
   **Contents: read/write**, **Pull requests: read/write**, and **Metadata: read**.
   It must cover the new repository (for example, a dedicated account/organization
   token covering its repositories). Do not grant Actions, Workflows or
   Administration permissions. Organization access/SSO must already be authorized.
-- **Model access:** an existing default Anthropic connector, an Anthropic API key,
+- **Only if the hosted maintainer is selected, model access:** an existing default Anthropic connector, an Anthropic API key,
   or Cargo credits. Blank API-key input uses the existing default, or creates a
   credits-backed connector when none exists. An existing connector is reused
   without replacing its credentials. The script selects a currently advertised
@@ -107,7 +107,7 @@ bash company-website/references/terminal-bootstrap.sh
 
 The terminal prompts collect company context, CTA, optional source repository and
 URL, workspace name, GitHub repository and credentials. Enter a source repository
-for a reconstruction: the maintainer should use its actual code and capture its
+for a reconstruction: the coding harness should use its actual code and capture its
 design system. Source reuse authorization, pages and detailed design remain part
 of the reviewed brief.
 
@@ -117,12 +117,14 @@ The bootstrap performs these steps:
    `https://app.getcargo.io/workspaces/<actual-uuid>`.
 2. Runs Cargo's Manifest initializer in an unused directory. This command itself
    creates the workspace-held deployment state; it does not deploy resources.
-3. Pins the tested CLI/CDK, installs the Cargo skill pack and copies this cookbook
+3. Pins the tested CLI/CDK, installs the Cargo skill pack and copies this pipeline
    with the same placement as the registry installer.
 4. Creates the company's private GitHub repository, real company context and
    workspace configuration. `publish` remains `false`.
-5. Checks maintainer-token repository access, adopts or creates default GitHub and
-   Anthropic connectors, and selects an available model.
+5. Asks separately about the optional hosted maintainer and visitor tracking, both
+   defaulting to no. Only hosted mode configures Cargo GitHub/Anthropic access.
+   Tracking opt-in records the public site URL and inspects current pricing; it
+   does not install a browser tracker during bootstrap.
 6. Fixes the fresh template's CI secret/state conventions. PRs run offline checks;
    a manual release uses `CARGO_API_TOKEN` and the existing root state pointer.
    It updates the new project's AGENTS.md to match that release process.
@@ -147,105 +149,31 @@ deploying. If credential input is needed again, use Bash `read -rs` and export
 `WEBSITE_GITHUB_TOKEN` or `WEBSITE_ANTHROPIC_API_KEY`; do not paste tokens into git
 or command arguments. `prepare` is a one-time fresh-project operation.
 
-## 3. Deploy the maintainer from the terminal
+## 3. Brief and build with your terminal coding harness
 
-From the company project root, review the brief, configuration and actual plan:
+Start your installed coding harness from the company project root and give it:
 
-```bash
-cat context/global/company.md context/global/website-brief.md
-cat infra/company-website/website.json
-node scripts/company-website/website.mjs doctor
-node scripts/company-website/website.mjs plan
-git status --short
+```text
+Use the company-website skill. Read AGENTS.md, plan, cadence and company context.
+Prepare the brief, sitemap and design-system capture from website-brief.md.
+If source code was supplied, use that repository and record its license and commit.
+Ask only for missing decisions. Confirm whether visitor tracking is wanted.
+Show the brief before implementation, then build the approved scope on a branch.
+Show a local preview and record browser QA. Open a reviewable PR. Do not deploy yet.
 ```
 
-The first plan should adopt the two connectors and create the maintainer folder,
-agent and company context. With `publish: false`, it should contain **no app**.
-Unexpected deletions or another workspace mean stop and fix the binding.
+`maintainer` defaults to `false`. Your terminal harness reads the skill and works
+with local source; the website does not need an agent deployed inside Cargo.
+If you explicitly selected hosted requests, follow
+[optional maintainer](optional-maintainer.md) instead for that part of the flow.
 
-After reviewing that plan, dispatch CI for the clean, reviewed main commit:
+If visitor tracking was selected, inspect the live integration and costs with
+`node scripts/company-website/visitors.mjs inspect`. Follow
+[visitor tracking](visitor-tracking.md) for its two release phases. It creates
+native company/session models, not another agent. If the public URL is not known
+yet, publish the reviewed website first and opt in in a later PR.
 
-```bash
-test -z "$(git status --porcelain)"
-test "$(git branch --show-current)" = main
-git pull --ff-only
-gh workflow run cargo-deploy.yml --ref main \
-  -f expected_sha="$(git rev-parse HEAD)"
-gh run list --workflow cargo-deploy.yml --limit 3
-gh run watch --exit-status
-```
-
-Select the new run when prompted. If it has not appeared yet, rerun the last two
-commands. `gh run view --log-failed` shows a failed run's logs. The workflow rejects
-another branch or a main SHA that moved before its revision check. Deployments are
-serialized. No production deployment runs on the local terminal.
-
-After success, read the created agent ID from the workspace-held state:
-
-```bash
-mkdir -p scratch
-node --input-type=module <<'JS'
-import {readFileSync,writeFileSync} from 'node:fs';
-import {getApi} from '@cargo-ai/cdk/cli';
-import {statePath} from '@cargo-ai/cdk/deploy';
-const pointer=JSON.parse(readFileSync(statePath('infra'),'utf8'));
-const {state}=await getApi().workspaceManagement.state.get(pointer.stateUuid);
-const agent=state.contents.resources?.['agent:company-website-maintainer'];
-if(!agent?.uuid) throw Error('Maintainer missing from deployed state. Inspect the failed release.');
-writeFileSync('scratch/website-agent-uuid',agent.uuid+'\n');
-console.log('Maintainer UUID: '+agent.uuid);
-JS
-node scripts/company-website/website.mjs doctor
-```
-
-At this point the maintainer is deployed. There is still no public website URL.
-
-## 4. Run the first audit/brief through the terminal
-
-This is one billed, on-demand agent request. It asks for a bounded brief, not an
-implementation or publication. The skill and prompt instruct it to prefer supplied
-source code and capture design tokens, components, responsive rules and assets.
-
-```bash
-node --input-type=module <<'JS'
-import {writeFileSync} from 'node:fs';
-writeFileSync('scratch/website-message.json',JSON.stringify([{type:'text',text:
-  'Use the local company-website skill. Read AGENTS.md, plan, cadence and company context. '+
-  'Prepare the website brief, sitemap and design-system capture plan from context/global/website-brief.md. '+
-  'For a supplied repository, inspect its actual code, license and commit before reconstructing anything. '+
-  'Audit the supplied live pages. Mark observed, inferred and proposed design rules. '+
-  'Put the draft brief and design evidence in one PR. Ask only for missing decisions. '+
-  'Do not implement the website, merge, change publish/CI/state/workspace, or deploy. Stop after the reviewable brief.'
-}]));
-JS
-npx --no-install cargo-ai ai message create \
-  --agent-uuid "$(cat scratch/website-agent-uuid)" \
-  --parts "$(cat scratch/website-message.json)" \
-  --max-steps 30 --wait-until-finished \
-  > scratch/website-first-run.json
-cat scratch/website-first-run.json
-gh pr list
-```
-
-Inspect the returned message status, reported failures and PR. A successful API
-submission alone does not prove the job completed. Review a PR by its number:
-
-```bash
-read -r -p 'Brief PR number: ' brief_pr
-gh pr view "$brief_pr"
-gh pr diff "$brief_pr"
-gh pr checks "$brief_pr" --watch
-```
-
-Answer missing decisions, correct the brief and merge only when it is acceptable.
-Keep the same chat UUID from the message response for related follow-ups by using
-`--chat-uuid` instead of `--agent-uuid`. Replace the text in
-`scratch/website-message.json` with the concrete approved brief and ask for one
-implementation PR, local preview, actual-source reconstruction where applicable,
-design evidence and QA. Keep `publish: false` through that implementation PR.
-No prompt can supply missing company facts or authorize assets by itself.
-
-## 5. Inspect the implementation locally
+## 4. Inspect the implementation locally
 
 Check out the implementation PR and run its actual app:
 
@@ -273,7 +201,7 @@ blocked by this CDK version's text-only upload: convert them to reviewed text-sa
 representations or use approved asset URLs as described in `build-and-review.md`.
 Custom domains/DNS and form backends require separate verified setup.
 
-## 6. Publish the reviewed website
+## 5. Publish the reviewed website
 
 After the implementation is reviewed and merged, create a release PR from current
 main. The next commands explicitly mark the reviewed site ready for publication:
@@ -323,11 +251,10 @@ anonymous HTTP result and reviewed-source match. It fails for a missing,
 unpromoted or stale build. Finish browser/form QA against that URL and archive the
 release evidence in a new dated `outputs/` entry with `outcome:`.
 
-## 7. Subsequent updates and recovery
+## 6. Subsequent updates and recovery
 
-Use the existing project, app slug and state. Ask the maintainer for a bounded
-update PR, review it, merge it and dispatch the same CI workflow. Repeat the
-request once during pilot acceptance and confirm it updates the same PR.
+Use the existing project, app slug and state. Ask the terminal harness for a bounded
+update PR, review it, merge it and dispatch the same CI workflow. For the optional hosted maintainer, also test a retry and confirm it updates the same PR.
 
 For a broken release, prepare a PR restoring the last known-good app source and
 lockfile, review its plan, merge and dispatch CI again. Preserve state throughout.

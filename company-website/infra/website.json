@@ -5,6 +5,12 @@
   "defaultBranch": "main",
   "appSlug": "company-website",
   "publish": false,
-  "maintainer": true,
-  "languageModel": "claude-sonnet-5"
+  "maintainer": false,
+  "languageModel": "claude-sonnet-5",
+  "visitors": {
+    "enabled": false,
+    "siteUrl": "",
+    "connectorUuid": "",
+    "snitcherWorkspaceUuid": ""
+  }
 }

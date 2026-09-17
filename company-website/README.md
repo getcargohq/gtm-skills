@@ -18,12 +18,17 @@ release workflow. The bootstrap stops before deploying the maintainer or website
 - The public Vite app is the customer-facing output. Keeping its package under
   `infra/apps/website/` preserves paths when Cargo moves the resource directory.
   Its package boundary prevents CDK discovery from executing browser code.
+- The local coding harness reads the skill and prepares changes without a
+  Cargo agent. This is the default.
+- Opt-in Snitcher models collect actual visiting companies and sessions. The
+  tracker is captured from Cargo, reviewed, and loaded only after browser consent.
+  See [visitor tracking](references/visitor-tracking.md).
 - The optional Claude Code maintainer uses GitHub to prepare a branch and PR.
   Its Anthropic connector supplies the model. Both connector declarations adopt
   existing defaults; the placing agent rewires existing project declarations.
 - Separate app and agent folders make workspace ownership visible. Neither is
   declared if its corresponding resource is disabled.
-- Publication starts disabled. The maintainer is on demand. There is no timer,
+- Publication, visitor tracking and the hosted maintainer start disabled. There is no custom timer,
   synthetic lead model, wrapper tool or second context resource to maintain.
 
 ## Source, design and release
@@ -55,7 +60,8 @@ steps that deterministic checks cannot establish.
 
 Current limitations: no verified custom-domain support, no connected form,
 no multi-page routing implementation, and no live deployment/hosted-agent outcome
-claim. The starter does not provide analytics or a privacy/cookie policy.
+claim. Visitor tracking requires explicit setup and a reviewed privacy disclosure.
+The pipeline does not supply a legal privacy policy or guarantee company matches.
 The pinned CDK's UTF-8 upload cannot preserve raw binary assets. Release checks
 reject incompatible bytes and app-local `.env` files; source recreations must
 adapt those assets to reviewed text-safe representations or approved external

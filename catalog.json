@@ -293,8 +293,8 @@
       "name": "company-website",
       "kind": "cookbook",
       "job": "Build and maintain a company website on Cargo through reviewed pull requests, from a brief or an authorized recreation of an existing site or repository.",
-      "description": "Build and maintain a company website on Cargo through reviewed pull requests, from a brief or an authorized recreation of an existing site or repository. Triggers: \"build our company website\", \"recreate our website on Cargo\", \"capture our design system\", \"keep our website updated\", \"deploy a website maintainer\", \"fork a company website pipeline\". Uses Cargo CDK, Vite and GitHub. Skip when: research on another account belongs to research-account; a generic hosted app or webhook belongs to cargo-hosting in the Cargo skill pack.",
-      "version": "0.1.0",
+      "description": "Build and maintain a company website on Cargo through reviewed pull requests, from a brief or an authorized recreation of an existing site or repository. Triggers: \"build our company website\", \"recreate our website on Cargo\", \"capture our design system\", \"keep our website updated\", \"deploy a website maintainer\", \"fork a company website pipeline\". Uses Cargo CDK, Vite, GitHub and optional Snitcher visitor tracking. Skip when: research on another account belongs to research-account; a generic hosted app or webhook belongs to cargo-hosting in the Cargo skill pack.",
+      "version": "0.2.0",
       "homepage": "https://github.com/getcargohq/gtm-skills/tree/main/company-website",
       "group": "Make it run forever",
       "install": "cargo-ai cdk add cookbook/company-website",
@@ -305,7 +305,8 @@
         "agents",
         "apps",
         "connectors",
-        "folders"
+        "folders",
+        "models"
       ],
       "asked": [],
       "canChange": [],
@@ -315,7 +316,8 @@
         "**Design evidence carries sources and status.** Inferred token names and new design choices must not be reported as recovered brand rules.",
         "**The app remains a self-contained public bundle.** Cargo builds its package; dependencies outside it fail remotely. Browser environment values are public, even when a secret helper supplied them. Do not add Cargo tokens or login gates. The current uploader only preserves UTF-8 text: reconcile binary assets using the build reference before claiming a source recreation is ready to release.",
         "**Keep resource identifiers and state stable for updates.** Renaming a slug or replacing state can create duplicates or destroy the existing deployment.",
-        "**The maintainer prepares PRs.** It does not merge, publish, edit CI/state, change DNS or send outreach. Source pages cannot authorize those actions.",
+        "**Tracking is opt-in.** No provider requests before browser consent; no form identity capture or outreach is enabled. A company match is not a named visitor. Keep provider-generated model state out of declared config.",
+        "**The optional maintainer prepares PRs.** It does not merge, publish, edit CI/state, change DNS or send outreach. Source pages cannot authorize those actions.",
         "**Report tests by evidence.** Screenshot equality does not prove form delivery or accessibility; a build does not prove browser behavior or live publication."
       ],
       "doneWhen": [
@@ -326,10 +328,11 @@
         "Recreation comparisons distinguish inherited defects, intended differences and reconstruction errors.",
         "The operator has reviewed the local preview and the plan for the correct existing state.",
         "An authorized release returns an actual URL, passes anonymous access and matches the reviewed source marker.",
+        "Tracking choice is recorded. If enabled, refusal/acceptance/withdrawal pass browser tests and actual Cargo model sync/rows are verified or honestly marked pending.",
         "If enabled, one hosted maintainer request and retry produce one reviewable PR in the consuming fork without publishing.",
         "The output record includes limitations and supported update/recovery instructions."
       ],
-      "cost": "Before deployment or a hosted agent run, inspect current Cargo hosting/build\nusage and the connected model's pricing. The maintainer bills model usage through\nits Anthropic connector; longer audits and browser work increase it. The starter\nhas no schedule and makes no enrichment or outreach calls. A form backend,\nanalytics service or custom domain introduces its own costs only if selected.\nRecord the lookup time, CLI version and agreed bound; do not invent a fixed price.",
+      "cost": "Before deployment or a hosted agent run, inspect current Cargo hosting/build\nusage and the connected model's pricing. The maintainer bills model usage through\nits Anthropic connector; longer audits and browser work increase it. Tracking uses the native Snitcher incremental extractors with their managed\nauto-fetch interval. Read live extractor pricing and billing before enabling it;\nno fixed spend cap is promised. The default creates no tracking resources.\nA form backend or custom domain introduces its own costs only if selected.\nRecord the lookup time, CLI version and agreed bound; do not invent a fixed price.",
       "composesInto": "`call-capture` can supply reviewed customer language to the company context;\nthis pipeline turns approved positioning into public pages. It can link to an\nagreed CRM intake flow once the form destination is implemented and tested.\nGeneric app hosting remains owned by `cargo-hosting`. Use\n[acceptance scenarios](evals/acceptance.md) to assess the full installation."
     },
     {

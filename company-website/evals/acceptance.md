@@ -86,3 +86,42 @@ This tests the real installer layout, actual CDK resources, draft publication
 guard, source-content updates, identity/state preservation and live-verification
 failure paths using isolated local fixtures and mocked Cargo/HTTP responses.
 It does not call Cargo deployment, grant OAuth or exercise a hosted agent.
+
+## Visitor tracking opt-in and lifecycle
+
+1. Run fresh setup and decline both optional modules. The graph has no agent,
+   GitHub/model connectors or visitor models. The built HTML loads no tracker.
+2. Opt into tracking with the approved public URL and live usage review. The
+   first CI release creates only the company model and any needed connector.
+   Browser collection stays off. Capture the provider script twice; the second
+   capture preserves identical bytes and IDs. A changed snippet requires review.
+3. Review the provider settings and privacy disclosure. Enable the exact script
+   hash; the next plan adds sessions and updates the same app. Check initial
+   refusal, acceptance, withdrawal/reload, returning accepted/denied visitors,
+   Global Privacy Control and another-origin preview in a real browser.
+4. Inspect real provider requests after an authorized test visit, then actual
+   native sync runs and model rows. Report zero records and pending identification
+   honestly. Never substitute a synthetic company for provider evidence.
+5. Repeat an unchanged plan. It must not recreate the app/models, clear internal
+   provider config or reset extraction cursors. Stop browser collection in a
+   separate release; removing data resources requires a reviewed cleanup plan.
+
+The browser test fixture may substitute a local inert tracker to prove the consent
+gate without sending data. Label that evidence synthetic; it is not a live sync.
+
+### Reproduce the isolated browser consent test
+
+From the distribution checkout, use an isolated tool directory:
+
+```sh
+website_browser_tools="$(mktemp -d)"
+npm install --prefix "$website_browser_tools" --no-save vite@6.4.3 playwright@1.63.0
+"$website_browser_tools/node_modules/.bin/playwright" install chromium
+WEBSITE_TEST_NODE_MODULES="$website_browser_tools/node_modules" \
+WEBSITE_PLAYWRIGHT_MODULE="$website_browser_tools/node_modules/playwright/index.mjs" \
+node company-website/evals/browser.mjs
+```
+
+An existing Chrome binary can be selected with `WEBSITE_CHROME`. The test builds
+an isolated copy, serves it through intercepted browser requests, and uses an
+inert local tracker. It prints the evidence directory with screenshots and results.

@@ -74,7 +74,16 @@ async function main() {
       defaultBranch: "main",
       appSlug: `website-${workspaceUuid.slice(0, 8)}`,
       publish: false,
-      maintainer: true,
+      maintainer: process.env.WEBSITE_MAINTAINER === "yes",
+      visitors: {
+        enabled: process.env.WEBSITE_VISITORS === "yes",
+        siteUrl:
+          process.env.WEBSITE_VISITORS === "yes"
+            ? required("WEBSITE_VISITOR_URL")
+            : "",
+        connectorUuid: "",
+        snitcherWorkspaceUuid: "",
+      },
     });
     const ts = read("tsconfig.json");
     ts.exclude = [
@@ -165,7 +174,7 @@ async function main() {
       doc(
         "Website outcomes",
         "Observable completion criteria for the first website.",
-        `## O1. Reviewed company website\n\n- Owner: ${owner}\n- Measure: approved brief and design, passing desktop/mobile QA, working primary CTA, and verified public deployment.\n- Becomes: infra/company-website/resources.ts (company-website-maintainer and the public app).\n- Release date: to be agreed before publication.`,
+        `## O1. Reviewed company website\n\n- Owner: ${owner}\n- Measure: approved brief and design, passing desktop/mobile QA, working primary CTA, and verified public deployment.\n- Becomes: infra/company-website/resources.ts (the public app and any explicitly selected visitor models).\n- Release date: to be agreed before publication.`,
       ),
     );
     const log = `cadence/log/${date}.md`;
@@ -204,6 +213,48 @@ async function main() {
     );
     if (identity.workspace.uuid !== config.workspaceUuid)
       throw new Error("Cargo login does not match the project's workspace.");
+    if (config.visitors?.enabled && !config.visitors.connectorUuid) {
+      const api = getApi();
+      const { connectors } = await api.connection.connector.list({
+        integrationSlug: "snitcher",
+      });
+      const defaults = connectors.filter((c) => c.isDefault);
+      if (defaults.length > 1 || (!defaults.length && connectors.length > 1))
+        throw new Error(
+          "Choose the Cargo-managed Snitcher connector in website.json before continuing.",
+        );
+      const selected = defaults[0] ?? connectors[0];
+      if (selected) {
+        const schema = await api.connection.connector.getDynamicSchema({
+          connectorUuid: selected.uuid,
+          slug: "getUrl",
+          params: {},
+        });
+        if (schema.uiSchema?.["ui:widget"] === "hidden")
+          throw new Error(
+            "Existing Snitcher connector uses BYO credentials. Select a Cargo-managed connector instead.",
+          );
+        config.visitors.connectorUuid = selected.uuid;
+        save(configFile, config);
+        console.log(
+          `Reusing Cargo-managed Snitcher connector ${selected.uuid}.`,
+        );
+      }
+      execFileSync(
+        "node",
+        ["scripts/company-website/visitors.mjs", "inspect"],
+        { stdio: "inherit" },
+      );
+      console.log(
+        "Review visitor usage pricing and disclosure before the first data-model release.",
+      );
+    }
+    if (!config.maintainer) {
+      console.log(
+        "Local harness mode: no Cargo GitHub or model connector required.",
+      );
+      return;
+    }
     if (process.env.WEBSITE_GITHUB_TOKEN) {
       execFileSync("gh", ["api", `repos/${config.repository}`], {
         env: { ...process.env, GH_TOKEN: process.env.WEBSITE_GITHUB_TOKEN },

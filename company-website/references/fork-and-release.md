@@ -36,13 +36,13 @@ project's installed CLI and inspect `--help` before adapting command flags.
 2. Read `cargo-ai whoami`, git origin and GitHub's default branch. Update
    `infra/company-website/website.json` with these values. Leave `publish` false.
    Choose a unique public app slug before first release and keep it stable after.
-3. Inspect authenticated connectors. The worked resources adopt one default
-   GitHub connector and one default Anthropic connector. Reuse existing project
-   handles if declared already, adapting the corresponding helper check too.
-   Confirm repository access and the selected model's availability. OAuth is
-   granted through Cargo's connection flow, not created by the resource file.
-4. For website-only operation, set `maintainer: false` before the first deploy.
-   Setting it false after deployment requests resource deletion in the plan.
+3. Keep `maintainer: false` for the default local coding harness. If hosted
+   requests are explicitly wanted, inspect and reuse default GitHub/Anthropic
+   connectors and verify repository/model access.
+4. Ask separately about visitor tracking, default off. Follow
+   [visitor tracking](visitor-tracking.md) for the native models, exact site URL,
+   reviewed tracker and consent gate. Existing resources need reviewed cleanup
+   if a module is removed; ordinary deploy retains undeclared resources.
 5. Run `npm ci --prefix infra/company-website/apps/website`, then:
 
 ```sh
