@@ -31,7 +31,7 @@ npx skills add getcargohq/cargo-skills --skill cargo-cdk
 | `infra/models/crm-accounts.ts`        | The CRM account extract the play runs on                   |
 | `infra/plays/deduplicate-accounts.ts` | The row workflow, its guards, and the trigger              |
 | `infra/scripts/policy.ts`             | Generic domains and survivor precedence — the knobs to adapt |
-| `infra/scripts/evidence.ts`           | `deriveEvidence`, the script node's body, declared with `defineJs` |
+| `infra/scripts/evidence.ts`           | `deriveEvidence`, the script node's body, declared with `defineScript` |
 | `references/audit.md`                 | Identity coverage, candidate classes, and survivor audit   |
 | `references/configure.md`             | CRM search, scoring, merge, and Human Review configuration |
 | `references/run.md`                   | Pilot approval, verification, reporting, and Cargo links   |

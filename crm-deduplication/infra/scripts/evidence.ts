@@ -1,13 +1,13 @@
 // Everything the merge decision rests on, derived deterministically: no model,
 // no judgement. The same records always produce the same evidence.
 
-import { defineJs } from "@cargo-ai/cdk";
+import { defineScript } from "@cargo-ai/cdk";
 
 import { type Account, readAccounts } from "./accounts";
 import { agreementOn, clusterAround, identifiesOneCompany } from "./cluster";
 import { rankBySurvivorPrecedence } from "./survivor";
 
-export const deriveEvidence = defineJs(
+export const deriveEvidence = defineScript(
   ({ records, accountId }: { records: unknown; accountId: string }) => {
     const accounts = readAccounts(records);
     const account = accounts.find((candidate) => candidate.id === accountId);
