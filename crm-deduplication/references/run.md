@@ -40,10 +40,10 @@ score, conflict flags, reviewer when present, CRM response, failures, and the di
 For every account merge, re-read the surviving CRM record and confirm each child ID no longer
 resolves as an independent company. For contacts, do not assume the pre-merge primary ID survives.
 Use the `mergeRecords` response ID or search by the approved identity keys, require exactly one
-canonical contact, verify the five writable fields, and confirm every absorbed contact no longer
-resolves independently. Company associations are verified separately and are not written through
-`associatedcompanyid`. Reconcile processed rows against terminal outcomes and unresolved reviews.
-Count discrepancies are blockers.
+canonical contact, inspect the properties retained by the CRM's native merge, and confirm every
+absorbed contact no longer resolves independently. The deduplication workflow does not run a
+post-merge update. Reconcile processed rows against terminal outcomes and unresolved reviews. Count
+discrepancies are blockers.
 
 End with one recommended `Next step`: fix weak identity coverage, remediate failed merges, review
 declined clusters, or approve recurring deduplication after the surviving records are verified.

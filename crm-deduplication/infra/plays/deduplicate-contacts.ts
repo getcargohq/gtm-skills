@@ -133,12 +133,6 @@ const deduplicateCrmContact = defineWorkflow(
         primaryId: evidence.primaryId,
         idsToMerge: evidence.idsToMerge,
       });
-      uses.crm.updateRecords({
-        objectType: "contacts",
-        matchingPropertyName: "hs_object_id",
-        matchingValue: merged.id,
-        mappings: evidence.writeBackMappings,
-      });
       return {
         status: "merged_automatically",
         score: score.score,
@@ -174,16 +168,10 @@ ${evidence.reviewLines}`,
       },
       {
         approved: () => {
-          const merged = uses.crm.mergeRecords({
+          uses.crm.mergeRecords({
             objectType: "contacts",
             primaryId: evidence.primaryId,
             idsToMerge: evidence.idsToMerge,
-          });
-          uses.crm.updateRecords({
-            objectType: "contacts",
-            matchingPropertyName: "hs_object_id",
-            matchingValue: merged.id,
-            mappings: evidence.writeBackMappings,
           });
           return js(() => "merged_after_review");
         },

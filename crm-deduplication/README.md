@@ -15,9 +15,8 @@ Review. Approval merges; decline or timeout leaves the records separate.
 Contact automatic merge accepts exact LinkedIn person ID, exact LinkedIn URL without person-ID
 conflict, exact non-generic email without LinkedIn conflict, and conflict-free transitive chains of
 those keys. A LinkedIn conflict, generic/shared email, or phone-only match always leaves the
-automatic path. After a contact merge, approved writable values are sent to the new record ID
-returned by HubSpot. Company associations are not written through the read-only
-`associatedcompanyid` property.
+automatic path. The native contact merge is the final CRM write. The workflow does not create an
+update node after merging; normalization and enrichment belong in a separately approved workflow.
 
 The checked example is HubSpot. Salesforce and Attio adapt the same resources. Both plays are disabled,
 `noConcurrency`, and limited to 15 CRM rows. Nothing in this folder deploys, runs, or touches

@@ -99,11 +99,9 @@ The automatic gate requires the score plus `autoEligible`. That guard disqualifi
 the cluster has a LinkedIn identity conflict or generic/shared email. Phone-only groups go to Human
 Review when enabled and otherwise remain untouched.
 
-After an automatic or approved merge, write validated non-empty `email`, `phone`, `linkedin_url`,
-`linkedin_person_id`, and `jobtitle` values to the `id` returned by `mergeRecords`. Do not target the
-pre-merge primary ID because HubSpot may create a new record ID. Do not include
-`associatedcompanyid` in `updateRecords`; it is read-only. If policy requires changing a company
-association, add and validate a supported HubSpot Associations API action during adaptation.
+Treat `mergeRecords` as the final CRM write. Do not add an update node after an automatic or
+approved merge. If the operator wants normalization, enrichment, or association changes, define
+and approve that behavior separately, preferably through `crm-enrichment`.
 
 Both models belong to the `crm-deduplication-models` folder and both plays belong to the
 `crm-deduplication-plays` folder. Keep both connectors uncached, both plays disabled and serial, and
@@ -118,6 +116,6 @@ each pilot limited to 15 rows.
   guarded Branch, then CRM merge or native Human Review
 - automatic merge requires exact shared LinkedIn company ID and every conflict guard
 - Human Review approval reaches the reviewed merge; decline and timeout reach the no-write end
-- contact write-back uses the merge response ID and excludes `associatedcompanyid`
+- contact merge paths do not create post-merge update nodes
 - both plays are disabled, use `noConcurrency`, and limit each pilot to 15 CRM rows
 - `node --import tsx evals/contract.mjs` passes after every adaptation

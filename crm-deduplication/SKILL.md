@@ -1,6 +1,6 @@
 ---
 name: crm-deduplication
-description: 'Keep CRM accounts and contacts duplicate-free: audit company and person identity, run recurring deduplication plays directly on CRM models, merge safe exact matches, and route uncertain clusters to manual review. Triggers: "deduplicate our CRM accounts", "deduplicate CRM contacts", "our CRM has duplicate people", "merge duplicate contacts in HubSpot", "we keep creating duplicate account records", "merge duplicate companies in HubSpot", "set up recurring CRM deduplication", "review ambiguous duplicates". HubSpot, Salesforce, Attio, Slack, LinkedIn profiles, phone numbers, Cargo CDK, findRecords, Scoring, Human Review, mergeRecords, updateRecords. Skip when: the request is to add or refresh CRM data rather than merge duplicate records; use crm-enrichment.'
+description: 'Keep CRM accounts and contacts duplicate-free: audit company and person identity, run recurring deduplication plays directly on CRM models, merge safe exact matches, and route uncertain clusters to manual review. Triggers: "deduplicate our CRM accounts", "deduplicate CRM contacts", "our CRM has duplicate people", "merge duplicate contacts in HubSpot", "we keep creating duplicate account records", "merge duplicate companies in HubSpot", "set up recurring CRM deduplication", "review ambiguous duplicates". HubSpot, Salesforce, Attio, Slack, LinkedIn profiles, phone numbers, Cargo CDK, findRecords, Scoring, Human Review, mergeRecords. Skip when: the request is to add or refresh CRM data rather than merge duplicate records; use crm-enrichment.'
 version: "0.1.0"
 compatibility: "Requires the cargo-cdk skill, a Cargo CDK project, @cargo-ai/cdk 1.0.82 or later, an authenticated CRM connector, and a Slack connector for review. The repository example does not deploy or access a CRM until an agent adapts it in the consumer project."
 homepage: https://github.com/getcargohq/gtm-skills/tree/main/crm-deduplication
@@ -40,8 +40,8 @@ candidate.
 Contacts merge automatically only on an exact LinkedIn person ID, exact LinkedIn URL without an ID
 conflict, exact non-generic email without a LinkedIn conflict, or a conflict-free transitive chain
 of those keys. LinkedIn conflicts, generic/shared email, and phone-only matches never enter the
-automatic path. Post-merge write-back targets the ID returned by `mergeRecords` and excludes
-HubSpot's read-only `associatedcompanyid` property.
+automatic path. The native merge is the final CRM write. Do not add an update node after a merge;
+handle any normalization or enrichment separately with `crm-enrichment`.
 
 The checked example in `infra/` is HubSpot: `fetchRecords` for companies, `findRecords` for
 live candidate search, and `mergeRecords` for automatic or approved merges. Salesforce and Attio
@@ -169,9 +169,9 @@ The code is a worked example. Offer these adaptations when the audit supports th
 - **Apply contact guards globally.** (`infra/scripts/contact-evidence.ts`) Every automatic contact
   class is disqualified by a LinkedIn identity conflict or generic/shared email. Phone-only groups
   remain manual.
-- **Use the merged contact ID.** (`infra/plays/deduplicate-contacts.ts`) HubSpot may create a new ID
-  during merge. Write-back uses `mergeRecords.id`, never the pre-merge primary ID, and omits
-  `associatedcompanyid`. Association changes require a supported Associations API action.
+- **End contact workflows after merge.** (`infra/plays/deduplicate-contacts.ts`) The native merge is
+  the final CRM write. Do not add a post-merge update node. Handle normalization, enrichment, or
+  association changes in a separately approved workflow.
 - **Merge only on automatic or approved paths.** (`infra/plays/deduplicate-accounts.ts`) Human approval reaches the
   reviewed merge. Decline and timeout end without a CRM write.
 - **Stop stale queued rows.** (`infra/plays/deduplicate-accounts.ts`) A source missing from the fresh search ends before

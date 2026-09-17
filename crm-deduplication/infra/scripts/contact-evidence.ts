@@ -78,27 +78,6 @@ export const deriveContactEvidence = defineScript(
       transitiveHighConfidence === false;
 
     const [survivor, ...merged] = rankContacts(cluster);
-    const valueOrder = rankContacts(cluster).sort((left, right) => {
-      return (
-        right.lastModifiedAt.localeCompare(left.lastModifiedAt) ||
-        left.id.localeCompare(right.id)
-      );
-    });
-    const writeBackProperties = [
-      "email",
-      "phone",
-      "linkedin_url",
-      "linkedin_person_id",
-      "jobtitle",
-    ];
-    const writeBackMappings = writeBackProperties.flatMap((propertyName) => {
-      const donor = valueOrder.find(
-        (contact) => contact.rawValues[propertyName] !== undefined,
-      );
-      return donor === undefined
-        ? []
-        : [{ propertyName, value: donor.rawValues[propertyName] }];
-    });
 
     return {
       sourceFound: source !== undefined,
@@ -110,7 +89,6 @@ export const deriveContactEvidence = defineScript(
         primaryId: survivor?.id,
         idToMerge: contact.id,
       })),
-      writeBackMappings,
       exactLinkedinPersonId,
       exactLinkedinUrl,
       exactNonGenericEmail,

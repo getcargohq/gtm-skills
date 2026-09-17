@@ -46,11 +46,9 @@
   CRM merge; decline or timeout reaches a no-write end.
 - A source row missing from the fresh search stops before scoring as `source_missing_or_changed`.
 - Each play has only automatic and human-approved CRM merge paths.
-- Contact update nodes exist only after guarded merges. They target the record ID returned by
-  `mergeRecords`, not the pre-merge primary ID.
-- Contact write-back is limited to non-empty email, phone, LinkedIn URL, LinkedIn person ID, and job
-  title values. It never writes HubSpot's read-only `associatedcompanyid`; association changes must
-  use a supported Associations API action added during adaptation.
+- Contact merge paths end after the native merge and never create post-merge update nodes.
+- Contact normalization, enrichment, and association changes remain outside this deduplication
+  workflow and require separate approval.
 - Neither connector configures a cache, so every duplicate decision reads the CRM live.
 - Both plays are disabled, use `noConcurrency`, and are limited to 15 CRM rows.
 

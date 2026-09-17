@@ -479,27 +479,9 @@ assert.equal(
 );
 assert.equal(
   contactUpdates.length,
-  2,
-  "contact write-back must exist only after the two guarded merge paths",
+  0,
+  "contact merge paths must not create post-merge update nodes",
 );
-for (const merge of contactMerges) {
-  const update = contactChildrenOf(merge)[0];
-  assert.equal(
-    update?.actionSlug,
-    "updateRecords",
-    "each contact merge must immediately write validated values",
-  );
-  assert.match(
-    update.config.matchingValue.expression,
-    new RegExp(`nodes\\.${merge.slug}\\.id`),
-    "contact write-back must target the record ID returned by mergeRecords",
-  );
-  assert.doesNotMatch(
-    update.config.matchingValue.expression,
-    /primaryId/,
-    "contact write-back must not assume the pre-merge primary ID survives",
-  );
-}
 
 const contactReview = contactOnly(
   (node) => node.kind === "native" && node.actionSlug === "humanReview",
@@ -561,17 +543,10 @@ assert.deepEqual(
   ["source"],
   "contact evidence must return every non-survivor ID",
 );
-assert.deepEqual(
-  exactContact.writeBackMappings.map(({ propertyName }) => propertyName),
-  ["email", "phone", "linkedin_url", "linkedin_person_id", "jobtitle"],
-  "contact write-back must contain only writable approved people fields",
-);
 assert.equal(
-  exactContact.writeBackMappings.some(
-    ({ propertyName }) => propertyName === "associatedcompanyid",
-  ),
+  Object.hasOwn(exactContact, "writeBackMappings"),
   false,
-  "the read-only HubSpot associatedcompanyid property must never be written",
+  "contact evidence must not prepare post-merge write-back mappings",
 );
 
 const genericEmailWithPersonId = contactEvidenceFor("source", [
