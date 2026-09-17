@@ -1,0 +1,85 @@
+{
+  "version": "developer-tools-features-v1",
+  "seller_id": "developer-tools",
+  "synthetic": true,
+  "approval": {
+    "state": "approved",
+    "reference": "synthetic-evaluation-only"
+  },
+  "seller_research": {
+    "product": "Developer deployment tooling",
+    "users": ["Engineering managers"],
+    "value_mechanism": "Deployment architecture affects value"
+  },
+  "features": [
+    {
+      "name": "employee_count",
+      "type": "number",
+      "critical": true,
+      "role": "structural_fit",
+      "unknown": "null",
+      "definition": "Total account employee count at the snapshot date.",
+      "units": "count",
+      "minimum": 0,
+      "hypothesis": "Synthetic mechanism for testing, not empirical evidence.",
+      "live_extract": {
+        "kind": "crm",
+        "property": "numberofemployees",
+        "as_of_property": "hs_lastmodifieddate"
+      },
+      "historical_source": "Dated CRM property history or verified historical company source.",
+      "sufficient_evidence": "Dated account-level evidence covering the defined organization.",
+      "insufficient_evidence": "An individual mentions a skill; a seller pitch; undated assertions.",
+      "expected_coverage": "Measure in approved pilot",
+      "cost": "Fetch live route prices before approval",
+      "review_policy": "Review conflicts and unsupported values; unknown is null.",
+      "refresh_days": 90,
+      "extraction_version": "synthetic-v1"
+    },
+    {
+      "name": "engineering_count",
+      "type": "number",
+      "critical": false,
+      "role": "structural_fit",
+      "unknown": "null",
+      "definition": "Account engineering staff, using the approved role taxonomy.",
+      "units": "count",
+      "minimum": 0,
+      "hypothesis": "Synthetic mechanism for testing, not empirical evidence.",
+      "live_extract": {
+        "kind": "cached_evidence"
+      },
+      "historical_source": "Dated role counts; current profiles alone cannot reconstruct history.",
+      "sufficient_evidence": "Dated account-level evidence covering the defined organization.",
+      "insufficient_evidence": "An individual mentions a skill; a seller pitch; undated assertions.",
+      "expected_coverage": "Measure in approved pilot",
+      "cost": "Fetch live route prices before approval",
+      "review_policy": "Review conflicts and unsupported values; unknown is null.",
+      "refresh_days": 90,
+      "extraction_version": "synthetic-v1"
+    },
+    {
+      "name": "deployment_architecture",
+      "type": "category",
+      "critical": true,
+      "role": "structural_fit",
+      "unknown": "null",
+      "definition": "Account production deployment architecture.",
+      "units": "category",
+      "minimum": 0,
+      "hypothesis": "Synthetic mechanism for testing, not empirical evidence.",
+      "live_extract": {
+        "kind": "cached_evidence"
+      },
+      "historical_source": "Dated architecture documentation.",
+      "sufficient_evidence": "Dated account-level evidence covering the defined organization.",
+      "insufficient_evidence": "An individual mentions a skill; a seller pitch; undated assertions.",
+      "expected_coverage": "Measure in approved pilot",
+      "cost": "Fetch live route prices before approval",
+      "review_policy": "Review conflicts and unsupported values; unknown is null.",
+      "refresh_days": 90,
+      "extraction_version": "synthetic-v1",
+      "values": ["cloud", "on_prem"]
+    }
+  ]
+}
