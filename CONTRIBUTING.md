@@ -28,7 +28,7 @@ npm run typecheck      # the CDK examples against the installed package types
 ```
 
 Nothing in the root `package.json` ships to anyone. A customer's project shell
-comes from `cargo-ai cdk init --template blank`; a skill is a folder they copy.
+comes from `cargo-ai cdk init`; a skill is a folder the CLI copies in for them.
 
 ## Checks
 
@@ -75,11 +75,13 @@ exactly one skill and get exactly one working thing.
 3. The body opens with the honest banner, `**State: to-be-approved.**`, and
    carries these sections in this order; the validator checks each exists:
    - `## The outcome`
-   - `## Put it in your project`: the compact procedure. Look at the repo,
-     `cdk init --template blank` if there is no project, copy the folder in as
-     a sibling and reconcile with what is already declared, adapt, plan and
-     stop, deploy on a yes, verify. Copy it from `tam-building/SKILL.md`; each
-     skill carries its own, the way every one-off skill carries its own Setup.
+   - `## Put it in your project`: the compact procedure. `cdk add cookbook/<name>`
+     (or `cdk init --cookbook <name>` when there is no project) is the copy step,
+     then reconcile with what is already declared, adapt, plan and stop, deploy
+     on a yes, verify. Copy it from `tam-building/SKILL.md`; each skill carries
+     its own, the way every one-off skill carries its own Setup. Say early that
+     a reader who found this in a project's `.claude/skills/` is past the copy —
+     the section is also what the CLI hands an agent after installing.
    - `## What you will be asked`: a table of inputs, **derive before ask**.
      An input that can be looked up (which connector is authenticated, what
      the CRM schema holds) is marked _derived_; if more than about four rows
@@ -137,11 +139,53 @@ weight: it deploys, it shows up in the workspace, and it rots.
 
 ## Conventions
 
-- Read secrets with `secret("NAME")` and say so under _What you will be asked_
-  as an `env` input; never inline a value.
+- File every resource a pipeline skill deploys under workspace folders named
+  after the skill (`defineFolder("<name>-agents", { kind: "agent", name: "<Name>" })`),
+  not under a shared one. Folders are per-kind, so a skill deploying models and
+  agents declares one of each. A workspace accumulates resources from several
+  skills plus whatever the team wrote by hand, and the folder is what answers
+  "what put this here, and what else came with it" by looking. It is also what
+  makes removing a skill bounded rather than a hunt. Declare only the kinds the
+  skill actually files something into: a folder nothing references is a resource
+  that deploys, shows up in the workspace and rots.
+- **Put a credential where it outlives the shell that set it.** Default to a
+  workspace environment variable:
+  `cargo-ai workspaceManagement envVar create --key NAME --secret` (CLI 1.0.89
+  or later) stores it encrypted server-side, and omitting `--value` reads the
+  exported variable so the key stays out of argv and shell history. It is read
+  on every run, so a rotation lands with no deploy. Workers, apps and agents
+  inherit the whole catalog, which means a harness agent's `repository.env`
+  declares **nothing** for a key the workspace holds — and the CDK's type
+  refuses a pointer there for exactly that reason. A connector is better off
+  with no credential at all: `default: true` binds the connection the workspace
+  already authorized, which is what every connector in this repo does, and the
+  cost is that a deploy cannot mint one — a workspace without the connection
+  fails at deploy rather than at plan, since binding declares no `config` to
+  typecheck. When a connector genuinely has to be created, its credential field
+  inherits nothing and reaches a catalog entry through `workspaceEnv("NAME")`
+  (CDK 1.0.72 or later). Keep `secret("NAME")` for a
+  value the deploy itself supplies: it resolves from the deploying machine's
+  environment, so the variable has to be exported — or sit in a `.env` that the
+  next machine does not have — by whoever deploys, and a rotation only lands on
+  a re-apply. Never `env("NAME")` for a secret: that bakes the value into the
+  content hash and therefore into `cargo.state.json`. Say which of the two a
+  skill uses under _What you will be asked_ as an `env` input, and never inline
+  a value.
 - Keep `defineContext` paths relative to the project root, and remember it is
   a per-workspace singleton: an example that ships one says what to do when
   the project already has one.
 - App and worker bundles under `*/apps/*` and `*/workers/*` are self-contained
   sub-projects (own `tsconfig` and deps) and are excluded from the root
   typecheck.
+- A cookbook that ships runnable scripts puts them in `<name>/scripts/`, beside
+  `<name>/infra/`. The install mirrors each top-level directory into its
+  namesake in the project: `infra/` to `infra/<name>/`, `scripts/` to
+  `scripts/<name>/`, matching the layers `cargo-ai cdk init` scaffolds. They
+  are node code, so they are typechecked by `tsconfig.scripts.json`
+  (`types: ["node"]`) rather than the root config, which keeps `*/infra/**`
+  node-free; `npm run typecheck` runs both. They carry a `package.json` and no
+  tsconfig of their own — a nested one is never auto-discovered by `tsc -p`, and
+  a consumer project already covers `scripts/**/*.ts` from its root config. Keep
+  the `package.json`: the CDK loader imports every `.ts` under the project root
+  **except** directories carrying one, so in a project whose CDK root is the
+  repo root, dropping it makes `cdk plan` execute the script.

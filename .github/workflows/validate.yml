@@ -34,7 +34,7 @@ jobs:
 
       # Repo tooling only (yaml for the frontmatter parser, prettier, the CDK for
       # typechecking the examples). Nothing in the root package.json ships: a
-      # customer's project shell comes from `cargo-ai cdk init --template blank`.
+      # customer's project shell comes from `cargo-ai cdk init`.
       - run: npm ci --ignore-scripts
 
       - name: Validate the one-off skills against the Cargo playbooks

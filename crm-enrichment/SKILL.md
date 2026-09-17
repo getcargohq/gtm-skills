@@ -2,7 +2,7 @@
 name: crm-enrichment
 description: 'Keep CRM accounts filled and refresh them when they go stale: a deployed play that fills approved blank firmographics from LinkedIn and re-enrolls a record after six months. Triggers: "keep our CRM accounts filled", "keep our CRM companies filled", "fill missing contact fields", "enrich my CRM", "CRM enrichment", "old firmographics keep going stale", "every new CRM account", "every new CRM company", "nobody refreshes the company records", "refresh stale firmographics". HubSpot, Salesforce, Attio, Cargo CDK. Skip when: the records are not in a CRM; use crm-deduplication when the request is to merge duplicate CRM records. A supplied company list is enrich-company-data.'
 version: "0.6.4"
-compatibility: "Requires the cargo-cdk skill, a Cargo CDK project, and @cargo-ai/cdk ^1.0.51. The repository example does not deploy or access a CRM until an agent adapts it in the consumer project."
+compatibility: "Requires the cargo-cdk skill, a Cargo CDK project, @cargo-ai/cdk 1.0.58 or later, and authenticated CRM and LinkedIn connectors. The repository example does not deploy or access a CRM until an agent adapts it in the consumer project."
 homepage: https://github.com/getcargohq/gtm-skills/tree/main/crm-enrichment
 metadata:
   author: getcargo
@@ -32,7 +32,7 @@ successful fill is older than six months comes back. The play runs on `crm_accou
 account extract — and writes back with that row's CRM record id. It does not overwrite a value
 that is already there.
 
-The checked example in `infra/index.ts` is HubSpot (`hs_object_id`, companies
+The checked example in `infra/` is HubSpot (`hs_object_id`, companies
 object, `updateRecords` + `skipIfExist`). Salesforce and Attio are the same file adapted:
 swap the connector, extractor, record-id field, write action, and fill-blank guard. Do not add
 a second CRM branch.
@@ -115,16 +115,18 @@ Then read `.agents/skills/cargo-cdk/SKILL.md` directly; no session reload is nee
 bootstrap and use its authoring, state, plan, and deployment rules throughout this pipeline. Stop
 before audit or template work if the skill cannot be installed or read.
 
-1. **Look first.** `grep -l '@cargo-ai/cdk' package.json` says whether a CDK project already
-   lives here; `ls */models/*.ts */connectors/*.ts */infra/*.ts` says what it already declares. If
-   there is no project: `cargo-ai cdk init <dir> --template blank && cd <dir> && npm install`. That
-   is the whole shell; this folder never ships one.
-2. **Copy this folder in as a sibling of what is there**, then reconcile: for every model or
-   connector this example carries that the project already has (a HubSpot connector, an account
-   extract), rewire the imports to the existing one and drop the copy. Two resources with one
-   slug is a collision at deploy. The play must keep running on that CRM account model
-   (`crm_accounts` in the example). Append this folder's `.env` needs to the project's
-   `.env.example`; never overwrite it.
+1. **Install it — the CLI does the copy.** From inside the CDK project,
+   `cargo-ai cdk add cookbook/crm-enrichment` writes this example to `infra/crm-enrichment/` and
+   this procedure to `.claude/skills/crm-enrichment/`. No project yet?
+   `cargo-ai cdk init <dir> --cookbook crm-enrichment && cd <dir> && npm install` does both; this
+   folder never ships a shell. **If you are reading this from the project's `.claude/skills/`, the
+   install already happened — start at step 2.** On a CLI too old to have `add`, copy this folder
+   in as a sibling of what is there by hand; everything below is unchanged.
+2. **Reconcile it with what is already declared.** For every model or connector this example
+   carries that the project already has (a HubSpot connector, an account extract), rewire the
+   imports to the existing one and drop the copy. Two resources with one slug is a collision at
+   deploy. The play must keep running on that CRM account model (`crm_accounts` in the example).
+   Append this folder's `.env` needs to the project's `.env.example`; never overwrite it.
 3. **Audit and recommend.** Re-read the live provider output and CRM property schemas. Follow the
    field-selection gate in [`references/configure.md`](references/configure.md): present the CRM
    gaps, duplicate-property result, starting recommendation, optional fields, transformations, and
@@ -184,26 +186,26 @@ Refreshing populated business fields is outside the base template. If requested,
 The code is a worked example. These reshapes are expected, and the agent offers them rather than
 waiting to be asked. Every one costs something; that is what makes it a variation and not the default.
 
-| Variation                   | When it is right                                               | How                                                                                                                                                                                                                                                                                                                                                                                | What it costs                                                                        |
-| --------------------------- | -------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
-| `crm`                       | The consumer uses Salesforce or Attio instead of HubSpot       | Keep one CRM shape in `infra/index.ts`. The file is the HubSpot example. **Salesforce:** generated Account update matching `Id`; there is no `skipIfExist`. Read the Account first and omit any field that is already populated, including numeric zero. **Attio:** generated company-record update matching the record id; same read-then-omit guard. Do not copy HubSpot's flag. | Live generated types must be rechecked; a guessed flag writes or no-ops silently     |
-| `selected_fields`           | The approved contract differs from the starting recommendation | Present every live candidate at the field-selection gate. After approval, change the result schema, destinations, per-field write policy, and both provider mappings in `infra/index.ts`. Industry requires an approved array-to-enum transformation when the CRM destination is a single enum.                                                                                    | Each added field expands mapping and type review                                     |
-| `eligibility`               | Only a governed subset should be enriched                      | Intersect the play filter with approved lifecycle, tier, ownership, or gap conditions (`infra/index.ts` `enrichAccounts`)                                                                                                                                                                                                                                                          | Narrower scope reduces coverage and paid calls                                       |
-| `approved_refresh_behavior` | Populated fields must be refreshed after explicit approval     | Drop `skipIfExist` / the read-then-omit guard on the approved fields only, preview the replacements, and compare against a fresh CRM read (`infra/index.ts`)                                                                                                                                                                                                                       | Refresh can overwrite CRM-authoritative values if the preview and the write disagree |
+| Variation                   | When it is right                                               | How                                                                                                                                                                                                                                                                                                                                                                | What it costs                                                                        |
+| --------------------------- | -------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------ |
+| `crm`                       | The consumer uses Salesforce or Attio instead of HubSpot       | Keep one CRM shape in `infra/`. The example is HubSpot. **Salesforce:** generated Account update matching `Id`; there is no `skipIfExist` — read the Account first and omit any field that is already populated, including numeric zero. **Attio:** generated company-record update matching the record id; same read-then-omit guard. Do not copy HubSpot's flag. | Live generated types must be rechecked; a guessed flag writes or no-ops silently     |
+| `selected_fields`           | The approved contract differs from the starting recommendation | Present every live candidate at the field-selection gate. After approval, change the result schema, destinations, per-field write policy, and both provider mappings in `infra/tools/account-enrichment.ts` and `infra/plays/enrich-accounts.ts`. Industry requires an approved array-to-enum transformation when the CRM destination is a single enum.            | Each added field expands mapping and type review                                     |
+| `eligibility`               | Only a governed subset should be enriched                      | Intersect the play filter with approved lifecycle, tier, ownership, or gap conditions (`infra/plays/enrich-accounts.ts`)                                                                                                                                                                                                                                           | Narrower scope reduces coverage and paid calls                                       |
+| `approved_refresh_behavior` | Populated fields must be refreshed after explicit approval     | Drop `skipIfExist` / the read-then-omit guard on the approved fields only, preview the replacements, and compare against a fresh CRM read (`infra/plays/enrich-accounts.ts`)                                                                                                                                                                                       | Refresh can overwrite CRM-authoritative values if the preview and the write disagree |
 
 ## What should not change
 
 However far you adapt, these hold. Ask for one anyway and the agent tells you what breaks, then does
 it if you still want it, and records why under `## Decisions` in your copy of this file.
 
-- **The play runs on `crm_accounts` and matches the CRM record id.** (`infra/index.ts`) HubSpot's example uses `hs_object_id`. Sending a Cargo row id, or a native `accounts` id, to a CRM action targets the wrong identifier system; the run looks successful and nothing lands.
-- **The tool enriches; the play orchestrates and writes.** (`infra/index.ts`) `account_enrichment` accepts provider identifiers, normalizes them, and returns company data without a CRM connector or write. Its `defineWorkflow` body first branches around rows with no identifier, then routes each eligible row to exactly one provider action. `enrich_accounts` starts with one Tool node targeting `account_enrichment`, applies the approved per-field policy, and owns the only CRM update. A tool that writes to the CRM is not reusable; a play that repeats the provider action bypasses the reviewed tool. Run `node --import tsx evals/contract.mjs` after every adaptation to enforce this compiled graph.
-- **One CRM shape in the file.** (`infra/index.ts`) The checked example is HubSpot. Adapt that one file for Salesforce or Attio. Parallel HubSpot/Salesforce/Attio branches drift from the generated types of the CRM that is actually connected.
-- **At most one paid route per row, LinkedIn URL first.** (`infra/index.ts` `enrichCrmAccount`) A row without a handle or a domain makes no paid call. A handle that is already an `http` URL is used as-is; otherwise it is prefixed as `https://www.linkedin.com/company/<handle>`.
-- **Destinations are live properties on the connected CRM.** (`infra/index.ts`) The HubSpot example writes `linkedin_company_id`, `name`, `domain`, `website`, `linkedin_company_page`, `numberofemployees`, `cargo_last_enriched_at`, and `cargo_enrichment_status`. Provider-derived business properties keep neutral names; Cargo-owned operational stamps use the `cargo_` prefix. Leaving another CRM's names in the file can write provider data into the wrong property.
-- **Fill approved blanks only.** (`infra/index.ts` `skipIfExist` or the Salesforce/Attio read-then-omit guard) A stale snapshot overwrites authoritative CRM data, including numeric zero.
-- **Eligibility and freshness live in the play trigger.** (`infra/index.ts` `enrichAccounts`) Require an identifier and freshness null or older than six months in the managed segment. Destination fill-state is not an eligibility condition: an approved refresh must be able to re-enrich populated stale fields. The row workflow starts with the reusable tool call instead of repeating trigger conditions as branches. A standalone `defineSegment` or duplicate workflow gate drifts from the play.
-- **The first play is disabled and `noConcurrency`.** (`infra/index.ts`) Removing those expands an unapproved pilot.
+- **The play runs on `crm_accounts` and matches the CRM record id.** (`infra/plays/enrich-accounts.ts`) HubSpot's example uses `hs_object_id`. Sending a Cargo row id, or a native `accounts` id, to a CRM action targets the wrong identifier system; the run looks successful and nothing lands.
+- **The tool enriches; the play orchestrates and writes.** (`infra/tools/`, `infra/plays/`) `account_enrichment` accepts provider identifiers, normalizes them, and returns company data without a CRM connector or write. Its `defineWorkflow` body first branches around rows with no identifier, then routes each eligible row to exactly one provider action. `enrich_accounts` starts with one Tool node targeting `account_enrichment`, applies the approved per-field policy, and owns the only CRM update. A tool that writes to the CRM is not reusable; a play that repeats the provider action bypasses the reviewed tool. Run `node --import tsx evals/contract.mjs` after every adaptation to enforce this compiled graph.
+- **One CRM shape in the folder.** (`infra/connectors/crm.ts`) The checked example is HubSpot. Adapt that one connector, and the write that uses it, for Salesforce or Attio. Parallel HubSpot/Salesforce/Attio branches drift from the generated types of the CRM that is actually connected.
+- **At most one paid route per row, LinkedIn URL first.** (`infra/tools/account-enrichment.ts`) A row without a handle or a domain makes no paid call. A handle that is already an `http` URL is used as-is; otherwise it is prefixed as `https://www.linkedin.com/company/<handle>`.
+- **Destinations are live properties on the connected CRM.** (`infra/plays/enrich-accounts.ts`) The HubSpot example writes `linkedin_company_id`, `name`, `domain`, `website`, `linkedin_company_page`, `numberofemployees`, `cargo_last_enriched_at`, and `cargo_enrichment_status`. Provider-derived business properties keep neutral names; Cargo-owned operational stamps use the `cargo_` prefix. Leaving another CRM's names in the write can send provider data to the wrong property.
+- **Fill approved blanks only.** (`infra/plays/enrich-accounts.ts` `skipIfExist` or the Salesforce/Attio read-then-omit guard) A stale snapshot overwrites authoritative CRM data, including numeric zero.
+- **Eligibility and freshness live in the play trigger.** (`infra/plays/enrich-accounts.ts`) Require an identifier and freshness null or older than six months in the managed segment. Destination fill-state is not an eligibility condition: an approved refresh must be able to re-enrich populated stale fields. The row workflow starts with the reusable tool call instead of repeating trigger conditions as branches. A standalone `defineSegment` or duplicate workflow gate drifts from the play.
+- **The first play is disabled and `noConcurrency`.** (`infra/plays/enrich-accounts.ts`) Removing those expands an unapproved pilot.
 - **No credentials, deploy commands, or customer data in this repository.**
 
 ## Done when
@@ -253,5 +255,6 @@ input; it is the last yes after _Done when_.
 
 ## Composes into
 
-`account-scoring` (a filled book is what the scorer can cite), `find-stakeholders` (the buyers at
-every filled account), `tam-building` (the universe these records join).
+`crm-deduplication` (duplicate records are what makes a filled book wrong), `account-scoring` (a
+filled book is what the scorer can cite), `find-stakeholders` (the buyers at every filled account),
+`tam-building` (the universe these records join).

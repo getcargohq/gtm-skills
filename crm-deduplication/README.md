@@ -1,31 +1,25 @@
 # CRM deduplication
 
-Keep CRM accounts and contacts duplicate-free without creating second account or contact models.
-This folder is a worked example: copy it into a Cargo CDK project as a sibling, reconcile its CRM
-models and connector with compatible resources already in the project, adapt `infra/index.ts`, and
-follow the approval gates before deploying or running the disabled plays.
+Keep CRM accounts and contacts duplicate-free without creating staging models. This folder is a worked
+example: copy it into a Cargo CDK project as a sibling, reconcile its CRM model and connector with
+compatible resources already in the project, adapt `infra/`, and follow the approval gates
+before deploying or running the disabled play.
 
-The agent first audits live CRM account and contact identity coverage and candidate classes. After
-the operator approves matching keys, survivor precedence, automatic-merge classes, low-confidence
-review behavior, and manual-review destination, it builds `deduplicate_accounts` directly on the CRM
-account model and `deduplicate_contacts` directly on the CRM contact model. Each run searches the
-live CRM, normalizes and scores duplicate evidence, selects a deterministic survivor, then merges
-only the approved high-confidence classes or pauses for Cargo's native Human Review. Approval
-merges; decline, timeout, or review-disabled low-confidence contact groups leave records separate.
+The agent first audits live CRM identity coverage and candidate classes. After the operator
+approves the matching keys, survivor precedence, automatic-merge class, and manual-review
+destination, it builds sibling `deduplicate_accounts` and `deduplicate_contacts` plays directly on
+the CRM models. Each run searches the live CRM, normalizes and scores duplicate evidence, selects a
+deterministic survivor, then merges a narrow automatic class or pauses for Cargo's native Human
+Review. Approval merges; decline or timeout leaves the records separate.
 
-The contact path also stores approved non-empty people identity values before a guarded merge and
-writes them back to the canonical Contact after the native CRM merge. That write-back is limited to
-email, phone, LinkedIn URL, LinkedIn person ID, job title, and primary associated company ID.
-The checked contact graph prepares four LinkedIn URL search variants before live CRM search so
-runtime `findRecords` matches the audit's normalized URL comparisons. Phone formatting cannot be
-exhaustively searched the same way; use a priced, operator-approved CRM normalization write policy
-before rerunning rows where phone-only duplicate coverage matters.
+Contact automatic merge accepts exact LinkedIn person ID, exact LinkedIn URL without person-ID
+conflict, exact non-generic email without LinkedIn conflict, and conflict-free transitive chains of
+those keys. A LinkedIn conflict, generic/shared email, or phone-only match always leaves the
+automatic path. After a contact merge, approved writable values are sent to the new record ID
+returned by HubSpot. Company associations are not written through the read-only
+`associatedcompanyid` property.
 
-Contact high-confidence groups include transitive chains across exact approved keys: if A matches B
-on LinkedIn person ID and B matches C on normalized LinkedIn URL without conflicts, all three merge
-into one canonical Contact without reselecting between secondary merges.
-
-The checked example is HubSpot. Salesforce and Attio adapt the same file. Both plays are disabled,
+The checked example is HubSpot. Salesforce and Attio adapt the same resources. Both plays are disabled,
 `noConcurrency`, and limited to 15 CRM rows. Nothing in this folder deploys, runs, or touches
 customer data by itself.
 
@@ -37,12 +31,18 @@ npx skills add getcargohq/cargo-skills --skill cargo-cdk
 
 `SKILL.md` is the procedure. Supporting depth:
 
-| Path                      | Purpose                                                    |
-| ------------------------- | ---------------------------------------------------------- |
-| `SKILL.md`                | Outcome, installation, contracts, approvals, and cost     |
-| `infra/index.ts`          | The only infrastructure adaptation surface                |
-| `references/audit.md`     | Identity coverage, candidate classes, and survivor audit   |
-| `references/configure.md` | CRM search, scoring, merge, and Human Review configuration |
-| `references/run.md`       | Pilot approval, verification, reporting, and Cargo links   |
-| `evals/acceptance.md`     | Acceptance checklist                                       |
-| `evals/contract.mjs`      | Executable deduplication graph and safety contract         |
+| Path                                  | Purpose                                                         |
+| ------------------------------------- | --------------------------------------------------------------- |
+| `SKILL.md`                            | Outcome, installation, contracts, approvals, and cost          |
+| `infra/connectors/`                   | The uncached CRM slot and Slack review destination              |
+| `infra/folders/`                      | Skill-owned model and play folders                              |
+| `infra/models/`                       | CRM account and contact extracts                               |
+| `infra/plays/`                        | Typed account and contact workflows and triggers                |
+| `infra/scripts/policy.ts`             | Generic domains and account survivor precedence                 |
+| `infra/scripts/evidence.ts`           | Typed account evidence script                                   |
+| `infra/scripts/contact-*.ts`          | Typed contact search, evidence, and normalization scripts       |
+| `references/audit.md`                 | Identity coverage, candidate classes, and survivor audit        |
+| `references/configure.md`             | CRM search, scoring, merge, and Human Review configuration      |
+| `references/run.md`                   | Pilot approval, verification, reporting, and Cargo links        |
+| `evals/acceptance.md`                 | Acceptance checklist                                            |
+| `evals/contract.mjs`                  | Executable account and contact graph and safety contract        |
