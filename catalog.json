@@ -435,66 +435,108 @@
       ],
       "asked": [
         {
-          "input": "crm_schema",
+          "input": "crm_shape",
           "kind": "derived",
-          "how": "Inspect the existing Cargo connector, extracts, and live CRM properties",
-          "why": "Determines models, IDs, destinations, and write behavior"
+          "how": "Inspect authenticated connectors, selected extracts, and live CRM properties",
+          "why": "Determines objects, record IDs, destinations, and write behavior"
         },
         {
-          "input": "provider_schema",
+          "input": "selected_paths",
           "kind": "derived",
-          "how": "Inspect the live LinkedIn actions",
+          "how": "Read whether the request names account enrichment, contact enrichment, or both",
+          "why": "Sets which resources, audits, approvals, and pilots are in scope"
+        },
+        {
+          "input": "account_provider_schema",
+          "kind": "derived",
+          "how": "Inspect both live LinkedIn company actions",
           "why": "Prevents guessed output paths and types"
         },
         {
-          "input": "native_tool_contracts",
-          "kind": "derived",
-          "how": "Instantiate and inspect both Cargo-native tools",
-          "why": "Makes the play compile against the deployed tools"
-        },
-        {
-          "input": "approved_fields",
+          "input": "account_field_contract",
           "kind": "asked",
-          "how": "Present one row per provider field with destination, type, transformation, and write policy",
-          "why": "Controls every CRM mutation"
+          "how": "Review one decision row per company provider property",
+          "why": "Controls every company mutation"
         },
         {
-          "input": "eligible_population",
+          "input": "account_population",
           "kind": "derived",
-          "how": "Count rows with an identifier, stale freshness, and at least one approved blank",
-          "why": "Sets scope and cost"
+          "how": "Count mutually exclusive LinkedIn URL and domain fallback routes",
+          "why": "Sets account scope and spend"
         },
         {
-          "input": "refresh_cadence",
+          "input": "account_run",
           "kind": "asked",
-          "how": "Recommend six months unless the operator has a different governance need",
-          "why": "Controls repeat spend"
+          "how": "Review disabled resource links, exact population, and maximum spend",
+          "why": "Authorizes only the account pilot"
+        },
+        {
+          "input": "contact_tool_contracts",
+          "kind": "derived",
+          "how": "Inspect profile enrichment and both instantiated Cargo-native tools",
+          "why": "Prevents guessed inputs, output paths, and prices"
+        },
+        {
+          "input": "contact_field_contract",
+          "kind": "asked",
+          "how": "Review one decision row per contact provider property",
+          "why": "Controls every contact mutation"
+        },
+        {
+          "input": "contact_population",
+          "kind": "derived",
+          "how": "Count both-identifiers, LinkedIn-only, email-only, and neither routes",
+          "why": "Sets contact scope and spend"
+        },
+        {
+          "input": "contact_run",
+          "kind": "asked",
+          "how": "Review disabled resource links, exact population, and maximum spend",
+          "why": "Authorizes only the contact pilot"
         }
       ],
       "canChange": [
         {
           "id": "crm_shape",
           "when": "The consumer uses Salesforce or Attio",
-          "how": "Replace the connector, extracts, object names, record IDs, write action, and blank-only guard together",
+          "how": "Replace the connector, selected extracts, object names, record IDs, write action, and blank-only guard together",
           "cost": "Generated types and write semantics must be reverified"
         },
         {
-          "id": "selected_fields",
-          "when": "The approved contract differs from the starting fields",
-          "how": "Change tool outputs, CRM destinations, transformations, filters, and mappings together",
+          "id": "refresh_cadence",
+          "when": "The default window does not fit the data policy",
+          "how": "Change freshness independently for each selected path and report repeat-spend impact",
+          "cost": "Faster cadence repeats provider charges more often"
+        },
+        {
+          "id": "account_fields",
+          "when": "The approved company contract differs from the starting fields",
+          "how": "Change account tool outputs, CRM mappings, and transformations together",
           "cost": "Every added field expands schema and write review"
         },
         {
-          "id": "eligibility",
-          "when": "Only a governed subset should be enriched",
-          "how": "Intersect the play filter with approved lifecycle, tier, or ownership conditions",
+          "id": "account_eligibility",
+          "when": "Only a governed company subset should be enriched",
+          "how": "Intersect the account play filter with approved lifecycle, tier, or ownership conditions",
           "cost": "Narrower scope reduces coverage and paid calls"
         },
         {
-          "id": "refresh_cadence",
-          "when": "Six months does not fit the data policy",
-          "how": "Change the freshness condition and report the new repeat-spend impact",
-          "cost": "Faster cadence repeats provider charges more often"
+          "id": "account_refresh_policy",
+          "when": "Approved populated company fields must be refreshed",
+          "how": "Remove blank-only protection only for approved fields and compare against a fresh CRM read",
+          "cost": "The provider snapshot can replace CRM-authoritative values"
+        },
+        {
+          "id": "contact_fields",
+          "when": "The approved person contract differs from the starting fields",
+          "how": "Change custom tool outputs, contact mappings, blank filters, and transformations together",
+          "cost": "Every added field expands schema and write review"
+        },
+        {
+          "id": "contact_eligibility",
+          "when": "Only a governed contact subset should be enriched",
+          "how": "Intersect the contact play filter with approved lifecycle, tier, or ownership conditions",
+          "cost": "Narrower scope reduces coverage and paid calls"
         },
         {
           "id": "native_tool_contracts",
@@ -510,31 +552,37 @@
         }
       ],
       "shouldNotChange": [
-        "**One contact play.** Keep contact orchestration in `enrich_contacts`. Do not add parallel plays for customer status, personas, or lifecycle stages.",
-        "**Three contact tool resources.** The play uses only Find Email, Find LinkedIn Profile from Email, and Contact LinkedIn Enrichment. Explicit workflow branches can compile the custom tool into several mutually exclusive call nodes, but they all target the same custom resource.",
+        "**Each path runs on its direct CRM extract.** The account play matches the company record ID and the contact play matches the contact record ID. A second identity system makes writes look successful while nothing lands.",
+        "**Tools enrich and plays write.** Custom tools contain no CRM access. Plays do not duplicate provider connector actions.",
+        "**Fill approved blanks only.** Every business-field mapping uses a CRM-native blank-only flag or an equivalent fresh-read guard. Do not overwrite an authoritative CRM value without an explicit field-level refresh approval.",
+        "**Freshness follows a write.** Stamp `cargo_last_enriched_at` and `cargo_enrichment_status=succeeded` only on successful CRM write paths.",
+        "**Selected plays deploy disabled and use `noConcurrency`.** Removing either expands an unapproved pilot.",
+        "**LinkedIn first, domain fallback.** One account takes exactly one provider route. Rows without either identifier make no paid call.",
+        "**One account tool and one account play.** `account_enrichment` owns provider routing; `enrich_accounts` owns the only company write.",
+        "**Account eligibility does not require a blank destination.** Populated stale records remain eligible for an explicitly approved refresh policy.",
+        "**One contact play and three tool resources.** Keep contact orchestration in `enrich_contacts` and use only Find Email, Find LinkedIn Profile from Email, and Contact LinkedIn Enrichment.",
         "**Real branch gating.** Find Email runs only for LinkedIn-only rows. Find LinkedIn Profile from Email runs only for email-only rows. Contact LinkedIn Enrichment runs only with a LinkedIn URL.",
-        "**No unresolved write.** When email cannot resolve to a LinkedIn URL, stop without a CRM write and without successful freshness.",
-        "**Tools enrich, plays write.** The custom tool cannot access the CRM. Provider actions cannot be duplicated directly inside the play.",
-        "**Fill blanks only.** Every business-field mapping uses the CRM-native blank-only flag or an equivalent fresh-read guard. Do not overwrite an authoritative CRM value.",
-        "**Freshness follows a write.** Stamp `cargo_last_enriched_at` and `cargo_enrichment_status=succeeded` only in the successful CRM write path.",
-        "**Null-safe filters.** Pair `isNull` and `isEmpty` for every blank string condition because CRM extracts can represent blanks either way.",
-        "**No contact creation.** Update the triggering CRM row by its record ID. Do not create or merge contacts in this pipeline."
+        "**No unresolved write.** When email cannot resolve to LinkedIn, stop without custom enrichment, CRM write, or successful freshness.",
+        "**Null-safe blank filters.** Pair `isNull` and `isEmpty` for every contact string destination.",
+        "**No contact creation or movement tracking.** Update only the triggering contact. Do not create, merge, move, or alert on contacts in this path."
       ],
       "doneWhen": [
-        "The approved field contract names every destination, type, transformation, and write policy.",
-        "The native tool UUIDs and live schemas are verified and placeholders are gone.",
-        "`cargo-ai cdk plan` shows `enrich_contacts` plus exactly the three intended contact tool targets.",
-        "The compiled graph proves both native calls are branch-gated and every custom enrichment call has a LinkedIn URL.",
-        "The custom tool contains one LinkedIn profile enrichment action and no CRM connector action.",
-        "Every successful contact route writes by CRM record ID, fills approved blanks only, and stamps freshness after the write.",
-        "Email-only rows that do not resolve stop without calling custom enrichment or writing to the CRM.",
-        "Rows with neither identifier make no paid call.",
-        "The account path still chooses exactly one provider route and keeps its CRM write in the play.",
-        "All plays are deployed disabled, then a one-record write probe and approved pilot pass.",
-        "The final report includes eligible, processed, written, unresolved, failed, fill-rate, and credit counts with direct Cargo resource links."
+        "The approved account field contract names every destination, type, transformation, and write policy.",
+        "The plan contains one account model, one account enrichment tool, and one disabled account play.",
+        "The compiled graph proves one mutually exclusive company provider route and one play-owned CRM write.",
+        "The account write matches the audited company record ID and preserves populated business values.",
+        "The account write probe and approved pilot pass.",
+        "The account report includes route, processed, written, skipped, failed, fill-rate, spend, and direct-link evidence.",
+        "The approved contact field contract names every destination, type, transformation, and write policy.",
+        "Native tool UUIDs and live schemas are verified and placeholders are gone.",
+        "The plan contains one contact model, exactly three contact tool targets, and one disabled contact play.",
+        "The compiled graph proves both native calls are gated and every custom enrichment call has a LinkedIn URL.",
+        "Unresolved and identifier-free rows stop without custom enrichment, CRM write, or successful freshness.",
+        "The contact write probe and approved pilot pass.",
+        "The contact report includes route, processed, written, unresolved, skipped, failed, fill-rate, spend, and direct-link evidence."
       ],
-      "cost": "Fetch prices from the live workspace before every run. Quote the unit price for each account\nprovider action, both Cargo-native contact tools, and the LinkedIn profile enrichment action.\n\nPer contact, the maximum paid chain is two calls:\n\n- LinkedIn only: Find Email plus Contact LinkedIn Enrichment.\n- Email only: Find LinkedIn Profile from Email plus Contact LinkedIn Enrichment when resolution\n  succeeds.\n- Both identifiers: Contact LinkedIn Enrichment only.\n- Neither identifier: no paid call.\n\nShow mutually exclusive route counts and calculate the maximum credits before seeking approval.\nA failed CRM write can cause provider calls to be billed again on retry, so test write capability\non one record before the batch.",
-      "composesInto": "`deduplicate-records` after enrichment, `find-stakeholders` for coverage gaps,\n`segment-accounts` for activation, and `track-job-changes` as a separate one-time movement check."
+      "cost": "Fetch live prices from the workspace before every preview. Cost only the selected paths. A failed\nCRM write can cause provider calls to be billed again on retry, so probe write capability before a\nbatch.\n\n### Path 1: Account cost\n\nQuote both LinkedIn company actions. Multiply the mutually exclusive LinkedIn URL and domain\nfallback populations by their respective live unit prices. Rows with neither identifier make no\npaid call.\n\n### Path 2: Contact cost\n\nQuote both Cargo-native tools and the LinkedIn profile enrichment action. Per contact, the maximum\npaid chain is:\n\n- LinkedIn only: Find Email plus Contact LinkedIn Enrichment.\n- Email only: Find LinkedIn Profile from Email plus Contact LinkedIn Enrichment when resolution\n  succeeds.\n- Both identifiers: Contact LinkedIn Enrichment only.\n- Neither identifier: no paid call.\n\nShow mutually exclusive route counts and maximum spend before requesting approval for either path.",
+      "composesInto": "`crm-deduplication` after account enrichment, `find-stakeholders` for coverage gaps,\n`segment-accounts` for activation, and `track-job-changes` as a separate one-time movement check."
     },
     {
       "name": "enrich-company-data",
