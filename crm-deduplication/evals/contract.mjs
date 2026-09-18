@@ -6,6 +6,14 @@
 import assert from "node:assert/strict";
 import { loadResources } from "@cargo-ai/cdk";
 
+import { deriveContactEvidence } from "../infra/scripts/contact-evidence.ts";
+import { prepareContactSearch } from "../infra/scripts/contact-search.ts";
+import {
+  normalizeEmail,
+  normalizeLinkedInPersonUrl,
+  normalizePhone,
+  phoneMatchKeys,
+} from "../infra/scripts/contacts.ts";
 import { deriveEvidence } from "../infra/scripts/evidence.ts";
 
 const infraDir = new URL("../infra", import.meta.url).pathname;
@@ -18,15 +26,24 @@ assert.deepEqual(
   new Set([
     "connector:crm",
     "connector:slack",
+    "folder:crm-deduplication-models",
+    "folder:crm-deduplication-plays",
     "model:crm_accounts",
+    "model:crm_contacts",
     "play:deduplicate_accounts",
+    "play:deduplicate_contacts",
   ]),
-  "crm-deduplication must deploy only its CRM model, connectors, and deduplication play",
+  "crm-deduplication must deploy only its CRM models, connectors, and deduplication plays",
 );
 assert.equal(
   byId.has("model:account_duplicate_candidates"),
   false,
   "deduplication must not deploy a duplicate-candidate staging model",
+);
+assert.equal(
+  byId.has("model:contact_duplicate_candidates"),
+  false,
+  "deduplication must not deploy a contact-candidate staging model",
 );
 // Every merge decision rests on what the CRM returns during the run. A cached
 // connector could serve `findRecords` a stale cluster, which is the one thing
@@ -36,6 +53,20 @@ for (const connectorId of ["connector:crm", "connector:slack"]) {
     byId.get(connectorId).spec.cacheTtlMilliseconds,
     undefined,
     `${connectorId} must not cache: a merge acts on what the CRM returns now`,
+  );
+}
+for (const modelId of ["model:crm_accounts", "model:crm_contacts"]) {
+  assert.equal(
+    byId.get(modelId).spec.folderUuid.resourceId,
+    "folder:crm-deduplication-models",
+    `${modelId} must belong to the skill's model folder`,
+  );
+}
+for (const playId of ["play:deduplicate_accounts", "play:deduplicate_contacts"]) {
+  assert.equal(
+    byId.get(playId).spec.folderUuid.resourceId,
+    "folder:crm-deduplication-plays",
+    `${playId} must belong to the skill's play folder`,
   );
 }
 
@@ -362,6 +393,294 @@ assert.deepEqual(
   "an account missing from the fresh search must never emit a merge ID",
 );
 
+const contactPlay = byId.get("play:deduplicate_contacts");
+assert.equal(
+  contactPlay.spec.modelUuid.resourceId,
+  "model:crm_contacts",
+  "deduplicate_contacts must run directly on the CRM contact model",
+);
+assert.equal(contactPlay.spec.isEnabled, false, "the contact play must be disabled");
+assert.equal(contactPlay.spec.limit, 15, "the contact pilot must be limited to 15 rows");
+assert.equal(
+  contactPlay.spec.runCreationRule,
+  "noConcurrency",
+  "the contact play must run serially",
+);
+
+const contactNodes = contactPlay.spec.nodes;
+const contactOnly = (predicate, message) => {
+  const matches = contactNodes.filter(predicate);
+  assert.equal(matches.length, 1, message);
+  return matches[0];
+};
+const contactByUuid = (uuid) =>
+  contactNodes.find((node) => node.uuid === uuid);
+const contactChildrenOf = (node) =>
+  node.childrenUuids.map(contactByUuid).filter(Boolean);
+const contactCrmAction = (actionSlug) => (node) =>
+  node.kind === "connector" &&
+  node.connectorUuid?.resourceId === "connector:crm" &&
+  node.actionSlug === actionSlug;
+
+const contactSearches = contactNodes.filter(contactCrmAction("findRecords"));
+assert.equal(
+  contactSearches.length,
+  2,
+  "contact deduplication must perform direct and transitive live CRM searches",
+);
+assert.equal(
+  contactSearches.every((node) => node.config.objectType === "contacts"),
+  true,
+  "both contact searches must read live CRM contacts",
+);
+
+const contactScore = contactOnly(
+  (node) => node.kind === "native" && node.actionSlug === "scoring",
+  "contact evidence must be scored by one native Scoring node",
+);
+assert.deepEqual(
+  contactScore.config.criterias.map(({ name, score }) => [
+    name,
+    score.expression,
+  ]),
+  [
+    ["Exact LinkedIn person ID", "{{ 60 }}"],
+    [
+      "Exact LinkedIn person URL without person-ID conflict",
+      "{{ 60 }}",
+    ],
+    [
+      "Exact non-generic email without LinkedIn conflict",
+      "{{ 60 }}",
+    ],
+    ["Transitive high-confidence chain", "{{ 60 }}"],
+  ],
+  "contact scoring must preserve the approved high-confidence classes",
+);
+
+const contactGate = contactChildrenOf(contactScore)[0];
+assert.equal(
+  contactGate.actionSlug,
+  "branch",
+  "contact scoring must feed the guarded automatic-merge branch",
+);
+assert.match(
+  contactGate.config.condition.expression,
+  /scoring\.score >= 60.*autoEligible/,
+  "contact automatic merge must require both score and the global safety guard",
+);
+
+const contactMerges = contactNodes.filter(contactCrmAction("mergeRecords"));
+const contactUpdates = contactNodes.filter(contactCrmAction("updateRecords"));
+assert.equal(
+  contactMerges.length,
+  2,
+  "contacts must merge only automatically or after approval",
+);
+assert.equal(
+  contactUpdates.length,
+  0,
+  "contact merge paths must not create post-merge update nodes",
+);
+
+const contactReview = contactOnly(
+  (node) => node.kind === "native" && node.actionSlug === "humanReview",
+  "low-confidence contact clusters must reach one Human Review node when enabled",
+);
+assert.equal(
+  contactReview.config.connectorUuid.resourceId,
+  "connector:slack",
+  "contact Human Review must use the declared Slack connector",
+);
+assert.match(
+  contactReview.config.content.expression,
+  /Conflicting LinkedIn person IDs:[\s\S]*Conflicting LinkedIn identity:[\s\S]*Generic or shared email:[\s\S]*Records:/,
+  "contact review must show conflicts, generic-email risk, and formatted records",
+);
+assert.doesNotMatch(
+  contactReview.config.content.expression,
+  /\/100/,
+  "contact score is additive and must not be displayed as a percentage",
+);
+
+const crmContact = (id, properties = {}) => ({
+  id,
+  properties: {
+    email: "jack@example.com",
+    phone: "(415) 555-0101",
+    linkedin_url: "https://www.linkedin.com/in/jack-smith/",
+    linkedin_person_id: "person-123",
+    firstname: "Jack",
+    lastname: "Smith",
+    jobtitle: "VP Sales",
+    associatedcompanyid: "company-1",
+    num_associated_deals: 0,
+    num_contacted_notes: 0,
+    hs_sales_email_last_replied: 0,
+    createdate: "2024-01-01T00:00:00.000Z",
+    lastmodifieddate: "2024-01-01T00:00:00.000Z",
+    ...properties,
+  },
+});
+const contactEvidenceFor = (sourceId, directRecords, transitiveRecords = []) =>
+  deriveContactEvidence({ sourceId, directRecords, transitiveRecords });
+
+const exactContact = contactEvidenceFor("source", [
+  crmContact("source", { email: "old@example.com" }),
+  crmContact("history", {
+    email: "new@example.com",
+    num_associated_deals: 3,
+    lastmodifieddate: "2024-02-01T00:00:00.000Z",
+  }),
+]);
+assert.equal(
+  exactContact.autoEligible,
+  true,
+  "an exact person ID without global conflicts must be automatic",
+);
+assert.equal(
+  exactContact.primaryId,
+  "history",
+  "contact survivor selection must prefer commercial history",
+);
+assert.deepEqual(
+  exactContact.idsToMerge,
+  ["source"],
+  "contact evidence must return every non-survivor ID",
+);
+assert.equal(
+  Object.hasOwn(exactContact, "writeBackMappings"),
+  false,
+  "contact evidence must not prepare post-merge write-back mappings",
+);
+
+const genericEmailWithPersonId = contactEvidenceFor("source", [
+  crmContact("source", { email: "INFO@example.com" }),
+  crmContact("other", { email: "info@example.com" }),
+]);
+assert.equal(
+  genericEmailWithPersonId.genericOrSharedEmail,
+  true,
+  "role-based email risk must be visible even when a person ID matches",
+);
+assert.equal(
+  genericEmailWithPersonId.autoEligible,
+  false,
+  "the generic-email guard must apply to every automatic contact class",
+);
+
+const conflictingLinkedinWithPersonId = contactEvidenceFor("source", [
+  crmContact("source"),
+  crmContact("other", {
+    linkedin_url: "https://linkedin.com/in/a-different-person",
+  }),
+]);
+assert.equal(
+  conflictingLinkedinWithPersonId.conflictingLinkedinIdentity,
+  true,
+  "conflicting LinkedIn URLs must be visible when person IDs match",
+);
+assert.equal(
+  conflictingLinkedinWithPersonId.autoEligible,
+  false,
+  "the LinkedIn conflict guard must apply to every automatic contact class",
+);
+
+const transitiveContact = contactEvidenceFor(
+  "a",
+  [
+    crmContact("a", {
+      email: "",
+      linkedin_url: "",
+      linkedin_person_id: "person-1",
+    }),
+    crmContact("b", {
+      email: "",
+      linkedin_url: "https://linkedin.com/in/shared",
+      linkedin_person_id: "person-1",
+      num_associated_deals: 3,
+    }),
+  ],
+  [
+    crmContact("c", {
+      email: "",
+      linkedin_url: "https://www.linkedin.com/in/shared/",
+      linkedin_person_id: "",
+    }),
+  ],
+);
+assert.equal(
+  transitiveContact.transitiveHighConfidence,
+  true,
+  "pairwise high-confidence keys must form one transitive contact cluster",
+);
+assert.equal(
+  transitiveContact.autoEligible,
+  true,
+  "a conflict-free transitive high-confidence cluster may merge automatically",
+);
+
+const phoneOnlyContact = contactEvidenceFor("source", [
+  crmContact("source", {
+    email: "",
+    linkedin_url: "",
+    linkedin_person_id: "",
+    phone: "06 12 34 56 78",
+  }),
+  crmContact("other", {
+    email: "",
+    linkedin_url: "",
+    linkedin_person_id: "",
+    phone: "+33 6 12 34 56 78",
+  }),
+]);
+assert.equal(phoneOnlyContact.phoneOnly, true, "phone-only matches must be classified");
+assert.equal(
+  phoneOnlyContact.autoEligible,
+  false,
+  "phone-only matches must never merge automatically",
+);
+
+const staleContact = contactEvidenceFor("absorbed", [crmContact("survivor")]);
+assert.equal(
+  staleContact.sourceFound,
+  false,
+  "a contact missing from the fresh search must stop before scoring",
+);
+assert.deepEqual(
+  staleContact.idsToMerge,
+  [],
+  "a missing contact must never emit merge IDs",
+);
+
+assert.deepEqual(
+  prepareContactSearch({
+    sourceId: "source",
+    linkedinPersonId: undefined,
+    linkedinUrl: "linkedin.com/in/Jack/",
+    email: " JACK@Example.COM ",
+    phone: undefined,
+  }).linkedinUrlVariants,
+  [
+    "https://linkedin.com/in/jack",
+    "https://linkedin.com/in/jack/",
+    "https://www.linkedin.com/in/jack",
+    "https://www.linkedin.com/in/jack/",
+  ],
+  "runtime search must enumerate normalized LinkedIn URL variants",
+);
+assert.equal(normalizeEmail(" JACK@Example.COM "), "jack@example.com");
+assert.equal(
+  normalizeLinkedInPersonUrl(
+    "https://www.linkedin.com/in/Jack-Smith/?trk=public",
+  ),
+  "jack-smith",
+);
+assert.equal(normalizePhone("(415) 555-0101"), "+14155550101");
+assert.equal(phoneMatchKeys("06 12 34 56 78").includes("+33612345678"), true);
+assert.equal(phoneMatchKeys("020 7946 0958").includes("+442079460958"), true);
+assert.equal(phoneMatchKeys("0044 20 7946 0958").includes("+442079460958"), true);
+
 console.log(
-  "ok: crm-deduplication searches and scores CRM rows before a guarded merge or human review",
+  "ok: crm-deduplication guards account and contact merges with live evidence",
 );

@@ -1,6 +1,7 @@
 import { defineModel } from "@cargo-ai/cdk";
 
 import { crm } from "../connectors/crm";
+import { modelsFolder } from "../folders";
 
 // The authoritative account universe, extracted from the CRM itself. The play
 // runs on this model so every row it enrolls carries the CRM's own record ID —
@@ -12,6 +13,7 @@ import { crm } from "../connectors/crm";
 // (identity keys, protected IDs, parent company, lifecycle, engagement counts)
 // available without naming each one here.
 export const crmAccounts = defineModel("crm_accounts", {
+  folder: modelsFolder,
   connector: crm,
   extractSlug: "fetchRecords",
   config: { objectType: "companies", columnSelectionMode: "all" },

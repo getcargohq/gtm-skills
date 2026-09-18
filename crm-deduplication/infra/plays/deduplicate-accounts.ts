@@ -3,6 +3,7 @@ import { z } from "zod";
 
 import { crm } from "../connectors/crm";
 import { slack } from "../connectors/slack";
+import { playsFolder } from "../folders";
 import { crmAccounts } from "../models/crm-accounts";
 import { deriveEvidence } from "../scripts/evidence";
 
@@ -171,6 +172,7 @@ ${evidence.evidenceSummary}`,
 // pilot stays small enough for a human to verify every survivor by hand, and
 // only an approved pilot lifts any of the three.
 export const deduplicateAccounts = definePlay("deduplicate_accounts", {
+  folder: playsFolder,
   model: crmAccounts,
   workflow: deduplicateCrmAccount,
   filter: {
