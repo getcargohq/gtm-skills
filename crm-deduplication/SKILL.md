@@ -2,7 +2,7 @@
 name: crm-deduplication
 description: 'Keep CRM accounts and contacts duplicate-free: audit company and person identity, run recurring deduplication plays directly on CRM models, merge safe exact matches, and route uncertain clusters to manual review. Triggers: "deduplicate our CRM accounts", "deduplicate CRM contacts", "our CRM has duplicate people", "merge duplicate contacts in HubSpot", "we keep creating duplicate account records", "merge duplicate companies in HubSpot", "set up recurring CRM deduplication", "review ambiguous duplicates". HubSpot, Salesforce, Attio, Slack, LinkedIn profiles, phone numbers, Cargo CDK, findRecords, Scoring, Human Review, mergeRecords. Skip when: the request is to add or refresh CRM data rather than merge duplicate records; use crm-enrichment.'
 version: "0.1.0"
-compatibility: "Requires the cargo-cdk skill, a Cargo CDK project, @cargo-ai/cdk 1.0.82 or later, an authenticated CRM connector, and a Slack connector for review. The repository example does not deploy or access a CRM until an agent adapts it in the consumer project."
+compatibility: "Requires the cargo-cdk skill, a Cargo CDK project, @cargo-ai/cdk 1.0.82 or later, an authenticated CRM connector, and a Slack connector for each selected path that uses Human Review. The repository example does not deploy or access a CRM until an agent adapts it in the consumer project."
 homepage: https://github.com/getcargohq/gtm-skills/tree/main/crm-deduplication
 metadata:
   author: getcargo
@@ -27,60 +27,48 @@ for this skill until it is approved.
 
 ## The outcome
 
-CRM accounts and contacts stay duplicate-free. Two disabled plays run directly on CRM-backed
-models, search live CRM records sharing approved identity keys, score the evidence, select a
-deterministic survivor, and either merge or pause for manual validation. They do not create
-candidate or staging models.
+Choose the account path, contact path, or both. Each selected path has its own CRM model, identity
+audit, matching policy, survivor policy, disabled play, cost preview, pilot approval, and acceptance
+criteria. Approval for one path does not authorize the other.
 
-Exact shared LinkedIn company ID with no identity, protected-ID, or parent-subsidiary conflict is
-the only automatic class. Every other candidate reaches Cargo's native Human Review node. Approval
-merges; decline or timeout keeps the records separate. Company name alone never creates or scores a
-candidate.
+### Path 1: Account deduplication
 
-Contacts merge automatically only on an exact LinkedIn person ID, exact LinkedIn URL without an ID
-conflict, exact non-generic email without a LinkedIn conflict, or a conflict-free transitive chain
-of those keys. LinkedIn conflicts, generic/shared email, and phone-only matches never enter the
-automatic path. The native merge is the final CRM write. Do not add an update node after a merge;
-handle any normalization or enrichment separately with `crm-enrichment`.
+`deduplicate_accounts` searches live CRM companies by LinkedIn company ID, LinkedIn company page,
+and non-generic domain. It scores the evidence, selects a deterministic survivor, and merges only
+an exact shared LinkedIn company ID when there is no identity, protected-ID, or parent-subsidiary
+conflict. Every other candidate reaches Cargo's native Human Review node. Company name never
+creates or scores a candidate.
 
-The checked example in `infra/` is HubSpot: `fetchRecords` for companies, `findRecords` for
-live candidate search, and `mergeRecords` for automatic or approved merges. Salesforce and Attio
-adapt the same resources by replacing the connector, extractor, record-ID field, search action,
-merge action, and property slugs. Keep one CRM shape in the folder.
+The default survivor policy prefers protected business IDs, customers, commercial activity,
+populated records, recent activity, older creation time, then the smallest CRM record ID.
 
-When matching-key coverage is weak, recommend `crm-enrichment` before building this play. That is a
-recommendation, not a dependency: `crm-deduplication` installs and operates independently.
+### Path 2: Contact deduplication
 
-## Guide the operator through every phase
+`deduplicate_contacts` searches live CRM contacts by LinkedIn person ID, normalized LinkedIn URL,
+exact email, and exact stored phone. A second search expands the direct results into transitive
+clusters using normalized identity values from retrieved records. Phone normalization also compares
+records inside the cluster. The play merges automatically only on an exact LinkedIn person ID,
+exact LinkedIn URL without a person-ID conflict, exact non-generic email without a LinkedIn conflict,
+or a conflict-free transitive chain of those classes.
 
-```mermaid
-flowchart LR
-  audit["1. Audit identity and candidates"] -->|"Approve policy and disabled build"| build["2. Build disabled CRM-model play"]
-  build -->|"Review play link and approve pilot"| run["3. Run guarded deduplication"]
-  run --> report["4. Verify survivors and report"]
-```
+LinkedIn identity conflicts, generic or shared email, and phone-only matches never merge
+automatically. Low-confidence clusters reach Human Review when that path is enabled and otherwise
+remain untouched. The native merge is the final CRM write. Normalization, enrichment, and
+association changes belong in a separately approved workflow.
 
-Every substantive message starts with the current phase and ends with a `Next step` section. Give
-the operator one concrete decision or action, say what follows approval, and name what remains
-blocked. During in-progress work, say `No action needed` and name the next checkpoint.
+### Shared merge contract
 
-1. **Audit identity and candidates.** Follow [`references/audit.md`](references/audit.md). Present
-   identifier coverage, candidate classes, conflicts, protected IDs, 60/25/15 evidence score,
-   deterministic survivor precedence, and proposed Slack review destination. If coverage is weak,
-   recommend `crm-enrichment`. Ask the operator to approve the complete deduplication policy and
-   authorize deployment of disabled resources. No CRM write or review request occurs in this phase.
-2. **Build disabled CRM-model play.** Follow
-   [`references/configure.md`](references/configure.md). Reconcile compatible CRM resources already
-   in the project, adapt the checked file, run its executable contract, type, check, and plan. Deploy
-   only under the operator's disabled-build authorization. Send the direct Cargo play link and the
-   exact 15-row maximum pilot population for each play. Ask for separate approval of each
-   merge-capable pilot.
-3. **Run guarded deduplication.** Refresh the live audit, action schemas, costs, and population. Run
-   only the approved rows. Automatic merge is limited to the exact shared LinkedIn ID class without
-   conflicts. Every other candidate pauses for Human Review.
-4. **Verify survivors and report.** Follow [`references/run.md`](references/run.md). Re-read every
-   survivor and absorbed child ID in the CRM. Report each search, score, automatic merge, approved
-   merge, decline, timeout, exclusion, stale source, and failure.
+Both plays run directly on authoritative CRM-backed models, refresh candidates from the CRM before
+scoring, and stop when the queued source record is missing or no duplicate remains. Automatic and
+approved Human Review paths are the only merge paths. Decline or timeout leaves records separate.
+No candidate or staging model is created.
+
+The checked example in `infra/` is HubSpot. Salesforce and Attio adapt the connector, extractor,
+record-ID field, search action, merge action, and property slugs together. Keep one CRM shape across
+the selected paths.
+
+When matching-key coverage is weak, recommend `crm-enrichment` before building the affected path.
+That is a recommendation, not a dependency: `crm-deduplication` installs and operates independently.
 
 ## Put it in your project
 
@@ -97,124 +85,212 @@ Read `.agents/skills/cargo-cdk/SKILL.md` directly after installation. Complete i
 its authoring, state, plan, and deployment rules throughout this pipeline.
 
 1. **Install it: the CLI does the copy.** From inside the CDK project,
-   `cargo-ai cdk add cookbook/crm-deduplication` writes this example to `infra/crm-deduplication/`
-   and this procedure to `.claude/skills/crm-deduplication/`. No project yet?
-   `cargo-ai cdk init <dir> --cookbook crm-deduplication && cd <dir> && npm install` does both;
+   `cargo-ai cdk add cookbook/crm-deduplication` writes this example to
+   `infra/crm-deduplication/` and this procedure to `.claude/skills/crm-deduplication/`. No project
+   yet? `cargo-ai cdk init <dir> --cookbook crm-deduplication && cd <dir> && npm install` does both;
    this folder never ships a shell. **If you are reading this from the project's `.claude/skills/`,
-   the install already happened. Start at step 2.** On a CLI too old to have `add`, copy this
-   folder in as a sibling of what is there by hand; everything below is unchanged.
-2. **Reconcile it with what is already declared.** Rewire the example to an existing compatible
-   CRM connector and account/contact extracts, and remove the duplicate declarations. Two resources
-   with one slug is a collision at deploy. Both plays must remain on their CRM-backed models. Append
-   environment requirements to `.env.example`; preserve existing content.
-3. **Audit and approve policy.** Read live CRM schemas and records. Derive every input that a lookup
-   can answer. Present the candidate and policy evidence from `references/audit.md`. Stop for
-   approval of matching keys, protected fields, survivor precedence, automatic class, review
-   destination, and disabled deployment.
-4. **Adapt and deploy disabled.** Record adaptations under `## Decisions` in the copied skill. Run
-   `node --import tsx evals/contract.mjs`, then `cargo-ai cdk types && cargo-ai cdk check && cargo-ai
-   cdk plan`. Inspect the compiled graph and plan. Deploy with `isEnabled: false` only under the
-   approved gate. Never run `cargo-ai cdk init --force` in a non-empty directory.
-5. **Hand off for pilot approval.** Send the direct play link, exact population, current action
-   costs, and approved policy. Stop for explicit approval of the merge-capable pilot.
-6. **Run and report.** Execute only the approved population. Monitor terminal outcomes and complete
-   the CRM verification in `references/run.md`. Walk `Done when` line by line.
+   the install already happened. Start at step 2.** On a CLI too old to have `add`, copy this folder
+   in as a sibling of what is there by hand; everything below is unchanged.
+2. **Choose paths and reconcile resources.** Select account deduplication, contact deduplication, or
+   both. Remove unselected model and play files, then update the contract's exact resource inventory,
+   connector assertions, and object-specific assertions. Rewire each selected path to compatible CRM
+   resources already in the project and remove duplicate declarations. Keep each play on its
+   object-specific CRM model. Append environment requirements to `.env.example`; preserve existing
+   content.
+3. **Audit and approve each selected path.** Follow the matching path in
+   [`references/audit.md`](references/audit.md). Present its identity coverage, candidate classes,
+   conflicts, survivor policy, automatic class, and review destination. Stop for approval of that
+   path's policy and disabled deployment. Approval does not carry across paths.
+4. **Adapt and deploy disabled.** Follow the matching path in
+   [`references/configure.md`](references/configure.md). Record adaptations under `## Decisions` in
+   the copied skill. Run the executable contract, generated types, check, and plan. Inspect the
+   selected graph and deploy only its approved resources with `isEnabled: false`. Never run
+   `cargo-ai cdk init --force` in a non-empty directory.
+5. **Hand off each path for pilot approval.** Send its direct play link, exact population, current
+   action costs, and approved policy. Stop for explicit approval of that merge-capable pilot.
+6. **Run and report each approved path.** Follow the matching path in
+   [`references/run.md`](references/run.md), then walk its section in
+   [`evals/acceptance.md`](evals/acceptance.md) line by line.
+
+### Account path setup
+
+Verify the live company schema, record ID, LinkedIn company properties, domain property, protected
+business identifiers, parent-company property, and survivor inputs. The account audit and policy
+must be approved before adapting `crm_accounts` or `deduplicate_accounts`.
+
+### Contact path setup
+
+Verify the live contact schema, record ID, LinkedIn person properties, email, phone, association
+evidence, and survivor inputs. Decide whether low-confidence clusters enter Human Review or remain
+untouched. The contact audit and policy must be approved before adapting `crm_contacts` or
+`deduplicate_contacts`.
+
+### Shared review setup
+
+Resolve the default CRM connector for every selected path. Account deduplication requires Slack
+Human Review. Contact deduplication requires Slack only when low-confidence review is enabled.
+Replace each active `PLACEHOLDER_REVIEW_CHANNEL_ID` with its approved destination. If both paths use
+one channel, each still needs its own approved review policy and pilot. No paid call, review request,
+or CRM write occurs during either audit.
 
 ## What you will be asked
 
-**Derive before you ask.** An input with a lookup is looked up, not asked.
+Derive what can be discovered before asking the operator. Ask only for decisions that change the
+selected path's candidate population, merge policy, review ownership, or spend.
 
-| Input                    | Kind    | How it is answered                                                                             | Why it matters                                                   |
-| ------------------------ | ------- | ---------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
-| `crm`                    | derived | Inspect authenticated connectors, generated action types, and existing CDK resources          | Both plays must search and merge in the authoritative CRM        |
-| `deduplication_evidence` | derived | Normalize live account and contact identifiers, conflicts, and survivor evidence              | Policy approval must be grounded in current records              |
-| `current_action_costs`   | derived | Read live CRM and Slack integration metadata immediately before each preview                   | The pilot handoff must disclose current cost                     |
-| `approved_policy`        | asked   | Review matching keys, protected fields, survivor precedence, score, and automatic class        | It controls every candidate and automatic merge                  |
-| `manual_review`          | asked   | Select the Slack connector, channel, owner, and timeout                                        | Uncertain clusters need an accountable decision path             |
-| `approved_build`         | asked   | Authorize deployment of the adapted resources with both plays disabled                         | Repository review does not authorize workspace mutation          |
-| `approved_pilot`         | asked   | Review the live play link and approve the exact merge-capable population                       | A disabled play can still mutate CRM records when manually run   |
+### Shared inputs
 
-Checked before moving on:
+| Input            | Kind    | How it is answered                                                                  | Why it matters                                                     |
+| ---------------- | ------- | ----------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
+| `crm_shape`      | derived | Inspect authenticated connectors, selected extracts, and generated action types     | Sets objects, IDs, search, merge, and property behavior            |
+| `selected_paths` | derived | Read whether the request names account deduplication, contact deduplication, or both | Sets which audits, resources, approvals, and pilots are in scope   |
+| `action_costs`   | derived | Read current CRM metadata plus Slack metadata for paths with active review          | Each path's handoff must disclose its current maximum cost          |
 
-- `crm`: the selected model is backed by the authoritative CRM connector and exposes its record ID
-- `approved_policy`: candidate keys, score, conflict gates, and survivor precedence are recorded
-- `manual_review`: Slack connector and channel resolve; approval, decline, and timeout paths compile
-- `approved_build`: the plan contains only the two connectors, CRM model, and disabled dedup play
-- `approved_pilot`: the exact population, current costs, and merge-capable policy are approved
+### Path 1: Account inputs
+
+| Input                    | Kind    | How it is answered                                                                   | Why it matters                                         |
+| ------------------------ | ------- | ------------------------------------------------------------------------------------ | ------------------------------------------------------ |
+| `account_evidence`       | derived | Audit company identifiers, conflicts, candidate classes, and survivor inputs         | Grounds the account policy in current CRM records      |
+| `account_policy`         | asked   | Review keys, protected fields, survivor precedence, score, and automatic class       | Controls every company candidate and unattended merge  |
+| `account_review`         | asked   | Select Slack channel, owner, and timeout for uncertain company clusters              | Gives manual company decisions an accountable owner    |
+| `account_authorizations` | asked   | Approve the disabled build, then the exact merge-capable pilot as separate decisions | Separates deployment from company-record mutation      |
+
+### Path 2: Contact inputs
+
+| Input                    | Kind    | How it is answered                                                                   | Why it matters                                         |
+| ------------------------ | ------- | ------------------------------------------------------------------------------------ | ------------------------------------------------------ |
+| `contact_evidence`       | derived | Audit person identifiers, conflicts, candidate classes, and survivor inputs          | Grounds the contact policy in current CRM records      |
+| `contact_policy`         | asked   | Review keys, global guards, survivor precedence, and automatic classes               | Controls every person candidate and unattended merge   |
+| `contact_review`         | asked   | Decide whether low-confidence groups enter review; if yes, approve channel and timeout | Defines the non-automatic contact path               |
+| `contact_authorizations` | asked   | Approve the disabled build, then the exact merge-capable pilot as separate decisions | Separates deployment from contact-record mutation      |
 
 ## What you can change
 
-The code is a worked example. Offer these adaptations when the audit supports them.
+Offer only variations relevant to the selected path. Record each approved variation with its
+effect on candidates, safeguards, and validation.
 
-| Variation              | When it is right                                                | How                                                                                                      | What it costs                                                         |
-| ---------------------- | --------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
-| `crm`                  | The consumer uses Salesforce or Attio                           | Replace the checked HubSpot connector, extractor, record ID, search action, merge action, and properties | Generated types and merge semantics must be revalidated               |
-| `matching_keys`        | The CRM has an approved durable identity beyond the defaults    | Add the normalized key to search, score, evidence, conflicts, and contract tests                         | Wider matching can create new false-positive classes                  |
-| `survivor_precedence`  | Protected lifecycle, billing, tier, or customer policy must win | Update both survivor implementations and record the exact order                                          | A policy change can select a different survivor for every cluster     |
-| `structured_ai_review` | Ambiguous evidence needs a review aid                           | Add priced structured evidence before Human Review only                                                  | Adds current model cost and a non-deterministic review surface        |
+### Shared variations
+
+| Variation              | When it is right                              | How                                                                                                   | What it costs                                                  |
+| ---------------------- | --------------------------------------------- | ----------------------------------------------------------------------------------------------------- | -------------------------------------------------------------- |
+| `crm`                  | The consumer uses Salesforce or Attio         | Replace connector, extract, record ID, search, merge, and properties across selected paths            | Generated types and native merge semantics must be revalidated |
+| `structured_ai_review` | Ambiguous evidence needs a concise review aid | Add priced structured evidence before Human Review only; never use it to bypass deterministic guards | Adds model cost and a non-deterministic review surface         |
+
+### Path 1: Account variations
+
+| Variation                     | When it is right                                                | How                                                                                  | What it costs                                                     |
+| ----------------------------- | --------------------------------------------------------------- | ------------------------------------------------------------------------------------ | ----------------------------------------------------------------- |
+| `account_matching_keys`       | The CRM has another approved durable company identity           | Add it to search, normalization, evidence, conflict gates, review, and contract tests | Wider matching can create new false-positive company classes      |
+| `account_survivor_precedence` | Protected lifecycle, billing, tier, or customer policy must win | Change the account ranker and its contract fixtures together                         | A policy change can select a different survivor for every cluster |
+
+### Path 2: Contact variations
+
+| Variation                     | When it is right                                           | How                                                                                 | What it costs                                                   |
+| ----------------------------- | ---------------------------------------------------------- | ----------------------------------------------------------------------------------- | --------------------------------------------------------------- |
+| `contact_matching_keys`       | The CRM has another approved durable person identity       | Add it to both searches, normalization, evidence, conflict gates, review, and tests | Wider matching can create new false-positive person classes     |
+| `contact_survivor_precedence` | Commercial history or activity policy differs              | Change the contact ranker and its contract fixtures together                        | A policy change can select a different survivor for every group |
+| `low_confidence_review`       | The operator wants phone-only or ambiguous groups surfaced | Keep Human Review enabled, or remove that branch and update the contact contract so those groups end untouched | Review volume changes; disabled review leaves more duplicates |
 
 ## What should not change
 
-- **Run on authoritative CRM models.** (`infra/plays/`) Each play uses its CRM-backed extract and
-  CRM record ID. A native or candidate model introduces another identity system and can target the
-  wrong record.
-- **Search live CRM rows before scoring.** (`infra/plays/deduplicate-accounts.ts`) `findRecords` refreshes candidate
+### Shared invariants
+
+- **Run on authoritative CRM models.** (`infra/plays/`) Each selected play uses its object-specific
+  CRM extract and record ID. A candidate model introduces another identity system and can target
+  the wrong record.
+- **Search live CRM rows before scoring.** (`infra/plays/`) The CRM search refreshes candidate
   membership for every run. Audit snapshots can become stale before a merge.
-- **Search, score, select, then decide.** (`infra/scripts/evidence.ts`) Deterministic preparation retains the
-  fresh source exactly once. Native Scoring evaluates the evidence before deterministic survivor
-  selection and the automatic gate.
-- **Keep the automatic class narrow.** (`infra/plays/deduplicate-accounts.ts`) Exact shared LinkedIn company ID, score at
-  least 60, and no identity, protected-ID, or parent-subsidiary conflict are all required. Every
-  other candidate reaches Human Review.
-- **Apply contact guards globally.** (`infra/scripts/contact-evidence.ts`) Every automatic contact
-  class is disqualified by a LinkedIn identity conflict or generic/shared email. Phone-only groups
-  remain manual.
-- **End contact workflows after merge.** (`infra/plays/deduplicate-contacts.ts`) The native merge is
-  the final CRM write. Do not add a post-merge update node. Handle normalization, enrichment, or
-  association changes in a separately approved workflow.
-- **Merge only on automatic or approved paths.** (`infra/plays/deduplicate-accounts.ts`) Human approval reaches the
+- **Search, prepare, score, then decide.** (`infra/scripts/`) Deterministic preparation retains the
+  fresh source once, normalizes evidence, and selects one survivor before the automatic gate.
+- **Merge only on automatic or approved paths.** (`infra/plays/`) Human approval reaches the
   reviewed merge. Decline and timeout end without a CRM write.
-- **Stop stale queued rows.** (`infra/plays/deduplicate-accounts.ts`) A source missing from the fresh search ends before
+- **Stop stale queued rows.** (`infra/plays/`) A source missing from the fresh search ends before
   scoring or emitting merge IDs.
-- **Keep one CRM shape in the folder.** Adapt HubSpot in place for Salesforce or Attio. Parallel CRM
-  branches drift from the generated types actually connected.
-- **Keep pilots disabled, serial, and limited.** (`infra/plays/`) Both plays remain disabled,
-  `noConcurrency`, and limited to 15 CRM rows until verified pilots are approved for expansion.
-- **Keep the repository inert.** It contains no credential, deploy command, customer data, or live
-  merge result.
+- **Keep one CRM shape.** Adapt HubSpot in place. Parallel CRM branches drift from the generated
+  types connected to the selected paths.
+- **Keep pilots disabled, serial, and limited.** (`infra/plays/`) Each selected play remains
+  disabled, `noConcurrency`, and limited to 15 rows until its verified pilot is approved for
+  expansion.
+
+### Path 1: Account invariants
+
+- **Keep the automatic company class narrow.** (`infra/plays/deduplicate-accounts.ts`) Exact shared
+  LinkedIn company ID, score at least 60, and no identity, protected-ID, or parent-subsidiary
+  conflict are all required. Every other candidate reaches Human Review.
+- **Keep names out of identity.** (`infra/scripts/`) Company name is excluded from candidate
+  generation and scoring. The checked review payload does not rely on it.
+- **Protect business identities and corporate structure.** Conflicting protected IDs and
+  parent-subsidiary clusters never merge automatically.
+
+### Path 2: Contact invariants
+
+- **Apply person guards globally.** (`infra/scripts/contact-evidence.ts`) Every automatic contact
+  class is disqualified by a LinkedIn identity conflict or generic or shared email.
+- **Keep phone-only groups out of automatic merge.** Phone is a candidate key and review aid, not
+  sufficient unattended identity evidence.
+- **Expand transitive groups before deciding.** (`infra/plays/deduplicate-contacts.ts`) The second
+  live search gathers every high-confidence identity key discovered by the direct search.
+- **End after native merge.** (`infra/plays/deduplicate-contacts.ts`) Deduplication creates no
+  post-merge update node. A separate approved workflow owns normalization, enrichment, and
+  association changes.
 
 ## Done when
 
-- the audit JSON, Markdown, and chat summary agree on identifier coverage, candidates, and conflicts
-- the operator approved matching keys, protected fields, survivor precedence, automatic class, and
-  manual-review destination
-- the isolated plan contains one CRM connector, one Slack connector, two ownership folders, the CRM
-  account and contact models, and both disabled deduplication plays, with no staging model
-- both plays run directly on CRM models and match the audited CRM record IDs
-- its compiled workflow contains CRM `findRecords`, one deterministic preparation script bundled
-  from `infra/scripts/evidence.ts` that also selects the survivor, native Scoring, the guarded
-  Branch, native Human Review, and CRM merge actions only on automatic or approved paths
-- `node --import tsx evals/contract.mjs` passes against the adapted graph
-- generated consumer types confirm the selected search, merge, and Human Review payloads
-- the Slack review connector and channel resolve; approval, decline, and timeout reach their intended
-  paths
-- both plays are disabled, `noConcurrency`, and limited to 15 CRM rows
-- the operator separately approved the disabled deployment and exact merge-capable pilot
-- the final report resolves the post-merge contact ID, verifies every survivor and absorbed ID, and
-  accounts for every terminal outcome
+### Shared completion
+
+- the operator selected account deduplication, contact deduplication, or both
+- each selected path has its own reconciled audit, policy approval, disabled-build approval, priced
+  pilot approval, and final report
+- the selected resources use one CRM connector, a Slack connector for every path with active review,
+  object-specific CRM models, and no candidate or staging model
+- generated types confirm selected search and merge payloads plus Human Review for paths that use it
+- `node --import tsx evals/contract.mjs`, `cargo-ai cdk types`, `cargo-ai cdk check`, and
+  `cargo-ai cdk plan` pass after adaptation
+- every selected play is disabled, `noConcurrency`, and limited to 15 CRM rows before its pilot
+
+### Path 1: Account completion
+
+- the account audit reconciles company identifier coverage, mutually exclusive classes, conflicts,
+  survivor evidence, and proposed merge IDs to the source total
+- `deduplicate_accounts` runs directly on `crm_accounts` and searches companies live
+- its graph contains preparation, native Scoring, the guarded Branch, native Human Review, and CRM
+  merges only on automatic or approved paths
+- automatic merge requires exact shared LinkedIn company ID and every account conflict guard
+- every account survivor and absorbed company ID is verified in the CRM
+
+### Path 2: Contact completion
+
+- the contact audit reconciles source totals, person identifier coverage, unique candidate clusters,
+  conflicts, survivor evidence, and proposed merge IDs, and reports overlapping matched classes
+  separately
+- `deduplicate_contacts` runs directly on `crm_contacts` and performs both direct and transitive live
+  searches
+- its graph contains preparation, native Scoring, the guarded Branch, optional native Human Review,
+  and CRM merges only on automatic or approved paths
+- automatic merge requires one approved high-confidence class plus every global contact guard
+- the merge is the final CRM write, and every contact survivor and absorbed ID is verified in the CRM
 
 ## What it costs
 
-Immediately before each preview, run `cargo-ai connection integration get <crm>` and
-`cargo-ai connection integration get slack`. Read the current cost metadata for the selected search,
-merge, and Human Review actions. Record the CLI version, lookup time, action slugs, and applicable
-costs. If structured AI evidence is added, price it separately.
+Immediately before each selected path's preview, run
+`cargo-ai connection integration get <crm>` and, when review is enabled,
+`cargo-ai connection integration get slack`. Record the CLI version, lookup time, action slugs, and
+current cost metadata. The repository does not hard-code pipeline action prices.
 
-The repository does not hard-code action prices. Human approval authorizes only the exact cluster
-shown in that review message. Enabling the recurring schedule is the last approval after the pilot
-passes, not an initial input.
+### Path 1: Account cost
+
+Price the account search, automatic or approved company merge, and Human Review actions against the
+exact account population. Approval authorizes only the company clusters shown for that pilot.
+
+### Path 2: Contact cost
+
+Price both contact searches, automatic or approved contact merge, and enabled Human Review actions
+against the exact contact population. Approval authorizes only the person clusters shown for that
+pilot.
+
+Enabling either recurring schedule is a separate final approval after that path's pilot passes.
 
 ## Composes into
 
-- `crm-enrichment` when matching-key coverage is too weak for reliable duplicate candidates
-- `account-scoring` after duplicate records have been consolidated into authoritative survivors
+- `crm-enrichment` when either object path lacks reliable matching-key coverage
+- `account-scoring` after duplicate account records have been consolidated into authoritative survivors

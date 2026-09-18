@@ -155,7 +155,7 @@ const deduplicateCrmContact = defineWorkflow(
         connectorUuid: slack.uuid,
         channelId: reviewChannelId,
         title: `Review CRM contact merge into ${evidence.primaryId}`,
-        content: `Score: ${score.score}/100
+        content: `Score: ${score.score}
 Survivor before merge: ${evidence.primaryId}
 Records to merge: ${evidence.idsToMerge}
 Conflicting LinkedIn person IDs: ${evidence.conflictingLinkedinPersonIds}

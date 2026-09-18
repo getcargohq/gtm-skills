@@ -497,6 +497,11 @@ assert.match(
   /Conflicting LinkedIn person IDs:[\s\S]*Conflicting LinkedIn identity:[\s\S]*Generic or shared email:[\s\S]*Records:/,
   "contact review must show conflicts, generic-email risk, and formatted records",
 );
+assert.doesNotMatch(
+  contactReview.config.content.expression,
+  /\/100/,
+  "contact score is additive and must not be displayed as a percentage",
+);
 
 const crmContact = (id, properties = {}) => ({
   id,
