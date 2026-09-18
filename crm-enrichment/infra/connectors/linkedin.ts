@@ -1,9 +1,8 @@
 import { defineConnector } from "@cargo-ai/cdk";
 
-// The enrichment provider, and the only paid call in this skill. Both of its
-// actions the tool uses — `enrichCompany` from a LinkedIn company URL and
-// `enrichCompanyFromDomain` — answer the same question from a different
-// identifier, so a row takes exactly one of them and never both.
+// The enrichment provider. Account enrichment chooses one of the company
+// actions. Contact LinkedIn enrichment uses the profile action only after the
+// play has a LinkedIn URL.
 export const linkedin = defineConnector("linkedin", {
   integration: "linkedin",
   default: true,
