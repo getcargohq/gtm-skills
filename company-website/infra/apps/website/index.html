@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{{COMPANY}} | {{HEADLINE}}</title>
+    <meta name="description" content="{{DESCRIPTION}}" />
+    <meta name="robots" content="{{ROBOTS}}" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="{{COMPANY}} | {{HEADLINE}}" />
+    <meta property="og:description" content="{{DESCRIPTION}}" />
+    <meta name="twitter:card" content="summary" />
+    {{CANONICAL}}
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <a class="skip" href="#main">Skip to content</a>
+    <div class="shell">
+      <header>
+        <a class="brand" href="#main"
+          ><span class="brand-mark" aria-hidden="true">✳</span>{{COMPANY}}</a
+        >
+        <nav aria-label="Main">
+          <a href="#approach">Our approach</a
+          ><button
+            id="theme"
+            type="button"
+            aria-label="Use dark theme"
+            aria-pressed="false"
+            hidden
+          >
+            Dark theme
+          </button>
+        </nav>
+      </header>
+      <main id="main" tabindex="-1">
+        <section class="hero" aria-labelledby="headline">
+          {{DRAFT}}
+          <p class="eyebrow"><span aria-hidden="true"></span>{{EYEBROW}}</p>
+          <h1 id="headline">{{HEADLINE}}</h1>
+          <p class="lead">{{DESCRIPTION}}</p>
+          <a class="cta" href="{{CTA_HREF}}"
+            >{{CTA_LABEL}} <span aria-hidden="true">↗</span></a
+          >
+        </section>
+        <section id="approach" aria-labelledby="approach-title">
+          <div class="section-heading">
+            <p class="eyebrow">The approach</p>
+            <h2 id="approach-title">Clarity at every step.</h2>
+          </div>
+          <div class="features">{{FEATURES}}</div>
+        </section>
+      </main>
+      <footer>
+        <a class="brand" href="#main">{{COMPANY}}</a
+        ><a href="#approach">Our approach</a>
+      </footer>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

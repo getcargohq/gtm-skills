@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "workspaceUuid": "",
+  "repository": "",
+  "defaultBranch": "main",
+  "appSlug": "company-website",
+  "publish": false,
+  "maintainer": false,
+  "languageModel": "claude-sonnet-5",
+  "visitors": {
+    "enabled": false,
+    "siteUrl": "",
+    "connectorUuid": "",
+    "snitcherWorkspaceUuid": ""
+  }
+}

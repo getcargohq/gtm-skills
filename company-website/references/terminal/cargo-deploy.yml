@@ -1,0 +1,58 @@
+name: cargo deploy
+run-name: Release ${{ inputs.expected_sha }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      expected_sha:
+        description: Full reviewed commit SHA on main
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cargo-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Verify the reviewed revision
+        env:
+          EXPECTED_SHA: ${{ inputs.expected_sha }}
+        run: |
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+          test "$(git ls-remote origin refs/heads/main | cut -f1)" = "$EXPECTED_SHA"
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npm ci --prefix infra/company-website/apps/website
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: node scripts/company-website/website.mjs check
+      - name: Inspect and deploy the configured workspace
+        env:
+          CARGO_API_TOKEN: ${{ secrets.CARGO_API_TOKEN }}
+        run: |
+          test -n "$CARGO_API_TOKEN"
+          node scripts/company-website/website.mjs doctor
+          node scripts/company-website/website.mjs plan
+          npx --no-install cargo-ai project deploy --dir infra --yes
+          if node -e 'process.exit(JSON.parse(require("fs").readFileSync("infra/company-website/website.json")).publish ? 0 : 1)'; then
+            node scripts/company-website/website.mjs verify | tee website-release.json
+          fi
+      - uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: website-release
+          path: website-release.json
+          if-no-files-found: ignore

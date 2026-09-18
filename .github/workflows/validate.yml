@@ -99,3 +99,12 @@ jobs:
           path: .cargo-skills
 
       - run: npm run validate:routing
+
+      # Keep nested build dependencies out of catalog/package discovery above.
+      # The public website is its own Vite package and is excluded from the
+      # resource typecheck, so its actual install and build need a separate gate.
+      - name: Build the company website starter
+        run: |
+          npm ci --prefix company-website/infra/apps/website
+          npm run check --prefix company-website/infra/apps/website
+          npm run build --prefix company-website/infra/apps/website

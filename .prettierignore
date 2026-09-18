@@ -11,6 +11,7 @@ llms.txt
 !tam-building/**/*.md
 !account-scoring/**/*.md
 !crm-enrichment/**/*.md
+!company-website/**/*.md
 !CONTRIBUTING.md
 !.agents/skills/**/*.md
 !.claude/skills/**/*.md

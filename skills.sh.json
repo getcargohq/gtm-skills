@@ -60,7 +60,8 @@
         "crm-enrichment",
         "crm-deduplication",
         "call-capture",
-        "agentic-engagement"
+        "agentic-engagement",
+        "company-website"
       ]
     }
   ]
