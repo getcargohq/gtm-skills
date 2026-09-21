@@ -103,3 +103,9 @@
 {"prompt": "Keep talking to leads over email", "expect": "agentic-engagement", "why": "The standing tell: a loop, not one send."}
 {"prompt": "Native email trigger for lead replies", "expect": "agentic-engagement"}
 {"prompt": "I need email addresses for these prospects so I can start conversations", "expect": "find-work-email", "why": "Addresses first; agentic-engagement is the loop you deploy after you have someone to write to."}
+{"prompt": "Build our company website on Cargo and keep it updated through reviewed PRs", "expect": "company-website"}
+{"prompt": "Recreate our website on Cargo from our existing GitHub repository", "expect": "company-website"}
+{"prompt": "Capture our design system so a website maintainer can follow it", "expect": "company-website"}
+{"prompt": "I forked the company website pipeline and need it in our own Cargo workspace", "expect": "company-website"}
+{"prompt": "Research this prospect website and brief me before our sales call", "expect": "research-account", "why": "Researching another account is a one-off briefing, not maintaining our company website."}
+{"prompt": "Build our company website on Cargo and ask us whether we want Snitcher visitor tracking", "expect": "company-website"}

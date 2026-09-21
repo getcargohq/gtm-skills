@@ -1,0 +1,27 @@
+name: cargo checks
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npm ci --prefix infra/company-website/apps/website
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: node scripts/company-website/website.mjs check
+      # Online plans run from the operator's terminal or the reviewed release.
+      # Pull request code never receives the Cargo deployment credential.

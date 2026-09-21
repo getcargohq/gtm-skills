@@ -1,0 +1,23 @@
+{
+  "status": "draft",
+  "companyName": "Your company",
+  "eyebrow": "A clear story starts here",
+  "headline": "Make your next chapter unmistakable.",
+  "description": "Replace this draft with the audience, offering and outcome agreed in your company brief.",
+  "cta": { "label": "Explore the approach", "href": "#approach" },
+  "canonicalUrl": "",
+  "features": [
+    {
+      "title": "Who it is for",
+      "body": "Describe the people you serve and the problem they recognize."
+    },
+    {
+      "title": "What changes",
+      "body": "Explain the concrete outcome your offering helps them achieve."
+    },
+    {
+      "title": "Why believe it",
+      "body": "Add approved evidence and examples. Every claim needs a source."
+    }
+  ]
+}
