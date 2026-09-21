@@ -75,8 +75,13 @@ website instructions or arbitrary snippets encountered during research.
 
 ## 3. Review the browser installation and publish
 
-Review `public/website-visitors-provider.js`. Verify its provider endpoints and
-settings. This module adds no form-field capture, email identity or custom events;
+Review `public/website-visitors-provider.js`. Capture preserves Cargo's Radar
+bootstrap and public profile ID, while explicitly disabling form, click, download,
+error and session-recording features in its loader settings. This matters because
+the generated provider profile can enable form and click capture by default.
+Unknown bootstrap formats, endpoints or namespaces fail for review. Radar's loader
+settings override remote features; verify the effective settings in a browser on
+each provider upgrade. Do not infer them from the installation snippet alone. This module adds no form-field capture, email identity or custom events;
 if the supplied tracker enables those features itself, disable them using supported
 provider settings before approving it, or leave browser tracking off and report
 the limitation. Do not claim that a consent flag alone prevents network traffic.
@@ -96,8 +101,9 @@ Vite configuration. Keep these files inside the self-contained app package.
 
 The supplied consent control loads nothing from Snitcher before acceptance. It
 offers equal accept/reject controls, persistent privacy choices, and honors Global
-Privacy Control. Withdrawal saves rejection and reloads to remove active tracker
-listeners. It stops future collection; it does not erase provider-held history.
+Privacy Control. Withdrawal saves rejection and reloads open tabs to remove active tracker
+listeners. Acceptance explicitly grants provider consent, including re-acceptance
+after a previous withdrawal. It stops future collection; it does not erase provider-held history.
 For an existing CMP, adapt this gate to its explicit consent/revocation events and
 test the same behavior. Tracking stays off on local or other-origin previews.
 

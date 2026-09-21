@@ -38,7 +38,36 @@ export function providerJavascript(snippet) {
     throw new Error(
       "Unsupported provider script format. Review and adapt it explicitly.",
     );
-  return `// Captured from Cargo's Snitcher model. Review before approving this asset.\n${tags[0][2].trim()}\n`;
+  const body = tags[0][2].trim();
+  const call = /\}\((\{[\s\S]*\})\);?\s*$/.exec(body);
+  if (!body.startsWith("!function(") || !call)
+    throw new Error(
+      "Unknown Snitcher bootstrap. Review its configuration before capture.",
+    );
+  const settings = JSON.parse(call[1]);
+  if (
+    settings.namespace !== "Snitcher" ||
+    settings.apiEndpoint !== "radar.snitcher.com" ||
+    settings.cdn !== "cdn.snitcher.com" ||
+    typeof settings.profileId !== "string" ||
+    !/^[a-zA-Z0-9_-]+$/.test(settings.profileId)
+  )
+    throw new Error(
+      "Unsupported Snitcher namespace, endpoints or public profile ID.",
+    );
+  // Radar merges these loader settings after remote settings. Cargo's generated
+  // profile can otherwise turn on form/click capture by default. Keep the
+  // provider bootstrap intact and apply documented feature configuration only.
+  settings.waitForConsent = true;
+  settings.features = {
+    ...settings.features,
+    formTracking: false,
+    clickTracking: false,
+    downloadTracking: false,
+    sessionRecording: false,
+    errorCapture: false,
+  };
+  return `// Cargo-provided Snitcher bootstrap with reviewed company/page-only settings.\n${body.slice(0, call.index)}}(${JSON.stringify(settings, null, 2)});\n`;
 }
 
 export async function operate(

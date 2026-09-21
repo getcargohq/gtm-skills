@@ -13,7 +13,7 @@ const root=join(fixture,'app');
 cpSync(source,root,{recursive:true,filter:p=>!p.includes('/node_modules')&&!p.includes('/dist')});
 symlinkSync(process.env.WEBSITE_TEST_NODE_MODULES,join(root,'node_modules'),'dir');
 mkdirSync(join(root,'public'),{recursive:true});
-const tracker='window.__trackerLoads = (window.__trackerLoads || 0) + 1;';
+const tracker='window.__trackerLoads = (window.__trackerLoads || 0) + 1; window.Snitcher = {giveCookieConsent(){window.__grants=(window.__grants||0)+1},denyCookieConsent(){window.__denials=(window.__denials||0)+1}};';
 writeFileSync(join(root,'public/website-visitors-provider.js'),tracker);
 const build=()=>execFileSync('node',[join(root,'node_modules/vite/bin/vite.js'),'build'],{cwd:root,encoding:'utf8'});
 build();
@@ -26,7 +26,7 @@ async function pageFor(origin='https://fixture.cargo.app',options={}){
  const context=await browser.newContext({viewport:{width:390,height:844},...options});
  const page=await context.newPage(); const requests=[]; const errors=[];
  page.on('pageerror',e=>errors.push(e.message));
- await page.route('**/*',async route=>{
+ await context.route('**/*',async route=>{
   const url=new URL(route.request().url());requests.push(url.pathname);
   if(url.origin!==origin) throw Error('Unexpected remote request: '+url.origin);
   const file=join(root,'dist',url.pathname==='/'?'index.html':url.pathname);
@@ -44,13 +44,19 @@ await f.page.reload();await f.page.getByRole('button',{name:'Privacy choices',ex
 assert.equal(f.count(),0);outcomes.push('Reject persists across reload without tracker requests');
 await f.page.getByRole('button',{name:'Privacy choices',exact:true}).click();
 await f.page.getByRole('button',{name:'Accept tracking',exact:true}).click();
-await f.page.waitForFunction(()=>window.__trackerLoads===1);assert.equal(f.count(),1);outcomes.push('Accept loads tracker once');
+await f.page.waitForFunction(()=>window.__trackerLoads===1);assert.equal(f.count(),1);await f.page.waitForFunction(()=>window.__grants===1);outcomes.push('Accept loads tracker once and explicitly grants provider consent');
 await f.page.getByRole('button',{name:'Privacy choices',exact:true}).click();
 await f.page.getByRole('button',{name:'Accept tracking',exact:true}).click();assert.equal(f.count(),1);
 await f.page.reload();await f.page.waitForFunction(()=>window.__trackerLoads===1);assert.equal(f.count(),2);outcomes.push('Accepted preference applies once per later page');
 await f.page.getByRole('button',{name:'Privacy choices',exact:true}).click();
 await Promise.all([f.page.waitForEvent('domcontentloaded'),f.page.getByRole('button',{name:'Reject tracking',exact:true}).click()]);
 await f.page.getByRole('button',{name:'Privacy choices',exact:true}).waitFor();assert.equal(f.count(),2);assert.equal(await f.page.evaluate(()=>window.__trackerLoads),undefined);outcomes.push('Withdrawal reloads without reloading tracker');
+await f.page.getByRole('button',{name:'Privacy choices',exact:true}).click();
+await f.page.getByRole('button',{name:'Accept tracking',exact:true}).click();await f.page.waitForFunction(()=>window.__grants===1);outcomes.push('Re-acceptance grants provider consent after withdrawal');
+const other=await f.context.newPage();await other.goto(f.origin);await other.waitForFunction(()=>window.__grants===1);const beforeWithdrawal=f.count();
+await other.getByRole('button',{name:'Privacy choices',exact:true}).click();
+await Promise.all([f.page.waitForEvent('domcontentloaded'),other.waitForEvent('domcontentloaded'),other.getByRole('button',{name:'Reject tracking',exact:true}).click()]);
+await f.page.getByRole('button',{name:'Privacy choices',exact:true}).waitFor();await other.getByRole('button',{name:'Privacy choices',exact:true}).waitFor();assert.equal(f.count(),beforeWithdrawal);assert.equal(await f.page.evaluate(()=>window.__trackerLoads),undefined);outcomes.push('Withdrawal in another tab stops both active trackers');
 assert.deepEqual(f.errors,[]);await f.context.close();
 f=await pageFor();await f.page.addInitScript(()=>{Object.defineProperty(navigator,'globalPrivacyControl',{value:true});localStorage.setItem('company-website-visitors-consent-v1','accepted');});
 await f.page.goto(f.origin);await f.page.getByRole('button',{name:'Privacy choices',exact:true}).click();assert.equal(await f.page.getByRole('button',{name:'Accept tracking',exact:true}).isDisabled(),true);assert.equal(f.count(),0);outcomes.push('Global Privacy Control overrides saved acceptance');await f.context.close();

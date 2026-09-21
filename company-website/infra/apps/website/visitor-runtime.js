@@ -27,6 +27,12 @@ if (config.enabled && location.origin === new URL(config.siteUrl).origin) {
     script.src = "/website-visitors-provider.js";
     script.async = true;
     script.dataset.websiteVisitors = "true";
+    script.addEventListener("load", () => {
+      // The captured bootstrap sets waitForConsent. Queue the provider's grant
+      // only after this site's explicit choice, including after a later re-opt-in.
+      if (navigator.globalPrivacyControl !== true)
+        window.Snitcher?.giveCookieConsent?.();
+    });
     document.head.append(script);
   };
   const panel = document.createElement("section");
@@ -56,6 +62,15 @@ if (config.enabled && location.origin === new URL(config.siteUrl).origin) {
     panel.hidden = true;
     choices.focus();
   };
+  const stop = () => {
+    // Reload removes tracker timers/listeners. Provider history is retained.
+    try {
+      window.Snitcher?.denyCookieConsent?.();
+    } catch {
+      /* Reload still stops collection. */
+    }
+    location.reload();
+  };
   const accept = button("Accept tracking", () => {
     save("accepted");
     load();
@@ -64,14 +79,7 @@ if (config.enabled && location.origin === new URL(config.siteUrl).origin) {
   const reject = button("Reject tracking", () => {
     save("denied");
     if (loaded) {
-      // Reload removes existing tracker timers/listeners. Its backend history
-      // is retained; withdrawal is not a claim of erasure at the provider.
-      try {
-        window.Snitcher?.denyCookieConsent?.();
-      } catch {
-        /* Reload still stops collection. */
-      }
-      location.reload();
+      stop();
     } else hide();
   });
   panel.append(accept, reject);
@@ -83,6 +91,13 @@ if (config.enabled && location.origin === new URL(config.siteUrl).origin) {
     "position:fixed;bottom:10px;left:16px;z-index:2147483647;font-size:14px;";
   choices.dataset.visitorChoices = "true";
   document.body.append(panel, choices);
+  window.addEventListener("storage", (event) => {
+    // A choice withdrawn in another tab must stop this tab's active tracker too.
+    if ((event.key === key || event.key === null) && read() !== "accepted") {
+      if (loaded) stop();
+      else panel.hidden = read() === "denied";
+    }
+  });
   const preference = read();
   panel.hidden = preference === "accepted" || preference === "denied";
   if (navigator.globalPrivacyControl === true) {

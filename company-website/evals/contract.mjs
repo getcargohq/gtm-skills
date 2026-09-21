@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { runInNewContext } from "node:vm";
 import { operate, providerJavascript } from "../scripts/visitors.mjs";
 import { assertVisitorBinding, sha256, visitorTrackingPlugin } from "../infra/apps/website/visitor-support.mjs";
 import { execFileSync } from "node:child_process";
@@ -22,6 +23,7 @@ const infra = join(project, "infra/company-website");
 const app = join(infra, "apps/website");
 const configFile = join(infra, "website.json");
 const uuid = "11111111-1111-4111-8111-111111111111";
+const snitcherSnippet = (settings = {}) => `<script>!function(e){window.__mustNotRun = e;}(${JSON.stringify({namespace:"Snitcher",apiEndpoint:"radar.snitcher.com",cdn:"cdn.snitcher.com",profileId:"public-test-id",...settings})});</script>`;
 let passed = 0;
 function test(name, fn) {
   return Promise.resolve().then(fn).then(() => { passed++; console.log(`ok ${passed}: ${name}`); });
@@ -250,9 +252,16 @@ try {
   });
 
   await test("provider snippet capture never executes source and rejects unknown HTML and script hosts", () => {
-    const script = providerJavascript('<script>window.__mustNotRun = true;</script>');
+    const script = providerJavascript(snitcherSnippet());
     assert.match(script, /window.__mustNotRun/);
     assert.equal(globalThis.__mustNotRun, undefined);
+    assert.throws(() => providerJavascript('<script>window.__mustNotRun = true;</script>'), /Unknown Snitcher bootstrap/);
+    assert.throws(() => providerJavascript(snitcherSnippet({cdn:"cdn.snitcher.com.evil.invalid"})), /Unsupported Snitcher/);
+    const sandbox = {window:{}};
+    runInNewContext(providerJavascript(snitcherSnippet({features:{formTracking:true,clickTracking:true,downloadTracking:true,sessionRecording:true,errorCapture:true}})), sandbox);
+    assert.equal(sandbox.window.__mustNotRun.profileId,"public-test-id");
+    assert.equal(sandbox.window.__mustNotRun.waitForConsent,true);
+    assert.ok(Object.values(sandbox.window.__mustNotRun.features).every(value => value === false));
     assert.throws(() => providerJavascript('<script src="https://cdn.snitcher.com/tracker.js"></script>'), /Unsupported/);
     for (const input of ['<img src=x onerror=alert(1)>', '<script src="https://snitcher.com.evil.invalid/a"></script>', '<script src="javascript:alert(1)"></script>', '<script src="https://user:secret@cdn.snitcher.com/a"></script>'])
       assert.throws(() => providerJavascript(input));
@@ -270,7 +279,7 @@ try {
     const visitors = {enabled:true,siteUrl:"https://fixture.cargo.app/",connectorUuid:uuid,snitcherWorkspaceUuid:""};
     save(join(captureInfra,"website.json"), {...config,maintainer:false,visitors});
     writeStatePointer(join(captureProject,"infra"),uuid);
-    let snippet = '<script>var fixtureTracker = "public-test-id";</script>';
+    let snippet = snitcherSnippet();
     const api = {
       workspaceManagement: {state:{get:async()=>({state:{workspaceUuid:uuid,contents:{resources:{"model:company_website_visitors":{uuid:"company-model"}}}}})}},
       storage:{model:{get:async id=>{assert.equal(id,"company-model");return {model:{uuid:id,extractorSlug:"fetchOrganisations",config:{url:visitors.siteUrl,_workspaceUuid:uuid,_trackingScript:snippet}}};}}},
@@ -282,7 +291,7 @@ try {
     assert.equal(again.browserEnabled,false);
     assert.equal(json(join(captureInfra,"website.json")).visitors.snitcherWorkspaceUuid,uuid);
     const saved = readFileSync(join(captureApp,"public/website-visitors-provider.js"),"utf8");
-    snippet = '<script>var changedTracker = true;</script>';
+    snippet = snitcherSnippet({profileId:'changed-public-id'});
     await assert.rejects(operate("capture",captureProject,dependencies), /script changed/);
     assert.equal(readFileSync(join(captureApp,"public/website-visitors-provider.js"),"utf8"),saved);
   });
