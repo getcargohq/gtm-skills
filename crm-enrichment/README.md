@@ -31,28 +31,29 @@ flowchart TD
 
 1. **Audit.** The agent joins live LinkedIn fields to live CRM properties, flags
    duplicates and transformations, and waits for approval of the field contract.
-2. **Build disabled.** It adapts `infra/index.ts`, deploys with the play
+2. **Build disabled.** It adapts `infra/`, deploys with the play
    disabled, and shows Cargo links, target population, and estimated credits.
 3. **Run.** After cost approval, enrichment runs and the agent reports fill
    rates, outcomes, failures, and actual credits.
 
 ## Architecture
 
-| Resource             | Type  | Role                                                |
-| -------------------- | ----- | --------------------------------------------------- |
-| `crm_accounts`       | Model | CRM account extract; the play reads and writes here |
-| `account_enrichment` | Tool  | Normalizes identifiers, returns provider data       |
-| `enrich_accounts`    | Play  | Fills blanks, owns writeback and freshness          |
+| Resource             | Type  | Declared in                         | Role                                                |
+| -------------------- | ----- | ----------------------------------- | --------------------------------------------------- |
+| `crm_accounts`       | Model | `infra/models/crm-accounts.ts`      | CRM account extract; the play reads and writes here |
+| `account_enrichment` | Tool  | `infra/tools/account-enrichment.ts` | Normalizes identifiers, returns provider data       |
+| `enrich_accounts`    | Play  | `infra/plays/enrich-accounts.ts`    | Fills blanks, owns writeback and freshness          |
 
 Tool and play share one workflow contract, so mappings cannot drift. The play's
 filter is its segment; there is no standalone segment.
 
 ## Placeholders (edit before deploy)
 
-1. **CRM connector and record ID** (`infra/index.ts`): the example is HubSpot
+1. **CRM connector and record ID** (`infra/connectors/crm.ts`, `infra/plays/enrich-accounts.ts`):
+   the example is HubSpot
    (`hs_object_id`); Salesforce uses `Id`, Attio its record id. The wrong field
    targets nothing while the run still looks successful.
-2. **Field mappings** (`infra/index.ts`): every destination must be a live
+2. **Field mappings** (`infra/plays/enrich-accounts.ts`): every destination must be a live
    property on the connected CRM.
 3. **Freshness fields**: `cargo_last_enriched_at` and `cargo_enrichment_status`
    must exist on the CRM object.
@@ -85,6 +86,7 @@ daily schedule only pays for new rows and records coming back due.
 
 ## Composes into
 
+`crm-deduplication` (duplicate records are what makes a filled book wrong),
 `account-scoring` (a filled book is what the scorer can cite),
 `find-stakeholders` (the buyers at every filled account),
 `tam-building` (the universe these records join).

@@ -92,6 +92,19 @@ def validate_thresholds(thresholds, minimum, maximum):
     require(all(a["min"] < b["min"] for a, b in zip(thresholds, thresholds[1:])), "unordered tiers")
 
 
+def validate_conditions(rule, fields):
+    require(rule["conditions"], "empty condition set")
+    for condition in rule["conditions"]:
+        require(condition["feature"] in fields, "unknown condition feature")
+        require(condition["operator"] in ("eq", "gte", "lt"), "unsupported operator")
+        field = fields[condition["feature"]]
+        if field["type"] == "category":
+            require(condition["operator"] == "eq" and condition["value"] in field["values"],
+                    "invalid categorical condition")
+        else:
+            require(number(condition["value"]), "invalid numerical condition")
+
+
 def validate_contract(features, contract):
     require(contract["feature_contract_version"] == features["version"], "feature version mismatch")
     require(contract["seller_id"] == features["seller_id"], "seller mismatch")
@@ -100,7 +113,8 @@ def validate_contract(features, contract):
     require(type(lo) is int and type(hi) is int and lo < hi, "integer score range required")
     require(number(contract["base_points"]) and contract["rounding"] == "half_up_integer", "invalid rounding/base")
     validate_thresholds(contract["thresholds"], lo, hi)
-    names = {f["name"] for f in features["features"]}
+    fields = {f["name"]: f for f in features["features"]}
+    names = set(fields)
     require(len(names) == len(features["features"]), "duplicate feature")
     rules = {r["feature"]: r for r in contract["rules"]}
     require(len(rules) == len(contract["rules"]) and names == set(rules), "feature/rule mismatch")
@@ -119,21 +133,17 @@ def validate_contract(features, contract):
             require(number(f["minimum"]), "numeric domain needs a minimum")
     ids = [r["id"] for r in contract["rules"] + contract["gates"] + contract["interactions"]]
     require(len(ids) == len(set(ids)), "duplicate rule id")
-    for rule in contract["gates"] + contract["interactions"]:
-        require(rule["conditions"], "empty condition set")
-        for c in rule["conditions"]:
-            require(c["feature"] in names, "unknown condition feature")
-            require(c["operator"] in ("eq", "gte", "lt"), "unsupported operator")
-            field = next(f for f in features["features"] if f["name"] == c["feature"])
-            if field["type"] == "category":
-                require(c["operator"] == "eq" and c["value"] in field["values"], "invalid categorical condition")
-            else:
-                require(number(c["value"]), "invalid numerical condition")
-        if "cap" in rule:
-            require(type(rule["cap"]) is int and lo <= rule["cap"] <= hi, "integer gate cap required")
-            require(rule["basis"] in ("policy", "empirical"), "gate basis required")
-        else:
-            require(number(rule["points"]), "invalid interaction")
+    for gate in contract["gates"]:
+        validate_conditions(gate, fields)
+        require("points" not in gate, "gate cannot contribute interaction points")
+        require(type(gate["cap"]) is int and lo <= gate["cap"] <= hi,
+                "integer gate cap required")
+        require(gate["basis"] in ("policy", "empirical"), "gate basis required")
+    for interaction in contract["interactions"]:
+        validate_conditions(interaction, fields)
+        require("cap" not in interaction and "basis" not in interaction,
+                "interaction cannot define a gate cap or basis")
+        require(number(interaction["points"]), "invalid interaction")
     for dimension in contract["outcome"]["dimensions"]:
         validate_scale(dimension)
         require(dimension["missing_policy"] in ("unavailable", "neutral"), "outcome missing policy")

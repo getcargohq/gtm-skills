@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import {
   readFileSync,
   writeFileSync,
+  existsSync,
   mkdtempSync,
   cpSync,
   rmSync,
@@ -489,6 +490,30 @@ if (!process.env.ACCOUNT_SCORING_INFRA) {
     execFileSync(process.execPath, [...buildArgs, "--check"], {
       stdio: "pipe",
     });
+    // Archive writes are all-or-nothing. A forgotten scoring-version bump must
+    // not claim the new feature version before the combined archive rejects it.
+    const nextFeature = structuredClone(liveF);
+    nextFeature.version += "-next";
+    const reusedScoring = structuredClone(liveC);
+    reusedScoring.feature_contract_version = nextFeature.version;
+    writeFileSync(featurePath, JSON.stringify(nextFeature));
+    writeFileSync(scoringPath, JSON.stringify(reusedScoring));
+    assert.throws(
+      () => execFileSync(process.execPath, buildArgs, { stdio: "pipe" }),
+      /immutable/,
+    );
+    assert.equal(
+      existsSync(
+        join(
+          targetContext,
+          "account-fit-versions/features",
+          `${nextFeature.version}.json`,
+        ),
+      ),
+      false,
+    );
+    writeFileSync(featurePath, JSON.stringify(liveF));
+    writeFileSync(scoringPath, JSON.stringify(liveC));
     const altered = structuredClone(liveC);
     altered.base_points = 1;
     writeFileSync(scoringPath, JSON.stringify(altered));

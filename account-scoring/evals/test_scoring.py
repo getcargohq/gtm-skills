@@ -107,6 +107,18 @@ class ScoringTests(unittest.TestCase):
         f=copy.deepcopy(self.f);f['features'][0]['role']='readiness'
         self.assertEqual(self.compute(f=f)['scoring_status'],'error')
 
+    def test_gate_and_interaction_shapes_are_list_specific(self):
+        c=copy.deepcopy(self.c)
+        gate=c['gates'][0]
+        gate.pop('cap');gate.pop('basis');gate['points']=0
+        with self.assertRaisesRegex(ValueError,'gate'):
+            validate_contract(self.f,c)
+        c=copy.deepcopy(self.c)
+        interaction=c['interactions'][0]
+        interaction.pop('points');interaction['cap']=50;interaction['basis']='policy'
+        with self.assertRaisesRegex(ValueError,'interaction'):
+            validate_contract(self.f,c)
+
     def test_repeated_inputs_identical(self):
         s=snapshot(self.f)
         self.assertEqual(self.compute(s),self.compute(copy.deepcopy(s)))

@@ -47,8 +47,9 @@ Walk every line. A checked template without an evidence-backed consumer adaptati
 ## CDK template
 
 - The agent installed and read `cargo-cdk` before auditing or adapting the template.
-- `infra/index.ts` is the only infrastructure source file.
-- The consumer file contains only the selected CRM connector and action shapes.
+- `infra/` holds one file per resource: the two connectors, the skill's folders, the CRM account
+  model, the tool, and the play. No file declares a resource that belongs to another.
+- The consumer files contain only the selected CRM connector and action shapes.
 - `account_enrichment` is a workflow-backed Cargo tool that accepts provider identifiers, normalizes
   them, and returns enriched company data. It has no CRM connector, CRM record id, or CRM write.
 - The compiled `account_enrichment` graph starts with a code-generated Branch that ends rows with no

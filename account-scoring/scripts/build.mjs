@@ -77,6 +77,7 @@ const liveCapable =
 if (liveCapable) {
   if (!/^[a-zA-Z0-9_-]+$/.test(c.version))
     throw new Error("Unsafe version path");
+  const archives = [];
   for (const [kind, value] of [
     ["features", f],
     ["outcome", c.outcome],
@@ -86,24 +87,36 @@ if (liveCapable) {
     const directory = resolve(context, "account-fit-versions", kind);
     const target = resolve(directory, `${value.version}.json`);
     const body = JSON.stringify(value, null, 2) + "\n";
-    if (existsSync(target) && readFileSync(target, "utf8") !== body)
-      throw new Error(`Approved ${kind} version is immutable`);
-    if (!existsSync(target)) {
-      if (args.includes("--check"))
-        throw new Error(`Approved ${kind} archive missing`);
-      mkdirSync(directory, { recursive: true });
-      writeFileSync(target, body);
-    }
+    archives.push({ kind, directory, target, body });
   }
-  const archive = resolve(context, "account-fit-versions", c.version);
-  const body = JSON.stringify({ features: f, scoring: c }, null, 2) + "\n";
-  const target = resolve(archive, "contracts.json");
-  if (existsSync(target) && readFileSync(target, "utf8") !== body)
-    throw new Error("Approved versions are immutable; increment version");
-  if (!existsSync(target)) {
-    if (args.includes("--check")) throw new Error("Approved archive missing");
-    mkdirSync(archive, { recursive: true });
-    writeFileSync(target, body);
+  const scoreDirectory = resolve(context, "account-fit-versions", c.version);
+  archives.push({
+    kind: "score",
+    directory: scoreDirectory,
+    target: resolve(scoreDirectory, "contracts.json"),
+    body: JSON.stringify({ features: f, scoring: c }, null, 2) + "\n",
+  });
+  // Validate the complete archive set before writing any member. A failed build
+  // must not claim a version with partial artifacts.
+  for (const archive of archives) {
+    if (
+      existsSync(archive.target) &&
+      readFileSync(archive.target, "utf8") !== archive.body
+    ) {
+      throw new Error(
+        archive.kind === "score"
+          ? "Approved versions are immutable; increment version"
+          : `Approved ${archive.kind} version is immutable`,
+      );
+    }
+    if (!existsSync(archive.target) && args.includes("--check"))
+      throw new Error(`Approved ${archive.kind} archive missing`);
+  }
+  for (const archive of archives) {
+    if (!existsSync(archive.target)) {
+      mkdirSync(archive.directory, { recursive: true });
+      writeFileSync(archive.target, archive.body);
+    }
   }
 }
 for (const [path, content] of [

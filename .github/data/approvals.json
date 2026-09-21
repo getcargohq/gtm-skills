@@ -1,4 +1,10 @@
 {
+  "crm-deduplication": {
+    "state": "to-be-approved",
+    "chain": 6,
+    "demoWorkspace": null,
+    "implementations": []
+  },
   "crm-enrichment": {
     "state": "to-be-approved",
     "chain": 3,
@@ -9,8 +15,7 @@
     "state": "to-be-approved",
     "chain": 1,
     "demoWorkspace": null,
-    "implementations": [],
-    "note": "Outcome-calibrated revision: offline checks only; named test workspace and live acceptance pending."
+    "implementations": []
   },
   "tam-building": {
     "state": "to-be-approved",

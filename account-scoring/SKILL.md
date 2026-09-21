@@ -2,7 +2,7 @@
 name: account-scoring
 description: 'Calibrate a customer-specific account fit model from historical customer outcomes and keep eligible CRM accounts scored by deterministic Python with agent explanations. Triggers: "calibrate our account scoring", "keep our accounts scored as they arrive", "re-score after an approved model change", "calibrate our ICP from customer outcomes", "why is this account tier A", "our lead scoring is a spreadsheet nobody trusts". Cargo CDK, Python, HubSpot, Salesforce, Attio. Skip when: qualify a supplied list once, which is score-leads; source a new universe, which is tam-building. Calibration-only requests stay here and end before live activation.'
 version: "0.3.1"
-compatibility: "Requires cargo-cdk bootstrap (cargo-project on current bundles), Cargo CLI and CDK with native Python support, and Python 3.9+ locally. Checked offline with CLI 1.0.96 and CDK 1.0.81. HubSpot and OpenAI bind authorized connections. Runtime and customer field mappings require verification in a confirmed non-production workspace."
+compatibility: "Requires cargo-cdk bootstrap (cargo-project on current bundles), Cargo CLI and CDK with native Python support, and Python 3.9+ locally. Checked offline with CLI 1.0.99 and CDK 1.0.84. HubSpot and OpenAI bind authorized connections. Runtime and customer field mappings require verification in a confirmed non-production workspace."
 homepage: https://github.com/getcargohq/gtm-skills/tree/main/account-scoring
 metadata:
   author: getcargo
