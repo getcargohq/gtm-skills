@@ -61,7 +61,7 @@ already declares. More are on their way (`contact-sourcing`, `signal-based-tam`,
 | ---------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
 | [`tam-building`](tam-building/SKILL.md)                    | Your account universe sourced from AI Ark on an ICP filter sized for free, then tiered A/B/C by an agent reading your rubric.            |
 | [`account-scoring`](account-scoring/SKILL.md)              | Every account scored and tiered against your written ICP by an agent that cites its evidence, rationale on the CRM record.               |
-| [`crm-enrichment`](crm-enrichment/SKILL.md)                | CRM accounts stay filled: approved blanks from LinkedIn, freshness after a real write, re-enrolled after six months.                     |
+| [`crm-enrichment`](crm-enrichment/SKILL.md)                | CRM accounts and contacts stay filled: gated identifier resolution, approved LinkedIn enrichment, and freshness after a real write.     |
 | [`crm-deduplication`](crm-deduplication/SKILL.md)          | Duplicate CRM accounts merge on exact identity alone; everything less certain waits for a human in Slack.                                |
 | [`call-capture`](call-capture/SKILL.md)                    | Yesterday's call transcripts become log entries and, once a claim repeats, context updates — as one pull request you review.             |
 | [`agentic-engagement`](agentic-engagement/SKILL.md)        | An agent holds email conversations with leads from a mailbox you own, waking on reply, unsubscribe, or a heartbeat that checks thread status. |

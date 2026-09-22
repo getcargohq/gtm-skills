@@ -1,134 +1,149 @@
-# Run
+# Run and report
 
-Adapt `infra/` after copying this folder into the consumer
-project. The first plan is a disabled play and does not deploy from this
-repository.
+Choose the account path, contact path, or both. Keep every selected play disabled through build
+review. Each path needs its own approved field contract, priced population, write probe, pilot, and
+report. Approval for one path does not authorize the other.
 
-## Phase handoffs
+Before either pilot, run typechecking, pipeline validation, the compiled graph contract, and
+`cargo-ai cdk plan`. Confirm every selected play is disabled and uses `noConcurrency`. Fetch live
+prices and recount eligibility from the current model snapshot immediately before approval.
 
-Every message names the current phase and ends with `Next step`. A phase-boundary handoff contains
-the evidence the operator needs, one concrete approval request, what approval unlocks, and what
-remains blocked. An in-progress update says `No action needed` and names the next checkpoint.
+## Path 1: Run account enrichment
 
-After field-contract approval and explicit authorization to deploy disabled resources, deploy the
-tool and the play with the play set to `isEnabled: false`. Resolve `workspaceUuid` from `cargo-ai whoami`
-(`workspace.uuid`) and resolve resource UUIDs from `cargo.state.json` or the matching get/list
-command. Send both clickable URLs:
+### Before the account pilot
 
-- Play: `https://app.getcargo.io/workspaces/<workspaceUuid>/plays/<playUuid>`
-- Tool: `https://app.getcargo.io/workspaces/<workspaceUuid>/tools/<toolUuid>`
+1. Confirm the account audit and field contract are approved.
+2. Confirm the company extract, CRM record ID, destinations, and write action match the live CRM.
+3. Confirm the plan contains `crm_accounts`, `account_enrichment`, and `enrich_accounts` only once.
+4. Confirm the tool chooses one provider route and contains no CRM action.
+5. Confirm the play contains one Tool node, no direct LinkedIn action, and one CRM update.
+6. Recount the LinkedIn URL and domain fallback routes.
+7. Fetch both live provider prices and show the maximum account spend.
+8. Send direct Cargo links for the disabled account play and tool.
+9. Ask the operator to approve the account write probe and priced pilot.
 
-Do not ask for phase-two approval when either deployed resource link is missing or does not resolve.
-The same message includes the approved fields, eligible population, route counts, current unit
-prices, and exact estimated credits. Its `Next step` asks the operator to review the disabled Cargo
-resources and approve the run at that stated maximum cost. Until that approval, keep the play
-disabled and make no paid enrichment call.
+### Account write probe
 
-## Workflow and play boundary
+Choose a reversible company record with a usable identifier and at least one approved blank.
+Verify:
 
-`account_enrichment` is the reusable data component. Its workflow accepts a LinkedIn URL or handle
-plus a domain, normalizes the LinkedIn value, calls one mutually exclusive provider route, and
-returns the approved company-data schema. It has no CRM record id, CRM connector, fill-state policy,
-or CRM write action.
+- the CRM record ID matches exactly one company
+- the expected provider route is the only paid route called
+- existing business values, including numeric zero, remain unchanged
+- approved blanks are filled
+- successful freshness is stamped only after the CRM write
+- the play reports the expected outcome
 
-`enrich_crm_account` is the play's per-row orchestration workflow. The checked example accepts the
-CRM record id plus the current LinkedIn company ID, LinkedIn page, domain, name, website, and
-employee count from that same `crm_accounts` row. The managed segment trigger has already enforced
-identifier and freshness eligibility, so the workflow starts by calling `account_enrichment`, then
-applies the approved per-field write policy and pushes the returned values to the CRM. HubSpot's
-example matches `hs_object_id`. Salesforce matches `Id`. Attio matches the record id.
+Restore only Cargo-owned operational stamps if the operator approved that cleanup. Do not clear or
+overwrite provider-derived business values without explicit approval.
 
-This is a compiled-node contract, not only a naming convention. `account_enrichment` uses
-`defineWorkflow`: its first generated Branch ends rows with no identifier, and its next Branch sends
-each eligible row to exactly one provider connector route. It contains no CRM connector node. The
-play starts with one Tool node targeting `account_enrichment`, then runs the only CRM update. It
-contains no provider connector node.
+### Run the account population
 
-`enrich_accounts` is orchestration. It runs that workflow over `crm_accounts`
-and owns its managed backing segment through `filter`. Do not declare a
-separate segment. Do not introduce a native `accounts` unification to sit
-between the play and the CRM write.
+Start only the approved account pilot. Monitor provider failures, CRM write failures, route counts,
+and spend. Do not broaden filters or rerun failures until the operator understands whether another
+provider charge will occur.
 
-The tool output schema and the play write mappings form one interface: every selected provider field
-returned by `account_enrichment` has its approved CRM destination in `enrich_crm_account`. The play
-must invoke the tool handle instead of duplicating provider connector calls. If the interface
-diverges, stop and reconcile it before sending either UI link.
+After a successful pilot, request a separate decision before enabling recurring account coverage.
+Keep the schedule and freshness window shown in the reviewed plan.
 
-A handle that already starts with `http` is used as the LinkedIn company URL.
-Otherwise it is prefixed as `https://www.linkedin.com/company/<handle>`. Domain
-is the fallback route.
+### Account report
 
-The managed segment excludes rows without an identifier but includes populated stale rows. Do not
-add a destination fill-state condition or repeat identifier and freshness conditions as workflow
-branches. For each field, apply the approved `fill_blanks` or `refresh_selected` policy. Numeric zero
-counts as populated. `cargo_last_enriched_at` and `cargo_enrichment_status: succeeded` write only
-after the provider result and the CRM update.
+Report:
 
-Before every preview, run `cargo-ai connection integration get linkedin` and
-read the applicable costs from
-`integration.actions.enrichCompany.credits.costs` and
-`integration.actions.enrichCompanyFromDomain.credits.costs`. Cost the eligible
-CRM accounts with the current values and record when pricing was fetched.
+- direct links to the account play and tool
+- eligible and processed companies
+- LinkedIn URL, domain fallback, and no-identifier route counts
+- records written, skipped, and failed
+- before-and-after fill rate for every approved company destination
+- actual spend by provider action and total, compared with the estimate
+- confirmation that no existing business value was overwritten
+- recommended next action and any remaining blocker
 
-## Verification
+### Account stop conditions
 
-In this repository run `npm run validate`. In the consumer project:
+Stop the account run and report the evidence if:
 
-1. Run `cargo-ai cdk types` after selecting the live CRM connector.
-2. From the copied skill folder, run `node --import tsx evals/contract.mjs` after adapting
-   `infra/`. It must pass before the plan is reviewed.
-3. Run `cargo-ai cdk check`.
-4. Run `cargo-ai cdk plan` and inspect every resource and action payload.
-5. Confirm the plan has one CRM account model and no native `accounts` unification.
-6. Confirm the compiled tool starts with an identifier Branch and contains no CRM action. Confirm
-   the play starts with one Tool node targeting `account_enrichment`, contains no provider action,
-   and owns the only CRM update.
-7. Deploy only after the phase-one approval explicitly authorizes disabled resource creation.
-8. Show the operator direct Cargo UI links for the disabled play and tool, the approved field
-   contract, exclusions, target counts, mappings, live action costs, exact estimated credits,
-   pricing lookup time, and that the play stays disabled.
-9. Run or enable only after the operator reviews that phase-two handoff and explicitly approves the
-   stated population and maximum cost.
+- the provider schema differs from the adapted mapping
+- both company provider routes run for one record
+- one CRM ID matches zero or multiple companies
+- an existing business value changes without an approved refresh policy
+- a failed or identifier-free record receives successful freshness
+- actual paid calls exceed the approved route estimate
 
-## Post-enrichment report
+## Path 2: Run contact enrichment
 
-After the approved run completes, report:
+### Before the contact pilot
 
-- eligible, processed, written, and failed counts
-- before-and-after filled counts and fill rates for every approved CRM destination
-- estimated credits, actual credits, and the variance
-- failure groups with the recommended remediation
-- direct Cargo UI links for the play and tool
+1. Confirm the contact audit and field contract are approved.
+2. Confirm both Cargo-native tool UUIDs and live schemas replaced the placeholders.
+3. Confirm the contact extract, CRM record ID, destinations, and write action match the live CRM.
+4. Confirm the plan has one contact play and only these three tool targets: Find Email, Find
+   LinkedIn Profile from Email, and Contact LinkedIn Enrichment.
+5. Recount both-identifiers, LinkedIn-only, email-only, and neither routes.
+6. Fetch all three live tool prices and show the maximum contact spend.
+7. Send direct Cargo links for the disabled contact play and custom tool.
+8. Ask the operator to approve the contact write probe and priced pilot.
 
-End with one recommended `Next step`: remediate failures before continuing, approve recurring daily
-coverage for rows entering the managed segment, or install `crm-deduplication` after matching-key
-coverage is healthy. Do not end the report with an open-ended offer.
+### Contact write probe
 
-Replace the write `matchingPropertyName` together with the workflow input and
-play columns so the filter, the write match, and the extract all resolve the
-same CRM record. Re-fetch pricing and re-preview costs before enabling the
-schedule.
+Choose a reversible contact record with a usable identifier and at least one approved blank.
+Verify:
 
-## Complete when
+- the CRM record ID matches exactly one contact
+- the expected route calls only its gated tools
+- existing business values remain unchanged
+- approved blanks are filled
+- successful freshness is stamped only after the CRM write
+- the play reports the expected outcome
 
-- the consumer file contains only the selected CRM action shapes
-- `account_enrichment` is a deployed workflow-backed tool with no CRM access
-- the compiled `account_enrichment` graph starts with an identifier Branch and contains no CRM
-  connector node
-- `enrich_accounts` is the disabled play; its row workflow contains one Tool node targeting
-  `account_enrichment`, followed by the only CRM update, and contains no provider connector node
-- `node --import tsx evals/contract.mjs` passes against the adapted template
-- the play model is `crm_accounts`
-- the write matches the intended CRM record id
-- the input, result schema, mappings, and per-field write policies match the approved field contract
-- the managed segment excludes rows without an identifier and allows populated stale rows
-- the write uses a CRM-native blank-only update flag or an explicit fresh-read
-  guard
-- `isEnabled: false`, `runCreationRule: noConcurrency`, daily scheduling, and
-  `changeKinds: ["added"]` remain in the first plan
-- the disabled play and tool have working direct Cargo UI links before run approval
-- the operator approved the exact target and maximum estimated credits before execution
-- the final report includes before-and-after field coverage, all outcomes, failures, actual credit
-  variance, and a recommended next step
-- no credential, customer data, or deploy command appears in the committed
-  template
+Restore only Cargo-owned operational stamps if the operator approved that cleanup. Do not clear or
+overwrite provider-derived business values without explicit approval.
+
+### Contact route probes
+
+Use fixtures or safe live rows to verify every state:
+
+| State                         | Expected behavior                                                  |
+| ----------------------------- | ------------------------------------------------------------------ |
+| Email and LinkedIn            | Skip native tools, call custom enrichment, write blanks            |
+| LinkedIn only                 | Call Find Email, call custom enrichment, write blanks              |
+| Email only, resolver succeeds | Call profile resolver, call custom enrichment, write blanks        |
+| Email only, resolver misses   | Call profile resolver, stop without custom enrichment or CRM write |
+| Neither                       | No call and no write                                               |
+
+Explicit successful branches compile three custom-tool call nodes. Every node targets the same
+`contact_linkedin_enrichment` resource.
+
+### Run the contact population
+
+Start only the approved contact pilot. Monitor native tool failures, unresolved identifiers, custom
+enrichment failures, CRM write failures, route counts, and spend. Do not broaden filters or rerun
+failures until the operator understands whether another provider charge will occur.
+
+After a successful pilot, request a separate decision before enabling recurring contact coverage.
+Keep the schedule and freshness window shown in the reviewed plan.
+
+### Contact report
+
+Report:
+
+- direct links to the contact play and custom tool
+- eligible and processed contacts
+- both-identifiers, LinkedIn-only, email-only, and neither route counts
+- records written, unresolved, skipped, and failed
+- before-and-after fill rate for every approved contact destination
+- actual spend by tool and total, compared with the estimate
+- confirmation that no existing business value was overwritten
+- confirmation that unresolved rows did not receive successful freshness
+- recommended next action and any remaining blocker
+
+### Contact stop conditions
+
+Stop the contact run and report the evidence if:
+
+- a native or custom tool schema differs from the adapted call
+- a gated tool runs on the wrong route
+- one CRM ID matches zero or multiple contacts
+- an existing business value changes
+- an unresolved or identifier-free row writes or receives successful freshness
+- actual paid calls exceed the approved route estimate

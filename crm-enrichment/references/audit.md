@@ -1,166 +1,178 @@
-# Audit
+# Audit contract
 
-Produce the audit before editing the CDK template. Re-read live CRM properties. Do not assume
-property names, universal provider output paths, or that every CRM account is in scope.
+Choose the account path, contact path, or both. Audit every selected path independently before
+editing CDK, making a paid call, or writing to the CRM. Approval for one path does not approve the
+other.
 
-Write `crm-enrichment-audit-YYYY-MM-DD.json` and a matching Markdown report with this minimum
-JSON contract:
+For every selected path, first inspect the authenticated CRM connector, existing CDK resources,
+object schema, record ID, blank representation, Cargo-owned operational fields, and slug
+collisions. Do not guess provider paths or tool contracts from this repository example.
+
+## Path 1: Account enrichment audit
+
+### Inspect live resources
+
+Collect:
+
+- CRM company object, extractor, record ID, property schemas, and write action.
+- LinkedIn `enrichCompany` and `enrichCompanyFromDomain` input, output, and live pricing schemas.
+- Existing compatible company properties and genuine customer-managed duplicates.
+- Counts for the LinkedIn URL route, domain fallback route, and records with no usable identifier.
+
+### Account field recommendation
+
+Present one row per company provider property:
+
+| Field | Provider path | Provider and action | Output type | CRM destination | Current fill rate | Transformation | Write policy | Recommendation | Decision |
+| ----- | ------------- | ------------------- | ----------- | --------------- | ----------------- | -------------- | ------------ | -------------- | -------- |
+
+The starting destinations are:
+
+- `linkedin_company_id`
+- `name`
+- `domain`
+- `website`
+- `linkedin_company_page`
+- `numberofemployees`
+
+Reuse a compatible destination when one exists. If a new property is needed, show its internal name
+and type and wait for approval before creating it. Provider-derived business properties keep neutral
+names. `cargo_last_enriched_at` and `cargo_enrichment_status` are Cargo-owned operational fields.
+
+Report duplicate-property findings separately. Exclude CRM system properties and generic native
+properties unless they are genuine customer-managed duplicates. If none exist, say
+`No duplicate properties detected`.
+
+### Account route and cost evidence
+
+Count eligible records in mutually exclusive routes:
+
+| Route           | Definition                             | Provider action           |
+| --------------- | -------------------------------------- | ------------------------- |
+| LinkedIn URL    | LinkedIn company page present          | `enrichCompany`           |
+| Domain fallback | LinkedIn page blank and domain present | `enrichCompanyFromDomain` |
+| No identifier   | LinkedIn page and domain blank         | No call and not eligible  |
+
+Eligibility also requires null-or-stale `cargo_last_enriched_at`. Account destination fill-state is
+not an eligibility condition because an explicitly approved refresh policy may re-enrich a populated
+stale field.
+
+Record the live action prices, lookup timestamp, CLI version, route counts, and maximum account
+spend. Do not make a paid call during the audit.
+
+### Account evidence object
 
 ```json
 {
-  "generated_at": "ISO-8601 timestamp",
-  "crm": "hubspot|salesforce|attio",
-  "record_id_field": "hs_object_id",
-  "total_accounts": 0,
-  "duplicate_properties": [
-    {
-      "semantic_key": "customer-managed semantic key",
-      "candidates": [
-        {
-          "label": "CRM label",
-          "internal_name": "crm_internal_name",
-          "type": "CRM type",
-          "ownership": "customer_managed",
-          "filled_count": 0,
-          "fill_rate": 0
-        }
-      ],
-      "recommended_primary": "crm_internal_name",
-      "reason": "type-compatible field with the highest fill rate"
-    }
-  ],
-  "field_selection": {
-    "status": "approved",
-    "approved_at": "ISO-8601 timestamp",
-    "candidates": [
-      {
-        "provider": "live provider name or integration slug",
-        "provider_path": "company_name",
-        "provider_type": "string",
-        "available_on": ["enrichCompany", "enrichCompanyFromDomain"],
-        "class": "starting_recommendation|optional_direct|requires_transformation|unsupported",
-        "crm_candidates": [
-          {
-            "internal_name": "name",
-            "type": "string",
-            "filled_count": 0,
-            "fill_rate": 0
-          }
-        ],
-        "recommended_destination": "name|null",
-        "destination_state": "existing|proposed|none",
-        "destination_type": "string|null",
-        "transformation": "none|exact approved conversion|unsupported",
-        "write_policy": "fill_blanks",
-        "recommendation": "include|exclude",
-        "reason": "semantic and type compatibility, fill evidence, and operational tradeoff",
-        "operator_decision": "include|exclude"
-      }
-    ]
+  "path": "account_enrichment",
+  "crm": {
+    "integration": "hubspot",
+    "object": "companies",
+    "record_id": "hs_object_id"
   },
-  "gaps": {
-    "missing_domain": 0,
-    "missing_website": 0,
-    "missing_linkedin_url": 0,
-    "missing_linkedin_id": 0,
-    "missing_company_relationship": 0
+  "approved_fields": [],
+  "route_counts": {
+    "linkedin_url": 0,
+    "domain_fallback": 0,
+    "no_identifier": 0
   },
-  "pricing": {
-    "fetched_at": "ISO-8601 timestamp",
-    "cli_version": "cargo-ai version",
-    "integration_slug": "linkedin",
-    "linkedin_url_action": {
-      "slug": "enrichCompany",
-      "unit_credits": 0
-    },
-    "domain_action": {
-      "slug": "enrichCompanyFromDomain",
-      "unit_credits": 0
-    }
-  },
-  "target_preview": {
-    "eligible_accounts": 0,
-    "percentage_of_total": 0,
-    "linkedin_url_path": 0,
-    "domain_path": 0,
-    "skipped_no_identifier": 0,
-    "linkedin_url_credits": 0,
-    "domain_credits": 0,
-    "total_credits": 0,
-    "write_policy": {
-      "default": "fill_blanks",
-      "fields": [
-        {
-          "provider_path": "domain",
-          "destination": "domain",
-          "eligible_writes": 0,
-          "preserved_existing": 0
-        }
-      ]
-    }
+  "eligible_records": 0,
+  "refresh_window": "6 months",
+  "estimated_max_credits": null,
+  "operator_approval": {
+    "field_contract": false,
+    "disabled_deployment": false,
+    "paid_pilot": false
   }
 }
 ```
 
-`field_selection.candidates` covers every live output path from both selected LinkedIn actions and
-records which routes return it. Use exactly one row per exact provider path in the JSON, Markdown,
-and chat presentation. Never group multiple provider properties into one row, even when they share
-the same compatibility decision. Every row names the actual provider used so the operator knows
-where the proposed value comes from. Derive the name from the live connector and action used by the
-adapted workflow. Do not copy the checked example's `LinkedIn` label when another provider supplies
-the field. The starting recommendation is not pre-approved. Before operator approval, its status is
-`pending_operator_approval`, every candidate decision is `pending`, and the audit is incomplete. Do
-not present `target_preview` as final while the field selection is pending.
+The account audit is complete when schemas, record identity, destinations, mutually exclusive route
+counts, live pricing, and all three approvals are recorded.
 
-After approval, set the status to `approved`, record `approved_at`, and give every candidate an
-`include` or `exclude` decision. Every included field has a live destination, write policy, and
-either matching types or an explicit transformation. Every excluded field has a reason. Calculate
-the eligible population from identifier, freshness, and approved governance filters. Calculate
-write-policy counts from the included destinations. Adding a selected field changes the proposed
-writes, not segment eligibility, so recompute the write preview after approval.
+## Path 2: Contact enrichment audit
 
-Class provider `company_id` as `starting_recommendation` because it is the LinkedIn company ID
-matching key. Recommend the most-filled compatible CRM property. When HubSpot has none, propose
-`linkedin_company_id` with `destination_state: proposed`, type `string`, and include creation
-in the operator approval. Do not silently create it during audit.
+### Inspect live resources
 
-`duplicate_properties` contains only genuine duplicate groups among customer-managed CRM
-properties. Exclude CRM-managed and system-generated properties, including HubSpot `hs_*` fields.
-Also exclude generic native properties merely because they could receive a similar provider value.
-They may still appear as destination candidates under `field_selection`, but not as duplicate
-findings. Require at least two customer-managed properties with the same clear semantic purpose for
-a duplicate group. If none exist, emit an empty array and state `No duplicate properties detected`
-in Markdown and chat. Never infer ownership from fill rate alone.
+Collect:
 
-The Markdown headings are `Summary`, `Duplicate properties`, `Enrichment gaps`, and `Target and
-cost preview`, with a `Field selection` subsection before the target preview. Every table must
-reproduce the JSON counts and percentages. The chat summary names the approved provider fields,
-destinations and transformations, excluded candidates with reasons, recommended primary
-properties, largest gaps, eligible population, and exact credit estimate. Do not invent a CRM
-health score. Report field-level evidence.
+- CRM contact object, extractor, record ID, property schemas, and write action.
+- LinkedIn profile enrichment input, output, and live pricing schema.
+- Cargo-native Find Email and Find LinkedIn Profile from Email availability, UUIDs, inputs, outputs,
+  and live unit prices.
+- Existing compatible contact properties and genuine customer-managed duplicates.
 
-Recommend the most filled type-compatible property, preferring a CRM-native property on a tie.
-The HubSpot example uses `hs_object_id` as `record_id_field`; Salesforce uses `Id`; Attio uses
-the record id. Do not delete or rename CRM properties during audit.
+### Contact field recommendation
 
-If no compatible operational property exists, propose the exact property and pause for approval.
-Use generic outcomes: `pending`, `succeeded`, `failed`, `identity_conflict`, and
-`skipped_no_identifier`.
+Present one row per contact provider property using the same field-contract columns as the account
+path. The starting destinations are:
 
-Before calculating credits, run `cargo-ai connection integration get linkedin`. Read the current,
-applicable costs from `integration.actions.enrichCompany.credits.costs` and
-`integration.actions.enrichCompanyFromDomain.credits.costs`; stop if the relevant entry is missing
-or ambiguous. Credit math is
-`linkedin_url_path * linkedin_url_unit_credits + domain_path * domain_unit_credits`. The route
-counts are mutually exclusive and count eligible CRM accounts on the connected extract. Ask
-whether to narrow the population after showing the preview.
+- `email`
+- `linkedin_person_id`
+- `linkedin_profile_url`
+- `jobtitle`
 
-## Complete when
+Reuse compatible properties and keep provider-derived business properties neutral. Confirm
+`cargo_last_enriched_at` and `cargo_enrichment_status` separately as operational fields.
 
-- JSON, Markdown, and chat agree on every count
-- no paid provider call or CRM write occurred
-- the operator approved the complete field contract before the final target and cost preview
-- every live LinkedIn output has an include or exclude decision with evidence
-- every selected destination has a live name, type, and fill-rate justification
-- duplicate findings contain only genuine customer-managed semantic duplicates and exclude
-  HubSpot `hs_*`, CRM-managed, system-generated, and generic native properties
+### Contact route and cost evidence
+
+Count mutually exclusive eligible rows:
+
+| Route            | Definition                    | Calls per row                                                                  |
+| ---------------- | ----------------------------- | ------------------------------------------------------------------------------ |
+| Both identifiers | Email and LinkedIn present    | Contact LinkedIn Enrichment                                                    |
+| LinkedIn only    | LinkedIn present, email blank | Find Email, then Contact LinkedIn Enrichment                                   |
+| Email only       | Email present, LinkedIn blank | Find LinkedIn Profile from Email, then Contact LinkedIn Enrichment if resolved |
+| Neither          | Both blank                    | No call and not eligible                                                       |
+
+Eligibility also requires null-or-stale `cargo_last_enriched_at` and at least one approved blank
+destination. Pair `isNull` with `isEmpty` for every blank string check.
+
+Record each live tool price, the lookup timestamp, route counts, resolver assumptions, and maximum
+contact spend. Do not make a paid call during the audit.
+
+### Contact evidence object
+
+```json
+{
+  "path": "contact_enrichment",
+  "crm": {
+    "integration": "hubspot",
+    "object": "contacts",
+    "record_id": "hs_object_id"
+  },
+  "native_tools": {
+    "find_email": {
+      "uuid": "<deployed UUID>",
+      "inputs": ["linkedin_url", "first_name", "last_name"],
+      "output": "email",
+      "unit_credits": null
+    },
+    "find_linkedin_profile_from_email": {
+      "uuid": "<deployed UUID>",
+      "inputs": ["email"],
+      "output": "linkedin_url",
+      "unit_credits": null
+    }
+  },
+  "approved_fields": [],
+  "route_counts": {
+    "both_identifiers": 0,
+    "linkedin_only": 0,
+    "email_only": 0,
+    "neither": 0
+  },
+  "eligible_records": 0,
+  "refresh_window": "6 months",
+  "estimated_max_credits": null,
+  "operator_approval": {
+    "field_contract": false,
+    "disabled_deployment": false,
+    "paid_pilot": false
+  }
+}
+```
+
+The contact audit is complete when the CRM and three tool contracts, destinations, mutually
+exclusive route counts, live pricing, and all three approvals are recorded.
