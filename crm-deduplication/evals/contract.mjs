@@ -4,22 +4,53 @@
 // It loads through `loadResources`, the same loader `cargo-ai cdk check`,
 // `plan`, and `deploy` use, so what is asserted here is what would deploy.
 import assert from "node:assert/strict";
+import { readdirSync, readFileSync } from "node:fs";
+import { join } from "node:path";
 import { loadResources } from "@cargo-ai/cdk";
 
-import { deriveContactEvidence } from "../infra/scripts/contact-evidence.ts";
-import { prepareContactSearch } from "../infra/scripts/contact-search.ts";
+import { deriveEvidence } from "../infra/scripts/accounts/evidence.ts";
+import { deriveContactEvidence } from "../infra/scripts/contacts/evidence.ts";
 import {
   normalizeEmail,
-  normalizeLinkedInPersonUrl,
+  normalizeLinkedinProfile,
   normalizePhone,
   phoneMatchKeys,
-} from "../infra/scripts/contacts.ts";
-import { deriveEvidence } from "../infra/scripts/evidence.ts";
+} from "../infra/scripts/contacts/identity.ts";
+import { prepareContactSearch } from "../infra/scripts/contacts/search.ts";
 
 const infraDir = new URL("../infra", import.meta.url).pathname;
 const byId = new Map(
   (await loadResources(infraDir)).map((resource) => [resource.id, resource]),
 );
+
+// Each object path owns its own folder and shares `common/`. A path that reads
+// the other's modules makes one path's local decision the other's contract, so
+// adapting or removing a path stops being independent.
+const scriptsDir = join(infraDir, "scripts");
+const sourcesIn = (folder) =>
+  readdirSync(join(scriptsDir, folder)).map((file) => ({
+    path: `${folder}/${file}`,
+    source: readFileSync(join(scriptsDir, folder, file), "utf8"),
+  }));
+for (const [folder, other] of [
+  ["accounts", "contacts"],
+  ["contacts", "accounts"],
+]) {
+  for (const { path, source } of sourcesIn(folder)) {
+    assert.equal(
+      source.includes(`from "../${other}/`),
+      false,
+      `${path} must not import the ${other} path: shared code belongs in scripts/common/`,
+    );
+  }
+}
+for (const { path, source } of sourcesIn("common")) {
+  assert.equal(
+    source.includes('from "../'),
+    false,
+    `${path} must not depend on an object path: common code is what both paths read`,
+  );
+}
 
 assert.deepEqual(
   new Set(byId.keys()),
@@ -150,7 +181,7 @@ for (const node of nodes.filter((node) => node.actionSlug === "script")) {
 assert.match(
   evidenceNode.config.script,
   /Generated from evidence\.ts/,
-  "the evidence node must be bundled from infra/scripts/evidence.ts",
+  "the evidence node must be bundled from infra/scripts/accounts/evidence.ts",
 );
 // The script takes the search and the record ID as values; the SDK writes where
 // each lives. Checked here because it is the one place the wiring is visible:
@@ -619,6 +650,17 @@ assert.equal(
   true,
   "a conflict-free transitive high-confidence cluster may merge automatically",
 );
+// The reviewer reads the enrolled contact first, then the records it gathered.
+assert.equal(
+  transitiveContact.reviewLines.length,
+  3,
+  "the review card must carry one line per record in the group",
+);
+assert.match(
+  transitiveContact.reviewLines[0],
+  /^a \|/,
+  "the review card must lead with the enrolled contact",
+);
 
 const phoneOnlyContact = contactEvidenceFor("source", [
   crmContact("source", {
@@ -671,7 +713,7 @@ assert.deepEqual(
 );
 assert.equal(normalizeEmail(" JACK@Example.COM "), "jack@example.com");
 assert.equal(
-  normalizeLinkedInPersonUrl(
+  normalizeLinkedinProfile(
     "https://www.linkedin.com/in/Jack-Smith/?trk=public",
   ),
   "jack-smith",

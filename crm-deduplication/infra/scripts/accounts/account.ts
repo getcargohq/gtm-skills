@@ -1,6 +1,7 @@
-// The CRM records a search returned, read into accounts. HubSpot sends a
-// property as whatever it felt like sending, so each value is coerced here once,
-// and nothing downstream compares raw CRM data.
+// A CRM company record, read into the account the rest of this path compares.
+
+import { type CrmRecord, readCrmRecords } from "../common/records";
+import { asNumber, asText } from "../common/values";
 
 /** A company account, read from its CRM record. An absent value is `undefined`. */
 export type Account = {
@@ -20,42 +21,16 @@ export type Account = {
   createdAt: string | undefined;
 };
 
-/**
- * The accounts a search's records describe, one per company. A company can
- * match several criteria and come back more than once; its first appearance is
- * the one kept.
- */
+/** The accounts a search's records describe, one per company. */
 export const readAccounts = (records: unknown): Account[] => {
-  if (Array.isArray(records) === false) {
-    return [];
-  }
-
-  const accounts = records
-    .map((record: unknown) => readAccount(record))
-    .filter((account): account is Account => account !== undefined);
-
-  return accounts.filter((account, index) => {
-    return accounts.findIndex((other) => other.id === account.id) === index;
-  });
+  return readCrmRecords(records).map((record) => readAccount(record));
 };
 
-const readAccount = (record: unknown): Account | undefined => {
-  if (typeof record !== "object" || record === null) {
-    return undefined;
-  }
-
-  const id = asText("id" in record ? record.id : undefined);
-  if (id === undefined) {
-    return undefined;
-  }
-
-  const rawProperties = "properties" in record ? record.properties : undefined;
-  const propertyEntries: [string, unknown][] =
-    typeof rawProperties === "object" && rawProperties !== null
-      ? Object.entries(rawProperties)
-      : [];
-  const properties = Object.fromEntries(propertyEntries);
-
+const readAccount = ({
+  id,
+  properties,
+  filledPropertyCount,
+}: CrmRecord): Account => {
   const lifecycleStage = asText(properties.lifecyclestage);
   const linkedinCompanyId = asText(properties.linkedin_company_id);
   const linkedinPage = readLinkedinPage(properties.linkedin_company_page);
@@ -78,28 +53,10 @@ const readAccount = (record: unknown): Account | undefined => {
     openDealCount: asNumber(properties.hs_num_open_deals),
     contactCount: asNumber(properties.num_associated_contacts),
     activityCount: asNumber(properties.hs_num_engagements),
-    // Raw CRM values, where HubSpot's empty string is a real "unset".
-    filledPropertyCount: propertyEntries.filter(([, value]) => {
-      return value !== null && value !== undefined && value !== "";
-    }).length,
+    filledPropertyCount,
     lastActivityAt: asText(properties.notes_last_updated),
     createdAt: asText(properties.createdate),
   };
-};
-
-const asText = (value: unknown): string | undefined => {
-  if (value === null || value === undefined) {
-    return undefined;
-  }
-
-  // HubSpot sends an unset property as "" about as often as it omits it. This
-  // is the one place that collapses the two.
-  const text = String(value).trim();
-  return text === "" ? undefined : text;
-};
-
-const asNumber = (value: unknown): number => {
-  return Number.isFinite(Number(value)) ? Number(value) : 0;
 };
 
 const asDomain = (value: unknown): string | undefined => {

@@ -5,7 +5,7 @@ import { crm } from "../connectors/crm";
 import { slack } from "../connectors/slack";
 import { playsFolder } from "../folders";
 import { crmAccounts } from "../models/crm-accounts";
-import { deriveEvidence } from "../scripts/evidence";
+import { deriveEvidence } from "../scripts/accounts/evidence";
 
 // PLACEHOLDER — the Slack channel every review request is posted to. Resolve it
 // against the live workspace and get it approved before deploying.
@@ -70,9 +70,9 @@ const deduplicateCrmAccount = defineWorkflow(
     // Everything the merge decision rests on, derived deterministically: no
     // model, no judgement. The same records always produce the same evidence.
     //
-    // The body lives in `infra/scripts/`, one subject per module: reading
-    // records into accounts, clustering, survivor ranking, and the policy they
-    // read. It receives the search's records and this account's ID as values,
+    // The body lives in `infra/scripts/accounts/`, one subject per module:
+    // reading records into accounts, clustering, survivor ranking, and the
+    // policy they read. It receives the search's records and this account's ID as values,
     // so it never names the slug either lives under, and `evidence` is typed
     // from what the script returns.
     const evidence = deriveEvidence({

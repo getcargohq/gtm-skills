@@ -5,9 +5,9 @@ import { crm } from "../connectors/crm";
 import { slack } from "../connectors/slack";
 import { playsFolder } from "../folders";
 import { crmContacts } from "../models/crm-contacts";
-import { deriveContactEvidence } from "../scripts/contact-evidence";
-import { prepareContactSearch } from "../scripts/contact-search";
-import { prepareTransitiveContactSearch } from "../scripts/contact-transitive-search";
+import { deriveContactEvidence } from "../scripts/contacts/evidence";
+import { prepareContactSearch } from "../scripts/contacts/search";
+import { prepareTransitiveContactSearch } from "../scripts/contacts/transitive-search";
 
 // PLACEHOLDER: resolve the dedicated review channel before deployment.
 const reviewChannelId = "PLACEHOLDER_REVIEW_CHANNEL_ID";

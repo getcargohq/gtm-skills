@@ -1,6 +1,6 @@
 // Which account in a duplicate cluster survives the merge.
 
-import type { Account } from "./accounts";
+import type { Account } from "./account";
 import { SURVIVOR_PRECEDENCE } from "./policy";
 
 /**

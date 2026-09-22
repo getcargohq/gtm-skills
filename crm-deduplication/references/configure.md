@@ -29,11 +29,14 @@ The account path consists of:
 
 - `infra/models/crm-accounts.ts`
 - `infra/plays/deduplicate-accounts.ts`
-- `infra/scripts/accounts.ts`
-- `infra/scripts/cluster.ts`
-- `infra/scripts/policy.ts`
-- `infra/scripts/survivor.ts`
-- `infra/scripts/evidence.ts`
+- `infra/scripts/accounts/account.ts`
+- `infra/scripts/accounts/cluster.ts`
+- `infra/scripts/accounts/policy.ts`
+- `infra/scripts/accounts/survivor.ts`
+- `infra/scripts/accounts/evidence.ts`
+
+It also reads `infra/scripts/common/`, which both paths share. Adapt matching and survivor policy in
+`infra/scripts/accounts/policy.ts`; the rest of `accounts/` is machinery that reads it.
 
 `crm_accounts` must remain a direct CRM company extract. `deduplicate_accounts` owns the live
 company search, evidence score, Human Review, and every company merge.
@@ -109,10 +112,17 @@ The contact path consists of:
 
 - `infra/models/crm-contacts.ts`
 - `infra/plays/deduplicate-contacts.ts`
-- `infra/scripts/contacts.ts`
-- `infra/scripts/contact-search.ts`
-- `infra/scripts/contact-transitive-search.ts`
-- `infra/scripts/contact-evidence.ts`
+- `infra/scripts/contacts/contact.ts`
+- `infra/scripts/contacts/identity.ts`
+- `infra/scripts/contacts/cluster.ts`
+- `infra/scripts/contacts/policy.ts`
+- `infra/scripts/contacts/survivor.ts`
+- `infra/scripts/contacts/search.ts`
+- `infra/scripts/contacts/transitive-search.ts`
+- `infra/scripts/contacts/evidence.ts`
+
+It also reads `infra/scripts/common/`, which both paths share. Adapt generic-email and survivor
+policy in `infra/scripts/contacts/policy.ts`; the rest of `contacts/` is machinery that reads it.
 
 `crm_contacts` must remain a direct CRM contact extract. `deduplicate_contacts` owns both live
 contact searches, evidence score, optional Human Review, and every contact merge.

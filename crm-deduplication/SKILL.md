@@ -217,14 +217,14 @@ effect on candidates, safeguards, and validation.
 - **Keep the automatic company class narrow.** (`infra/plays/deduplicate-accounts.ts`) Exact shared
   LinkedIn company ID, score at least 60, and no identity, protected-ID, or parent-subsidiary
   conflict are all required. Every other candidate reaches Human Review.
-- **Keep names out of identity.** (`infra/scripts/`) Company name is excluded from candidate
+- **Keep names out of identity.** (`infra/scripts/accounts/`) Company name is excluded from candidate
   generation and scoring. The checked review payload does not rely on it.
 - **Protect business identities and corporate structure.** Conflicting protected IDs and
   parent-subsidiary clusters never merge automatically.
 
 ### Path 2: Contact invariants
 
-- **Apply person guards globally.** (`infra/scripts/contact-evidence.ts`) Every automatic contact
+- **Apply person guards globally.** (`infra/scripts/contacts/evidence.ts`) Every automatic contact
   class is disqualified by a LinkedIn identity conflict or generic or shared email.
 - **Keep phone-only groups out of automatic merge.** Phone is a candidate key and review aid, not
   sufficient unattended identity evidence.

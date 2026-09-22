@@ -28,7 +28,7 @@ flowchart LR
 | ---------------------- | ----- | -------------------------------------------------------- |
 | `crm_accounts`         | Model | Direct CRM company extract                               |
 | `deduplicate_accounts` | Play  | Search, score, review, and merge duplicate companies     |
-| Account scripts        | Code  | Normalize company identity, cluster, rank, and summarize |
+| `infra/scripts/accounts/` | Code | Normalize company identity, cluster, rank, and summarize |
 
 Company name is excluded from candidate generation and scoring. The deterministic survivor policy
 protects business IDs and prefers customer and commercial history.
@@ -59,7 +59,7 @@ flowchart LR
 | ---------------------- | ----- | ------------------------------------------------------------ |
 | `crm_contacts`         | Model | Direct CRM contact extract                                   |
 | `deduplicate_contacts` | Play  | Search, score, review, and merge duplicate contacts           |
-| Contact scripts        | Code  | Normalize person identity, expand clusters, rank, and review  |
+| `infra/scripts/contacts/` | Code | Normalize person identity, expand clusters, rank, and review |
 
 Exact LinkedIn person ID, conflict-free LinkedIn URL, conflict-free non-generic email, and
 conflict-free transitive chains are the automatic classes. A LinkedIn conflict, generic or shared
@@ -117,12 +117,13 @@ Use the selected sections in [the audit contract](references/audit.md),
 | `SKILL.md`                                  | Route selection, approvals, invariants, and completion      |
 | `infra/connectors/`                         | Shared uncached CRM and Slack connectors                    |
 | `infra/folders/`                            | Shared skill-owned model and play folders                   |
+| `infra/scripts/common/`                     | Record reading and value helpers both paths share           |
 | `infra/models/crm-accounts.ts`              | Account path CRM extract                                    |
 | `infra/plays/deduplicate-accounts.ts`       | Account path workflow and trigger                           |
-| `infra/scripts/{accounts,cluster,policy,survivor,evidence}.ts` | Account evidence and survivor policy           |
+| `infra/scripts/accounts/`                   | Company identity, clustering, survivor policy, and evidence |
 | `infra/models/crm-contacts.ts`              | Contact path CRM extract                                    |
 | `infra/plays/deduplicate-contacts.ts`       | Contact path workflow and trigger                           |
-| `infra/scripts/contact-*.ts` and `contacts.ts` | Contact search, evidence, normalization, and survivor logic |
+| `infra/scripts/contacts/`                   | Person identity, clustering, survivor policy, and evidence  |
 | `references/`                               | Object-specific audit, configuration, and run instructions |
 | `evals/acceptance.md`                       | Independent acceptance checklists for both paths            |
 | `evals/contract.mjs`                        | Executable graph and safety contract                        |

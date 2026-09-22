@@ -6,8 +6,9 @@ path does not approve the other.
 
 For every selected path, inspect the authenticated CRM connector, CRM-backed model, object schema,
 record ID, identity fields, relevant conflict and protection fields, and existing compatible CDK
-resources. Normalize identifiers exactly as the corresponding deployed scripts in `infra/scripts/`
-do. Classify each cluster once, rank one deterministic survivor, and record the exact CRM IDs
+resources. Normalize identifiers exactly as the deployed scripts for that path do:
+`infra/scripts/accounts/account.ts` for companies and `infra/scripts/contacts/identity.ts` for
+people. Classify each cluster once, rank one deterministic survivor, and record the exact CRM IDs
 proposed for merge.
 
 Each selected path produces its own dated JSON artifact, matching Markdown report, and chat summary.
