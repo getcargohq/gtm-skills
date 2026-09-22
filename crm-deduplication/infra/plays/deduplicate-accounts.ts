@@ -72,9 +72,9 @@ const deduplicateCrmAccount = defineWorkflow(
     //
     // The body lives in `infra/scripts/accounts/`, one subject per module:
     // reading records into accounts, clustering, survivor ranking, and the
-    // policy they read. It receives the search's records and this account's ID as values,
-    // so it never names the slug either lives under, and `evidence` is typed
-    // from what the script returns.
+    // policy they read. It receives the search's records and this account's ID
+    // as values, so it never names the slug either lives under, and `evidence`
+    // is typed from what the script returns.
     const evidence = deriveEvidence({
       records,
       accountId: input.hs_object_id,
