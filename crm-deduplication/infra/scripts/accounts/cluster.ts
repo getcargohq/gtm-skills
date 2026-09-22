@@ -1,7 +1,8 @@
 // Which accounts are the same company as the one being deduplicated, and how
 // their identity keys agree across that cluster.
 
-import type { Account } from "./accounts";
+import { sameKey } from "../common/values";
+import type { Account } from "./account";
 import { GENERIC_DOMAINS } from "./policy";
 
 /**
@@ -20,12 +21,10 @@ export const clusterAround = (
   return accounts.filter((candidate) => {
     return (
       candidate.id === account.id ||
-      (account.linkedinCompanyId !== undefined &&
-        candidate.linkedinCompanyId === account.linkedinCompanyId) ||
-      (account.linkedinHandle !== undefined &&
-        candidate.linkedinHandle === account.linkedinHandle) ||
+      sameKey(account.linkedinCompanyId, candidate.linkedinCompanyId) ||
+      sameKey(account.linkedinHandle, candidate.linkedinHandle) ||
       (identifiesOneCompany(account.domain) &&
-        candidate.domain === account.domain)
+        sameKey(account.domain, candidate.domain))
     );
   });
 };

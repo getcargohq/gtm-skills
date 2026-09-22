@@ -303,8 +303,8 @@
     {
       "name": "crm-deduplication",
       "kind": "cookbook",
-      "job": "Keep CRM accounts duplicate-free: audit company identity, build a recurring deduplication play directly on the CRM model, search and score duplicate candidates, merge safe exact matches, and route uncertain clusters to manual review.",
-      "description": "Keep CRM accounts duplicate-free: audit company identity, build a recurring deduplication play directly on the CRM model, search and score duplicate candidates, merge safe exact matches, and route uncertain clusters to manual review. Triggers: \"deduplicate our CRM accounts\", \"we keep creating duplicate account records\", \"merge duplicate companies in HubSpot\", \"set up recurring account deduplication\", \"review ambiguous company duplicates\", \"our CRM has duplicate companies\". HubSpot, Salesforce, Attio, Slack, Cargo CDK, findRecords, Scoring, Human Review, mergeRecords. Skip when: the request is to add or refresh CRM firmographics rather than merge duplicate records; use crm-enrichment.",
+      "job": "Keep CRM accounts and contacts duplicate-free: audit company and person identity, run recurring deduplication plays directly on CRM models, merge safe exact matches, and route uncertain clusters to manual review.",
+      "description": "Keep CRM accounts and contacts duplicate-free: audit company and person identity, run recurring deduplication plays directly on CRM models, merge safe exact matches, and route uncertain clusters to manual review. Triggers: \"deduplicate our CRM accounts\", \"deduplicate CRM contacts\", \"our CRM has duplicate people\", \"merge duplicate contacts in HubSpot\", \"we keep creating duplicate account records\", \"merge duplicate companies in HubSpot\", \"set up recurring CRM deduplication\", \"review ambiguous duplicates\". HubSpot, Salesforce, Attio, Slack, LinkedIn profiles, phone numbers, Cargo CDK, findRecords, Scoring, Human Review, mergeRecords. Skip when: the request is to add or refresh CRM data rather than merge duplicate records; use crm-enrichment.",
       "version": "0.1.0",
       "homepage": "https://github.com/getcargohq/gtm-skills/tree/main/crm-deduplication",
       "group": "Make it run forever",
@@ -314,105 +314,158 @@
       "chain": 6,
       "resources": [
         "connectors",
+        "folders",
         "models",
         "plays"
       ],
       "asked": [
         {
-          "input": "crm",
+          "input": "crm_shape",
           "kind": "derived",
-          "how": "Inspect authenticated connectors, generated action types, and existing CDK resources",
-          "why": "The play must search and merge in the authoritative CRM"
+          "how": "Inspect authenticated connectors, selected extracts, and generated action types",
+          "why": "Sets objects, IDs, search, merge, and property behavior"
         },
         {
-          "input": "deduplication_evidence",
+          "input": "selected_paths",
           "kind": "derived",
-          "how": "Normalize live CRM identifiers, classify candidate clusters, conflicts, and survivor evidence",
-          "why": "Policy approval must be grounded in current records"
+          "how": "Read whether the request names account deduplication, contact deduplication, or both",
+          "why": "Sets which audits, resources, approvals, and pilots are in scope"
         },
         {
-          "input": "current_action_costs",
+          "input": "action_costs",
           "kind": "derived",
-          "how": "Read live CRM and Slack integration metadata immediately before each preview",
-          "why": "The pilot handoff must disclose current cost"
+          "how": "Read current CRM metadata plus Slack metadata for paths with active review",
+          "why": "Each path's handoff must disclose its current maximum cost"
         },
         {
-          "input": "approved_policy",
-          "kind": "asked",
-          "how": "Review matching keys, protected fields, survivor precedence, score, and automatic class",
-          "why": "It controls every candidate and automatic merge"
+          "input": "account_evidence",
+          "kind": "derived",
+          "how": "Audit company identifiers, conflicts, candidate classes, and survivor inputs",
+          "why": "Grounds the account policy in current CRM records"
         },
         {
-          "input": "manual_review",
+          "input": "account_policy",
           "kind": "asked",
-          "how": "Select the Slack connector, channel, owner, and timeout",
-          "why": "Uncertain clusters need an accountable decision path"
+          "how": "Review keys, protected fields, survivor precedence, score, and automatic class",
+          "why": "Controls every company candidate and unattended merge"
         },
         {
-          "input": "approved_build",
+          "input": "account_review",
           "kind": "asked",
-          "how": "Authorize deployment of the adapted resources with the play disabled",
-          "why": "Repository review does not authorize workspace mutation"
+          "how": "Select Slack channel, owner, and timeout for uncertain company clusters",
+          "why": "Gives manual company decisions an accountable owner"
         },
         {
-          "input": "approved_pilot",
+          "input": "account_authorizations",
           "kind": "asked",
-          "how": "Review the live play link and approve the exact merge-capable population",
-          "why": "A disabled play can still mutate CRM records when manually run"
+          "how": "Approve the disabled build, then the exact merge-capable pilot as separate decisions",
+          "why": "Separates deployment from company-record mutation"
+        },
+        {
+          "input": "contact_evidence",
+          "kind": "derived",
+          "how": "Audit person identifiers, conflicts, candidate classes, and survivor inputs",
+          "why": "Grounds the contact policy in current CRM records"
+        },
+        {
+          "input": "contact_policy",
+          "kind": "asked",
+          "how": "Review keys, global guards, survivor precedence, and automatic classes",
+          "why": "Controls every person candidate and unattended merge"
+        },
+        {
+          "input": "contact_review",
+          "kind": "asked",
+          "how": "Decide whether low-confidence groups enter review; if yes, approve channel and timeout",
+          "why": "Defines the non-automatic contact path"
+        },
+        {
+          "input": "contact_authorizations",
+          "kind": "asked",
+          "how": "Approve the disabled build, then the exact merge-capable pilot as separate decisions",
+          "why": "Separates deployment from contact-record mutation"
         }
       ],
       "canChange": [
         {
           "id": "crm",
           "when": "The consumer uses Salesforce or Attio",
-          "how": "Replace the checked HubSpot connector, extractor, record ID, search action, merge action, and properties",
-          "cost": "Generated types and merge semantics must be revalidated"
-        },
-        {
-          "id": "matching_keys",
-          "when": "The CRM has an approved durable identity beyond the defaults",
-          "how": "Add the normalized key to search, score, evidence, conflicts, and contract tests",
-          "cost": "Wider matching can create new false-positive classes"
-        },
-        {
-          "id": "survivor_precedence",
-          "when": "Protected lifecycle, billing, tier, or customer policy must win",
-          "how": "Update both survivor implementations and record the exact order",
-          "cost": "A policy change can select a different survivor for every cluster"
+          "how": "Replace connector, extract, record ID, search, merge, and properties across selected paths",
+          "cost": "Generated types and native merge semantics must be revalidated"
         },
         {
           "id": "structured_ai_review",
-          "when": "Ambiguous evidence needs a review aid",
-          "how": "Add priced structured evidence before Human Review only",
-          "cost": "Adds current model cost and a non-deterministic review surface"
+          "when": "Ambiguous evidence needs a concise review aid",
+          "how": "Add priced structured evidence before Human Review only; never use it to bypass deterministic guards",
+          "cost": "Adds model cost and a non-deterministic review surface"
+        },
+        {
+          "id": "account_matching_keys",
+          "when": "The CRM has another approved durable company identity",
+          "how": "Add it to search, normalization, evidence, conflict gates, review, and contract tests",
+          "cost": "Wider matching can create new false-positive company classes"
+        },
+        {
+          "id": "account_survivor_precedence",
+          "when": "Protected lifecycle, billing, tier, or customer policy must win",
+          "how": "Change the account ranker and its contract fixtures together",
+          "cost": "A policy change can select a different survivor for every cluster"
+        },
+        {
+          "id": "contact_matching_keys",
+          "when": "The CRM has another approved durable person identity",
+          "how": "Add it to both searches, normalization, evidence, conflict gates, review, and tests",
+          "cost": "Wider matching can create new false-positive person classes"
+        },
+        {
+          "id": "contact_survivor_precedence",
+          "when": "Commercial history or activity policy differs",
+          "how": "Change the contact ranker and its contract fixtures together",
+          "cost": "A policy change can select a different survivor for every group"
+        },
+        {
+          "id": "low_confidence_review",
+          "when": "The operator wants phone-only or ambiguous groups surfaced",
+          "how": "Keep Human Review enabled, or remove that branch and update the contact contract so those groups end untouched",
+          "cost": "Review volume changes; disabled review leaves more duplicates"
         }
       ],
       "shouldNotChange": [
-        "**Run on the authoritative CRM model.** (`infra/plays/deduplicate-accounts.ts`) The play uses the CRM-backed account extract and CRM record ID. A native account or candidate model introduces another identity system and can target the wrong record.",
-        "**Search live CRM rows before scoring.** (`infra/plays/deduplicate-accounts.ts`) `findRecords` refreshes candidate membership for every run. Audit snapshots can become stale before a merge.",
-        "**Search, score, select, then decide.** (`infra/scripts/evidence.ts`) Deterministic preparation retains the fresh source exactly once. Native Scoring evaluates the evidence before deterministic survivor selection and the automatic gate.",
-        "**Keep the automatic class narrow.** (`infra/plays/deduplicate-accounts.ts`) Exact shared LinkedIn company ID, score at least 60, and no identity, protected-ID, or parent-subsidiary conflict are all required. Every other candidate reaches Human Review.",
-        "**Merge only on automatic or approved paths.** (`infra/plays/deduplicate-accounts.ts`) Human approval reaches the reviewed merge. Decline and timeout end without a CRM write.",
-        "**Stop stale queued rows.** (`infra/plays/deduplicate-accounts.ts`) A source missing from the fresh search ends before scoring or emitting merge IDs.",
-        "**Keep one CRM shape in the folder.** Adapt HubSpot in place for Salesforce or Attio. Parallel CRM branches drift from the generated types actually connected.",
-        "**Keep the pilot disabled, serial, and limited.** (`infra/plays/deduplicate-accounts.ts`) The play remains disabled, `noConcurrency`, and limited to 15 CRM rows until the verified pilot is approved for expansion.",
-        "**Keep the repository inert.** It contains no credential, deploy command, customer data, or live merge result."
+        "**Run on authoritative CRM models.** (`infra/plays/`) Each selected play uses its object-specific CRM extract and record ID. A candidate model introduces another identity system and can target the wrong record.",
+        "**Search live CRM rows before scoring.** (`infra/plays/`) The CRM search refreshes candidate membership for every run. Audit snapshots can become stale before a merge.",
+        "**Search, prepare, score, then decide.** (`infra/scripts/`) Deterministic preparation retains the fresh source once, normalizes evidence, and selects one survivor before the automatic gate.",
+        "**Merge only on automatic or approved paths.** (`infra/plays/`) Human approval reaches the reviewed merge. Decline and timeout end without a CRM write.",
+        "**Stop stale queued rows.** (`infra/plays/`) A source missing from the fresh search ends before scoring or emitting merge IDs.",
+        "**Keep one CRM shape.** Adapt HubSpot in place. Parallel CRM branches drift from the generated types connected to the selected paths.",
+        "**Keep pilots disabled, serial, and limited.** (`infra/plays/`) Each selected play remains disabled, `noConcurrency`, and limited to 15 rows until its verified pilot is approved for expansion.",
+        "**Keep the automatic company class narrow.** (`infra/plays/deduplicate-accounts.ts`) Exact shared LinkedIn company ID, score at least 60, and no identity, protected-ID, or parent-subsidiary conflict are all required. Every other candidate reaches Human Review.",
+        "**Keep names out of identity.** (`infra/scripts/accounts/`) Company name is excluded from candidate generation and scoring. The checked review payload does not rely on it.",
+        "**Protect business identities and corporate structure.** Conflicting protected IDs and parent-subsidiary clusters never merge automatically.",
+        "**Apply person guards globally.** (`infra/scripts/contacts/evidence.ts`) Every automatic contact class is disqualified by a LinkedIn identity conflict or generic or shared email.",
+        "**Keep phone-only groups out of automatic merge.** Phone is a candidate key and review aid, not sufficient unattended identity evidence.",
+        "**Expand transitive groups before deciding.** (`infra/plays/deduplicate-contacts.ts`) The second live search gathers every high-confidence identity key discovered by the direct search.",
+        "**End after native merge.** (`infra/plays/deduplicate-contacts.ts`) Deduplication creates no post-merge update node. A separate approved workflow owns normalization, enrichment, and association changes."
       ],
       "doneWhen": [
-        "the audit JSON, Markdown, and chat summary agree on identifier coverage, candidates, and conflicts",
-        "the operator approved matching keys, protected fields, survivor precedence, automatic class, and manual-review destination",
-        "the isolated plan contains one CRM connector, one Slack connector, one CRM account model, and one disabled deduplication play, with no staging model",
-        "the play runs directly on the CRM model and matches the audited CRM record ID",
-        "its compiled workflow contains CRM `findRecords`, one deterministic preparation script bundled from `infra/scripts/evidence.ts` that also selects the survivor, native Scoring, the guarded Branch, native Human Review, and CRM merge actions only on automatic or approved paths",
-        "`node --import tsx evals/contract.mjs` passes against the adapted graph",
-        "generated consumer types confirm the selected search, merge, and Human Review payloads",
-        "the Slack review connector and channel resolve; approval, decline, and timeout reach their intended paths",
-        "the play is disabled, `noConcurrency`, and limited to 15 CRM rows",
-        "the operator separately approved the disabled deployment and exact merge-capable pilot",
-        "the final report verifies every survivor and absorbed ID and accounts for every terminal outcome"
+        "the operator selected account deduplication, contact deduplication, or both",
+        "each selected path has its own reconciled audit, policy approval, disabled-build approval, priced pilot approval, and final report",
+        "the selected resources use one CRM connector, a Slack connector for every path with active review, object-specific CRM models, and no candidate or staging model",
+        "generated types confirm selected search and merge payloads plus Human Review for paths that use it",
+        "`node --import tsx evals/contract.mjs`, `cargo-ai cdk types`, `cargo-ai cdk check`, and `cargo-ai cdk plan` pass after adaptation",
+        "every selected play is disabled, `noConcurrency`, and limited to 15 CRM rows before its pilot",
+        "the account audit reconciles company identifier coverage, mutually exclusive classes, conflicts, survivor evidence, and proposed merge IDs to the source total",
+        "`deduplicate_accounts` runs directly on `crm_accounts` and searches companies live",
+        "its graph contains preparation, native Scoring, the guarded Branch, native Human Review, and CRM merges only on automatic or approved paths",
+        "automatic merge requires exact shared LinkedIn company ID and every account conflict guard",
+        "every account survivor and absorbed company ID is verified in the CRM",
+        "the contact audit reconciles source totals, person identifier coverage, unique candidate clusters, conflicts, survivor evidence, and proposed merge IDs, and reports overlapping matched classes separately",
+        "`deduplicate_contacts` runs directly on `crm_contacts` and performs both direct and transitive live searches",
+        "its graph contains preparation, native Scoring, the guarded Branch, optional native Human Review, and CRM merges only on automatic or approved paths",
+        "automatic merge requires one approved high-confidence class plus every global contact guard",
+        "the merge is the final CRM write, and every contact survivor and absorbed ID is verified in the CRM"
       ],
-      "cost": "Immediately before each preview, run `cargo-ai connection integration get <crm>` and\n`cargo-ai connection integration get slack`. Read the current cost metadata for the selected search,\nmerge, and Human Review actions. Record the CLI version, lookup time, action slugs, and applicable\ncosts. If structured AI evidence is added, price it separately.\n\nThe repository does not hard-code action prices. Human approval authorizes only the exact cluster\nshown in that review message. Enabling the recurring schedule is the last approval after the pilot\npasses, not an initial input.",
-      "composesInto": "- `crm-enrichment` when matching-key coverage is too weak for reliable duplicate candidates\n- `account-scoring` after duplicate records have been consolidated into authoritative survivors"
+      "cost": "Immediately before each selected path's preview, run\n`cargo-ai connection integration get <crm>` and, when review is enabled,\n`cargo-ai connection integration get slack`. Record the CLI version, lookup time, action slugs, and\ncurrent cost metadata. The repository does not hard-code pipeline action prices.\n\n### Path 1: Account cost\n\nPrice the account search, automatic or approved company merge, and Human Review actions against the\nexact account population. Approval authorizes only the company clusters shown for that pilot.\n\n### Path 2: Contact cost\n\nPrice both contact searches, automatic or approved contact merge, and enabled Human Review actions\nagainst the exact contact population. Approval authorizes only the person clusters shown for that\npilot.\n\nEnabling either recurring schedule is a separate final approval after that path's pilot passes.",
+      "composesInto": "- `crm-enrichment` when either object path lacks reliable matching-key coverage\n- `account-scoring` after duplicate account records have been consolidated into authoritative survivors"
     },
     {
       "name": "crm-enrichment",
