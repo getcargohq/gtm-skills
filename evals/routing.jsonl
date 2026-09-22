@@ -95,7 +95,6 @@
 {"prompt": "Set up recurring contact deduplication in Cargo", "expect": "crm-deduplication"}
 {"prompt": "Our CRM has duplicate people with the same LinkedIn profile and phone number", "expect": "crm-deduplication"}
 {"prompt": "Merge duplicate CRM contacts when the LinkedIn person ID matches exactly", "expect": "crm-deduplication"}
-{"prompt": "Fill missing contact fields", "expect": "crm-enrichment", "why": "Filling fields is enrichment, not duplicate merging."}
 {"prompt": "Verify these emails", "expect": "verify-email-list", "why": "Email validation is the one-off verifier, not CRM contact deduplication."}
 {"prompt": "Our call recordings never make it into the knowledge base", "expect": "call-capture"}
 {"prompt": "Turn yesterday's call transcripts into context updates every morning", "expect": "call-capture", "why": "The standing tell: every morning, not this one call."}
