@@ -1,8 +1,8 @@
 ---
 name: account-scoring
-description: 'Keep every account scored and tiered against your written ICP by a deployed agent that re-scores as accounts arrive and as the ICP changes, writing the rationale back to the CRM. Triggers: "keep our accounts scored as they arrive", "re-score everything when the ICP changes", "which accounts should the team work first", "our scoring is a spreadsheet nobody trusts", "why is this account tier A", "stand up account tiering". Cargo CDK, defineAgent, cargo_score, cargo_tier, HubSpot, Salesforce, Attio. Skip when: someone hands you a list and wants it qualified once, which is cargo-gtm''s job, not a deployed scorer''s.'
-version: "0.2.0"
-compatibility: "Requires @cargo-ai/cli with @cargo-ai/cdk 1.0.58 or later, a Cargo workspace, an authorized CRM connection (HubSpot in the example), and an authenticated LLM connector — nothing here needs a credential in .env, and a deploy cannot mint either connection. Self-contained: carries its own accounts model, CRM, Cargo DB and LLM connectors, and an example ICP under context/."
+description: 'Calibrate a customer-specific account fit model from historical customer outcomes and keep eligible CRM accounts scored by deterministic Python with agent explanations. Triggers: "calibrate our account scoring", "keep our accounts scored as they arrive", "re-score after an approved model change", "calibrate our ICP from customer outcomes", "why is this account tier A", "our lead scoring is a spreadsheet nobody trusts". Cargo CDK, Python, HubSpot, Salesforce, Attio. Skip when: qualify a supplied list once, which is score-leads; source a new universe, which is tam-building. Calibration-only requests stay here and end before live activation.'
+version: "0.3.2"
+compatibility: "Requires cargo-cdk bootstrap (cargo-project on current bundles), Cargo CLI and CDK with native Python support, and Python 3.9+ locally. Checked offline with CLI 1.0.99 and CDK 1.0.84. HubSpot and OpenAI bind authorized connections. Runtime and customer field mappings require verification in a confirmed non-production workspace."
 homepage: https://github.com/getcargohq/gtm-skills/tree/main/account-scoring
 metadata:
   author: getcargo
@@ -21,110 +21,168 @@ metadata:
 
 # Account scoring
 
-**State: to-be-approved.** Deploy-verified against a live workspace: not yet. Treat `Done when`
-below as the acceptance test and review `cargo-ai cdk plan` before deploying. Make no outcome claim
-for this skill until it is approved.
+**State: to-be-approved.** Runtime verification is pending. Shipped contracts are synthetic drafts and cannot score live accounts. The first play is disabled; deployment and paid execution require separate approval.
 
 ## The outcome
 
-Every account scored against your ICP, tiered, and written back to the CRM **with the rationale**,
-so a rep can always see why an account is tier A. The criteria are not point weights in code: they
-are the ICP markdown in your context repo, versioned in git and shared with every other agent. Edit
-the ICP and accounts re-score against it as they come due.
+The customer gets a repeatable account-fit pipeline built from two layers of evidence:
 
-**Two failure modes worth knowing before you start.** If the CRM properties do not exist, the run
-looks successful and the scores land nowhere, which wastes the whole batch. And `cargo_score` plus
-`cargo_tier` must be selected as columns on the accounts model, or the tier segments filter on a
-column they cannot see.
+**Baseline enrichment:** existing CRM attributes plus reliable company, LinkedIn, Sales Navigator, organizational, financial, and technographic data.
+
+**Customer-specific enrichment:** custom structural datapoints derived from that seller's product, market, historical outcomes, operator hypotheses, and optional call transcripts.
+
+Historical analysis establishes candidate scoring rules. An approved, versioned contract controls live scoring. Every score is traceable to normalized inputs and applied rules.
+
+### Keep fit separate from readiness
+
+Fit describes the company's structural characteristics. Readiness describes recent events, momentum, and engagement.
+
+| Fit input                | Separate readiness input    |
+| ------------------------ | --------------------------- |
+| Employee count           | Employee growth             |
+| Relevant operator count  | Recent operator hire        |
+| Funding stage            | Recent funding round        |
+| Current GTM architecture | Recent tooling migration    |
+| GTM motion               | Launching a new motion      |
+| Geographic footprint     | Recent geographic expansion |
+
+Do not use hiring acceleration, recent funding, executive changes, website activity, product intent, or news-based urgency in this fit model.
+
+A news article, job description, or changelog can still be **evidence for a structural attribute**. The source format does not determine whether the feature is fit or readiness. What the feature measures does.
+
+Customer-quality outcomes, predicted account fit, readiness, and partner-delivery recommendations must remain distinct. This V1 does not build expansion, renewal, conversion, intent, or prioritization models.
+
+**Calibration comes before Cargo.** Most of this skill is analysis: auditing the customer's history, agreeing what a good customer is, finding the attributes that predict it, and validating rules. The Cargo play is built last, and only runs a contract the operator has already approved. The shipped contracts are synthetic drafts for a fictional seller; they are replaced, never adapted in place.
+
+## Guide the operator through every phase
+
+```mermaid
+flowchart LR
+  audit["1. Audit and define success"] -->|"Approve sources, outcome rubric and cohort"| features["2. Discover and pilot features"]
+  features -->|"Approve feature contract and bulk cost"| validate["3. Enrich, validate, publish"]
+  validate -->|"Approve rules, thresholds, writeback and cadence"| build["4. Build disabled and plan"]
+  validate -.->|"Calibration only"| stop["Hand back reviewed contracts"]
+  build -->|"Approve named test workspace and paid pilot"| live["5. Test deploy, pilot, verify"]
+```
+
+Every substantive message starts with the current phase and ends with a `Next step` section giving the operator one concrete decision, what it unlocks, and what stays blocked. During in-progress work, say `No action needed` and name the next checkpoint. Never end with a generic offer to help. Each phase maps to steps in [calibration](references/calibration.md); follow those steps for the method.
+
+1. **Audit and define success** (calibration steps 1 to 3). Read connections, schemas, context and history before asking anything. Nothing bills in this phase. Present the source map, join keys, cohort counts, conflicts and data-quality report, then a proposed customer-specific outcome rubric and historical cohort. Ask the operator to confirm source authority and approve the outcome contract and cohort. Blocked until then: final labels, any paid extraction.
+2. **Discover and pilot features** (steps 4 to 7). Fix the historical snapshot anchor, map the baseline enrichment, research the seller and propose a ranked shortlist of custom structural features. Ask for approval of the feature contract draft, the pilot population and its spend cap. Run the pilot, review evidence and measured coverage, then present the exact bulk population and live price. Ask for approval of the bulk scope and cost. Blocked until then: bulk purchases.
+3. **Enrich, validate, publish** (steps 7 to 9). Run the approved bulk enrichment, then produce the support, lift and validation report, the contrasting-case review and a proposed rule set. Ask the operator to approve rules, gates, missingness, thresholds, CRM writeback fields and cadence. Publish the approved contracts and generated Markdown. A calibration-only request ends here with reviewed artifacts; say so and stop.
+4. **Build disabled and plan** (step 10). Adapt the installed resources to the approved contracts, run the build, contract evaluation, types, check and plan. Present the plan diff, the disabled play, the per-sweep limit and a live cost preview for the test pilot. **Stop after plan.** Ask for a named non-production workspace and approval to deploy there disabled, plus a separate approval for the paid pilot. A green plan implies neither.
+5. **Test deploy, pilot, verify** (acceptance, named test workspace). Deploy disabled to the named workspace, apply the exact pilot ID filter, execute, and read back each CRM record. Walk the [live acceptance checklist](evals/acceptance.md#named-test-workspace-only-after-separate-approval) with run links. Enabling the recurring cadence needs its own approval after acceptance passes.
 
 ## Put it in your project
 
-This folder is a **worked example**: real CDK resources written for some other company. The job
-is to end up with the code your company would have written, in your project, and an agent does the
-adapting. If the `cargo-cdk` skill is in your session it carries the long form of this; if not,
-this is enough.
+This folder is a **worked example**: real CDK resources and a Python scorer written for a fictional seller. The job is to end with the contracts and resources this customer would have written, in its project. Installing copies files only; nothing deploys or bills.
 
-1. **Install it — the CLI does the copy.** From inside the CDK project,
-   `cargo-ai cdk add cookbook/account-scoring` writes this example to `infra/account-scoring/` and
-   this procedure to `.claude/skills/account-scoring/`. No project yet?
-   `cargo-ai cdk init <dir> --cookbook account-scoring && cd <dir> && npm install` does both; this
-   folder never ships a shell. **If you are reading this from the project's `.claude/skills/`, the
-   install already happened — start at step 2.** On a CLI too old to have `add`, copy this folder
-   in as a sibling of what is there by hand; everything below is unchanged.
-2. **Reconcile it with what is already declared.** For every model or connector this example
-   carries that the project already has (an accounts model keyed on website, a HubSpot connector,
-   an OpenAI connector), rewire the imports to the existing one and drop the copy. Two resources
-   with one slug is a collision at deploy. **Append nothing to `.env.example`:** all three
-   connectors bind what the workspace already holds, so this folder needs no credential of its own.
-3. **Adapt.** Work the sections below in order: _What should not change_ is what you argue back
-   about (say what breaks, then do it if they still want it); _What you can change_ is what you
-   offer unprompted (nobody asks for a variant they do not know exists); _What you will be asked_
-   is the floor, and you derive before you ask. If you are asking more than about four questions
-   you have skipped lookups. Record what you changed and why under a `## Decisions` section in
-   your copy of this file.
-4. **Plan, then stop.** `npm run check && cargo-ai cdk plan` (`check` validates the resource tree
-   offline; the blank template ships it). Show the diff. Deploy only on an explicit yes:
-   `cargo-ai cdk deploy`. Never `cdk init --force` into a non-empty directory.
-5. **Verify.** Walk _Done when_ line by line and report each with evidence. Deployed cleanly and
-   produced nothing is the normal failure.
+**Install the required authoring skill first.** If `cargo-cdk` is absent:
+
+```sh
+npx skills add getcargohq/cargo-skills --skill cargo-cdk
+```
+
+Read `.agents/skills/cargo-cdk/SKILL.md` and complete its bootstrap. Current bundles redirect it to `cargo-project`; follow that redirect. If neither can be read, stop before template work.
+
+1. **Install it: the CLI does the copy.** Inside a CDK project, run `cargo-ai cdk add cookbook/account-scoring`. With no project, use `cargo-ai cdk init <dir> --cookbook account-scoring`, enter it, then `npm install`. The current CLI also calls this namespace `project`. Never use `init --force` in a non-empty directory. **If you are reading this from the project's installed skill directory, the install already happened; start at step 2.**
+2. **Reconcile it with what is already declared.** Reuse the CRM account extract and its stable record ID, and existing connectors and folders; drop the duplicate declarations. Keep the project's root context singleton and copy `infra/account-scoring/context/` into that existing root context location as placeholders to replace. Existing authorized connectors use `default: true`. No secret is needed by this example. A new connector credential uses `workspaceEnv`; `secret()` is only for an explicitly deploy-supplied value, never `env()`.
+3. **Calibrate before adapting.** Run phases 1 to 3 above. Do not edit the play, build approved assets or deploy while contracts are still drafts. Read [calibration](references/calibration.md) for the method and [runtime](references/runtime.md#feature-retrieval-and-refresh) before promising a working installation: the shipped play reads CRM fields plus a custom evidence cache the installer must populate through approved extraction routes. It does not refresh custom evidence itself. Record approved deviations under `## Decisions` in your copy of this file.
+4. **Build disabled and stop after plan.** Install build dependencies with `npm install --prefix scripts/account-scoring`. Build from the approved root contracts with `node scripts/account-scoring/build.mjs --infra infra/account-scoring --context context --approved`, and review the generated context, immutable contract archive and version backfill together. Run the contract evaluation from the installed skill directory with `ACCOUNT_SCORING_INFRA` set to the absolute `infra/account-scoring` path and `ACCOUNT_SCORING_CONTEXT` to the canonical root context directory. Then run `cargo-ai cdk types`, `cargo-ai cdk check`, and `cargo-ai cdk plan`. **Stop after plan.**
+5. **Hand off for test approval.** Present the plan diff, pilot population, current action and enrichment prices, and unresolved mappings. Stop for explicit approval of a named non-production workspace and the paid pilot.
+6. **Deploy, pilot, verify.** Only after that approval, run phase 5 and walk `Done when` line by line with evidence. Deployed cleanly and wrote nothing to the CRM is the normal failure.
 
 ## What you will be asked
 
-**Derive before you ask.** An input with a lookup is looked up, not asked. Only the ones marked
-_asked_ genuinely live in the operator's head.
+Derive systems, schemas, costs, current context, and counts before asking. Limit the interview to four decision topics; explicit spend and deployment authorizations remain mandatory checkpoints.
 
-| Input                                         | Kind      | How it is answered                                                                                                                                                                                                                                                                                                                                                                                                                                                         | Why it matters                                                                                                                                                                                                             |
-| --------------------------------------------- | --------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `icp` (the repo's root `context/`)            | generated | **derived**: If the workspace already has closed-won and closed-lost data, extract the industry, size, geography and stack that separate won from lost accounts and propose the ICP from it rather than asking cold. Write it to the knowledge layer at the repository root — `context/icp/` in a scaffolded repo — which the project's own `defineContext` already syncs. This skill declares none: it is a per-workspace singleton, and a second one collides at deploy. | The criteria ARE the prompt. There are no point weights in code, so a vague ICP produces vague scores and the disqualifiers are what cap a bad account at 20.                                                              |
-| `languageModel` (`infra/agents/scorer.ts`)    | value     | **derived**: whichever LLM connector is already authenticated in the workspace                                                                                                                                                                                                                                                                                                                                                                                             | Scoring quality and per-account cost both live here.                                                                                                                                                                       |
-| CRM connector (`infra/connectors/hubspot.ts`) | value     | **derived**: `cargo-ai connection connector list` shows which CRM connection the workspace holds; point `integration` at that one (`hubspot`, `salesforce`, `attio`) and the declaration binds it with `default: true`. No connection yet? `cargo-ai cdk add connector/hubspot` authorizes one.                                                                                                                                                                            | It is the write path for the score, the tier and the rationale. Binding means no CRM token lives in this project — and it means a deploy cannot mint the connection, so a missing one fails at deploy rather than at plan. |
-| `crmScoreProperties`                          | manual    | **derived**: read the CRM's account schema through the CRM connector and report which of the four are missing                                                                                                                                                                                                                                                                                                                                                              | The play writes all four back. If they do not exist the run looks successful and the scores land nowhere, which is the failure mode that wastes a whole batch.                                                             |
-| `tierThresholds` (`infra/segments/tiers.ts`)  | value     | **asked**                                                                                                                                                                                                                                                                                                                                                                                                                                                                  | The agent emits A, B and C but the skill ships segments for A and C only. Tier B accounts land in no segment unless you add one.                                                                                           |
+| Input                 | Kind                        | Ask only what the audit cannot answer                                                                                                      | Why                                                                                  |
+| --------------------- | --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------ |
+| `Sources and access`  | asked at the end of phase 1 | Confirm authoritative conflicts and useful unconnected outcome or transcript sources.                                                      | Wrong source authority or missing access changes the labels and historical coverage. |
+| `Success and cohort`  | asked at the end of phase 1 | Approve the customer-specific outcome rubric, maturity handling, historical window, practical snapshot anchor and optional obvious cutoff. | Comparable customer outcomes determine what the fit model predicts.                  |
+| `Feature contract`    | asked during phase 2        | Add human hypotheses; approve baseline plus custom features, transcript use and the pilot, then the exact bulk scope and cost.             | Reproducibility, historical support and spend must be established before scaling.    |
+| `Model and operation` | asked at the end of phase 3 | Review validation and approve rules, gates, missingness, thresholds, writeback fields and cadence.                                         | These decisions control every live score and the recurring workload.                 |
 
-Checked before moving on, not after the deploy:
-
-- `icp`: the file names at least one disqualifier, not only fit signals
-- the CRM connector: `cargo-ai connection connector list` shows an authorized connection for the
-  integration the declaration names, because binding has nothing to typecheck and a missing one is
-  discovered at deploy
-- `crmScoreProperties`: all four exist, and cargo_score plus cargo_tier are selected as columns on the accounts model so the tier segments can filter on them
-- `tierThresholds`: every tier the agent can emit is either covered by a segment or deliberately excluded
+Do not ask the operator to design attributes from scratch, name API fields from memory, or decide on a statistical method without a recommendation.
 
 ## What you can change
 
-The code is a worked example. These reshapes are expected, and the agent offers them rather than
-waiting to be asked. Every one costs something; that is what makes it a variation and not the default.
+Offer relevant variations with their tradeoffs:
 
-| Variation               | When it is right                                                                                  | How                                                                                                                                                                           | What it costs                                                                                                                                |
-| ----------------------- | ------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| `deterministic-scoring` | You need fixed cost and exact reproducibility, or an LLM judgement is not acceptable to your team | Swap the agent call for the native `scoring` node, with criteria as {name, value, score} booleans in the workflow (`infra/agents/scorer.ts`, `infra/plays/score-accounts.ts`) | The criteria move out of the ICP markdown and into code, so they stop being reviewable by non-engineers, and you lose the rationale entirely |
-| `skip-crm-roundtrip`    | You want the score on the model directly and do not need it visible in the CRM                    | Write with the platform's `native.modelUpsert({...})` in the workflow instead of going through the CRM connector (`infra/plays/score-accounts.ts`)                            | Reps lose the score and rationale where they actually work. The native's input is untyped, so confirm the field shape on the first run       |
-| `no-crm-at-all`         | You have no CRM, or the workspace has no CRM connection and you do not want to authorize one      | Take `skip-crm-roundtrip`, then delete `infra/connectors/hubspot.ts` so no CRM connector is registered                                                                        | Every other CRM-dependent skill you install later brings a CRM connector of its own; reuse one                                               |
+| Variation                                         | When                                                        | How                                                                            | Consequence                                                                 |
+| ------------------------------------------------- | ----------------------------------------------------------- | ------------------------------------------------------------------------------ | --------------------------------------------------------------------------- |
+| `Different outcome metrics or horizon`            | Seller economics or observation windows change.             | Approve a revised outcome contract, relabel and recalibrate.                   | A live prompt edit cannot update the model; analysis and validation repeat. |
+| `Alternative authorized baseline provider`        | The preferred source is unavailable or poorly covered.      | Match historical and live field definitions to a verified equivalent source.   | Recheck coverage, extraction methods and current prices.                    |
+| `No transcripts`                                  | Recordings are absent or not authorized.                    | Use CRM, operator hypotheses, public research and providers.                   | Less call evidence for discovery; the base pipeline still works.            |
+| `Agent-researched custom attributes`              | Approved public evidence can fill a structural feature gap. | Add an evidence-only extraction route under the same feature contract.         | More evidence review, cost and extraction uncertainty.                      |
+| `Sparse historical data`                          | Cohort or class counts cannot support validation.           | Publish descriptive findings or an explicitly provisional approved heuristic.  | Uncertainty remains visible; do not fabricate validation.                   |
+| `Model-only output instead of CRM`                | The customer approves a storage-only consumer.              | Replace CRM writes with approved storage and remove the unused CRM write path. | Removes CRM visibility and requires storage acceptance checks.              |
+| `Different score presentation or rescore cadence` | Users need another scale or refresh interval.               | Update thresholds, schemas, eligibility and operating contract together.       | Revalidate boundary mappings and the recurring cost.                        |
+
+Separate conversion, expansion, readiness, and partner-routing models are out of V1 scope. Store relevant diagnostics without building extra scoring engines.
 
 ## What should not change
 
-However far you adapt, these hold. Ask for one anyway and the agent tells you what breaks, then does
-it if you still want it, and records why under `## Decisions` in your copy of this file.
+- **Customer-specific definitions.** Reusing Cargo's outcome formula or custom features would make other customers inherit Cargo's assumptions.
+- **Outcome versus predictor separation.** Scoring success from its own usage or retention label produces circular results.
+- **Comparable cohorts.** Treating lost deals as failed customers corrupts customer-quality lift.
+- **Historical provenance.** Current enrichment silently substituted for history creates misleading rules.
+- **Same feature contract across accounts.** Changing a feature's meaning by account makes comparisons invalid.
+- **Measurable custom attributes.** A useful retrospective observation that cannot be computed for new accounts is not a live scoring feature.
+- **Persisted features and deterministic math.** Reinterpreting inputs or weights on each run defeats repeatability.
+- **Trusted numeric writeback.** An agent must not rewrite a tool's score before persistence.
+- **Approved versions only.** Automatic model changes would silently change the meaning of every tier.
+- **CRM identity and field types.** Wrong IDs or types can make a successful-looking run write nothing or the wrong value.
+- **Explicit permissions and privacy.** Do not commit customer rows, call transcripts, credentials, or identifying customer names to the public repository.
 
-- **The scorer looks the account up before judging it.** (`infra/agents/scorer.ts`) A score guessed from the domain name is unfalsifiable and the rationale cites nothing. The evaluator exists to fail exactly this, and a book scored that way is worse than an unscored one because people trust it.
-- **ICP disqualifiers cap the score, they are not just negative weight.** (`infra/agents/scorer.ts`) Without a cap, a disqualified account with many fit signals still scores high and reaches a rep. The disqualifiers are the half of an ICP that actually protects the team's time.
-- **`cargo_score` and `cargo_tier` are selected as columns on the accounts model.** (`infra/segments/tiers.ts`) The tier segments filter on a column they cannot see, so they come back empty while everything upstream reports success.
-- **Every tier the scorer can emit is either covered by a segment or excluded on purpose.** (`infra/segments/tiers.ts`) The shipped segments cover A and C. The agent also emits B, so tier B accounts land nowhere and quietly disappear from the book.
+Record approved methodological deviations under `## Decisions`, with their consequences. Access, spend, deployment, and privacy restrictions are not optional methodological preferences.
 
 ## Done when
 
-- a test account run shows the agent's lookups in the trace, not a score guessed from the domain name
-- the CRM record carries a score with a rationale citing real evidence and named ICP criteria
-- the evaluator scores at least 0.8
-- after the next model refresh the account appears in the matching tier segment
+### Contract and offline acceptance
+
+- [ ] The audit reconciles cohort counts and source authority.
+- [ ] Outcome labeling is explicitly customer-specific; illustrative numbers are not active defaults.
+- [ ] Mature, provisional, unavailable, and failed outcomes are distinguishable.
+- [ ] Closed-lost customer-quality labels remain null.
+- [ ] Customer baseline and custom extraction routes are implemented, priced and verified; discovery produces a reviewed shortlist.
+- [ ] Two synthetic seller contracts produce their expected scores through the same engine. Customer-specific discovery and shortlist relevance are reviewed separately.
+- [ ] Historical and live extraction use the same definitions; proxies and missingness are visible.
+- [ ] The feature pilot, coverage report, and cost approval precede bulk enrichment.
+- [ ] Validation reports support sizes, uncertainty, and limitations, not only a top-lift ranking.
+- [ ] The same scorer implementation works with two different approved synthetic outcome and scoring contracts.
+- [ ] Every threshold boundary, unknown value, gate, interaction, and score total passes deterministic tests.
+- [ ] Repeated input and contract versions return identical numeric results.
+- [ ] Contradictory agent prose cannot change persisted score or tier.
+- [ ] Generated Markdown matches the canonical contracts.
+
+### Live acceptance after explicit test approval
+
+- [ ] The Python action executes successfully through the actual Cargo runtime.
+- [ ] An eligible CRM account receives the correct computed score and rationale at the audited record ID.
+- [ ] Missing critical data does not become a low-fit score.
+- [ ] Failed writes do not receive successful scoring timestamps.
+- [ ] Stale accounts, changed approved versions, and previously present pilot rows are correctly reprocessed.
+- [ ] All configured tier segments consume output fields and cover their intended tiers.
+- [ ] The first deployment is disabled and cannot trigger unapproved enrichment or CRM writes.
+
+Use the full [acceptance checklist](evals/acceptance.md) to separate offline evidence
+from live verification. Hand back the proposed contracts, plan diff, scoped cost
+preview, checks, unresolved mappings and deployment state. Calibration-only work
+ends with reviewed artifacts; it does not require activation.
 
 ## What it costs
 
-One LLM call plus up to two Cargo database calls (`matchBusiness`,
-`enrichBusinessFirmographics`) per account, on arrival and again on the weekly sweep of accounts
-last scored three or more months ago. It scales with accounts in the model times re-scores, so a
-TAM built by `tam-building` scores at that size. Score a sample before the book.
+Fetch current prices immediately before each paid preview. Never hard-code credit amounts in pipeline Markdown.
+
+Separate source extraction, baseline enrichment, historical reconstruction, custom research, optional transcript processing, and recurring scoring costs. Show the exact accounts, fields, routes, retry allowance, and maximum authorized spend for the pilot and bulk run separately.
+
+Check caching and historical coverage before purchasing more data. Explain any provider limit or unverified historical capability. Local Python computation is not a provider-enrichment fee; hosted compute or action charges, if applicable, must still be measured.
 
 ## Composes into
 
-`routing-engine` (territories and capacity over the scored book), `rep-cockpit`, `ai-sdr`.
+The approved fit outputs can feed existing TAM, contact-sourcing, CRM segmentation, routing, and rep workflows. Readiness and pain-alignment agents remain independent consumers or sibling processes. A later prioritization layer may combine their outputs.
+
+Reuse resources inside the customer project where appropriate, while keeping the repository example independently installable. Do not create additional integrations, agents, segments, or folders unless the implemented outcome actually needs them.
+
+**Final design:** common baseline enrichment, customer-specific measurable datapoints, customer-specific outcome labeling, evidence-backed calibration, and one deterministic scoring contract applied consistently to every account.

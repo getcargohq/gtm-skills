@@ -4,9 +4,9 @@
     {
       "name": "account-scoring",
       "kind": "cookbook",
-      "job": "Keep every account scored and tiered against your written ICP by a deployed agent that re-scores as accounts arrive and as the ICP changes, writing the rationale back to the CRM.",
-      "description": "Keep every account scored and tiered against your written ICP by a deployed agent that re-scores as accounts arrive and as the ICP changes, writing the rationale back to the CRM. Triggers: \"keep our accounts scored as they arrive\", \"re-score everything when the ICP changes\", \"which accounts should the team work first\", \"our scoring is a spreadsheet nobody trusts\", \"why is this account tier A\", \"stand up account tiering\". Cargo CDK, defineAgent, cargo_score, cargo_tier, HubSpot, Salesforce, Attio. Skip when: someone hands you a list and wants it qualified once, which is cargo-gtm's job, not a deployed scorer's.",
-      "version": "0.2.0",
+      "job": "Calibrate a customer-specific account fit model from historical customer outcomes and keep eligible CRM accounts scored by deterministic Python with agent explanations.",
+      "description": "Calibrate a customer-specific account fit model from historical customer outcomes and keep eligible CRM accounts scored by deterministic Python with agent explanations. Triggers: \"calibrate our account scoring\", \"keep our accounts scored as they arrive\", \"re-score after an approved model change\", \"calibrate our ICP from customer outcomes\", \"why is this account tier A\", \"our lead scoring is a spreadsheet nobody trusts\". Cargo CDK, Python, HubSpot, Salesforce, Attio. Skip when: qualify a supplied list once, which is score-leads; source a new universe, which is tam-building. Calibration-only requests stay here and end before live activation.",
+      "version": "0.3.2",
       "homepage": "https://github.com/getcargohq/gtm-skills/tree/main/account-scoring",
       "group": "Make it run forever",
       "install": "cargo-ai cdk add cookbook/account-scoring",
@@ -19,68 +19,117 @@
         "folders",
         "models",
         "plays",
-        "segments"
+        "segments",
+        "tools"
       ],
       "asked": [
         {
-          "input": "icp` (the repo's root `context/`)",
-          "kind": "generated",
-          "how": "**derived**: If the workspace already has closed-won and closed-lost data, extract the industry, size, geography and stack that separate won from lost accounts and propose the ICP from it rather than asking cold. Write it to the knowledge layer at the repository root — `context/icp/` in a scaffolded repo — which the project's own `defineContext` already syncs. This skill declares none: it is a per-workspace singleton, and a second one collides at deploy.",
-          "why": "The criteria ARE the prompt. There are no point weights in code, so a vague ICP produces vague scores and the disqualifiers are what cap a bad account at 20."
+          "input": "Sources and access",
+          "kind": "asked at the end of phase 1",
+          "how": "Confirm authoritative conflicts and useful unconnected outcome or transcript sources.",
+          "why": "Wrong source authority or missing access changes the labels and historical coverage."
         },
         {
-          "input": "languageModel` (`infra/agents/scorer.ts`)",
-          "kind": "value",
-          "how": "**derived**: whichever LLM connector is already authenticated in the workspace",
-          "why": "Scoring quality and per-account cost both live here."
+          "input": "Success and cohort",
+          "kind": "asked at the end of phase 1",
+          "how": "Approve the customer-specific outcome rubric, maturity handling, historical window, practical snapshot anchor and optional obvious cutoff.",
+          "why": "Comparable customer outcomes determine what the fit model predicts."
         },
         {
-          "input": "crmScoreProperties",
-          "kind": "manual",
-          "how": "**derived**: read the CRM's account schema through the CRM connector and report which of the four are missing",
-          "why": "The play writes all four back. If they do not exist the run looks successful and the scores land nowhere, which is the failure mode that wastes a whole batch."
+          "input": "Feature contract",
+          "kind": "asked during phase 2",
+          "how": "Add human hypotheses; approve baseline plus custom features, transcript use and the pilot, then the exact bulk scope and cost.",
+          "why": "Reproducibility, historical support and spend must be established before scaling."
         },
         {
-          "input": "tierThresholds` (`infra/segments/tiers.ts`)",
-          "kind": "value",
-          "how": "**asked**",
-          "why": "The agent emits A, B and C but the skill ships segments for A and C only. Tier B accounts land in no segment unless you add one."
+          "input": "Model and operation",
+          "kind": "asked at the end of phase 3",
+          "how": "Review validation and approve rules, gates, missingness, thresholds, writeback fields and cadence.",
+          "why": "These decisions control every live score and the recurring workload."
         }
       ],
       "canChange": [
         {
-          "id": "deterministic-scoring",
-          "when": "You need fixed cost and exact reproducibility, or an LLM judgement is not acceptable to your team",
-          "how": "Swap the agent call for the native `scoring` node, with criteria as {name, value, score} booleans in the workflow (`infra/agents/scorer.ts`, `infra/plays/score-accounts.ts`)",
-          "cost": "The criteria move out of the ICP markdown and into code, so they stop being reviewable by non-engineers, and you lose the rationale entirely"
+          "id": "Different outcome metrics or horizon",
+          "when": "Seller economics or observation windows change.",
+          "how": "Approve a revised outcome contract, relabel and recalibrate.",
+          "cost": "A live prompt edit cannot update the model; analysis and validation repeat."
         },
         {
-          "id": "skip-crm-roundtrip",
-          "when": "You want the score on the model directly and do not need it visible in the CRM",
-          "how": "Write with the platform's `native.modelUpsert({...})` in the workflow instead of going through the CRM connector (`infra/plays/score-accounts.ts`)",
-          "cost": "Reps lose the score and rationale where they actually work. The native's input is untyped, so confirm the field shape on the first run"
+          "id": "Alternative authorized baseline provider",
+          "when": "The preferred source is unavailable or poorly covered.",
+          "how": "Match historical and live field definitions to a verified equivalent source.",
+          "cost": "Recheck coverage, extraction methods and current prices."
         },
         {
-          "id": "no-crm-at-all",
-          "when": "You have no CRM, or the workspace has no CRM connection and you do not want to authorize one",
-          "how": "Take `skip-crm-roundtrip`, then delete `infra/connectors/hubspot.ts` so no CRM connector is registered",
-          "cost": "Every other CRM-dependent skill you install later brings a CRM connector of its own; reuse one"
+          "id": "No transcripts",
+          "when": "Recordings are absent or not authorized.",
+          "how": "Use CRM, operator hypotheses, public research and providers.",
+          "cost": "Less call evidence for discovery; the base pipeline still works."
+        },
+        {
+          "id": "Agent-researched custom attributes",
+          "when": "Approved public evidence can fill a structural feature gap.",
+          "how": "Add an evidence-only extraction route under the same feature contract.",
+          "cost": "More evidence review, cost and extraction uncertainty."
+        },
+        {
+          "id": "Sparse historical data",
+          "when": "Cohort or class counts cannot support validation.",
+          "how": "Publish descriptive findings or an explicitly provisional approved heuristic.",
+          "cost": "Uncertainty remains visible; do not fabricate validation."
+        },
+        {
+          "id": "Model-only output instead of CRM",
+          "when": "The customer approves a storage-only consumer.",
+          "how": "Replace CRM writes with approved storage and remove the unused CRM write path.",
+          "cost": "Removes CRM visibility and requires storage acceptance checks."
+        },
+        {
+          "id": "Different score presentation or rescore cadence",
+          "when": "Users need another scale or refresh interval.",
+          "how": "Update thresholds, schemas, eligibility and operating contract together.",
+          "cost": "Revalidate boundary mappings and the recurring cost."
         }
       ],
       "shouldNotChange": [
-        "**The scorer looks the account up before judging it.** (`infra/agents/scorer.ts`) A score guessed from the domain name is unfalsifiable and the rationale cites nothing. The evaluator exists to fail exactly this, and a book scored that way is worse than an unscored one because people trust it.",
-        "**ICP disqualifiers cap the score, they are not just negative weight.** (`infra/agents/scorer.ts`) Without a cap, a disqualified account with many fit signals still scores high and reaches a rep. The disqualifiers are the half of an ICP that actually protects the team's time.",
-        "**`cargo_score` and `cargo_tier` are selected as columns on the accounts model.** (`infra/segments/tiers.ts`) The tier segments filter on a column they cannot see, so they come back empty while everything upstream reports success.",
-        "**Every tier the scorer can emit is either covered by a segment or excluded on purpose.** (`infra/segments/tiers.ts`) The shipped segments cover A and C. The agent also emits B, so tier B accounts land nowhere and quietly disappear from the book."
+        "**Customer-specific definitions.** Reusing Cargo's outcome formula or custom features would make other customers inherit Cargo's assumptions.",
+        "**Outcome versus predictor separation.** Scoring success from its own usage or retention label produces circular results.",
+        "**Comparable cohorts.** Treating lost deals as failed customers corrupts customer-quality lift.",
+        "**Historical provenance.** Current enrichment silently substituted for history creates misleading rules.",
+        "**Same feature contract across accounts.** Changing a feature's meaning by account makes comparisons invalid.",
+        "**Measurable custom attributes.** A useful retrospective observation that cannot be computed for new accounts is not a live scoring feature.",
+        "**Persisted features and deterministic math.** Reinterpreting inputs or weights on each run defeats repeatability.",
+        "**Trusted numeric writeback.** An agent must not rewrite a tool's score before persistence.",
+        "**Approved versions only.** Automatic model changes would silently change the meaning of every tier.",
+        "**CRM identity and field types.** Wrong IDs or types can make a successful-looking run write nothing or the wrong value.",
+        "**Explicit permissions and privacy.** Do not commit customer rows, call transcripts, credentials, or identifying customer names to the public repository."
       ],
       "doneWhen": [
-        "a test account run shows the agent's lookups in the trace, not a score guessed from the domain name",
-        "the CRM record carries a score with a rationale citing real evidence and named ICP criteria",
-        "the evaluator scores at least 0.8",
-        "after the next model refresh the account appears in the matching tier segment"
+        "[ ] The audit reconciles cohort counts and source authority.",
+        "[ ] Outcome labeling is explicitly customer-specific; illustrative numbers are not active defaults.",
+        "[ ] Mature, provisional, unavailable, and failed outcomes are distinguishable.",
+        "[ ] Closed-lost customer-quality labels remain null.",
+        "[ ] Customer baseline and custom extraction routes are implemented, priced and verified; discovery produces a reviewed shortlist.",
+        "[ ] Two synthetic seller contracts produce their expected scores through the same engine. Customer-specific discovery and shortlist relevance are reviewed separately.",
+        "[ ] Historical and live extraction use the same definitions; proxies and missingness are visible.",
+        "[ ] The feature pilot, coverage report, and cost approval precede bulk enrichment.",
+        "[ ] Validation reports support sizes, uncertainty, and limitations, not only a top-lift ranking.",
+        "[ ] The same scorer implementation works with two different approved synthetic outcome and scoring contracts.",
+        "[ ] Every threshold boundary, unknown value, gate, interaction, and score total passes deterministic tests.",
+        "[ ] Repeated input and contract versions return identical numeric results.",
+        "[ ] Contradictory agent prose cannot change persisted score or tier.",
+        "[ ] Generated Markdown matches the canonical contracts.",
+        "[ ] The Python action executes successfully through the actual Cargo runtime.",
+        "[ ] An eligible CRM account receives the correct computed score and rationale at the audited record ID.",
+        "[ ] Missing critical data does not become a low-fit score.",
+        "[ ] Failed writes do not receive successful scoring timestamps.",
+        "[ ] Stale accounts, changed approved versions, and previously present pilot rows are correctly reprocessed.",
+        "[ ] All configured tier segments consume output fields and cover their intended tiers.",
+        "[ ] The first deployment is disabled and cannot trigger unapproved enrichment or CRM writes."
       ],
-      "cost": "One LLM call plus up to two Cargo database calls (`matchBusiness`,\n`enrichBusinessFirmographics`) per account, on arrival and again on the weekly sweep of accounts\nlast scored three or more months ago. It scales with accounts in the model times re-scores, so a\nTAM built by `tam-building` scores at that size. Score a sample before the book.",
-      "composesInto": "`routing-engine` (territories and capacity over the scored book), `rep-cockpit`, `ai-sdr`."
+      "cost": "Fetch current prices immediately before each paid preview. Never hard-code credit amounts in pipeline Markdown.\n\nSeparate source extraction, baseline enrichment, historical reconstruction, custom research, optional transcript processing, and recurring scoring costs. Show the exact accounts, fields, routes, retry allowance, and maximum authorized spend for the pilot and bulk run separately.\n\nCheck caching and historical coverage before purchasing more data. Explain any provider limit or unverified historical capability. Local Python computation is not a provider-enrichment fee; hosted compute or action charges, if applicable, must still be measured.",
+      "composesInto": "The approved fit outputs can feed existing TAM, contact-sourcing, CRM segmentation, routing, and rep workflows. Readiness and pain-alignment agents remain independent consumers or sibling processes. A later prioritization layer may combine their outputs.\n\nReuse resources inside the customer project where appropriate, while keeping the repository example independently installable. Do not create additional integrations, agents, segments, or folders unless the implemented outcome actually needs them.\n\n**Final design:** common baseline enrichment, customer-specific measurable datapoints, customer-specific outcome labeling, evidence-backed calibration, and one deterministic scoring contract applied consistently to every account."
     },
     {
       "name": "agentic-engagement",
@@ -698,8 +747,8 @@
       "name": "score-leads",
       "kind": "one-off",
       "job": "Score a list of companies against your ideal customer profile and rank them, powered by Cargo — every row gets a number, the reason behind it, and a tier, so the bottom of the list can be dropped before anyone spends time on it.",
-      "description": "Score a list of companies against your ideal customer profile and rank them, powered by Cargo — every row gets a number, the reason behind it, and a tier, so the bottom of the list can be dropped before anyone spends time on it. Triggers: \"score these leads\", \"which of these fit our ICP\", \"rank this list\", \"prioritise these accounts\", \"who should we go after first\", \"disqualify the bad ones\", \"tier this list\". Firmographic fit, thresholds, tiering, prioritisation. Skip when: you have no list yet and need one built — use build-tam-list or find-b2b-leads; or you want people inside an account rather than a verdict on the account — use find-stakeholders.",
-      "version": "1.0.0",
+      "description": "Score a list of companies against your ideal customer profile and rank them, powered by Cargo — every row gets a number, the reason behind it, and a tier, so the bottom of the list can be dropped before anyone spends time on it. Triggers: \"score these leads\", \"which of these fit our ICP\", \"rank this list\", \"prioritise these accounts\", \"who should we go after first\", \"disqualify the bad ones\", \"tier this list\", \"qualify this supplied list once\". Firmographic fit, thresholds, tiering, prioritisation. Skip when: calibrate historical customer outcomes or keep CRM accounts continuously scored, which is account-scoring; you have no list yet and need one built — use build-tam-list or find-b2b-leads; or you want people inside an account rather than a verdict on the account — use find-stakeholders.",
+      "version": "1.0.1",
       "homepage": "https://github.com/getcargohq/gtm-skills",
       "group": "Decide who is worth the time",
       "install": "npx skills add getcargohq/gtm-skills/score-leads",

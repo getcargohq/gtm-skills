@@ -1,74 +1,80 @@
 # Account scoring
 
-Score how well each account fits your ICP — judged by an agent against the ICP
-written in your context repo, not by point weights in code. Edit the ICP
-markdown, and accounts re-score against it as they come due.
+Calibrate structural account fit from the seller's historical customer outcomes,
+then apply one approved contract consistently. Python computes the score and tier;
+an agent explains the applied rules and evidence. Readiness remains separate.
 
-## What it does
+**State: to-be-approved.** The repository ships synthetic draft contracts, a disabled
+play and offline evaluations. Nothing has been deployed or paid-tested. Native Python
+is discoverable and its packaging is checked; service execution and customer mappings
+are **not verified**. See [runtime evidence and limits](references/runtime.md).
 
-- Keeps the scoring criteria where the ICP already lives: the context repo
-  (the repo's root `context/`, which the project's own `defineContext` syncs) — versioned in git, reviewable, and
-  shared with every other agent.
-- An agent scores every account when it arrives, and re-scores stale ones (last
-  scored 3+ months ago) on a weekly sweep: it looks the account up in Cargo's
-  business database first, then judges it against the ICP.
-- Writes the score, the tier, AND the rationale back to the CRM — a rep can
-  always see why an account is tier A.
-- Slices accounts into tier segments (A / C ...) that other plays can target.
-- An evaluator QAs every score: ungrounded or malformed answers fail the
-  rubric.
+```mermaid
+flowchart TD
+  audit[Audit sources and acquisition cohorts] --> outcome[Approve seller-specific outcome definition]
+  outcome --> discover[Baseline plus custom structural feature discovery]
+  discover --> pilot[Approve extraction pilot and inspect evidence]
+  pilot --> bulk[Approve exact bulk scope and cost]
+  bulk --> validate[Historical reconstruction, lift and validation]
+  validate --> contract[Approve immutable feature and scoring contracts]
+  contract --> plan[Build disabled and stop after plan]
+  plan -. Separate approval .-> live[Eligible CRM account]
+  live --> evidence[Retrieve approved CRM and cached custom evidence]
+  evidence --> snapshot[Persist normalized snapshot]
+  snapshot --> python[One native Python scoring tool]
+  python --> status{Scored?}
+  status -->|No| preserve[Persist attempt status; preserve prior CRM score]
+  status -->|Yes| explain[Agent explains trusted result]
+  explain --> write[Write trusted score at CRM ID]
+  write --> verify[Verify update response, then stamp success]
+```
 
-## How it works
+Follow [SKILL.md](SKILL.md) for the five operator phases and installation, and
+[calibration](references/calibration.md) for the method behind each. The four
+interview topics are sources/access, success/cohort, feature contract, and model/
+operation. Propose decisions after inspection. Paid scope and deployment approvals
+remain distinct checkpoints. Calibration-only work uses the same skill and stops
+before activation; a supplied list qualified once goes to `score-leads`.
 
-1. **An account arrives** (or a stale account comes due on the weekly sweep).
-2. **The scorer agent judges it.** It matches the account in Cargo's business
-   database, pulls firmographics, reads the ICP from the context repo, and
-   answers with JSON: `{score, tier, rationale}`. ICP disqualifiers cap the
-   score at 20.
-3. **Write back.** The play writes `cargo_score`, `cargo_tier`,
-   `cargo_rationale`, and `cargo_last_updated_at` onto the CRM record.
-4. **Sort into tiers.** The next model refresh pulls the score back in, and the
-   `tier-a-accounts` / `tier-c-accounts` segments group accounts by it.
+| Resource                        | Purpose                                                                                    |
+| ------------------------------- | ------------------------------------------------------------------------------------------ |
+| `infra/models/accounts.ts`      | HubSpot account extract; cached evidence, snapshot and attempt metadata                    |
+| `infra/runtime/scorer.py`       | Single rule engine: input validation, bands, gates, interactions, nulls and outcome labels |
+| `infra/runtime/calibration.py`  | Offline grouped splits, banded lift and validation using the same scorer                   |
+| `infra/context/*.yaml`          | Synthetic drafts to replace with approved seller-specific contracts                        |
+| `scripts/build.mjs`             | Embed Python/contracts, generate Markdown, archive approved versions                       |
+| `infra/tools/compute-fit.ts`    | Native Python action with normalized snapshot and contract reference only                  |
+| `infra/agents/scorer.ts`        | Evidence-grounded explanation, read-only context and compute tool                          |
+| `infra/plays/score-accounts.ts` | Disabled orchestration and verified CRM writeback by record ID                             |
+| `infra/segments/tiers.ts`       | Every configured tier, read from the CRM output                                            |
 
-Adds 4 resources on top of the base: 1 agent, 1 play (with an embedded
-workflow), and 2 segments. Carries an example ICP under `context/`; the agent scores against whatever the workspace context
-holds.
+Default cohort: acquisition opportunities closed in the latest 24 months, churned
+wins included and losses separated. Default historical anchor: opportunity creation,
+then documented pre-close/close fallback. Weekly live sweep and three-month staleness
+are examples to approve after costing; changed approved versions also require backfill.
+There is no default customer outcome formula, champion gate or approved live model.
 
-| File                            | Resource                        | Role                                            |
-| ------------------------------- | ------------------------------- | ----------------------------------------------- |
-| `infra/agents/scorer.ts`        | `defineAgent`                   | judges accounts against the ICP, with evaluator |
-| `infra/plays/score-accounts.ts` | `definePlay` + `defineWorkflow` | per-account scoring + CRM write-back            |
-| `infra/segments/tiers.ts`       | `defineSegment`                 | tier A / C slices over `cargo_tier`             |
+The source adapters implemented here read current CRM properties and custom feature
+evidence from a cache the installer must populate. No cache-population or refresh
+route ships in this template. Calibration determines which authorized enrichment/research routes
+must fill or refresh that cache; those customer-specific routes require verification
+and priced scope before implementation. Missing critical evidence stops the score.
+The play does not make speculative provider calls or retrain itself. Discovery is an
+agent-led calibration procedure; synthetic fixtures test scorer portability only.
+The disabled play limits each sweep to 25 accounts and each unsuccessful scoring
+cycle to three attempts per version. Apply an approved pilot ID filter before enabling
+and review the full version-backfill scope and cost separately.
 
-## Placeholders (edit before deploy)
+From this repository:
 
-1. **The ICP itself** — the repo's root `context/`: the criteria ARE
-   the prompt; disqualifiers matter as much as fit signals.
-2. **Language model** — `infra/agents/scorer.ts`.
-3. **Score columns** — `cargo_score`, `cargo_tier`, `cargo_rationale`, and
-   `cargo_last_updated_at` must exist as CRM properties, with `cargo_score` and
-   `cargo_tier` selected on the accounts model so the segments can filter on
-   them.
-4. **Tier thresholds** — `infra/segments/tiers.ts`.
+```sh
+node account-scoring/scripts/build.mjs --check
+python3 -m unittest discover -s account-scoring/evals -p 'test_*.py'
+node --import tsx account-scoring/evals/contract.mjs
+cargo-ai cdk check --dir account-scoring
+cargo-ai cdk plan --dir account-scoring --json
+```
 
-## Done when
-
-Add a test account: the run shows the agent's lookups, the CRM record gets a
-score with a rationale that cites real evidence and ICP criteria, the evaluator
-passes ≥ 0.8, and after the next model refresh the account lands in the right
-tier segment.
-
-## Variant: deterministic point-based scoring
-
-If you want zero-LLM scoring (fixed cost, exact reproducibility), swap the
-agent call for the native `scoring` node — criteria as `{name, value, score}`
-booleans in the workflow. The trade: criteria move from the ICP markdown into
-code, and you lose the rationale.
-
-## Extending: skip the CRM roundtrip
-
-Writing the score straight onto the model (instead of going through the CRM)
-uses the platform's `modelUpsert` native — `native.modelUpsert({ ... })` in the
-workflow. It's in the generated native surface (`.cargo-ai/cargo-types.d.ts`,
-written by `cargo-cdk types` on `postinstall`), like the routing engine's
-`allocate`; its input is untyped, so confirm the field shape on first run.
+[Calibration](references/calibration.md) covers seller research and evidence design;
+[runtime](references/runtime.md) covers installed paths, pricing and operational
+checks; [acceptance](evals/acceptance.md) separates offline evidence from live gates.

@@ -60,7 +60,7 @@ already declares. More are on their way (`contact-sourcing`, `signal-based-tam`,
 | Skill                                                      | Deploys                                                                                                                                  |
 | ---------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
 | [`tam-building`](tam-building/SKILL.md)                    | Your account universe sourced from AI Ark on an ICP filter sized for free, then tiered A/B/C by an agent reading your rubric.            |
-| [`account-scoring`](account-scoring/SKILL.md)              | Every account scored and tiered against your written ICP by an agent that cites its evidence, rationale on the CRM record.               |
+| [`account-scoring`](account-scoring/SKILL.md)              | Calibrate customer-specific account fit from outcomes; Python scores CRM accounts and an agent explains the applied rules.               |
 | [`crm-enrichment`](crm-enrichment/SKILL.md)                | CRM accounts and contacts stay filled: gated identifier resolution, approved LinkedIn enrichment, and freshness after a real write.     |
 | [`crm-deduplication`](crm-deduplication/SKILL.md)          | Duplicate CRM accounts merge on exact identity alone; everything less certain waits for a human in Slack.                                |
 | [`call-capture`](call-capture/SKILL.md)                    | Yesterday's call transcripts become log entries and, once a claim repeats, context updates — as one pull request you review.             |
