@@ -5,6 +5,12 @@ Research the seller once and apply one approved definition per datapoint to all
 accounts. Calibration is a reviewed project, not a scheduled training job. Keep
 customer artifacts in the private customer project.
 
+The ten steps below run inside the five operator phases in
+[SKILL.md](../SKILL.md#guide-the-operator-through-every-phase): steps 1 to 3 are
+phase 1, steps 4 to 7 are phase 2 up to the bulk approval, bulk enrichment and
+steps 8 to 9 are phase 3, and step 10 is phases 4 and 5. Each step's `Next
+checkpoint` is where that phase stops for the operator.
+
 ## 1. Audit the systems and available history
 
 Inspect authorized connections, project context, schemas, and existing models before asking questions.
@@ -123,7 +129,7 @@ Next checkpoint: review baseline coverage together with custom candidates in the
 
 ## 6. Discover customer-specific custom datapoints
 
-Run a seller-specific research step using the [custom-datapoint methodology](references/calibration.md#custom-datapoint-discovery). Understand what the seller sells, its value proposition, target customers, users, buyers, use cases, and conditions under which its product delivers value.
+Run a seller-specific research step. Understand what the seller sells, its value proposition, target customers, users, buyers, use cases, and conditions under which its product delivers value.
 
 Combine three inputs:
 

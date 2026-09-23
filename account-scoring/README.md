@@ -29,7 +29,8 @@ flowchart TD
   write --> verify[Verify update response, then stamp success]
 ```
 
-Follow [SKILL.md](SKILL.md) for installation and [calibration](references/calibration.md) for the ten phases. The four
+Follow [SKILL.md](SKILL.md) for the five operator phases and installation, and
+[calibration](references/calibration.md) for the method behind each. The four
 interview topics are sources/access, success/cohort, feature contract, and model/
 operation. Propose decisions after inspection. Paid scope and deployment approvals
 remain distinct checkpoints. Calibration-only work uses the same skill and stops

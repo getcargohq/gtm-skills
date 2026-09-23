@@ -1,7 +1,7 @@
 ---
 name: account-scoring
 description: 'Calibrate a customer-specific account fit model from historical customer outcomes and keep eligible CRM accounts scored by deterministic Python with agent explanations. Triggers: "calibrate our account scoring", "keep our accounts scored as they arrive", "re-score after an approved model change", "calibrate our ICP from customer outcomes", "why is this account tier A", "our lead scoring is a spreadsheet nobody trusts". Cargo CDK, Python, HubSpot, Salesforce, Attio. Skip when: qualify a supplied list once, which is score-leads; source a new universe, which is tam-building. Calibration-only requests stay here and end before live activation.'
-version: "0.3.1"
+version: "0.3.2"
 compatibility: "Requires cargo-cdk bootstrap (cargo-project on current bundles), Cargo CLI and CDK with native Python support, and Python 3.9+ locally. Checked offline with CLI 1.0.99 and CDK 1.0.84. HubSpot and OpenAI bind authorized connections. Runtime and customer field mappings require verification in a confirmed non-production workspace."
 homepage: https://github.com/getcargohq/gtm-skills/tree/main/account-scoring
 metadata:
@@ -52,9 +52,30 @@ A news article, job description, or changelog can still be **evidence for a stru
 
 Customer-quality outcomes, predicted account fit, readiness, and partner-delivery recommendations must remain distinct. This V1 does not build expansion, renewal, conversion, intent, or prioritization models.
 
+**Calibration comes before Cargo.** Most of this skill is analysis: auditing the customer's history, agreeing what a good customer is, finding the attributes that predict it, and validating rules. The Cargo play is built last, and only runs a contract the operator has already approved. The shipped contracts are synthetic drafts for a fictional seller; they are replaced, never adapted in place.
+
+## Guide the operator through every phase
+
+```mermaid
+flowchart LR
+  audit["1. Audit and define success"] -->|"Approve sources, outcome rubric and cohort"| features["2. Discover and pilot features"]
+  features -->|"Approve feature contract and bulk cost"| validate["3. Enrich, validate, publish"]
+  validate -->|"Approve rules, thresholds, writeback and cadence"| build["4. Build disabled and plan"]
+  validate -.->|"Calibration only"| stop["Hand back reviewed contracts"]
+  build -->|"Approve named test workspace and paid pilot"| live["5. Test deploy, pilot, verify"]
+```
+
+Every substantive message starts with the current phase and ends with a `Next step` section giving the operator one concrete decision, what it unlocks, and what stays blocked. During in-progress work, say `No action needed` and name the next checkpoint. Never end with a generic offer to help. Each phase maps to steps in [calibration](references/calibration.md); follow those steps for the method.
+
+1. **Audit and define success** (calibration steps 1 to 3). Read connections, schemas, context and history before asking anything. Nothing bills in this phase. Present the source map, join keys, cohort counts, conflicts and data-quality report, then a proposed customer-specific outcome rubric and historical cohort. Ask the operator to confirm source authority and approve the outcome contract and cohort. Blocked until then: final labels, any paid extraction.
+2. **Discover and pilot features** (steps 4 to 7). Fix the historical snapshot anchor, map the baseline enrichment, research the seller and propose a ranked shortlist of custom structural features. Ask for approval of the feature contract draft, the pilot population and its spend cap. Run the pilot, review evidence and measured coverage, then present the exact bulk population and live price. Ask for approval of the bulk scope and cost. Blocked until then: bulk purchases.
+3. **Enrich, validate, publish** (steps 7 to 9). Run the approved bulk enrichment, then produce the support, lift and validation report, the contrasting-case review and a proposed rule set. Ask the operator to approve rules, gates, missingness, thresholds, CRM writeback fields and cadence. Publish the approved contracts and generated Markdown. A calibration-only request ends here with reviewed artifacts; say so and stop.
+4. **Build disabled and plan** (step 10). Adapt the installed resources to the approved contracts, run the build, contract evaluation, types, check and plan. Present the plan diff, the disabled play, the per-sweep limit and a live cost preview for the test pilot. **Stop after plan.** Ask for a named non-production workspace and approval to deploy there disabled, plus a separate approval for the paid pilot. A green plan implies neither.
+5. **Test deploy, pilot, verify** (acceptance, named test workspace). Deploy disabled to the named workspace, apply the exact pilot ID filter, execute, and read back each CRM record. Walk the [live acceptance checklist](evals/acceptance.md#named-test-workspace-only-after-separate-approval) with run links. Enabling the recurring cadence needs its own approval after acceptance passes.
+
 ## Put it in your project
 
-This is a worked pipeline. The installing agent performs the audit, proposes contracts, adapts the resources, and presents the plan.
+This folder is a **worked example**: real CDK resources and a Python scorer written for a fictional seller. The job is to end with the contracts and resources this customer would have written, in its project. Installing copies files only; nothing deploys or bills.
 
 **Install the required authoring skill first.** If `cargo-cdk` is absent:
 
@@ -64,33 +85,23 @@ npx skills add getcargohq/cargo-skills --skill cargo-cdk
 
 Read `.agents/skills/cargo-cdk/SKILL.md` and complete its bootstrap. Current bundles redirect it to `cargo-project`; follow that redirect. If neither can be read, stop before template work.
 
-1. Inside a CDK project, run `cargo-ai cdk add cookbook/account-scoring`. With no project, use `cargo-ai cdk init <dir> --cookbook account-scoring`, enter it, then `npm install`. The current CLI also calls this namespace `project`. Never use `init --force` in a non-empty directory. **Reading this in the project's installed skill directory means installation already happened; start at reconciliation.**
-2. Reconcile accounts, connectors and folders with existing declarations. Reuse the CRM account extract and its stable record ID. This example's resources are isolated for installation; the customer project should not deploy duplicates. Keep the project's root context singleton. Copy `infra/account-scoring/context/` contracts into that existing root context location; replace the synthetic drafts after calibration.
-3. Read [calibration and discovery](references/calibration.md), [runtime and installation](references/runtime.md), and [acceptance](evals/acceptance.md). Existing authorized connectors use `default: true`. No secret is needed by this example. A new connector credential uses `workspaceEnv`; `secret()` is only for an explicitly deploy-supplied value, never `env()`.
-4. Follow the linked calibration phases. Install build dependencies with `npm install --prefix scripts/account-scoring`. After approval, build assets from the canonical root contracts with `node scripts/account-scoring/build.mjs --infra infra/account-scoring --context context --approved`. Review the generated context, immutable contract archive and version backfill together. The Python source is embedded in the native action; it does not read a local path at runtime.
-5. Run the contract evaluation from the installed skill directory with `ACCOUNT_SCORING_INFRA` set to the absolute `infra/account-scoring` path and `ACCOUNT_SCORING_CONTEXT` to the canonical root context directory. Run `cargo-ai cdk types`, `cargo-ai cdk check`, and `cargo-ai cdk plan`. **Stop after plan.** A named non-production deployment and any metered pilot need separate explicit approval. No approval is implied by a green plan.
-
-The installing agent carries out the [ten calibration phases](references/calibration.md):
-audit sources, approve outcomes, select the cohort, reconstruct history, establish the
-baseline, discover custom attributes, pilot extraction, validate rules, publish the
-contracts, then prepare the disabled live flow. Each phase names its deliverable and
-approval checkpoint. Discovery is an agent-led procedure, not an automated training job.
-
-The shipped play reads CRM fields plus a cache the installer must populate through
-approved extraction routes. It does not refresh custom evidence itself. See
-[runtime requirements](references/runtime.md#feature-retrieval-and-refresh) before
-promising a working customer installation.
+1. **Install it: the CLI does the copy.** Inside a CDK project, run `cargo-ai cdk add cookbook/account-scoring`. With no project, use `cargo-ai cdk init <dir> --cookbook account-scoring`, enter it, then `npm install`. The current CLI also calls this namespace `project`. Never use `init --force` in a non-empty directory. **If you are reading this from the project's installed skill directory, the install already happened; start at step 2.**
+2. **Reconcile it with what is already declared.** Reuse the CRM account extract and its stable record ID, and existing connectors and folders; drop the duplicate declarations. Keep the project's root context singleton and copy `infra/account-scoring/context/` into that existing root context location as placeholders to replace. Existing authorized connectors use `default: true`. No secret is needed by this example. A new connector credential uses `workspaceEnv`; `secret()` is only for an explicitly deploy-supplied value, never `env()`.
+3. **Calibrate before adapting.** Run phases 1 to 3 above. Do not edit the play, build approved assets or deploy while contracts are still drafts. Read [calibration](references/calibration.md) for the method and [runtime](references/runtime.md#feature-retrieval-and-refresh) before promising a working installation: the shipped play reads CRM fields plus a custom evidence cache the installer must populate through approved extraction routes. It does not refresh custom evidence itself. Record approved deviations under `## Decisions` in your copy of this file.
+4. **Build disabled and stop after plan.** Install build dependencies with `npm install --prefix scripts/account-scoring`. Build from the approved root contracts with `node scripts/account-scoring/build.mjs --infra infra/account-scoring --context context --approved`, and review the generated context, immutable contract archive and version backfill together. Run the contract evaluation from the installed skill directory with `ACCOUNT_SCORING_INFRA` set to the absolute `infra/account-scoring` path and `ACCOUNT_SCORING_CONTEXT` to the canonical root context directory. Then run `cargo-ai cdk types`, `cargo-ai cdk check`, and `cargo-ai cdk plan`. **Stop after plan.**
+5. **Hand off for test approval.** Present the plan diff, pilot population, current action and enrichment prices, and unresolved mappings. Stop for explicit approval of a named non-production workspace and the paid pilot.
+6. **Deploy, pilot, verify.** Only after that approval, run phase 5 and walk `Done when` line by line with evidence. Deployed cleanly and wrote nothing to the CRM is the normal failure.
 
 ## What you will be asked
 
 Derive systems, schemas, costs, current context, and counts before asking. Limit the interview to four decision topics; explicit spend and deployment authorizations remain mandatory checkpoints.
 
-| Input                 | Kind                       | Ask only what the audit cannot answer                                                                                                      | Why                                                                                  |
-| --------------------- | -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------ |
-| `Sources and access`  | asked after audit          | Confirm authoritative conflicts and useful unconnected outcome or transcript sources.                                                      | Wrong source authority or missing access changes the labels and historical coverage. |
-| `Success and cohort`  | asked after proposal       | Approve the customer-specific outcome rubric, maturity handling, historical window, practical snapshot anchor and optional obvious cutoff. | Comparable customer outcomes determine what the fit model predicts.                  |
-| `Feature contract`    | asked after pilot proposal | Add human hypotheses; approve baseline plus custom features, transcript use and the pilot, then the exact bulk scope and cost.             | Reproducibility, historical support and spend must be established before scaling.    |
-| `Model and operation` | asked after validation     | Review validation and approve rules, gates, missingness, thresholds, writeback fields and cadence.                                         | These decisions control every live score and the recurring workload.                 |
+| Input                 | Kind                        | Ask only what the audit cannot answer                                                                                                      | Why                                                                                  |
+| --------------------- | --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------ |
+| `Sources and access`  | asked at the end of phase 1 | Confirm authoritative conflicts and useful unconnected outcome or transcript sources.                                                      | Wrong source authority or missing access changes the labels and historical coverage. |
+| `Success and cohort`  | asked at the end of phase 1 | Approve the customer-specific outcome rubric, maturity handling, historical window, practical snapshot anchor and optional obvious cutoff. | Comparable customer outcomes determine what the fit model predicts.                  |
+| `Feature contract`    | asked during phase 2        | Add human hypotheses; approve baseline plus custom features, transcript use and the pilot, then the exact bulk scope and cost.             | Reproducibility, historical support and spend must be established before scaling.    |
+| `Model and operation` | asked at the end of phase 3 | Review validation and approve rules, gates, missingness, thresholds, writeback fields and cadence.                                         | These decisions control every live score and the recurring workload.                 |
 
 Do not ask the operator to design attributes from scratch, name API fields from memory, or decide on a statistical method without a recommendation.
 
