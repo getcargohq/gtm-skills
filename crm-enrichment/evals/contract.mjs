@@ -1,176 +1,311 @@
-// The enrichment graph's executable contract: the boundaries CDK schema
-// validation cannot express, checked against the compiled resources.
-//
-// It loads through `loadResources`, the same loader `cargo-ai cdk check`,
-// `plan`, and `deploy` use, so what is asserted here is what would deploy.
 import assert from "node:assert/strict";
-import { loadResources } from "@cargo-ai/cdk";
+import { resetRegistry, resources } from "@cargo-ai/cdk";
 
-const infraDir = new URL("../infra", import.meta.url).pathname;
-const byId = new Map(
-  (await loadResources(infraDir)).map((resource) => [resource.id, resource]),
-);
+resetRegistry();
+await import(`../infra/plays/enrich-accounts.ts?contract=${Date.now()}`);
+await import(`../infra/plays/enrich-contacts.ts?contract=${Date.now()}`);
+
+const byId = new Map(resources().map((resource) => [resource.id, resource]));
 
 const nodesFor = (id) => {
   const resource = byId.get(id);
   assert.ok(resource, `${id} must exist`);
-  assert.ok(Array.isArray(resource.spec.nodes), `${id} must have nodes`);
+  assert.ok(Array.isArray(resource.spec.nodes), `${id} must have workflow nodes`);
   return resource.spec.nodes;
 };
-const onlyIn = (nodes, predicate, message) => {
+
+const findOne = (nodes, predicate, message) => {
   const matches = nodes.filter(predicate);
   assert.equal(matches.length, 1, message);
   return matches[0];
 };
-const childrenOf = (nodes, node) =>
+
+const child = (nodes, node) =>
+  nodes.find((candidate) => candidate.uuid === node.childrenUuids[0]);
+
+const children = (nodes, node) =>
   node.childrenUuids.map((uuid) =>
     nodes.find((candidate) => candidate.uuid === uuid),
   );
 
-// The tool: identifier in, company data out, no CRM anywhere.
-const toolNodes = nodesFor("tool:account_enrichment");
-const toolStart = onlyIn(
-  toolNodes,
+const isLiteralTrue = (value) =>
+  value === true || value?.expression === "{{ true }}";
+
+// Account path: the tool owns provider routing and the play owns the CRM write.
+const accountToolNodes = nodesFor("tool:account_enrichment");
+const accountToolStart = findOne(
+  accountToolNodes,
   (node) => node.kind === "native" && node.actionSlug === "start",
   "account_enrichment must have one start node",
 );
-const identifierGate = childrenOf(toolNodes, toolStart)[0];
-assert.equal(
-  identifierGate.actionSlug,
-  "branch",
-  "the tool's first node must branch on identifier availability",
-);
-assert.match(
-  identifierGate.config.condition.expression,
-  /linkedinUrlOrHandle/,
-  "the identifier gate must inspect the LinkedIn input",
-);
-assert.match(
-  identifierGate.config.condition.expression,
-  /domain/,
-  "the identifier gate must inspect the domain input",
-);
+const accountIdentifierGate = child(accountToolNodes, accountToolStart);
+assert.equal(accountIdentifierGate?.actionSlug, "branch");
+assert.match(accountIdentifierGate.config.condition.expression, /linkedinUrlOrHandle/);
+assert.match(accountIdentifierGate.config.condition.expression, /domain/);
 
-const identifierRoutes = childrenOf(toolNodes, identifierGate);
-const providerGate = onlyIn(
-  identifierRoutes,
-  (node) => node?.kind === "native" && node.actionSlug === "branch",
-  "the identifier gate must continue to one provider-routing Branch",
-);
-onlyIn(
-  identifierRoutes,
-  (node) => node?.kind === "native" && node.actionSlug === "end",
-  "the identifier gate must end without a provider call when both identifiers are absent",
-);
-assert.equal(
-  toolNodes.some(
-    (node) => node.kind === "native" && node.actionSlug === "filter",
-  ),
-  false,
-  "the tool must express its gates as code-generated Branch nodes",
-);
-
-const providerNodes = toolNodes.filter(
+const accountProviderNodes = accountToolNodes.filter(
   (node) => node.kind === "connector" && node.integrationSlug === "linkedin",
 );
 assert.deepEqual(
-  new Set(providerNodes.map((node) => node.actionSlug)),
+  new Set(accountProviderNodes.map((node) => node.actionSlug)),
   new Set(["enrichCompany", "enrichCompanyFromDomain"]),
-  "the tool must expose exactly the LinkedIn-first and domain-fallback routes",
-);
-assert.deepEqual(
-  new Set(providerGate.childrenUuids),
-  new Set(providerNodes.map((node) => node.uuid)),
-  "the provider actions must be mutually exclusive Branch children — at most one paid call per row",
+  "account_enrichment must keep the LinkedIn-first and domain-fallback routes",
 );
 assert.equal(
-  toolNodes.some(
-    (node) =>
-      node.kind === "connector" &&
-      node.connectorUuid?.resourceId === "connector:crm",
+  accountToolNodes.some(
+    (node) => node.connectorUuid?.resourceId === "connector:crm",
   ),
   false,
-  "account_enrichment must not contain CRM connector nodes",
+  "account_enrichment must not access the CRM",
 );
 
-// The play: call the tool, then own the only CRM write.
-const playNodes = nodesFor("play:enrich_accounts");
-const playStart = onlyIn(
-  playNodes,
-  (node) => node.kind === "native" && node.actionSlug === "start",
-  "enrich_accounts must have one start node",
-);
-const toolCall = onlyIn(
-  playNodes,
+const accountPlay = byId.get("play:enrich_accounts");
+assert.ok(accountPlay, "play:enrich_accounts must exist");
+assert.equal(accountPlay.spec.isEnabled, false);
+assert.equal(accountPlay.spec.runCreationRule, "noConcurrency");
+const accountPlayNodes = nodesFor("play:enrich_accounts");
+const accountToolCall = findOne(
+  accountPlayNodes,
   (node) =>
     node.kind === "tool" &&
     node.toolUuid?.resourceId === "tool:account_enrichment",
-  "enrich_accounts must contain exactly one account_enrichment Tool node",
+  "enrich_accounts must call account_enrichment once",
+);
+const accountWrites = accountPlayNodes.filter(
+  (node) =>
+    node.kind === "connector" &&
+    node.connectorUuid?.resourceId === "connector:crm" &&
+    node.actionSlug === "updateRecords",
+);
+assert.equal(accountWrites.length, 1, "enrich_accounts must own one CRM write");
+assert.equal(
+  child(accountPlayNodes, accountToolCall)?.uuid,
+  accountWrites[0].uuid,
+  "the account CRM write must consume the tool output",
+);
+
+// Contact custom tool: one guarded LinkedIn provider action and no CRM access.
+const contactToolNodes = nodesFor("tool:contact_linkedin_enrichment");
+const contactToolStart = findOne(
+  contactToolNodes,
+  (node) => node.kind === "native" && node.actionSlug === "start",
+  "contact_linkedin_enrichment must have one start node",
+);
+const contactIdentifierGate = child(contactToolNodes, contactToolStart);
+assert.equal(
+  contactIdentifierGate?.actionSlug,
+  "branch",
+  "contact_linkedin_enrichment must gate the provider call on a LinkedIn URL",
+);
+assert.match(contactIdentifierGate.config.condition.expression, /linkedinUrl/);
+const contactProviderNodes = contactToolNodes.filter(
+  (node) => node.kind === "connector",
 );
 assert.equal(
-  childrenOf(playNodes, playStart)[0].uuid,
-  toolCall.uuid,
-  "account_enrichment must be the play's first workflow node",
+  contactProviderNodes.length,
+  1,
+  "contact_linkedin_enrichment must contain one connector action",
+);
+assert.equal(contactProviderNodes[0].integrationSlug, "linkedin");
+assert.equal(contactProviderNodes[0].actionSlug, "enrichProfile");
+assert.equal(
+  contactToolNodes.some(
+    (node) => node.connectorUuid?.resourceId === "connector:crm",
+  ),
+  false,
+  "contact_linkedin_enrichment must not access the CRM",
+);
+
+// Contact play: one play, exactly three tool types, and branch-gated routes.
+const contactPlay = byId.get("play:enrich_contacts");
+assert.ok(contactPlay, "play:enrich_contacts must exist");
+assert.equal(contactPlay.spec.isEnabled, false, "enrich_contacts must be disabled");
+assert.equal(
+  contactPlay.spec.runCreationRule,
+  "noConcurrency",
+  "enrich_contacts must prevent overlapping runs",
+);
+
+const contactNodes = nodesFor("play:enrich_contacts");
+const contactStart = findOne(
+  contactNodes,
+  (node) => node.kind === "native" && node.actionSlug === "start",
+  "enrich_contacts must have one start node",
+);
+const routeByLinkedin = child(contactNodes, contactStart);
+assert.equal(
+  routeByLinkedin?.actionSlug,
+  "branch",
+  "enrich_contacts must first branch on LinkedIn availability",
+);
+assert.match(routeByLinkedin.config.condition.expression, /linkedin_profile_url/);
+
+const findEmailNode = findOne(
+  contactNodes,
+  (node) =>
+    node.kind === "tool" &&
+    node.toolUuid === "REPLACE-WITH-FIND-EMAIL-TOOL-UUID",
+  "enrich_contacts must call Cargo-native Find Email once",
+);
+const findLinkedinNode = findOne(
+  contactNodes,
+  (node) =>
+    node.kind === "tool" &&
+    node.toolUuid ===
+      "REPLACE-WITH-FIND-LINKEDIN-PROFILE-FROM-EMAIL-TOOL-UUID",
+  "enrich_contacts must call Cargo-native Find LinkedIn Profile from Email once",
+);
+const customToolCalls = contactNodes.filter(
+  (node) =>
+    node.kind === "tool" &&
+    node.toolUuid?.resourceId === "tool:contact_linkedin_enrichment",
 );
 assert.equal(
-  playNodes.some(
+  customToolCalls.length,
+  3,
+  "each mutually exclusive successful route must call custom contact enrichment",
+);
+
+const toolTargets = new Set(
+  contactNodes
+    .filter((node) => node.kind === "tool")
+    .map((node) =>
+      typeof node.toolUuid === "string"
+        ? node.toolUuid
+        : node.toolUuid?.resourceId,
+    ),
+);
+assert.deepEqual(
+  toolTargets,
+  new Set([
+    "REPLACE-WITH-FIND-EMAIL-TOOL-UUID",
+    "REPLACE-WITH-FIND-LINKEDIN-PROFILE-FROM-EMAIL-TOOL-UUID",
+    "tool:contact_linkedin_enrichment",
+  ]),
+  "enrich_contacts must use only the two Cargo-native resolvers and the custom LinkedIn enrichment tool",
+);
+
+const parentOf = (node) =>
+  contactNodes.find((candidate) => candidate.childrenUuids.includes(node.uuid));
+assert.equal(parentOf(findEmailNode)?.actionSlug, "branch", "Find Email must be gated");
+assert.match(parentOf(findEmailNode).config.condition.expression, /email/);
+assert.equal(
+  parentOf(findLinkedinNode)?.actionSlug,
+  "branch",
+  "Find LinkedIn Profile from Email must be gated",
+);
+assert.match(parentOf(findLinkedinNode).config.condition.expression, /email/);
+
+const resolvedLinkedinGate = child(contactNodes, findLinkedinNode);
+assert.equal(
+  resolvedLinkedinGate?.actionSlug,
+  "branch",
+  "the LinkedIn resolver must be followed by a result gate",
+);
+assert.match(resolvedLinkedinGate.config.condition.expression, /linkedin_url/);
+const resolvedLinkedinOutcomes = children(contactNodes, resolvedLinkedinGate);
+findOne(
+  resolvedLinkedinOutcomes,
+  (node) => node?.kind === "native" && node.actionSlug === "end",
+  "an unresolved email must end without enrichment or a CRM write",
+);
+findOne(
+  resolvedLinkedinOutcomes,
+  (node) =>
+    node?.kind === "tool" &&
+    node.toolUuid?.resourceId === "tool:contact_linkedin_enrichment",
+  "a resolved LinkedIn URL must continue to custom enrichment",
+);
+
+assert.equal(
+  contactNodes.some(
     (node) => node.kind === "connector" && node.integrationSlug === "linkedin",
   ),
   false,
-  "the play must not duplicate the provider actions the tool owns",
+  "the play must call LinkedIn only through tools",
 );
-
-const crmWrite = onlyIn(
-  playNodes,
+const contactWrites = contactNodes.filter(
   (node) =>
     node.kind === "connector" &&
-    node.connectorUuid?.resourceId === "connector:crm",
-  "only the play may contain a CRM node, and only one",
+    node.connectorUuid?.resourceId === "connector:crm" &&
+    node.actionSlug === "updateRecords",
 );
 assert.equal(
-  crmWrite.actionSlug,
-  "updateRecords",
-  "the play's only CRM node must be updateRecords",
+  contactWrites.length,
+  3,
+  "each mutually exclusive successful route must end in one CRM write",
 );
-assert.equal(
-  childrenOf(playNodes, toolCall)[0].uuid,
-  crmWrite.uuid,
-  "the CRM write must immediately consume the account_enrichment result",
-);
+for (const write of contactWrites) {
+  assert.equal(write.config.objectType, "contacts");
+  assert.equal(write.config.matchingPropertyName, "hs_object_id");
+  assert.equal(
+    parentOf(write)?.toolUuid?.resourceId,
+    "tool:contact_linkedin_enrichment",
+    "every CRM write must immediately consume custom enrichment output",
+  );
+  const mappings = new Map(
+    write.config.mappings.map((mapping) => [mapping.propertyName, mapping]),
+  );
+  for (const property of [
+    "email",
+    "linkedin_person_id",
+    "linkedin_profile_url",
+    "jobtitle",
+  ]) {
+    assert.equal(
+      isLiteralTrue(mappings.get(property)?.skipIfExist),
+      true,
+      `${property} must be filled only when blank`,
+    );
+  }
+  for (const property of [
+    "cargo_last_enriched_at",
+    "cargo_enrichment_status",
+  ]) {
+    assert.equal(
+      mappings.has(property),
+      true,
+      `a successful contact write must stamp ${property}`,
+    );
+  }
+}
 
-const written = new Set(
-  crmWrite.config.mappings.map((mapping) => mapping.propertyName),
+const contactGroups = contactPlay.spec.filter.groups;
+const contactConditions = contactGroups.flatMap((group) => group.conditions);
+const contactFreshness = contactConditions.filter(
+  (condition) => condition.columnSlug === "cargo_last_enriched_at",
 );
-assert.equal(
-  written.has("cargo_last_enriched_at"),
-  true,
-  "the play must write the Cargo-owned freshness timestamp",
-);
-assert.equal(
-  written.has("cargo_enrichment_status"),
-  true,
-  "the play must write the Cargo-owned enrichment status",
-);
-assert.equal(
-  written.has("last_enriched_at") || written.has("enrichment_status"),
-  false,
-  "Cargo-owned operational properties must use the cargo_ prefix",
-);
-
-// Eligibility and freshness belong to the trigger, not the workflow.
-const conditions = byId
-  .get("play:enrich_accounts")
-  .spec.filter.groups.flatMap((group) => group.conditions);
 assert.deepEqual(
-  new Set(
-    conditions
-      .filter((condition) => condition.columnSlug === "cargo_last_enriched_at")
-      .map((condition) => condition.operator),
-  ),
+  new Set(contactFreshness.map((condition) => condition.operator)),
   new Set(["isNull", "lowerThan"]),
-  "the play trigger must gate on the Cargo-owned freshness timestamp",
+  "enrich_contacts must use null-or-stale freshness",
 );
+assert.equal(
+  contactFreshness.find((condition) => condition.operator === "lowerThan")
+    ?.value,
+  "6 months",
+);
+for (const group of contactGroups.filter((candidate) =>
+  candidate.conditions.some((condition) => condition.operator === "isEmpty"),
+)) {
+  for (const condition of group.conditions.filter(
+    (candidate) => candidate.operator === "isEmpty",
+  )) {
+    assert.equal(
+      group.conditions.some(
+        (candidate) =>
+          candidate.columnSlug === condition.columnSlug &&
+          candidate.operator === "isNull",
+      ),
+      true,
+      `enrich_contacts must pair isEmpty with isNull for ${condition.columnSlug}`,
+    );
+  }
+}
 
 console.log(
-  "ok: account_enrichment is a Branch-gated provider tool; enrich_accounts calls it before the only CRM write",
+  "ok: account enrichment keeps provider routing in the tool and the CRM write in the play",
+);
+console.log(
+  "ok: enrich_contacts gates two Cargo-native resolvers and one custom LinkedIn enrichment tool before play-owned writes",
 );
