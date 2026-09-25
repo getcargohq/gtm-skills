@@ -1,44 +1,109 @@
 # Configure
 
-Everything between reading the ICP and asking the operator to approve a filter.
-No paid call happens anywhere in this file.
+Everything between reading the context and asking the operator to approve a
+filter. The only paid calls in this file are the research calls in step 2, and
+they run only when no ICP is written down, after a yes.
 
 ## Reconcile before you edit
 
-Reuse what the project already declares. An AI Ark connector, an LLM connector,
-and TAM-building folders: two resources with one slug collide at deploy. This
-skill declares no `defineContext`: that resource is a **per-workspace
+Reuse what the project already declares: an AI Ark connector, a CRM connector,
+a companies extract of that CRM (`crm-enrichment` ships one as `crm_accounts`),
+the unified `accounts` model, and TAM-building folders. Two resources with one
+slug collide at deploy. Two extracts of the same CRM object are worse: both
+unify, and every CRM company counts twice in the report.
+
+`cargo-ai storage model list` shows what the workspace already holds. A
+`native` model with extractor `unifyAccounts` is the unified accounts model;
+note its UUID, you will read its config below.
+
+This skill declares no `defineContext`: that resource is a **per-workspace
 singleton** owned by the project (a scaffolded repo points it at the root
-`context/`). Copy `infra/context/*.md` into that directory. The agent's
-`context` capability reads whatever the workspace context holds, wherever it
-was declared.
+`context/`).
 
-If the project already has an `accounts` model that scoring, routing, and
-signals read, do not rename `tam_companies` to it. Land the sourced rows here and
-add the promotion play described under `promote-to-shared-accounts` in
-`SKILL.md`, so the landing table and the shared universe stay separable.
+## 1. Read the ICP before you research one
 
-## The ICP comes from the context repo
+Look in the workspace context repository for anything that already defines who
+the company sells to: `icp.md`, a scoring rubric, the ICP files
+`account-scoring` reads, a positioning doc. If one exists, show it to the
+operator as the definition and move to sizing once they confirm it still holds.
 
-Read it before asking for it. The workspace context repository is where an ICP
-already lives if the company has written one down, and the whole point of this
-skill's rubric design is that both files are readable by the operator and by the
-agent. Ask only when nothing is written anywhere, and then write the answer into the
-project's `context/icp.md` rather than into a prompt. `infra/context/icp.md` is
-the example to copy there.
+Do not rewrite an ICP someone already wrote. If it is thin (no headcount band,
+no disqualifiers), say which lines are missing and ask only for those.
 
-Two files, and they do different jobs:
+## 2. Research the market when nothing is written
 
-| File                | What it holds                                                                                | Who reads it                                             |
-| ------------------- | -------------------------------------------------------------------------------------------- | -------------------------------------------------------- |
-| `icp.md`            | Who buys, the firmographics, the disqualifiers, what "already running the motion" looks like | The agent on every judgment; the operator when it drifts |
-| `tiering-rubric.md` | What A, B, C and disqualified mean, and what evidence may decide each                        | The agent on every judgment; the rep reading a tier      |
+Three sources, in this order, each feeding the next:
 
-The disqualifiers in `icp.md` must be stated as disqualifiers, not as low
-scores. A disqualifier ends the evaluation; a low score competes with the other
-signals and loses to a strong one.
+| Source                        | What to read                                                                                       | Action                                                             |
+| ----------------------------- | -------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
+| The company's website         | Homepage, product and pricing pages: who they say the product is for, and which problems they name | `parallel.extract` on the URLs, with that objective                |
+| Customer stories              | The customers page and case studies: named customers, and what each bought the product to fix      | `parallel.extract` on the case-study URLs                          |
+| The customers' LinkedIn pages | Industry, headcount band, headquarters, specialties, for each named customer                       | `linkedin.enrichCompanyFromDomain`, one record per customer domain |
 
-## Filter groups, not a flat map
+```sh
+cargo-ai orchestration action execute-batch \
+  --action '{"kind":"connector","integrationSlug":"parallel","actionSlug":"extract","config":{}}' \
+  --records '[{"urls":["https://acme.com","https://acme.com/customers"],"objective":"Who the product is for, which problems it names, and which customers it names"}]' \
+  --wait-until-finished
+
+cargo-ai orchestration action execute-batch \
+  --action '{"kind":"connector","integrationSlug":"linkedin","actionSlug":"enrichCompanyFromDomain","config":{}}' \
+  --records '[{"domain":"customer-one.com"},{"domain":"customer-two.com"}]' \
+  --wait-until-finished
+```
+
+Before running either, fetch the live prices
+(`cargo-ai connection integration get parallel`,
+`cargo-ai connection integration get linkedin`), state the total for the
+number of pages and customers you plan to read, and get a yes. Keep the
+customer list to the ones the site names; a customer you guessed is not
+evidence.
+
+Then write the draft `context/icp.md` from what the customers share, using
+`infra/context/icp.md` as the shape: who buys, where it came from, the
+firmographics (each mapped to a filter group), the disqualifiers. Mark any line
+no customer supports as a hypothesis. The operator corrects it, and the
+corrected file is what gets approved.
+
+Keep the customer domains. They are the seeds for the `lookalike-sourcing`
+variation, and offering it is part of this step.
+
+## 3. The minimum: industries, company size, countries
+
+Before any AI Ark filter is built, settle the three criteria every TAM needs.
+Each one is the floor of a dimension; without it the search has no edge there
+and bills for every industry, every size, or every country up to `limit`.
+
+| Criterion    | Where to look in `icp.md`                        | Filter group                                                       |
+| ------------ | ------------------------------------------------ | ------------------------------------------------------------------ |
+| Industries   | the industry line, "who buys", the disqualifiers | `industry.industry_or` (and `industry_not`), from `listIndustries` |
+| Company size | the headcount line, the size disqualifiers       | `employeeSize.min_employee_count` / `max_employee_count`           |
+| Countries    | the geography or countries line                  | `companyLocation.location_or` (and `location_not`)                 |
+
+For each one:
+
+1. **Guess it from `icp.md`** and quote the line it came from, so the operator
+   checks the source rather than your reading of it.
+2. **When the file does not state it**, suggest a value from what the research
+   found (the customers' LinkedIn pages carry industry, headcount and
+   headquarters) and label it a suggestion. With no research to lean on, ask.
+   "No restriction" is an answer only when the operator gives it explicitly,
+   and it is recorded as such.
+3. **Show the three together** as a short proposal the operator can correct in
+   one reply:
+
+   | Criterion    | Proposed                                            | From                              |
+   | ------------ | --------------------------------------------------- | --------------------------------- |
+   | Industries   | software development, computer and network security | `icp.md`: "Industry: …"           |
+   | Company size | 20 to 500 employees                                 | `icp.md`: "Headcount: 20 to 500"  |
+   | Countries    | United States, United Kingdom, Canada               | suggested: 9 of 12 customers' HQs |
+
+Write the confirmed values back into `icp.md` when they were suggested or
+changed, so the file and the filter say the same thing. Countries in
+`companyLocation` are free text (country, state or city); use full country
+names and let the count in step 5 tell you whether a name matched.
+
+## 4. Filter groups, not a flat map
 
 `fetchCompanies` and `countCompanies` take the same shape: **nested groups**,
 each one config key holding suffixed sub-keys.
@@ -57,6 +122,8 @@ each one config key holding suffixed sub-keys.
 Conventions inside a group:
 
 - **`_or` includes, `_not` excludes.** Every one takes a string or an array.
+  Each disqualifier in `icp.md` that AI Ark has a field for becomes a `_not`,
+  so it is never sourced or paid for.
 - **Enum-backed fields come from autocompletes.** `industry`, seniority,
   department, funding type and language must be valid members. Resolve them with
   `listIndustries`, `listSeniorities`, `listDepartmentsAndFunctions`,
@@ -68,10 +135,9 @@ Conventions inside a group:
 
 `employeeRole` is worth reaching for early. "The company already employs the
 persona" is usually the sharpest single ICP signal available at sourcing time,
-and applying it in the filter is free, while discovering the persona is absent
-costs a sourced record and an agent run.
+and applying it in the filter is free.
 
-## The count-first gate
+## 5. The count-first gate
 
 `aiArk.countCompanies` takes exactly the filter groups above, minus `limit`,
 returns `{"count": N}`, and is **free**:
@@ -100,55 +166,77 @@ is a small table the operator can read a decision off:
 | plus `employeeRole`     | …     | how many already employ the persona             |
 | the proposed filter     | …     | what `limit` is a fraction of                   |
 
-Then present `limit` against that last number and say plainly what the first run
-will cost. Stop for approval of the filter, the `limit`, and the rubric together:
-they are one decision, because narrowing the filter and lowering the budget are
-the same lever pulled in different places.
+## 6. Read the merge rules, do not write them
+
+```sh
+cargo-ai storage model get <accountsUuid>
+```
+
+The unified model's config holds one strength per reference. The skill relies
+on two of them:
+
+| Reference    | Needs to be | Why                                                                                   |
+| ------------ | ----------- | ------------------------------------------------------------------------------------- |
+| `domain`     | `strong`    | The website is the key AI Ark and the CRM both carry most often                       |
+| `linkedinId` | `strong`    | Catches the CRM companies whose website is blank or different from the sourced domain |
+
+Those are the platform defaults. If the live config differs, do not change it
+from this skill: the same config decides merges for every source in the
+workspace. Tell the operator what the in-CRM count will miss and who owns the
+change (`linkedin-handle-merges` in `SKILL.md` is the common one).
+
+AI Ark returns no Crunchbase field. `crunchbaseUuid` still merges when another
+source carries it, but no sourced row will ever match on it, so do not promise
+a Crunchbase match.
 
 ## Prices
 
 Immediately before any preview, run `cargo-ai connection integration get aiArk`
-and read the current entry under
-`integration.actions.searchCompanies.credits.costs`; the `fetchCompanies`
-extractor bills on the same per-record basis. Record the CLI version, the lookup
-time, the action slug, and the unit price alongside the estimate, so the
-post-run variance is checkable against something.
+and read the current `fetchCompanies` entry under `credits.costs`. Record the
+CLI version, the lookup time, the extractor slug, and the unit price alongside
+the estimate, so the post-run variance is checkable against something.
 
 Do not write a price into any file in this skill. Prices change; a number
 committed to markdown goes stale silently and gets quoted to an operator months
 later.
 
+## The approval
+
+Present the counted pool, `limit` against it, the live unit price, the estimate,
+and any gap in the merge rules. Stop for approval of the filter, the `limit`
+and that maximum spend together: narrowing the filter and lowering the budget
+are the same lever pulled in different places. That approval covers the deploy
+and the first sync.
+
 ## What to edit, together
 
 In `infra/models/tam-companies.ts`:
 
-- `config`: the filter groups and `limit`
-- `additionalColumns`: keep `tier`, `tier_rationale`, `tier_evidence_url` and
-  `tiered_at`; add to them only if the play writes them on the same node
+- `config`: the filter groups and `limit`, always including `industry`,
+  `employeeSize` and `companyLocation`
+- keep `unification: { source: "integration" }` and no `schedule`
 
-In the project's `context/` (copy from `infra/context/`):
+In `infra/models/crm-accounts.ts` (or the project's existing extract):
 
-- `icp.md` and `tiering-rubric.md`, in the operator's own language
+- the connector and `config.objectType` for a CRM other than HubSpot
 
-In `infra/agents/tier-analyst.ts`:
+In `infra/models/accounts.ts`:
 
-- `languageModel`, and the JSON schema's `tier` enum if the rubric uses
-  different tier names. The enum and the segments in `infra/segments/tiers.ts`
-  must agree, or the tiers land as values nothing matches
+- nothing. It is adopted as it is.
 
-In `infra/plays/tier-companies.ts`:
+In the project's `context/`:
 
-- the workflow `input`, against the extractor's real column names. Confirm them
-  with `cargo-ai storage column list` after the first sync rather than trusting
-  the example: a renamed column leaves the prompt describing an undefined, and
-  the agent tiers a company it was told nothing about
+- `icp.md`, in the operator's own language
 
 ## Complete when
 
-- the ICP and the rubric are written in the context repo, not in a prompt
+- the ICP came from the context repo, or was researched with approved spend and
+  written to `context/icp.md`
+- industries, company size and countries were proposed from `icp.md` (or
+  suggested and labelled), confirmed by the operator, and written back to it
 - every filter group is nested and every enum-backed value came from an
   autocomplete
 - `countCompanies` was run for each candidate filter and the numbers are recorded
 - `limit` is at or below the counted pool and the operator has seen the estimate
-- the tier enum, the rubric's tier names, and the segments all use the same
-  values
+- the unified model's `domain` and `linkedinId` strengths were read, and any
+  gap was reported rather than fixed

@@ -68,9 +68,9 @@
 // same words describe both, so these cases pin which way each phrasing goes;
 // a pipeline skill that starts winning the one-off prompts has stolen them.
 {"prompt": "Our TAM is a stale CSV, I want it to stay current", "expect": "tam-building", "why": "The standing tell, in the user's words: keep it current."}
-{"prompt": "Source companies matching our ICP and keep every one of them tiered", "expect": "tam-building", "why": "Source and judge, standing: the two halves of this pipeline in one sentence."}
+{"prompt": "Source companies matching our ICP and show which ones we do not have in HubSpot yet", "expect": "tam-building", "why": "Source and compare with the CRM, standing: the two halves of this pipeline in one sentence."}
 {"prompt": "Build our account universe and keep loading new companies into it", "expect": "tam-building"}
-{"prompt": "Stand up a pipeline that builds our market and tells us which accounts are worth a rep", "expect": "tam-building"}
+{"prompt": "Stand up a pipeline that builds our market and tells us how much of it is already in our CRM", "expect": "tam-building"}
 {"prompt": "Build a TAM list of seed-stage SaaS companies in Europe", "expect": "build-tam-list", "why": "Same words as tam-building, opposite intent: a list today, not a pipeline."}
 {"prompt": "How many companies match our ICP in DACH?", "expect": "build-tam-list", "why": "A count is a one-off."}
 {"prompt": "Keep our accounts scored as they arrive and re-score when the ICP changes", "expect": "account-scoring"}
