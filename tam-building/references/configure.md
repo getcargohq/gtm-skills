@@ -68,7 +68,42 @@ corrected file is what gets approved.
 Keep the customer domains. They are the seeds for the `lookalike-sourcing`
 variation, and offering it is part of this step.
 
-## 3. Filter groups, not a flat map
+## 3. The minimum: industries, company size, countries
+
+Before any AI Ark filter is built, settle the three criteria every TAM needs.
+Each one is the floor of a dimension; without it the search has no edge there
+and bills for every industry, every size, or every country up to `limit`.
+
+| Criterion    | Where to look in `icp.md`                        | Filter group                                                       |
+| ------------ | ------------------------------------------------ | ------------------------------------------------------------------ |
+| Industries   | the industry line, "who buys", the disqualifiers | `industry.industry_or` (and `industry_not`), from `listIndustries` |
+| Company size | the headcount line, the size disqualifiers       | `employeeSize.min_employee_count` / `max_employee_count`           |
+| Countries    | the geography or countries line                  | `companyLocation.location_or` (and `location_not`)                 |
+
+For each one:
+
+1. **Guess it from `icp.md`** and quote the line it came from, so the operator
+   checks the source rather than your reading of it.
+2. **When the file does not state it**, suggest a value from what the research
+   found (the customers' LinkedIn pages carry industry, headcount and
+   headquarters) and label it a suggestion. With no research to lean on, ask.
+   "No restriction" is an answer only when the operator gives it explicitly,
+   and it is recorded as such.
+3. **Show the three together** as a short proposal the operator can correct in
+   one reply:
+
+   | Criterion    | Proposed                                            | From                              |
+   | ------------ | --------------------------------------------------- | --------------------------------- |
+   | Industries   | software development, computer and network security | `icp.md`: "Industry: …"           |
+   | Company size | 20 to 500 employees                                 | `icp.md`: "Headcount: 20 to 500"  |
+   | Countries    | United States, United Kingdom, Canada               | suggested: 9 of 12 customers' HQs |
+
+Write the confirmed values back into `icp.md` when they were suggested or
+changed, so the file and the filter say the same thing. Countries in
+`companyLocation` are free text (country, state or city); use full country
+names and let the count in step 5 tell you whether a name matched.
+
+## 4. Filter groups, not a flat map
 
 `fetchCompanies` and `countCompanies` take the same shape: **nested groups**,
 each one config key holding suffixed sub-keys.
@@ -102,7 +137,7 @@ Conventions inside a group:
 persona" is usually the sharpest single ICP signal available at sourcing time,
 and applying it in the filter is free.
 
-## 4. The count-first gate
+## 5. The count-first gate
 
 `aiArk.countCompanies` takes exactly the filter groups above, minus `limit`,
 returns `{"count": N}`, and is **free**:
@@ -131,7 +166,7 @@ is a small table the operator can read a decision off:
 | plus `employeeRole`     | …     | how many already employ the persona             |
 | the proposed filter     | …     | what `limit` is a fraction of                   |
 
-## 5. Read the merge rules, do not write them
+## 6. Read the merge rules, do not write them
 
 ```sh
 cargo-ai storage model get <accountsUuid>
@@ -177,7 +212,8 @@ and the first sync.
 
 In `infra/models/tam-companies.ts`:
 
-- `config`: the filter groups and `limit`
+- `config`: the filter groups and `limit`, always including `industry`,
+  `employeeSize` and `companyLocation`
 - keep `unification: { source: "integration" }` and no `schedule`
 
 In `infra/models/crm-accounts.ts` (or the project's existing extract):
@@ -196,6 +232,8 @@ In the project's `context/`:
 
 - the ICP came from the context repo, or was researched with approved spend and
   written to `context/icp.md`
+- industries, company size and countries were proposed from `icp.md` (or
+  suggested and labelled), confirmed by the operator, and written back to it
 - every filter group is nested and every enum-backed value came from an
   autocomplete
 - `countCompanies` was run for each candidate filter and the numbers are recorded

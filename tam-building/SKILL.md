@@ -59,7 +59,7 @@ because the merge has not run yet.
 
 ```mermaid
 flowchart LR
-  icp["1. ICP"] -->|"Approve the definition"| size["2. Size"]
+  icp["1. ICP and market"] -->|"Approve industries, size, countries"| size["2. Size"]
   size -->|"Approve filter, limit and spend"| build["3. Build and source"]
   build --> report["4. Report"]
   report --> next["Net new: create in CRM? enrich?"]
@@ -74,9 +74,13 @@ help.
    anything `account-scoring` reads). If one exists, show it. If none does, research the market:
    read the company's website and customer stories, enrich each named customer's LinkedIn company
    page, and draft `context/icp.md` from what they share. The research calls bill, so fetch their
-   live prices and get a yes before running them. End by asking the operator to approve the
-   definition. Nothing is sourced in this phase.
-2. **Size.** Translate the ICP into AI Ark filter groups and run `countCompanies` on each
+   live prices and get a yes before running them. Then, **before any AI Ark filter is built**,
+   propose the three criteria every TAM needs at the minimum: **industries, company size, and
+   countries**. Guess each one from `icp.md` and quote the line it came from; for any the file does
+   not state, suggest a value from the research or the customers' LinkedIn pages and mark it as a
+   suggestion, or ask. End by asking the operator to approve the definition and those three
+   criteria. Nothing is sourced in this phase.
+2. **Size.** Translate the ICP, starting from the three confirmed criteria, into AI Ark filter groups and run `countCompanies` on each
    candidate. Read the live unification config of the workspace's `accounts` model. Present the
    pool sizes, the proposed `limit`, the live per-record price, and the estimate. End by asking the
    operator to approve the filter, the `limit`, and that maximum spend. That one approval covers the
@@ -147,14 +151,15 @@ research or template work if the skill cannot be installed or read.
 **Derive before you ask.** An input with a lookup is looked up, not asked. Only the ones marked
 _asked_ genuinely live in the operator's head.
 
-| Input               | Kind    | How it is answered                                                                                                                                                                                                                          | Why it matters                                                                                                                                        |
-| ------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `icp`               | derived | Read the workspace context repository first (`cargo-ai context …`, or the project's defineContext directory) for an ICP or scoring file. None? Research the website, customer stories and customers' LinkedIn pages, then have it corrected | It is the one thing that cannot be computed. Everything else here is arithmetic on top of it                                                          |
-| `sourcing_filter`   | derived | Translate the ICP into AI Ark filter groups (`industry`, `employeeSize`, `companyType`, `employeeRole`, `technologies`, `funding`, …), resolving enum-backed values through `listIndustries` and its siblings                               | A flat map is ignored silently and a guessed enum member matches nothing. Either way you source a market nobody described                             |
-| `pool_size`         | derived | `aiArk.countCompanies` with the same filter groups, in the JSON `--action` form in references/configure.md. It is free and returns `{"count": N}`                                                                                           | It is the only number that turns "is this filter right" into a question with an answer, and it costs nothing to ask                                   |
-| `limit`             | derived | Defaults to a fraction of the counted pool for the first run; widen once the report reads right. Ask only to change it                                                                                                                      | `fetchCompanies` bills per returned record, so this is the invoice                                                                                    |
-| `crm`               | derived | `cargo-ai connection connector list` shows which CRM connection the workspace holds; `cargo-ai storage model list` shows whether a companies extract of it already exists                                                                   | No CRM model means nothing to compare against, and a second extract of the same object double-counts every CRM company                                |
-| `unification_rules` | derived | `cargo-ai storage model get <accountsUuid>` shows the live reference strengths. Read them; do not write them                                                                                                                                | They decide what counts as the same company. If domain or LinkedIn ID is not strong, the in-CRM count is wrong in a way that looks like a real number |
+| Input               | Kind    | How it is answered                                                                                                                                                                                                                                   | Why it matters                                                                                                                                                       |
+| ------------------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `icp`               | derived | Read the workspace context repository first (`cargo-ai context …`, or the project's defineContext directory) for an ICP or scoring file. None? Research the website, customer stories and customers' LinkedIn pages, then have it corrected          | It is the one thing that cannot be computed. Everything else here is arithmetic on top of it                                                                         |
+| `market_minimum`    | derived | Industries, company size and countries, each guessed from `icp.md` with the line quoted. A criterion the file does not state is suggested from the research and marked as such, or asked. The operator confirms all three before any filter is built | These three are the floor of any TAM. Missing one sources a market with no edge in that dimension: every industry, every size, or the whole world, billed per record |
+| `sourcing_filter`   | derived | Translate the ICP into AI Ark filter groups (`industry`, `employeeSize`, `companyType`, `employeeRole`, `technologies`, `funding`, …), resolving enum-backed values through `listIndustries` and its siblings                                        | A flat map is ignored silently and a guessed enum member matches nothing. Either way you source a market nobody described                                            |
+| `pool_size`         | derived | `aiArk.countCompanies` with the same filter groups, in the JSON `--action` form in references/configure.md. It is free and returns `{"count": N}`                                                                                                    | It is the only number that turns "is this filter right" into a question with an answer, and it costs nothing to ask                                                  |
+| `limit`             | derived | Defaults to a fraction of the counted pool for the first run; widen once the report reads right. Ask only to change it                                                                                                                               | `fetchCompanies` bills per returned record, so this is the invoice                                                                                                   |
+| `crm`               | derived | `cargo-ai connection connector list` shows which CRM connection the workspace holds; `cargo-ai storage model list` shows whether a companies extract of it already exists                                                                            | No CRM model means nothing to compare against, and a second extract of the same object double-counts every CRM company                                               |
+| `unification_rules` | derived | `cargo-ai storage model get <accountsUuid>` shows the live reference strengths. Read them; do not write them                                                                                                                                         | They decide what counts as the same company. If domain or LinkedIn ID is not strong, the in-CRM count is wrong in a way that looks like a real number                |
 
 The two approvals (the ICP, then filter plus `limit` plus spend) are decisions, not inputs: they
 are asked every time.
@@ -163,6 +168,8 @@ Checked before moving on, not after the deploy:
 
 - `icp`: every firmographic line maps to a filter group, and each disqualifier is a `_not` filter
   wherever AI Ark has the field
+- `market_minimum`: industries, company size and countries are all set and confirmed, and each
+  shows whether it came from `icp.md` or was suggested
 - `sourcing_filter`: every group is a nested object, every enum-backed value came from an
   autocomplete rather than from memory, and numeric ranges are numbers
 - `pool_size`: counted for the filter actually being deployed, not for an earlier draft of it
@@ -188,6 +195,10 @@ waiting to be asked. Every one costs something; that is what makes it a variatio
 However far you adapt, these hold. Ask for one anyway and the agent tells you what breaks, then does
 it if you still want it, and records why under `## Decisions` in your copy of this file.
 
+- **Industries, company size and countries are always set.** (`infra/models/tam-companies.ts`:
+  `industry`, `employeeSize`, `companyLocation`) Drop one and the TAM has no edge in that
+  dimension: the count reads like a market, but it is every industry, every size, or every country
+  up to `limit`. Narrow further with other groups; never go below these three.
 - **Every filter is counted before it is sourced.** (`infra/models/tam-companies.ts`)
   `countCompanies` takes the same groups and is free. Sourcing blind is how a filter that reads
   right returns a market ten times the size you meant, already billed per record.
@@ -219,6 +230,8 @@ it if you still want it, and records why under `## Decisions` in your copy of th
 
 - the ICP came from the context repo, or was researched and approved, and is written to
   `context/icp.md`
+- industries, company size and countries were proposed from `icp.md` (or suggested and marked),
+  confirmed by the operator, and all three are in the deployed filter
 - `countCompanies` was run for the filter actually deployed, and its number is recorded before any
   sourcing run
 - the sync landed rows, and the row count is at or under `limit`

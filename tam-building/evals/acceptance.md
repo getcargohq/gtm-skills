@@ -17,6 +17,11 @@ adaptation is incomplete.
 
 ## Sizing
 
+- Before any filter was built, industries, company size and countries were
+  proposed together. Each was guessed from `icp.md` with the line quoted, or
+  suggested from the research and labelled as a suggestion, and the operator
+  confirmed all three. Suggested or changed values were written back to
+  `icp.md`.
 - Every filter group presented is a nested object. No flat top-level key appears
   in any proposed config.
 - Every enum-backed value (industry, seniority, department, funding type,
@@ -36,7 +41,8 @@ adaptation is incomplete.
 - Every substantive agent message names the current phase and ends with a
   `Next step` containing one concrete decision, what it unlocks, and what stays
   blocked.
-- Phase one ends by asking the operator to approve the ICP.
+- Phase one ends by asking the operator to approve the ICP and the three
+  minimum criteria (industries, company size, countries).
 - Phase two ends by asking the operator to approve the filter, the `limit`, and
   the maximum spend together. Nothing is deployed or synced before that
   approval.

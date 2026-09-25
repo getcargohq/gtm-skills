@@ -53,6 +53,10 @@ export const tamCompanies = defineModel("tam_companies", {
   // PLACEHOLDER: the ICP, as AI Ark filter groups. This example is a technical
   // B2B software ICP; replace every value with the one the operator approved.
   //
+  // Three groups are the floor and never leave: `industry`, `employeeSize` and
+  // `companyLocation`. Without one of them the search has no edge in that
+  // dimension and bills for every industry, size or country up to `limit`.
+  //
   // Filters are NESTED GROUPS, not a flat map. `{"industry": "Software"}` at
   // the top level is ignored silently and you source the whole database up to
   // `limit`. `_or` includes, `_not` excludes, and every one takes a string or
@@ -71,6 +75,16 @@ export const tamCompanies = defineModel("tam_companies", {
       ],
     },
     employeeSize: { min_employee_count: 20, max_employee_count: 500 },
+    // Free text: country, state or city. Full country names.
+    companyLocation: {
+      location_or: [
+        "United States",
+        "United Kingdom",
+        "Canada",
+        "Ireland",
+        "Australia",
+      ],
+    },
     companyType: { company_type_or: ["PRIVATELY_HELD", "PUBLIC_COMPANY"] },
     // The strongest single ICP signal available at sourcing time: the company
     // already employs the persona. Applying it here is free; learning it later

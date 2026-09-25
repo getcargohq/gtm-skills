@@ -41,8 +41,8 @@ Each line maps to an AI Ark filter group, noted in brackets.
 - Ownership: privately held or public [`companyType`]
 - Persona already employed: GTM engineer, growth engineer, revenue, marketing
   or sales operations [`employeeRole`]
-- Geography: no restriction, but the buying committee must operate in English
-  [`operationLanguage`, if narrowed]
+- Countries: United States, United Kingdom, Canada, Ireland, Australia; the
+  buying committee operates in English [`companyLocation`]
 
 ## Disqualifiers
 

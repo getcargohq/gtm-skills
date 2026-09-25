@@ -730,6 +730,12 @@
           "why": "It is the one thing that cannot be computed. Everything else here is arithmetic on top of it"
         },
         {
+          "input": "market_minimum",
+          "kind": "derived",
+          "how": "Industries, company size and countries, each guessed from `icp.md` with the line quoted. A criterion the file does not state is suggested from the research and marked as such, or asked. The operator confirms all three before any filter is built",
+          "why": "These three are the floor of any TAM. Missing one sources a market with no edge in that dimension: every industry, every size, or the whole world, billed per record"
+        },
+        {
           "input": "sourcing_filter",
           "kind": "derived",
           "how": "Translate the ICP into AI Ark filter groups (`industry`, `employeeSize`, `companyType`, `employeeRole`, `technologies`, `funding`, …), resolving enum-backed values through `listIndustries` and its siblings",
@@ -793,6 +799,7 @@
         }
       ],
       "shouldNotChange": [
+        "**Industries, company size and countries are always set.** (`infra/models/tam-companies.ts`: `industry`, `employeeSize`, `companyLocation`) Drop one and the TAM has no edge in that dimension: the count reads like a market, but it is every industry, every size, or every country up to `limit`. Narrow further with other groups; never go below these three.",
         "**Every filter is counted before it is sourced.** (`infra/models/tam-companies.ts`) `countCompanies` takes the same groups and is free. Sourcing blind is how a filter that reads right returns a market ten times the size you meant, already billed per record.",
         "**The ICP filter is the narrowing, and there is no post-filter.** (`infra/models/tam-companies.ts`) Every returned record is paid for. A company outside the ICP was bought before anyone looked at it, so the fix for a wide result is a narrower filter, not a cleanup step.",
         "**Filter groups are nested, and enum values come from the autocompletes.** (`infra/models/tam-companies.ts`) A flat `{\"industry\": \"Software\"}` is ignored silently and sources the whole database up to `limit`. A guessed enum member matches nothing and returns an empty sync that looks like a broken connector.",
@@ -805,6 +812,7 @@
       ],
       "doneWhen": [
         "the ICP came from the context repo, or was researched and approved, and is written to `context/icp.md`",
+        "industries, company size and countries were proposed from `icp.md` (or suggested and marked), confirmed by the operator, and all three are in the deployed filter",
         "`countCompanies` was run for the filter actually deployed, and its number is recorded before any sourcing run",
         "the sync landed rows, and the row count is at or under `limit`",
         "the unified `accounts` model was refreshed after both source models synced, and no reference strength was changed by this skill",

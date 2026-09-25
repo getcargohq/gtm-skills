@@ -48,6 +48,13 @@ for (const [key, value] of filterGroups) {
   );
 }
 
+for (const group of ["industry", "employeeSize", "companyLocation"]) {
+  assert.ok(
+    filterGroups.some(([key]) => key === group),
+    `the model config must carry the ${group} group: industries, company size and countries are the minimum of every TAM, and without one the search bills for the whole dimension`,
+  );
+}
+
 assert.equal(
   typeof sourceSpec.config?.limit,
   "number",
