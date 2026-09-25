@@ -4,12 +4,15 @@ import { aiArk } from "../connectors/ai-ark";
 import { modelsFolder } from "../folders";
 
 // The account universe: one row per company AI Ark returned for the approved
-// ICP filter, tiered in place by ../plays/tier-companies.ts.
+// ICP filter. Nothing is written back onto these rows. They join the unified
+// accounts model (./accounts.ts) beside the CRM's companies, and that join is
+// the whole output: how many companies the market holds, and which of them the
+// CRM already has.
 //
 // THE FILTER IS THE TAM. There is no post-filter and no "source wide, then
-// throw away": `fetchCompanies` bills per returned record, so a row that the
-// rubric will disqualify was already paid for. Narrowing happens here, in
-// `config`, and nowhere else.
+// throw away": `fetchCompanies` bills per returned record, so a row outside the
+// ICP was already paid for. Narrowing happens here, in `config`, and nowhere
+// else.
 //
 // COUNT BEFORE YOU SOURCE. `aiArk.countCompanies` takes exactly these filter
 // groups, returns `{"count": N}` and costs nothing:
@@ -26,7 +29,7 @@ import { modelsFolder } from "../folders";
 // every returned record again, including the rows already sitting in this
 // model: a monthly refresh buys the handful of new companies at the price of
 // the entire pool. Sourcing is a deliberate spend, triggered when you decide to
-// widen. The tiering play is the part that stands.
+// widen.
 //
 // And if you add a schedule and later delete the line, that does NOT clear a
 // live cron: `ScheduleSpec` is optional with no null, the deploy engine omits
@@ -37,50 +40,18 @@ export const tamCompanies = defineModel("tam_companies", {
   connector: aiArk,
   extractSlug: "fetchCompanies",
   description:
-    "The account universe sourced from AI Ark for the approved ICP filter, tiered in place by the tiering play.",
+    "The account universe sourced from AI Ark for the approved ICP filter. Unified with the CRM's companies in the accounts model.",
   folder: modelsFolder,
 
-  // Written by the play, read by ../segments/tiers.ts. Declared here so the
-  // schema lives in one place. Reference them as
-  // `tamCompanies.columns.custom__<slug>` on the read side; the WRITE side
-  // takes the bare slug (see the play).
-  additionalColumns: [
-    {
-      kind: "custom",
-      slug: "tier",
-      type: "string",
-      label: "Tier",
-      description:
-        "A, B, C, or disqualified. Written by the tiering agent through the play.",
-    },
-    {
-      kind: "custom",
-      slug: "tier_rationale",
-      type: "string",
-      label: "Tier rationale",
-      description:
-        "Two sentences naming the rubric lines that decided the tier, and the evidence behind them.",
-    },
-    {
-      kind: "custom",
-      slug: "tier_evidence_url",
-      type: "string",
-      label: "Tier evidence",
-      description:
-        "The page the agent verified against when the sourced firmographics were thin. Empty when it judged on the sourced facts alone.",
-    },
-    {
-      kind: "custom",
-      slug: "tiered_at",
-      type: "date",
-      label: "Tiered at",
-      description:
-        "When the tier was last written. This is the play's eligibility stamp: never tiered, or older than the refresh window.",
-    },
-  ],
+  // AI Ark's own mapping: `domain` to the domain reference, `linkedin_url` to
+  // the LinkedIn handle and id references. Stated rather than left to the
+  // default so the contract can hold it: a model that stops unifying lands its
+  // rows nowhere the report reads, and the report then says the whole market is
+  // missing from the CRM.
+  unification: { source: "integration" },
 
   // PLACEHOLDER: the ICP, as AI Ark filter groups. This example is a technical
-  // B2B software ICP; replace every value with yours.
+  // B2B software ICP; replace every value with the one the operator approved.
   //
   // Filters are NESTED GROUPS, not a flat map. `{"industry": "Software"}` at
   // the top level is ignored silently and you source the whole database up to
@@ -102,8 +73,8 @@ export const tamCompanies = defineModel("tam_companies", {
     employeeSize: { min_employee_count: 20, max_employee_count: 500 },
     companyType: { company_type_or: ["PRIVATELY_HELD", "PUBLIC_COMPANY"] },
     // The strongest single ICP signal available at sourcing time: the company
-    // already employs the persona. Cheaper and sharper than sourcing on
-    // firmographics alone and letting the agent discover the persona is absent.
+    // already employs the persona. Applying it here is free; learning it later
+    // costs an enrichment per company.
     employeeRole: {
       employee_title_or: [
         "GTM Engineer",
@@ -115,8 +86,7 @@ export const tamCompanies = defineModel("tam_companies", {
     },
     // PLACEHOLDER: the budget. Billing is per returned record, so this is the
     // one number that decides what a sync costs. Set it well under the counted
-    // pool for the first run, watch the rows land and the tiers come back
-    // sane, then widen.
+    // pool for the first run, read the report, then widen.
     limit: 500,
   },
 });

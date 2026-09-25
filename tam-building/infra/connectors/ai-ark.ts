@@ -13,7 +13,9 @@ import { defineConnector } from "@cargo-ai/cdk";
 //     connector action is ceremony. See the count-first gate in the skill.
 //   - `fetchCompanies` is the extractor on ../models/tam-companies.ts. It bills
 //     PER RETURNED RECORD, which is why `limit` in that file is a budget rather
-//     than a preference, and why the model carries no schedule.
+//     than a preference, and why the model carries no schedule. Its default
+//     unification keys every row on `domain` and `linkedin_url`, which is how
+//     sourced companies meet the CRM's in the unified accounts model.
 export const aiArk = defineConnector("ai_ark", {
   integration: "aiArk",
   default: true,
