@@ -76,6 +76,11 @@ def validation_metrics(rows, top_tier="A", mature_only=False, target_outcome="Ti
                 all_accounts_baseline_precision=baseline)
 
 
+def observed_range(rows, name):
+    values = [r["features"][name]["value"] for r in rows if r["features"][name]["value"] is not None]
+    return {"min": min(values), "max": max(values), "accounts": len(values)} if values else None
+
+
 def calibration_report(data, allow_synthetic=False):
     features, contract = data["feature_contract"], data["contract"]
     validate_contract(features, contract)
@@ -116,6 +121,8 @@ def calibration_report(data, allow_synthetic=False):
         development=validation=rows
     result={"validation_status":mode,"limitations":["No automatic fitting or feature selection; predictions are computed from the supplied frozen contracts and historical snapshots."]}
     result["predictions"] = [{"account_id": r["account_id"], "fit_result": r["fit_result"]} for r in rows]
+    # Candidate calibrated_range per numeric feature: what the rules were learned on.
+    result["development_observed_ranges"] = {f["name"]: observed_range(development, f["name"]) for f in features["features"] if f["type"] == "number"}
     for mature,key in [(False,"all_labeled"),(True,"mature_only")]:
         result[key]={"development_features":{f:lift_table(development,f,mature,contract["outcome"]["thresholds"][-1]["tier"],bands=rules[f].get("bands")) for f in data["feature_names"]},
                      "validation":validation_metrics(validation,top_tier=data["contract"]["thresholds"][-1]["tier"],mature_only=mature,target_outcome=data["contract"]["outcome"]["thresholds"][-1]["tier"])}

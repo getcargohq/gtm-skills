@@ -35,6 +35,10 @@ This index measures structural fit, not readiness or a probability. Python compu
       "definition": "Total account employee count at the snapshot date.",
       "units": "count",
       "minimum": 0,
+      "calibrated_range": {
+        "min": 20,
+        "max": 900
+      },
       "hypothesis": "Synthetic mechanism for testing, not empirical evidence.",
       "live_extract": {
         "kind": "crm",
@@ -58,6 +62,10 @@ This index measures structural fit, not readiness or a probability. Python compu
       "definition": "Account engineering staff, using the approved role taxonomy.",
       "units": "count",
       "minimum": 0,
+      "calibrated_range": {
+        "min": 2,
+        "max": 120
+      },
       "hypothesis": "Synthetic mechanism for testing, not empirical evidence.",
       "live_extract": {
         "kind": "cached_evidence"

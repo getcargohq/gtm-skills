@@ -107,6 +107,40 @@ class ScoringTests(unittest.TestCase):
         f=copy.deepcopy(self.f);f['features'][0]['role']='readiness'
         self.assertEqual(self.compute(f=f)['scoring_status'],'error')
 
+    def test_demo_contracts_score_only_listed_fixture_accounts(self):
+        f,c=copy.deepcopy(self.f),copy.deepcopy(self.c)
+        for x in (f,c):x['approval']={'state':'approved','reference':'demo-approval'}
+        c['demo_account_ids']=['synthetic-account']
+        r=score(snapshot(f),c['version'],f,c)
+        self.assertEqual((r['scoring_status'],r['score']),('scored',100))
+        s=snapshot(f);s['account_id']='real-account'
+        r=score(s,c['version'],f,c)
+        self.assertEqual(r['scoring_status'],'error')
+        self.assertTrue(any('demo fixture' in n for n in r['data_quality_notes']))
+        c.pop('demo_account_ids')
+        self.assertEqual(score(snapshot(f),c['version'],f,c)['scoring_status'],'error')
+        for ids in [[],[''],['a','a'],'synthetic-account']:
+            c['demo_account_ids']=ids
+            with self.assertRaisesRegex(ValueError,'demo account allowlist'):validate_contract(f,c)
+        c['demo_account_ids']=['synthetic-account'];c['synthetic']=False;f['synthetic']=False
+        with self.assertRaisesRegex(ValueError,'requires synthetic'):validate_contract(f,c)
+
+    def test_out_of_calibrated_range_keeps_score_and_is_flagged(self):
+        f=copy.deepcopy(self.f)
+        f['features'][0]['calibrated_range']={'min':27,'max':864}
+        for count,flagged in [(27,False),(864,False),(3000,True),(26,True)]:
+            r=self.compute(snapshot(f,{'employee_count':count}),f=f)
+            plain=self.compute(snapshot(self.f,{'employee_count':count}))
+            self.assertEqual((r['score'],r['tier']),(plain['score'],plain['tier']))
+            self.assertEqual(r['out_of_calibrated_range'],['employee_count'] if flagged else [])
+            self.assertEqual(any('out of calibrated range 27-864' in n for n in r['data_quality_notes']),flagged)
+        self.assertEqual(self.compute(snapshot(f,{'employee_count':None}),f=f)['out_of_calibrated_range'],[])
+        for bad in [{'min':900,'max':27},{'min':27},{'min':-1,'max':10},{'min':'27','max':864}]:
+            f['features'][0]['calibrated_range']=bad
+            with self.assertRaisesRegex(ValueError,'calibrated range'):validate_contract(f,self.c)
+        f=copy.deepcopy(self.f);f['features'][2]['calibrated_range']={'min':0,'max':1}
+        with self.assertRaisesRegex(ValueError,'calibrated range'):validate_contract(f,self.c)
+
     def test_gate_and_interaction_shapes_are_list_specific(self):
         c=copy.deepcopy(self.c)
         gate=c['gates'][0]
@@ -165,6 +199,8 @@ class ScoringTests(unittest.TestCase):
         self.assertEqual(metrics['accounts'],1)
         self.assertEqual(metrics['top_tier_count'],0)  # supplied "A" cannot override Python's C
         self.assertEqual(report['predictions'][1]['fit_result']['tier'],'C')
+        # Proposed calibrated_range comes from development rows only.
+        self.assertEqual(report['development_observed_ranges']['employee_count'],{'min':100,'max':100,'accounts':1})
         with self.assertRaises(ValueError):calibration_report(data)  # synthetic is test-only
         data['discovery_scope']='all'
         with self.assertRaises(ValueError):calibration_report(data,True)

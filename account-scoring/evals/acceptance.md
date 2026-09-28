@@ -9,7 +9,8 @@
 - Run `python3 -m unittest discover -s account-scoring/evals -p 'test_*.py'`.
   Test every boundary/category, gates, interactions, missingness, determinism,
   immature outcomes, lost null labels, grouped splits, reviewed numeric bands,
-  scorer-derived historical predictions, cache migration and provenance handling.
+  scorer-derived historical predictions, cache migration, provenance handling,
+  demo allowlists and calibrated-range flags.
 - Run `node account-scoring/scripts/build.mjs --check`; generated Markdown and Python
   source strings must match canonical contracts. No independent copy of score math.
 - Two synthetic sellers have different products, feature shortlists and outcome
@@ -36,6 +37,9 @@
   thresholds and missingness. Score is an index, not a calibrated probability.
 - Publish immutable feature/outcome/scoring versions, generate Markdown and approve
   CRM mappings and cadence. A contract draft cannot become active through a prompt edit.
+- Every numeric feature carries an approved `calibrated_range`, compared with the live
+  population. The CRM properties to create are listed with types for the operator.
+- A demo run keeps synthetic contracts with `demo_account_ids` and never scores a real account.
 
 ## Named test workspace only, after separate approval
 
@@ -43,10 +47,14 @@ These remain unchecked until supported by run links and readback evidence.
 
 - [ ] Confirm a non-production workspace and authorized connectors/model availability.
 - [ ] Inspect exact extractor ID/field types and CRM output properties; approve mappings.
+- [ ] Live context files were pulled first; the plan only adds context files.
+- [ ] Reused models keep their live additional columns and plan as an update.
 - [ ] Deploy the first play disabled, with protected concurrency and exact pilot scope.
 - [ ] Approve fresh priced source/enrichment/action costs, retries and spend cap.
 - [ ] Execute native Python in Cargo and confirm dependencies, inputs and output shape.
 - [ ] Score one eligible CRM account and read back the correct ID, score/tier/rationale.
+- [ ] An out-of-range account shows the code-written prefix in the CRM rationale.
+- [ ] In a demo, a non-fixture account ends `out_of_demo_scope` with no attempt write.
 - [ ] Missing critical data returns insufficient_data without replacing the valid score.
 - [ ] Malformed outputs, empty/mismatched writes and runtime errors cannot stamp success.
 - [ ] Late write failures exhaust the retry cap; prior successful evidence survives.

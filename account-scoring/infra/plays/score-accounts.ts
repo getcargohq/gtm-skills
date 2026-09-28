@@ -5,6 +5,7 @@ import { accounts } from "../models/accounts";
 import { accountScorer } from "../agents/scorer";
 import { computeFit, snapshotSchema } from "../tools/compute-fit";
 import {
+  demoAccountIds,
   normalizeScript,
   scoringVersion,
   tierNames,
@@ -16,6 +17,8 @@ import { playsFolder } from "../folders";
 declare function require(name: string): any;
 
 const allowedTiers: string[] = [...tierNames];
+// Empty unless a demo build approved synthetic contracts for named fixture accounts.
+const demoIds: string[] = [...demoAccountIds];
 
 export const scoreAccount = defineWorkflow(
   "score-account",
@@ -32,7 +35,13 @@ export const scoreAccount = defineWorkflow(
       .passthrough(),
     output: z.object({ scored: z.boolean(), status: z.string() }),
     uses: { accountScorer, hubspot, computeFit },
-    imports: { accounts, normalizeScript, scoringVersion, allowedTiers },
+    imports: {
+      accounts,
+      normalizeScript,
+      scoringVersion,
+      allowedTiers,
+      demoIds,
+    },
   },
   ({ input, uses, model, python, js }) => {
     const prepare = js(({ nodes }) => {
@@ -46,6 +55,11 @@ export const scoreAccount = defineWorkflow(
         throw new Error("Invalid attempt counter; inspect before retry");
       return { id: ids[0], now: new Date().toISOString(), attempts };
     });
+    // Demo scope stops before any attempt write, paid step or CRM write. The
+    // scorer enforces the same allowlist.
+    if (demoIds.length > 0 && !demoIds.includes(prepare.id)) {
+      return { scored: false, status: "out_of_demo_scope" };
+    }
     if (
       input.custom__fit_attempt_version === scoringVersion &&
       prepare.attempts >= 3
@@ -106,6 +120,7 @@ export const scoreAccount = defineWorkflow(
               .strict(),
           ),
           missing_features: z.array(z.string()),
+          out_of_calibrated_range: z.array(z.string()),
           data_quality_notes: z.array(z.string()),
         })
         .strict()
@@ -165,11 +180,16 @@ export const scoreAccount = defineWorkflow(
         .strict()
         .parse(nodes.agent.answer);
       // Numerical authority comes ONLY from trusted. Agent prose cannot replace it.
+      // The extrapolation flag is code-written, never left to the explanation.
+      const outside = nodes.script_2.result.out_of_calibrated_range;
       return {
         score: nodes.script_2.result.score,
         tier: nodes.script_2.result.tier,
         version: nodes.script_2.result.scoring_version,
-        rationale: answer.rationale,
+        rationale:
+          (outside.length > 0
+            ? `[Out of calibrated range: ${outside.join(", ")}] `
+            : "") + answer.rationale,
       };
     });
     // PLACEHOLDER: reuse approved CRM properties after checking live field types.
@@ -262,6 +282,22 @@ export const scoreAccounts = definePlay("score-accounts", {
   filter: {
     conjonction: "and",
     groups: [
+      // Demo builds only. PLACEHOLDER: confirm the live record-ID column and type.
+      ...(demoIds.length > 0
+        ? [
+            {
+              conjonction: "or" as const,
+              conditions: [
+                {
+                  kind: "string" as const,
+                  columnSlug: accounts.columns.hs_object_id,
+                  operator: "is" as const,
+                  values: demoIds,
+                },
+              ],
+            },
+          ]
+        : []),
       {
         conjonction: "or",
         conditions: [

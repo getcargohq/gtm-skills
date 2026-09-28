@@ -24,17 +24,40 @@ const c = parse(
 );
 if (c.feature_contract_version !== f.version)
   throw new Error("Feature version mismatch");
+const approved =
+  c.approval.state === "approved" &&
+  f.approval.state === "approved" &&
+  Boolean(c.approval.reference) &&
+  Boolean(f.approval.reference);
+const demoIds = c.demo_account_ids ?? [];
+const uncalibrated = f.features
+  .filter((x) => x.type === "number" && !x.calibrated_range)
+  .map((x) => x.name);
+if (args.includes("--approved") && args.includes("--demo"))
+  throw new Error("Choose --approved (live) or --demo (fixtures), not both");
 if (
   args.includes("--approved") &&
-  (c.approval.state !== "approved" ||
-    f.approval.state !== "approved" ||
-    c.synthetic ||
-    f.synthetic ||
-    !c.approval.reference ||
-    !f.approval.reference)
+  (!approved || c.synthetic || f.synthetic || demoIds.length > 0)
 ) {
   throw new Error(
     "Live build requires both approved, non-synthetic contracts and approval references",
+  );
+}
+if (
+  args.includes("--demo") &&
+  (!approved || !c.synthetic || !f.synthetic || demoIds.length === 0)
+) {
+  throw new Error(
+    "Demo build requires approved synthetic contracts with demo_account_ids",
+  );
+}
+// Live and demo bundles are both deployable, with or without a flag: both need
+// calibrated ranges and both archive immutably.
+const deployable =
+  approved && ((!c.synthetic && !f.synthetic) || demoIds.length > 0);
+if (deployable && uncalibrated.length > 0) {
+  throw new Error(
+    `Numeric features need calibrated_range: ${uncalibrated.join(", ")}`,
   );
 }
 // Reuse the scorer's contract validator at build time, including for drafts.
@@ -65,16 +88,11 @@ const code = await format(
     .map(([k, v]) => `export const ${k} = ${JSON.stringify(v)};`)
     .join(
       "\n",
-    )}\nexport const scoringVersion = ${JSON.stringify(c.version)};\nexport const featureVersion = ${JSON.stringify(f.version)};\nexport const tierNames = ${JSON.stringify(c.thresholds.map((t) => t.tier))} as const;\nexport const scoringContext = ${JSON.stringify(markdown)};\nexport const sourceHash = ${JSON.stringify(createHash("sha256").update(source).digest("hex"))};\n`,
+    )}\nexport const scoringVersion = ${JSON.stringify(c.version)};\nexport const demoAccountIds: readonly string[] = ${JSON.stringify(demoIds)};\nexport const featureVersion = ${JSON.stringify(f.version)};\nexport const tierNames = ${JSON.stringify(c.thresholds.map((t) => t.tier))} as const;\nexport const scoringContext = ${JSON.stringify(markdown)};\nexport const sourceHash = ${JSON.stringify(createHash("sha256").update(source).digest("hex"))};\n`,
   { parser: "typescript" },
 );
-const liveCapable =
-  c.approval.state === "approved" &&
-  f.approval.state === "approved" &&
-  !c.synthetic &&
-  !f.synthetic;
-// This guard is mandatory for every live-capable bundle, even without --approved.
-if (liveCapable) {
+// This guard is mandatory for every deployable bundle, even without a flag.
+if (deployable) {
   if (!/^[a-zA-Z0-9_-]+$/.test(c.version))
     throw new Error("Unsafe version path");
   const archives = [];

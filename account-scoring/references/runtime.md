@@ -34,24 +34,52 @@ CDK's `planFiles` copies all `infra/` assets, including Python and YAML, to
 evaluations and fixtures stay beside the installed skill. `scripts/package.json`
 prevents the loader from executing build scripts as CDK resources.
 
-Copy the two draft YAML files into the existing project-root context. The build parses YAML and embeds JSON literals for standard-library Python.
+Copy the two draft YAML files into the project's context directory where its
+context layout and lint expect them. Under the `cargo-workspaces` conventions that is
+the `global/` domain (`context/global/`); use the same directory for every
+`--context` and `ACCOUNT_SCORING_CONTEXT`. The build parses YAML and embeds JSON
+literals for standard-library Python.
 These fixtures describe a fictional seller. They are not an outcome formula or
 feature shortlist for the customer. Both contract approval states must be approved,
-with references, and `synthetic` false before live use.
+with references, and `synthetic` false before live use. Every numeric feature needs a
+`calibrated_range` (the development cohort's observed minimum and maximum, from the
+calibration report) before `--approved` or `--demo` builds.
+
+**Demo builds.** A workspace whose only labeled outcomes are fixtures can verify the
+pipeline without real rules. Keep both contracts `synthetic: true`, approve them for
+the demo, and list the fixture CRM record IDs in the scoring contract's
+`demo_account_ids`, quoted as strings (`["12345"]`, not `[12345]`; unquoted YAML
+numbers are rejected). Build with `--demo` instead of `--approved`; the two flags are
+exclusive, and `--approved` rejects any contract with a demo allowlist. The allowlist
+is enforced three times: the play filter (on `hs_object_id`; confirm the live column
+and type), the workflow before any attempt write, and the scorer. Demo versions are
+archived immutably like live ones, so give them their own version names.
+
+**Live context and reused models.** `defineContext` pushes the project's context
+directory to the workspace context repo. Before planning, copy the live repo's files
+into that directory (`cargo-ai context runtime browse`, then `read` each file) so a
+deploy cannot replace live entries with scaffold templates. The plan must only add
+context files. A model's declared `additionalColumns` list is authoritative: deploy
+removes live additional columns it does not list. When reusing a live CRM extract,
+merge its live additional columns into the declaration. The plan must show that
+model as an update adding the scoring columns; a no-op means state was seeded from
+code rather than the live model, and the columns would never be created.
 
 Install the build dependencies with `npm install --prefix scripts/account-scoring`.
 After approval, build with:
 
 ```sh
-node scripts/account-scoring/build.mjs --infra infra/account-scoring --context context --approved
+node scripts/account-scoring/build.mjs --infra infra/account-scoring --context context/global --approved
 ```
 
 The build embeds the exact Python source and canonical contract objects in
 `infra/account-scoring/runtime/generated.ts`. Markdown is generated into the same
 context directory from those objects and passed to the explanation agent. No remote
 file lookup, checkout, shell or interpreter in the ordinary agent is assumed.
-Every build with approved, non-synthetic contracts enforces the immutable archive,
-even without `--approved`; that flag additionally rejects draft inputs. Approved versions are archived; changing the content of an existing approved version
+Every deployable build (both contracts approved with references, and either
+non-synthetic or carrying `demo_account_ids`) requires calibrated ranges and enforces
+the immutable archive, even without a flag; `--approved` and `--demo` additionally
+reject inputs of the wrong kind. Approved versions are archived; changing the content of an existing approved version
 must fail. Preserve the old bundle and contracts for rollback, and redeploy a reviewed
 bundle only after plan approval. Editing prose does not activate a model.
 
@@ -59,7 +87,7 @@ Run offline checks from the installed skill directory:
 
 ```sh
 ACCOUNT_SCORING_INFRA=/absolute/project/infra/account-scoring \
-  ACCOUNT_SCORING_CONTEXT=/absolute/project/context \
+  ACCOUNT_SCORING_CONTEXT=/absolute/project/context/global \
   node --import tsx evals/contract.mjs
 ACCOUNT_SCORING_INFRA=/absolute/project/infra/account-scoring \
   python3 -m unittest discover -s evals -p 'test_*.py'
@@ -112,9 +140,19 @@ stale critical evidence stops scoring; the skill does not claim to refresh it.
 The play is disabled with noConcurrency. Its model is the HubSpot company extract,
 not a native domain-keyed account table. `id` or `hs_object_id` supplies the CRM ID; if both exist they must agree.
 updateRecords matches hs_object_id. Verify the extract mapping in the named workspace. Reconcile existing score
-properties; the example proposes cargo_score (number), cargo_tier (enum/string),
-cargo_rationale (text), cargo_scoring_version (text) and cargo_last_updated_at
-(datetime). These names and types require mapping approval before deploy.
+properties; the example proposes cargo_score (number), cargo_tier (dropdown whose
+options exactly match the contract's tier names), cargo_rationale (multi-line text),
+cargo_scoring_version (single-line text) and cargo_last_updated_at (date and time; a
+date-only property rejects the timestamp). These names and types require mapping
+approval before deploy. Cargo's HubSpot connector can update properties but has no
+action to create them (checked with CLI 1.0.99: `updateRecords`, `insertRecord`,
+`upsertRecords` and similar, no property management). Hand the operator the exact
+list at the rules approval; do not reach for the connector's stored credentials.
+
+A numeric value outside its feature's `calibrated_range` keeps its score. The result
+lists it in `out_of_calibrated_range` with a data-quality note, and the workflow
+prefixes the CRM rationale with `[Out of calibrated range: <features>]`. The prefix is
+written by code, not requested from the explanation agent.
 
 Snapshot, Python result and latest attempt status live in custom columns on that
 extract. Separate last-scored snapshot/result columns change only after a verified

@@ -6,7 +6,7 @@
       "kind": "cookbook",
       "job": "Calibrate a customer-specific account fit model from historical customer outcomes and keep eligible CRM accounts scored by deterministic Python with agent explanations.",
       "description": "Calibrate a customer-specific account fit model from historical customer outcomes and keep eligible CRM accounts scored by deterministic Python with agent explanations. Triggers: \"calibrate our account scoring\", \"keep our accounts scored as they arrive\", \"re-score after an approved model change\", \"calibrate our ICP from customer outcomes\", \"why is this account tier A\", \"our lead scoring is a spreadsheet nobody trusts\". Cargo CDK, Python, HubSpot, Salesforce, Attio. Skip when: qualify a supplied list once, which is score-leads; source a new universe, which is tam-building. Calibration-only requests stay here and end before live activation.",
-      "version": "0.3.2",
+      "version": "0.4.0",
       "homepage": "https://github.com/getcargohq/gtm-skills/tree/main/account-scoring",
       "group": "Make it run forever",
       "install": "cargo-ai cdk add cookbook/account-scoring",
@@ -90,6 +90,12 @@
           "when": "Users need another scale or refresh interval.",
           "how": "Update thresholds, schemas, eligibility and operating contract together.",
           "cost": "Revalidate boundary mappings and the recurring cost."
+        },
+        {
+          "id": "Demo workspace",
+          "when": "The only labeled outcomes are fixture records, or the goal is to verify the pipeline.",
+          "how": "Keep both contracts `synthetic: true`, list the fixture CRM IDs in `demo_account_ids` as quoted strings, build with `--demo`.",
+          "cost": "Proves the mechanics, not fit. The scorer, workflow and play filter refuse every other account."
         }
       ],
       "shouldNotChange": [
@@ -103,6 +109,10 @@
         "**Trusted numeric writeback.** An agent must not rewrite a tool's score before persistence.",
         "**Approved versions only.** Automatic model changes would silently change the meaning of every tier.",
         "**CRM identity and field types.** Wrong IDs or types can make a successful-looking run write nothing or the wrong value.",
+        "**Fixture-learned rules never score real accounts.** Rules calibrated on fixtures restate how the fixtures were generated; flipping `synthetic` to score real accounts ships that generator as the model.",
+        "**Extrapolation stays visible.** A value outside the feature's `calibrated_range` keeps its score, but code flags it in the result and rationale. Silently scoring 3,000-employee companies with rules learned on 27 to 864 hides that the rules were never tested there.",
+        "**Scoped workspace changes.** Before changing anything this skill does not own (connector cache settings, a shared sync, another play), show the full list of affected resources and confirm it. Otherwise a request about three providers silently changes the cost or freshness of every play in the workspace.",
+        "**Live context and shared columns survive deploy.** A plan that overwrites live context files or drops a shared model's additional columns breaks other plays and agents that read them.",
         "**Explicit permissions and privacy.** Do not commit customer rows, call transcripts, credentials, or identifying customer names to the public repository."
       ],
       "doneWhen": [
@@ -119,6 +129,8 @@
         "[ ] Every threshold boundary, unknown value, gate, interaction, and score total passes deterministic tests.",
         "[ ] Repeated input and contract versions return identical numeric results.",
         "[ ] Contradictory agent prose cannot change persisted score or tier.",
+        "[ ] Every approved numeric feature carries a `calibrated_range`; out-of-range values keep their score and are flagged in the result and rationale.",
+        "[ ] A demo contract refuses every account outside `demo_account_ids`.",
         "[ ] Generated Markdown matches the canonical contracts.",
         "[ ] The Python action executes successfully through the actual Cargo runtime.",
         "[ ] An eligible CRM account receives the correct computed score and rationale at the audited record ID.",
@@ -126,7 +138,8 @@
         "[ ] Failed writes do not receive successful scoring timestamps.",
         "[ ] Stale accounts, changed approved versions, and previously present pilot rows are correctly reprocessed.",
         "[ ] All configured tier segments consume output fields and cover their intended tiers.",
-        "[ ] The first deployment is disabled and cannot trigger unapproved enrichment or CRM writes."
+        "[ ] The first deployment is disabled and cannot trigger unapproved enrichment or CRM writes.",
+        "[ ] The plan only adds context files, and reused models keep their live additional columns."
       ],
       "cost": "Fetch current prices immediately before each paid preview. Never hard-code credit amounts in pipeline Markdown.\n\nSeparate source extraction, baseline enrichment, historical reconstruction, custom research, optional transcript processing, and recurring scoring costs. Show the exact accounts, fields, routes, retry allowance, and maximum authorized spend for the pilot and bulk run separately.\n\nCheck caching and historical coverage before purchasing more data. Explain any provider limit or unverified historical capability. Local Python computation is not a provider-enrichment fee; hosted compute or action charges, if applicable, must still be measured.",
       "composesInto": "The approved fit outputs can feed existing TAM, contact-sourcing, CRM segmentation, routing, and rep workflows. Readiness and pain-alignment agents remain independent consumers or sibling processes. A later prioritization layer may combine their outputs.\n\nReuse resources inside the customer project where appropriate, while keeping the repository example independently installable. Do not create additional integrations, agents, segments, or folders unless the implemented outcome actually needs them.\n\n**Final design:** common baseline enrichment, customer-specific measurable datapoints, customer-specific outcome labeling, evidence-backed calibration, and one deterministic scoring contract applied consistently to every account."

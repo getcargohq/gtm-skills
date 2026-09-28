@@ -61,6 +61,10 @@ must fill or refresh that cache; those customer-specific routes require verifica
 and priced scope before implementation. Missing critical evidence stops the score.
 The play does not make speculative provider calls or retrain itself. Discovery is an
 agent-led calibration procedure; synthetic fixtures test scorer portability only.
+A demo workspace keeps synthetic contracts, lists its fixture CRM IDs in
+`demo_account_ids` and builds with `--demo`; the scorer, workflow and play filter
+refuse every other account. Numeric values outside a feature's approved
+`calibrated_range` keep their score and are flagged by code in the rationale.
 The disabled play limits each sweep to 25 accounts and each unsuccessful scoring
 cycle to three attempts per version. Apply an approved pilot ID filter before enabling
 and review the full version-backfill scope and cost separately.

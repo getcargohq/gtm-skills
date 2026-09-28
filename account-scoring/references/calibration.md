@@ -28,6 +28,11 @@ The audit must identify:
 
 Separate the seller's ARR earned from an account from that account's own company revenue. Keep Revenue, ARR, run-rate, and GMV identifiable rather than silently treating them as equivalent.
 
+Establish early whether this is a real calibration or a demo. When the only labeled
+outcomes are fixture records, rules learned from them restate how the fixtures were
+generated. Treat that run as a demo: contracts stay synthetic and score only the
+fixture accounts (see [runtime](runtime.md#installation-and-canonical-artifacts)).
+
 Deliver a compact source map and cohort count. Read-only inspection comes first. Any metered extraction or enrichment requires a cost-approved scope.
 
 Deliverable: source map, join keys, quality report and counts. Next checkpoint: approve source conflicts and the proposed outcome/cohort scope under the first two interview topics.
@@ -173,6 +178,12 @@ Distinguish verified capabilities from merely suggested providers. An agent is a
 
 Technology evidence must distinguish individual familiarity, team usage, pilot, deployed tool, and historical usage when those distinctions affect the feature. A keyword in one job requirement does not establish company-wide adoption.
 
+Key every paid lookup to one account: one domain or identifier per call, with a result
+limit of one. A batched query lets one ambiguous identifier (a firm with many country
+offices) crowd the others out of the result limit. Record each account as checked with
+evidence, checked with no qualifying evidence, or unchecked; an unchecked account is
+missing, never "none".
+
 Select a small, cost-approved pilot across stronger, weaker, churned, and where useful lost accounts. Measure actual extraction coverage and review the evidence. Never infer coverage solely from the model's confidence statement.
 
 Promote a feature only when it has a stable definition, reproducible live extraction, acceptable historical support, and acceptable cost. Mark retrospective-only ideas as research findings rather than forcing them into the live score.
@@ -199,13 +210,21 @@ Report top-tier precision and lift, Tier-1 recall, missed good customers, false 
 
 Have the operator review approximately ten contrasting accounts, including errors, boundaries, missing data, and partner-delivered successes where relevant. Human agreement does not replace quantitative validation. Repeatedly tuning on a test set makes it development data.
 
+Propose a `calibrated_range` for each numeric feature: the development cohort's observed
+minimum and maximum (`development_observed_ranges` in the report). Compare it with the
+live population's distribution. When live accounts sit mostly outside it, say so
+before approval; the scores there are extrapolation.
+
+List the exact CRM properties the live flow writes, with types and dropdown options,
+in the same approval. The operator creates them; Cargo's HubSpot connector cannot.
+
 Weights and tier boundaries are proposals requiring approval. A 0-100 fit score is a prioritization index, not a calibrated probability of purchase or success.
 
 Deliverable: support/lift tables, validation report, error review and proposed rule set. Next checkpoint: approve the model and operating contract.
 
 ## 9. Publish one scoring contract and one scorer
 
-Use the existing project-root context location; do not declare another workspace context singleton.
+Use the project's existing context directory, placed where its context layout and lint expect contracts (the `global/` domain under the `cargo-workspaces` conventions); do not declare another workspace context singleton.
 
 Publish:
 
@@ -299,7 +318,8 @@ python3 infra/account-scoring/runtime/calibration.py /private/path/calibration.j
 Use one documented account observation per analysis population; duplicate accounts
 are rejected to prevent episode-rich accounts dominating the result. The report
 includes each Python result, support, Wilson intervals, missingness, all-labeled and
-mature-only comparisons, precision/lift/recall, errors and the all-account baseline.
+mature-only comparisons, precision/lift/recall, errors, the all-account baseline and
+each numeric feature's development range.
 Use the same frozen numeric bands as scoring; the helper applies their inclusive
 lower and exclusive upper boundaries without altering the stored raw values. The
 standalone `lift_table` accepts optional reviewed `bands`; without them it reports

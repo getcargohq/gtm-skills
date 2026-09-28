@@ -131,6 +131,19 @@ def validate_contract(features, contract):
             require(set(f["values"]) == set(rule["points"]), "category coverage mismatch")
         else:
             require(number(f["minimum"]), "numeric domain needs a minimum")
+        calibrated = f.get("calibrated_range")
+        if calibrated is not None:
+            # The range the approved rules were learned on. Values outside it still
+            # score, but the result says the rules are extrapolating.
+            require(f["type"] == "number" and isinstance(calibrated, dict) and set(calibrated) == {"min", "max"}
+                    and number(calibrated["min"]) and number(calibrated["max"])
+                    and f["minimum"] <= calibrated["min"] <= calibrated["max"], "invalid calibrated range")
+    demo = contract.get("demo_account_ids")
+    if demo is not None:
+        # A demo run scores fixture accounts with fixture-learned rules; never real ones.
+        require(contract["synthetic"] and features["synthetic"], "demo account allowlist requires synthetic contracts")
+        require(isinstance(demo, list) and demo and all(isinstance(i, str) and i for i in demo)
+                and len(set(demo)) == len(demo), "invalid demo account allowlist")
     ids = [r["id"] for r in contract["rules"] + contract["gates"] + contract["interactions"]]
     require(len(ids) == len(set(ids)), "duplicate rule id")
     for gate in contract["gates"]:
@@ -202,14 +215,16 @@ def score(snapshot, contract_ref, features, contract, allow_synthetic=False):
               "feature_contract_version": features.get("version"),
               "feature_snapshot_at": snapshot.get("snapshot_at"),
               "applied_gates": [], "rule_contributions": [], "missing_features": [],
-              "data_quality_notes": [], "snapshot_hash": digest(snapshot)}
+              "out_of_calibrated_range": [], "data_quality_notes": [], "snapshot_hash": digest(snapshot)}
     try:
         validate_contract(features, contract)
         require(contract_ref == contract["version"], "unapproved contract reference")
         require(contract["approval"]["state"] == "approved" and features["approval"]["state"] == "approved", "contract is not approved")
         require(contract["approval"]["reference"] and features["approval"]["reference"], "approval evidence required")
-        require(allow_synthetic or (not contract["synthetic"] and not features["synthetic"]), "synthetic contract cannot score live accounts")
         validate_snapshot(snapshot, features)
+        if contract["synthetic"] or features["synthetic"]:
+            require(allow_synthetic or snapshot["account_id"] in (contract.get("demo_account_ids") or []),
+                    "synthetic contract scores only its demo fixture accounts")
         result["data_quality_notes"].extend(snapshot.get("data_quality_notes", []))
         values, critical_missing = {}, []
         for f in features["features"]:
@@ -224,6 +239,10 @@ def score(snapshot, contract_ref, features, contract, allow_synthetic=False):
                     critical_missing.append(f["name"])
             if unsupported or item["snapshot_quality"] != "exact":
                 result["data_quality_notes"].append(f["name"] + ": " + ("stale_or_proxy" if unsupported else item["snapshot_quality"]))
+            calibrated = f.get("calibrated_range")
+            if calibrated and value is not None and not calibrated["min"] <= value <= calibrated["max"]:
+                result["out_of_calibrated_range"].append(f["name"])
+                result["data_quality_notes"].append("%s: out of calibrated range %s-%s" % (f["name"], canonical(calibrated["min"]), canonical(calibrated["max"])))
         if critical_missing:
             result["scoring_status"] = "insufficient_data"
             return result

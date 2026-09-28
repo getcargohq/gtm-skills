@@ -7,6 +7,7 @@ import {
   mkdtempSync,
   cpSync,
   rmSync,
+  symlinkSync,
 } from "node:fs";
 import { dirname, resolve, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -172,11 +173,11 @@ for (const x of [liveF, liveC]) {
   x.synthetic = false;
   x.approval = { state: "approved", reference: "offline-fixture-only" };
 }
-const liveScript = (s) =>
+const liveScript = (s, features = liveF) =>
   s
     .replace(
       JSON.stringify(JSON.stringify(f)),
-      JSON.stringify(JSON.stringify(liveF)),
+      JSON.stringify(JSON.stringify(features)),
     )
     .replace(
       JSON.stringify(JSON.stringify(c)),
@@ -213,7 +214,7 @@ const stateFor = (options = {}) => ({
   agentCalls: 0,
   ...options,
 });
-function runGraph(graph, input, state) {
+function runGraph(graph, input, state, toolNodes = tool.nodes) {
   const nodes = { start: input };
   let node = graph.find((n) => n.actionSlug === "start");
   let steps = 0;
@@ -233,12 +234,12 @@ function runGraph(graph, input, state) {
     else if (node.actionSlug === "python")
       nodes[node.slug] = {
         result: python(
-          state.draft ? cfg.script : liveScript(cfg.script),
+          state.draft ? cfg.script : liveScript(cfg.script, state.features),
           nodes,
         ),
       };
     else if (node.kind === "tool") {
-      nodes[node.slug] = runGraph(tool.nodes, cfg, state);
+      nodes[node.slug] = runGraph(toolNodes, cfg, state, toolNodes);
       if (state.malformed) nodes[node.slug].score = "99";
       if (state.wrongTier) nodes[node.slug].tier = "invented";
       if (state.wrongVersion) nodes[node.slug].scoring_version = "unapproved";
@@ -305,6 +306,26 @@ assert.equal(state.crm.properties.cargo_tier, "A");
 assert.ok(state.local.fit_scored_at);
 assert.equal(JSON.parse(state.local.fit_last_scored_result).score, 100);
 assert.equal(state.agentCalls, 1);
+assert.ok(!state.crm.properties.cargo_rationale.startsWith("[Out"));
+// Extrapolation keeps the score; code, not the agent, flags it in the rationale.
+const rangedF = structuredClone(liveF);
+rangedF.features.find((x) => x.name === "employee_count").calibrated_range = {
+  min: 10,
+  max: 50,
+};
+state = stateFor({ features: rangedF });
+result = runGraph(play.nodes, row, state);
+assert.equal(result.scored, true);
+assert.equal(state.crm.properties.cargo_score, "100");
+assert.ok(
+  state.crm.properties.cargo_rationale.startsWith(
+    "[Out of calibrated range: employee_count] ",
+  ),
+);
+assert.deepEqual(
+  JSON.parse(state.local.fit_last_scored_result).out_of_calibrated_range,
+  ["employee_count"],
+);
 for (const mode of [
   "emptyWrite",
   "failWrite",
@@ -454,6 +475,8 @@ if (!process.env.ACCOUNT_SCORING_INFRA) {
     cpSync(resolve(here, "../scripts"), join(tree, "scripts/account-scoring"), {
       recursive: true,
     });
+    // An ESM project root, as in a scaffolded CDK project.
+    writeFileSync(join(tree, "package.json"), '{"type":"module"}\n');
     execFileSync(
       process.execPath,
       [
@@ -482,6 +505,107 @@ if (!process.env.ACCOUNT_SCORING_INFRA) {
       "--context",
       targetContext,
     ];
+    // A demo bundle keeps synthetic contracts and scores only listed fixtures.
+    const demoF = structuredClone(liveF),
+      demoC = structuredClone(liveC);
+    demoF.synthetic = demoC.synthetic = true;
+    demoF.version += "-demo";
+    demoC.version += "-demo";
+    demoC.feature_contract_version = demoF.version;
+    demoC.demo_account_ids = ["fixture-id"];
+    writeFileSync(featurePath, JSON.stringify(demoF));
+    writeFileSync(scoringPath, JSON.stringify(demoC));
+    assert.throws(
+      () =>
+        execFileSync(process.execPath, [...buildArgs, "--approved"], {
+          stdio: "pipe",
+        }),
+      /non-synthetic/,
+    );
+    execFileSync(process.execPath, [...buildArgs, "--demo"], { stdio: "pipe" });
+    const demoBundle = await import(
+      pathToFileURL(join(tree, "infra/account-scoring/runtime/generated.ts"))
+    );
+    assert.deepEqual([...demoBundle.demoAccountIds], ["fixture-id"]);
+    const demoScore = (id) => {
+      const demoRow = fixtureRow({ id });
+      demoRow.custom__fit_evidence = JSON.stringify({
+        ...evidence(demoRow),
+        feature_contract_version: demoF.version,
+      });
+      const snapshot = python(demoBundle.normalizeScript, {
+        start: demoRow,
+        script: { result: { now: new Date().toISOString() } },
+      });
+      return python(demoBundle.scoringScript, {
+        start: { snapshot, contract_ref: demoC.version },
+      });
+    };
+    assert.equal(demoScore("fixture-id").scoring_status, "scored");
+    assert.equal(demoScore("real-account").scoring_status, "error");
+    // Compile the demo play itself: filter, workflow branch and scorer agree.
+    const modules = cdkEntry.slice(0, cdkEntry.lastIndexOf("/node_modules/") + 13);
+    symlinkSync(modules, join(tree, "node_modules"), "dir");
+    resetRegistry();
+    await import(
+      pathToFileURL(join(tree, "infra/account-scoring/plays/score-accounts.ts"))
+    );
+    const demoPlay = resources().find((r) => r.id === "play:score-accounts").spec;
+    const demoTool = resources().find(
+      (r) => r.id === "tool:compute-account-fit",
+    ).spec;
+    assert.ok(
+      demoPlay.filter.groups.some((g) =>
+        g.conditions.some(
+          (x) =>
+            x.columnSlug === "hs_object_id" &&
+            x.operator === "is" &&
+            JSON.stringify(x.values) === JSON.stringify(["fixture-id"]),
+        ),
+      ),
+    );
+    const demoRow = (id) => {
+      const r = fixtureRow({ id });
+      r.custom__fit_evidence = JSON.stringify({
+        ...evidence(r),
+        feature_contract_version: demoF.version,
+      });
+      return r;
+    };
+    state = stateFor();
+    result = runGraph(demoPlay.nodes, demoRow("fixture-id"), state, demoTool.nodes);
+    assert.equal(result.scored, true);
+    assert.equal(state.writes, 2);
+    state = stateFor({ crm: { id: "real-account", properties: {} } });
+    result = runGraph(demoPlay.nodes, demoRow("real-account"), state, demoTool.nodes);
+    assert.equal(result.status, "out_of_demo_scope");
+    assert.deepEqual(state.local, {});
+    assert.equal(state.writes + state.agentCalls, 0);
+    const noIds = structuredClone(demoC);
+    delete noIds.demo_account_ids;
+    writeFileSync(scoringPath, JSON.stringify(noIds));
+    assert.throws(
+      () =>
+        execFileSync(process.execPath, [...buildArgs, "--demo"], {
+          stdio: "pipe",
+        }),
+      /demo_account_ids/,
+    );
+    // Approved numeric features must carry the range they were calibrated on,
+    // including on a build that omits every flag.
+    const unranged = structuredClone(liveF);
+    delete unranged.features[0].calibrated_range;
+    writeFileSync(featurePath, JSON.stringify(unranged));
+    writeFileSync(scoringPath, JSON.stringify(liveC));
+    for (const extra of [[], ["--approved"]])
+      assert.throws(
+        () =>
+          execFileSync(process.execPath, [...buildArgs, ...extra], {
+            stdio: "pipe",
+          }),
+        /calibrated_range/,
+      );
+    writeFileSync(featurePath, JSON.stringify(liveF));
     // Archive enforcement is automatic: omitting --approved cannot bypass it.
     execFileSync(process.execPath, buildArgs, { stdio: "pipe" });
     execFileSync(process.execPath, [...buildArgs, "--approved"], {

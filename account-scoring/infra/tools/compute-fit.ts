@@ -42,6 +42,7 @@ export const scoreSchema = z
       z.object({ rule: z.string(), points: z.number() }),
     ),
     missing_features: z.array(z.string()),
+    out_of_calibrated_range: z.array(z.string()),
     data_quality_notes: z.array(z.string()),
   })
   .strict();
@@ -70,6 +71,7 @@ const compute = defineWorkflow(
       applied_gates: computed.result.applied_gates,
       rule_contributions: computed.result.rule_contributions,
       missing_features: computed.result.missing_features,
+      out_of_calibrated_range: computed.result.out_of_calibrated_range,
       data_quality_notes: computed.result.data_quality_notes,
     };
   },
