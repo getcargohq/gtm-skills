@@ -1,0 +1,12 @@
+{
+  "name": "account-scoring-build",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "yaml": "^2.6.0",
+    "prettier": "^3.4.2"
+  },
+  "scripts": {
+    "build": "node build.mjs"
+  }
+}

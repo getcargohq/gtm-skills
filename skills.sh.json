@@ -53,7 +53,7 @@
     },
     {
       "title": "Make it run forever",
-      "description": "The same jobs as a deployed pipeline: each skill carries a worked CDK example your agent adapts into your project and deploys.",
+      "description": "Standing pipelines, including outcome-calibrated account fit: each carries a worked CDK example to adapt, review and deploy.",
       "skills": [
         "tam-building",
         "account-scoring",

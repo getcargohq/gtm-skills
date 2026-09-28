@@ -1,0 +1,2 @@
+# Python >=3.9. Standard library only; native Cargo Python uses Pyodide.
+# No pip install, remote repository checkout or filesystem access is required.

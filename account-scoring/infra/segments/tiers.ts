@@ -1,46 +1,30 @@
 import { defineSegment } from "@cargo-ai/cdk";
-
 import { accounts } from "../models/accounts";
+import { tierNames } from "../runtime/generated";
 
-// Tier slices over the scored book. `cargo_tier` lands on
-// the CRM record (stamped by the scoring play) and arrive here through the
-// accounts model's refresh — make sure the `cargo_tier` column is selected on the model.
-export const tierA = defineSegment("tier-a-accounts", {
-  model: accounts,
-  filter: {
-    conjonction: "and",
-    groups: [
-      {
+// CRM outputs, not custom__ aliases. Confirm cargo_tier is selected and typed
+// in the target extract; reuse the customer's approved property when present.
+export const tiers = tierNames.map((tier) =>
+  defineSegment(
+    `account-fit-${tier.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`,
+    {
+      model: accounts,
+      filter: {
         conjonction: "and",
-        conditions: [
+        groups: [
           {
-            kind: "string",
-            columnSlug: accounts.columns.custom__cargo_tier,
-            operator: "is",
-            values: ["A"],
+            conjonction: "and",
+            conditions: [
+              {
+                kind: "string",
+                columnSlug: "cargo_tier",
+                operator: "is",
+                values: [tier],
+              },
+            ],
           },
         ],
       },
-    ],
-  },
-});
-
-export const tierC = defineSegment("tier-c-accounts", {
-  model: accounts,
-  filter: {
-    conjonction: "and",
-    groups: [
-      {
-        conjonction: "and",
-        conditions: [
-          {
-            kind: "string",
-            columnSlug: accounts.columns.custom__cargo_tier,
-            operator: "is",
-            values: ["C"],
-          },
-        ],
-      },
-    ],
-  },
-});
+    },
+  ),
+);

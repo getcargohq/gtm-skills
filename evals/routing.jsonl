@@ -109,3 +109,8 @@
 {"prompt": "Keep talking to leads over email", "expect": "agentic-engagement", "why": "The standing tell: a loop, not one send."}
 {"prompt": "Native email trigger for lead replies", "expect": "agentic-engagement"}
 {"prompt": "I need email addresses for these prospects so I can start conversations", "expect": "find-work-email", "why": "Addresses first; agentic-engagement is the loop you deploy after you have someone to write to."}
+
+// Account fit calibration uses the existing standing skill, including calibration-only work.
+{"prompt": "Calibrate account fit from historical customer outcomes and continuously score our CRM accounts", "expect": "account-scoring"}
+{"prompt": "Calibrate our ICP from customer quality outcomes, but stop at the model and do not deploy", "expect": "account-scoring", "why": "Calibration-only seam belongs to the same account-scoring skill."}
+{"prompt": "Qualify this supplied list once against our existing ICP", "expect": "score-leads", "why": "No historical calibration or standing scoring pipeline requested."}
