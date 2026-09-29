@@ -191,8 +191,8 @@ it if you still want it, and records why under `## Decisions` in your copy of th
   (`infra/agents/standup.prompt.ts`) Several runs write the same day's file. Add What moved /
   What is stuck / Worth remembering, never rewrite a section you did not write, and stop when
   those three are already there — that is the idempotency key. Matching on the Slack channel
-  instead is how a sibling bot's post (or a missed `conversations.history` action Cargo does
-  not ship) made the FSD standup skip silently for nights at a time.
+  instead needs a `conversations.history` read Cargo does not ship, and a sibling bot's post in
+  that channel reads as "already ran" — the standup then skips silently for nights at a time.
 - **Do not invent a number.** (`infra/agents/standup.prompt.ts`) Drop a metrics line rather than
   carry yesterday's ARR forward. A made-up delta is worse than no delta, because the digest is
   what leadership reads. A CLI read that errors is a note on the PR, not a count you fill in.

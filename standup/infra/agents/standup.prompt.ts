@@ -85,9 +85,7 @@ are recapping in STANDUP_TIMEZONE:
 
 Pipe long output through \`jq\` or \`head\` rather than reading it whole.
 
-Read, never write. No \`orchestration action execute\` (step 5's Slack
-fallback is the single exception, and only when the locked use is missing),
-no \`batch create\`, no \`cdk deploy\` or \`cdk destroy\`, no \`login\`/\`logout\`,
+Read, never write. No \`orchestration action execute\`, no \`batch create\`, no \`cdk deploy\` or \`cdk destroy\`, no \`login\`/\`logout\`,
 no token minting, no \`workspaceManagement report\`, and nothing carrying
 remove, delete or destroy. Those spend, deploy, or leak; a recap does none of
 the three.
@@ -231,13 +229,9 @@ else. The body is the digest verbatim, with one final line appended:
 Full log: <PR URL>
 
 Do not curl slack.com. Do not read a SLACK_TOKEN. Do not wrap the post in a
-new tool. If the action is not in your tool list and you only have a shell,
-the same post is:
-
-  cargo-ai orchestration action execute \\
-    --action '{"kind":"connector","integrationSlug":"slack","actionSlug":"postMessage"}' \\
-    --data '{"channelId":"<the channelId locked in infra/standup/agents/standup.ts>","format":"markdown","disableUnfurling":true,"body":"<digest>"}' \\
-    --wait-until-finished
+new tool, and do not rebuild it with \`cargo-ai orchestration action execute\`:
+that call takes the channel as a field you type, which is exactly what the
+lock exists to prevent. If the action is not in your tool list, do not post.
 
 Post exactly once. Send nothing else to anyone.
 

@@ -96,10 +96,15 @@ const endYmd = toYmd(weekEnd);
 
 const inWeek = (ymd: string): boolean => ymd >= startYmd && ymd <= endYmd;
 
-const run = (
-  command: string,
-  args: string[],
-): { ok: true; stdout: string } | { ok: false; error: string } => {
+// git and GitHub search both read these dates in UTC (or the sandbox's zone),
+// and the edges of a Pacific week are a different day in UTC. Query a day
+// either side, then keep only what falls inside the week in TIMEZONE.
+const queryStart = toYmd(addDays(weekStart, -1));
+const queryEnd = toYmd(addDays(weekEnd, 1));
+
+type Result = { ok: true; stdout: string } | { ok: false; error: string };
+
+const run = (command: string, args: string[]): Result => {
   try {
     const stdout = execFileSync(command, args, {
       cwd: ROOT,
@@ -140,8 +145,8 @@ const frontmatterStatus = (text: string): string | undefined => {
 const commits = run("git", [
   "log",
   "--format=%cI %h %s",
-  `--since=${startYmd}`,
-  `--until=${endYmd}T23:59:59`,
+  `--since=${queryStart}`,
+  `--until=${queryEnd}T23:59:59`,
 ]);
 
 const commitLines =
@@ -158,7 +163,7 @@ const commitLines =
           if (!/^\d{4}-\d{2}-\d{2}T/.test(iso)) return [];
           const day = dateInZone(new Date(iso), TIMEZONE);
           if (!inWeek(day)) return [];
-          return [`- \`${rest}\` (${iso})`];
+          return [`- ${rest} (${iso})`];
         });
 
 const merged = run("gh", [
@@ -167,7 +172,7 @@ const merged = run("gh", [
   "--state",
   "merged",
   "--search",
-  `merged:${startYmd}..${endYmd}`,
+  `merged:${queryStart}..${queryEnd}`,
   "--limit",
   "100",
   "--json",
@@ -180,7 +185,7 @@ const opened = run("gh", [
   "--state",
   "all",
   "--search",
-  `created:${startYmd}..${endYmd}`,
+  `created:${queryStart}..${queryEnd}`,
   "--limit",
   "100",
   "--json",
@@ -198,7 +203,7 @@ type Pull = {
 };
 
 const formatPulls = (
-  result: { ok: true; stdout: string } | { ok: false; error: string },
+  result: Result,
   stamp: "mergedAt" | "createdAt",
 ): string[] => {
   if (result.ok === false) {
@@ -210,12 +215,15 @@ const formatPulls = (
   } catch {
     return [`_gh returned unreadable JSON_`];
   }
-  if (rows.length === 0) return ["_none_"];
-  return rows.map((row) => {
+  const week = rows.filter((row) => {
+    const when = row[stamp];
+    return when !== undefined && inWeek(dateInZone(new Date(when), TIMEZONE));
+  });
+  if (week.length === 0) return ["_none_"];
+  return week.map((row) => {
     const who = row.author?.login ?? "unknown";
-    const when = row[stamp] ?? "";
     const state = row.state === undefined ? "" : `, ${row.state}`;
-    return `- #${row.number} ${row.title} (${who}${state}${when === "" ? "" : `, ${when}`}) — ${row.url}`;
+    return `- #${row.number} ${row.title} (${who}${state}, ${row[stamp]}) — ${row.url}`;
   });
 };
 

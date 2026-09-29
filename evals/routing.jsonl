@@ -62,8 +62,8 @@
 
 // --- one-off / deployed seam -------------------------------------------------------
 // tam-building, account-scoring, crm-enrichment, crm-deduplication,
-// call-capture, agentic-engagement and standup are worked CDK examples that
-// deploy a pipeline.
+// call-capture, agentic-engagement, standup and weekly-planning are worked CDK
+// examples that deploy a pipeline.
 // build-tam-list, score-leads and research-account are one-offs: the same
 // job once, in a turn. The
 // same words describe both, so these cases pin which way each phrasing goes;

@@ -46,10 +46,19 @@ const dateInZone = (value: Date, timeZone: string): string =>
 
 const day = dateInZone(new Date(), TIMEZONE);
 
-const run = (
-  command: string,
-  args: string[],
-): { ok: true; stdout: string } | { ok: false; error: string } => {
+// GitHub search dates are UTC, and a Pacific evening is already tomorrow in
+// UTC. Search a day either side, then keep only what falls on `day` in
+// TIMEZONE — the same rule the commits are filtered by.
+const shiftDay = (ymd: string, days: number): string => {
+  const next = new Date(`${ymd}T00:00:00Z`);
+  next.setUTCDate(next.getUTCDate() + days);
+  return next.toISOString().slice(0, 10);
+};
+const searchWindow = `${shiftDay(day, -1)}..${shiftDay(day, 1)}`;
+
+type Result = { ok: true; stdout: string } | { ok: false; error: string };
+
+const run = (command: string, args: string[]): Result => {
   try {
     const stdout = execFileSync(command, args, {
       cwd: ROOT,
@@ -78,11 +87,7 @@ const walk = (dir: string): string[] => {
   return out;
 };
 
-const commits = run("git", [
-  "log",
-  "--format=%cI %h %s",
-  "--since=14 days ago",
-]);
+const commits = run("git", ["log", "--format=%cI %h %s", "--since=3 days ago"]);
 
 const commitLines =
   commits.ok === false
@@ -97,7 +102,7 @@ const commitLines =
           const rest = line.slice(space + 1);
           if (!/^\d{4}-\d{2}-\d{2}T/.test(iso)) return [];
           if (dateInZone(new Date(iso), TIMEZONE) !== day) return [];
-          return [`- \`${rest}\` (${iso})`];
+          return [`- ${rest} (${iso})`];
         });
 
 const merged = run("gh", [
@@ -106,7 +111,7 @@ const merged = run("gh", [
   "--state",
   "merged",
   "--search",
-  `merged:${day}`,
+  `merged:${searchWindow}`,
   "--limit",
   "50",
   "--json",
@@ -119,7 +124,7 @@ const opened = run("gh", [
   "--state",
   "all",
   "--search",
-  `created:${day}`,
+  `created:${searchWindow}`,
   "--limit",
   "50",
   "--json",
@@ -137,7 +142,7 @@ type Pull = {
 };
 
 const formatPulls = (
-  result: { ok: true; stdout: string } | { ok: false; error: string },
+  result: Result,
   stamp: "mergedAt" | "createdAt",
 ): string[] => {
   if (result.ok === false) {
@@ -149,12 +154,15 @@ const formatPulls = (
   } catch {
     return [`_gh returned unreadable JSON_`];
   }
-  if (rows.length === 0) return ["_none_"];
-  return rows.map((row) => {
+  const today = rows.filter((row) => {
+    const when = row[stamp];
+    return when !== undefined && dateInZone(new Date(when), TIMEZONE) === day;
+  });
+  if (today.length === 0) return ["_none_"];
+  return today.map((row) => {
     const who = row.author?.login ?? "unknown";
-    const when = row[stamp] ?? "";
     const state = row.state === undefined ? "" : `, ${row.state}`;
-    return `- #${row.number} ${row.title} (${who}${state}${when === "" ? "" : `, ${when}`}) — ${row.url}`;
+    return `- #${row.number} ${row.title} (${who}${state}, ${row[stamp]}) — ${row.url}`;
   });
 };
 

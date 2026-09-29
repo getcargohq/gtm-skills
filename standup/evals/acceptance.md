@@ -65,12 +65,12 @@ Walk every line. A checked template without an evidence-backed consumer adaptati
 - This is one root skill. Its supporting Markdown files live under `references/`,
   and no nested `SKILL.md` exists.
 - Slack posting goes through `slack.actions.postMessage` on the bound connector
-  (or `cargo-ai orchestration action execute` of that same action). No
-  `SLACK_TOKEN`, no `chat.postMessage` script, no GitHub Action.
+  and nothing else. No `SLACK_TOKEN`, no `chat.postMessage` script, no GitHub
+  Action, no `orchestration action execute` that re-types the channel.
 - `evals/contract.mjs` still passes after adaptation: harness is `claudeCode`,
   no capability is wired on the agent, `postMessage` is on `uses` with
   `channelId` locked, and no tool wraps it.
 - The `cargo-ai` calls in the run's transcript were read-only (whoami, run
-  count / list, usage, play and agent list). No `orchestration action execute`
-  other than the Slack fallback, no `batch create`, no `cdk deploy`. If
+  count / list, usage, play and agent list). No `orchestration action execute`,
+  no `batch create`, no `cdk deploy`. If
   `whoami` failed, the PR says so and the recap continued from the git dump.

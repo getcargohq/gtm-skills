@@ -4,7 +4,7 @@ import { defineConnector } from "@cargo-ai/cdk";
 // opens the pull request with. Its OAuth grant carries the `repo` scope, so this
 // one connector is the agent's entire write path into the repository.
 //
-// Nothing imports this handle. That is deliberate: the scribe leaves
+// Nothing imports this handle. That is deliberate: the standup leaves
 // `repository.connector` unset, and plan/deploy resolve it from the project's
 // own GitHub connector — this one. Declaring it is what makes it exist; wiring
 // it by hand would only re-state what the resolver already knows.
