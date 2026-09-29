@@ -41,20 +41,16 @@ export const askCargo = defineAgent("ask-cargo", {
   harness: "claudeCode",
   connector: anthropic,
   languageModel: "claude-sonnet-5", // PLACEHOLDER — your model of choice
-  repository: {
-    // Deliberately partial, like standup's. `repository`, `defaultBranch`,
-    // `rootDirectory` and the GitHub `connector` are all OMITTED so plan and
-    // deploy fill them from the git origin of the checkout they run in,
-    // taking the connector from the project's own `defineConnector`.
-    // `cargo-ai cdk check` prints what it resolved; verify it names the
-    // repository root and not `infra/`.
-    //
-    // No `env`. The one value a reply needs — the bot's own mention, so it
-    // can say what to type to confirm — arrives in every message that wakes
-    // the agent as Slack's raw `<@U…>` token, which the prompt reuses. A
-    // display name written here would be a second copy that drifts the day
-    // the Slack app is renamed.
-  },
+  // No `repository`, on purpose. Omitted, plan and deploy bind the project's
+  // own repository: they read the git origin of the checkout they run in and
+  // fill the repo, default branch and root directory, taking the connector
+  // from the project's GitHub `defineConnector`. (`null` is the opposite: an
+  // unbound agent with no clone.) `cargo-ai cdk check` prints what it
+  // resolved; verify it names the repository root and not `infra/`.
+  //
+  // Nor an `env` to hold one: the one value a reply needs — the bot's own
+  // mention, so it can say what to type to confirm — arrives in every message
+  // that wakes the agent as Slack's raw `<@U…>` token, which the prompt reuses.
   triggers: [
     agentConnectorTrigger({
       connector: slack,
