@@ -1,7 +1,8 @@
-// The knobs a consumer adapts. The rest of `scripts/` is machinery that reads
-// them, so an adaptation review starts, and usually ends, here.
+// The knobs a consumer adapts on the account path. The rest of `accounts/` is
+// machinery that reads them, so an adaptation review starts, and usually ends,
+// here.
 
-import type { Account } from "./accounts";
+import type { Account } from "./account";
 
 /**
  * Domains thousands of unrelated companies share. One of these tells you

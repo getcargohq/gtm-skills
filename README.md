@@ -62,7 +62,7 @@ already declares. More are on their way (`contact-sourcing`, `signal-based-tam`,
 | [`tam-building`](tam-building/SKILL.md)                    | Your account universe sourced from AI Ark on an ICP filter sized for free, then tiered A/B/C by an agent reading your rubric.            |
 | [`account-scoring`](account-scoring/SKILL.md)              | Every account scored and tiered against your written ICP by an agent that cites its evidence, rationale on the CRM record.               |
 | [`crm-enrichment`](crm-enrichment/SKILL.md)                | CRM accounts and contacts stay filled: gated identifier resolution, approved LinkedIn enrichment, and freshness after a real write.     |
-| [`crm-deduplication`](crm-deduplication/SKILL.md)          | Duplicate CRM accounts merge on exact identity alone; everything less certain waits for a human in Slack.                                |
+| [`crm-deduplication`](crm-deduplication/SKILL.md)          | Duplicate CRM accounts and contacts merge on exact identity alone; everything less certain waits for a human in Slack.                   |
 | [`call-capture`](call-capture/SKILL.md)                    | Yesterday's call transcripts become log entries and, once a claim repeats, context updates — as one pull request you review.             |
 | [`standup`](standup/SKILL.md)                              | The GTM day is recapped into the cadence log and a digest is posted to Slack — as one pull request you review.                           |
 | [`weekly-planning`](weekly-planning/SKILL.md)              | Last week's work is ranked against initiatives, infra, and live runs — one pull request per initiative, or one if there are none.        |

@@ -3,7 +3,7 @@
 
 import { defineScript } from "@cargo-ai/cdk";
 
-import { type Account, readAccounts } from "./accounts";
+import { type Account, readAccounts } from "./account";
 import { agreementOn, clusterAround, identifiesOneCompany } from "./cluster";
 import { rankBySurvivorPrecedence } from "./survivor";
 
