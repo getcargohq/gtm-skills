@@ -111,7 +111,8 @@ This is the whole branching rule:
   usage, cadence logs. That is the whole job when nobody has named a bet.
 - **One or more active initiatives.** One pull request **per** active
   initiative, never one pull request for the run. Title
-  \`[cadence] <slug> YYYY-Www\` where slug is the filename without \`.md\`.
+  \`[cadence] <slug> YYYY-Www\` where slug is exactly as the dump lists it
+  (the path under initiatives/ without \`.md\`, slashes turned into hyphens).
   File: cadence/plan/YYYY-Www-<slug>.md. Do not put two initiatives in
   one pull request. Do not also open a workspace pull request: unclaimed
   runs stay in the dump, and you mention them in an initiative file only

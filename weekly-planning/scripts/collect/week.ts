@@ -31,7 +31,7 @@ import {
   readdirSync,
   writeFileSync,
 } from "node:fs";
-import { join, relative, resolve } from "node:path";
+import { basename, join, relative, resolve, sep } from "node:path";
 
 const ROOT = resolve(import.meta.dirname, "..", "..", "..");
 const RAW_DIR = join(ROOT, "cadence", "log", "raw", "planning");
@@ -227,16 +227,32 @@ const formatPulls = (
   });
 };
 
-const initiativeFiles = walk(INITIATIVES_DIR).filter((path) =>
-  path.endsWith(".md"),
-);
+// README.md and `_`-prefixed files (`_template.md`) describe the folder; they
+// are not initiatives.
+const initiativeFiles = walk(INITIATIVES_DIR).filter((path) => {
+  const name = basename(path);
+  return (
+    name.endsWith(".md") &&
+    name.toLowerCase() !== "readme.md" &&
+    !name.startsWith("_")
+  );
+});
+
+// The slug names a branch and a plan file, so a nested initiative
+// (initiatives/q4/foo.md) flattens to `q4-foo` rather than carrying a slash.
+const initiativeSlug = (path: string): string => {
+  return relative(INITIATIVES_DIR, path)
+    .replace(/\.md$/, "")
+    .split(sep)
+    .join("-");
+};
 
 const initiativeLines =
   initiativeFiles.length === 0
     ? ["_no initiatives/ folder, or it is empty_"]
     : initiativeFiles.map((path) => {
         const rel = relative(ROOT, path);
-        const slug = rel.replace(/^initiatives\//, "").replace(/\.md$/, "");
+        const slug = initiativeSlug(path);
         let status = "unset";
         try {
           status = frontmatterStatus(readFileSync(path, "utf8")) ?? "unset";
