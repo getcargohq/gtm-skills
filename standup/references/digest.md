@@ -49,7 +49,7 @@ Full log: <PR URL>
   as the story of the day.
 - Skip a section that has nothing. Twelve bullets total at most.
 - Do not invent a number. Drop a metrics line rather than estimate one. A number
-  returned by a platform tool you actually called is evidence; a number the
-  tool did not return is not.
+  returned by a CLI read you actually ran is evidence; a number no command
+  returned is not.
 - `channelId` is locked on the agent's `slack.postMessage` use. Do not post
   anywhere else, and do not call the Slack API with a token.

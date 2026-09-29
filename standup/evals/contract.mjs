@@ -63,13 +63,14 @@ assert.equal(
   "standup must not wrap slack.postMessage in a tool",
 );
 
-const capabilitySlugs = new Set(
-  (agent.spec.capabilities ?? []).map((capability) => capability.slug),
-);
+// Workspace data — runs, usage, what is deployed — is read with the cargo-ai
+// CLI the harness checkout already has, and the prompt is what holds those
+// reads to read-only. A capability here would be a second path to the same
+// data that no prompt line can narrow.
 assert.equal(
-  capabilitySlugs.has("platform"),
-  true,
-  "standup must carry the platform capability: runs, usage, and models are workspace data, not a git dump",
+  (agent.spec.capabilities ?? []).length,
+  0,
+  "standup needs no capability: the workspace read path is the cargo-ai CLI in the sandbox",
 );
 
 const post = findOne(

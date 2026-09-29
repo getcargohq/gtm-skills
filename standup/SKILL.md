@@ -1,6 +1,6 @@
 ---
 name: standup
-description: 'Every evening the GTM day is recapped into the cadence log and a digest is posted to Slack, as one reviewable pull request against your GTM repo. Triggers: "post the daily standup to slack", "end of day report in slack", "what happened today posted to slack", "keep a cadence log of each day", "replace the GitHub Action that posts our standup", "evening recap of the GTM day". Cargo CDK, defineAgent, harness claudeCode, GitHub, Slack, slack.postMessage, platform capability, cadence. Skip when: you want one recap of today in this chat with nothing deployed; or you want call transcripts scribed into context, which is call-capture.'
+description: 'Every evening the GTM day is recapped into the cadence log and a digest is posted to Slack, as one reviewable pull request against your GTM repo. Triggers: "post the daily standup to slack", "end of day report in slack", "what happened today posted to slack", "keep a cadence log of each day", "replace the GitHub Action that posts our standup", "evening recap of the GTM day". Cargo CDK, defineAgent, harness claudeCode, GitHub, Slack, slack.postMessage, cargo-ai CLI reads, cadence. Skip when: you want one recap of today in this chat with nothing deployed; or you want call transcripts scribed into context, which is call-capture.'
 version: "0.1.0"
 compatibility: "Requires @cargo-ai/cli with @cargo-ai/cdk 1.0.67 or later — 1.0.66 brought `harness` and the harness repository spec, 1.0.67 roots the agent at the package.json that declares the CDK rather than at `infra/`. On 1.0.66, declare `rootDirectory: \".\"` yourself. Also needs a Cargo workspace, an authenticated LLM connector (the harness runs against Cargo's proxy, so the agent needs a `connector` and `languageModel` like any other), a GTM repository with `cadence/` at its root (the shape `cargo-ai cdk init` scaffolds), and an authorized Slack connector."
 homepage: https://github.com/getcargohq/gtm-skills/tree/main/standup
@@ -33,8 +33,8 @@ runs, and three things land:
 1. **The raw dump.** A committed script writes git commits, pull requests, and the
    cadence files named for that day into `cadence/log/raw/standup/<date>.md`. That is
    the evidence, and it is never edited by the agent.
-2. **The log entry.** The agent reads the dump, the workspace (runs, usage, models,
-   via the platform capability), and whatever `cadence/` already holds (call entries,
+2. **The log entry.** The agent reads the dump, the workspace (runs, usage, what is
+   deployed, through read-only `cargo-ai` calls), and whatever `cadence/` already holds (call entries,
    carryover, metrics if you have them), and writes `cadence/log/<date>.md`: what
    moved, what is stuck, what is worth remembering.
 3. **The Slack digest.** The same recap, cut to what a teammate reads in fifteen
@@ -58,8 +58,8 @@ Three properties make it safe enough to run unattended:
 
 - **The collection is deterministic.** The agent does not fetch PRs. `scripts/collect/day.ts`
   does, the same way every evening, and the agent is told not to improvise that step.
-  Workspace data (runs, usage, models) comes from the platform capability, not a
-  second fetch the agent invents.
+  Workspace data (runs, usage, what is deployed) comes from named read-only `cargo-ai`
+  commands at recap time, not from a second fetch inside the collector.
 - **The pull request is the gate for the log.** The agent has repository write access
   and Slack `postMessage` to one locked channel. It cannot email anyone, cannot touch
   the CRM, and cannot merge itself.
@@ -145,7 +145,7 @@ default.
 | `skip-slack`     | You want the log and the pull request, and a human will paste the digest                                 | Drop the `uses` entry and the "Post the Slack digest" section of `infra/agents/standup.prompt.ts`                                                           | The team stops seeing the day. The log still lands, but the thing people actually read is gone.                                                                        |
 | `header-emoji`   | Two recaps land in the same channel and the reader has to tell them apart from the first line            | Change `:racing_car:` in `infra/agents/standup.prompt.ts` and `references/digest.md`                                                                        | Cosmetic unless you pick the same emoji as another bot in that channel, in which case the two posts merge in the reader's eye.                                         |
 | `log-only-quiet` | A quiet day should not ping Slack                                                                        | In `infra/agents/standup.prompt.ts`, skip the post (and say so on the PR) when What moved is empty                                                          | Silence on a quiet day is indistinguishable from a missed run. The default is the opposite: a quiet day still gets an entry, because silence is signal.                |
-| `no-platform`    | This agent must not have execute tools on it, even as a prompt-forbidden list                            | Drop `capabilities` in `infra/agents/standup.ts` and §1b of `infra/agents/standup.prompt.ts`                                                                | The recap loses runs, usage, and model movement. The git dump still lands. Until the capability is live on the workspace, the default already continues from the dump if the tools error. |
+| `git-only`       | The sandbox has no Cargo session, or this agent must not reach the workspace at all                      | Drop §1b of `infra/agents/standup.prompt.ts`                                                                                                                | The recap loses runs, usage and what is deployed, so "declared but it never ran" stops being visible. The git dump still lands, which is what §1b already falls back to when `cargo-ai whoami` fails. |
 
 ## What should not change
 
@@ -156,14 +156,15 @@ it if you still want it, and records why under `## Decisions` in your copy of th
   loop an agent re-derives every evening is a fetch loop that silently changes shape — a window
   that drifts, a `gh` flag that quietly widens. The raw dump is the one thing here that has to be
   byte-identical in its rules every day, because everything downstream is diffed against it.
-  Cargo workspace data is the other half of the day, and it is the platform capability, not a
-  `cargo-ai` CLI loop in the collector.
-- **The platform capability is read-only.** (`infra/agents/standup.ts`,
-  `infra/agents/standup.prompt.ts`) `execute_action` and `execute_action_batch` spend, and Slack
-  posting is the locked `slack.postMessage` use, not a platform execute. Leaving those tools
-  callable is how a standup starts a batch it cannot undo. Until the capability is on the
-  workspace, the tools error and the recap continues from the git dump — it does not invent
-  the numbers.
+  Cargo workspace data is the other half of the day, and it is read at recap time by the agent,
+  not by a `cargo-ai` loop bolted into the collector.
+- **The workspace reads are read-only, and they are the CLI.** (`infra/agents/standup.prompt.ts`)
+  §1b names the commands: `whoami`, run counts and failures, usage, what is deployed. No
+  `capabilities` block is wired on the agent, because the read path is already in the sandbox and
+  only the prompt can say "read, never execute". `orchestration action execute`, `batch create`,
+  `cdk deploy` and anything that removes are the forbidden half of that list — those spend or
+  deploy, and Slack posting is the locked `slack.postMessage` use. If `cargo-ai whoami` fails, the
+  recap says so and continues from the git dump; it does not invent the numbers.
 - **`slack.postMessage` is a connector action on the agent. `channelId` is locked in `config`.**
   (`infra/agents/standup.ts`) Wrapping it in a tool is ceremony, and this repo refuses those. A
   `SLACK_TOKEN` script, a GitHub Action, or a `chat.postMessage` curl is how the digest escapes
@@ -194,14 +195,14 @@ it if you still want it, and records why under `## Decisions` in your copy of th
   not ship) made the FSD standup skip silently for nights at a time.
 - **Do not invent a number.** (`infra/agents/standup.prompt.ts`) Drop a metrics line rather than
   carry yesterday's ARR forward. A made-up delta is worse than no delta, because the digest is
-  what leadership reads. A platform-tool error is a note on the PR, not a count you fill in.
+  what leadership reads. A CLI read that errors is a note on the PR, not a count you fill in.
 
 ## Done when
 
 - `--dry-run` printed the dump, and the run without it wrote `cadence/log/raw/standup/<date>.md`;
   running it twice that evening overwrote the same file
-- `node --import tsx evals/contract.mjs` passes: harness is `claudeCode`, the platform
-  capability is on the agent, `postMessage` is on `uses` with `channelId` locked, and no
+- `node --import tsx evals/contract.mjs` passes: harness is `claudeCode` bound to an Anthropic
+  connector, no capability is wired, `postMessage` is on `uses` with `channelId` locked, and no
   tool wraps it
 - `cargo-ai cdk plan` reports the agent, the two connectors and the folder, and does **not** run
   git or `gh` while planning
@@ -212,7 +213,7 @@ it if you still want it, and records why under `## Decisions` in your copy of th
 - a re-run the same evening opened no second pull request and posted no second message
 - a quiet day still produced an entry that says so
 - no number in the digest is absent from the raw dump, a metrics file dated that day, or a
-  platform tool the agent actually called. A platform-tool error is a note on the PR, not a
+  `cargo-ai` read the agent actually ran. A CLI read that errors is a note on the PR, not a
   made-up count
 
 ## What it costs
@@ -226,8 +227,9 @@ read the current cost. Say that number out loud as a per-post cost; the run post
 
 The recurring cost is the harness run itself, once a day, billed as LLM tokens through the bound
 Anthropic connector, and it scales with how much the agent reads — the dump, the day's cadence
-files, a short window of git history, and the platform reads (whoami, runs, usage, models). There
-is no per-record fan-out. `execute_action` is on the capability; this recap never calls it.
+files, a short window of git history, and the read-only `cargo-ai` calls in §1b (whoami, run
+counts, usage, what is deployed). Those reads are API calls, not connector actions, so they bill
+nothing. There is no per-record fan-out, and the recap never runs a command that spends.
 
 ## Composes into
 

@@ -54,31 +54,46 @@ a broken run, not a quiet one.
 If the script fails for a reason a code change would fix, say so in the pull
 request and leave the fix to a human.
 
-## 1b. Read the workspace (platform capability)
+## 1b. Read the workspace (Cargo's CLI, read-only)
 
-You have the \`platform\` capability: the same operating tools as Cargo's
-platform MCP. This recap is read-only against the workspace. Allowed:
+The other half of the day is not in git: what ran, what failed, what it
+spent. Read it with Cargo's own CLI, which this checkout already has —
+\`cargo-ai\` if it is on PATH, otherwise \`npx --yes @cargo-ai/cli\`. No
+capability is wired on this agent, and none is needed. Start with:
 
-- \`capability_platform_whoami\` first — name the workspace. You will not spend.
-- \`capability_platform_query_runs\` — the day's orchestration history
-  (counts, failures). Prefer this over list_runs for anything an aggregate
-  answers. \`capability_platform_list_runs\` is only recent ad-hoc action runs.
-- \`capability_platform_get_run\` / \`capability_platform_get_batch\` — only to
-  explain a failure that belongs in What is stuck.
-- \`capability_platform_get_usage\` — credits used, grouped by integration. A
-  number you cannot read is a number you do not print.
-- \`capability_platform_list_models\` / \`capability_platform_describe_model\` /
-  \`capability_platform_query_models\` — today's movement on models the
-  workspace actually has. Do not dump records.
+  cargo-ai whoami
 
-Never \`capability_platform_execute_action\` or
-\`capability_platform_execute_action_batch\`. Those spend, and Slack posting is
-the locked slack.postMessage use, not a platform execute. Never search_actions
-looking for a cheaper Slack path.
+If that fails, this sandbox has no Cargo session: say so in the pull request,
+continue from the git dump alone, and do not invent the numbers.
 
-If a platform tool errors because the capability is not on this workspace yet,
-say so in the pull request and continue from the git dump alone — do not fall
-back to a cargo-ai CLI loop and do not invent the numbers.
+Then only these, as the day needs them. \`--created-after\` / \`--created-before\`
+and \`--from\` / \`--to\` take ISO 8601 timestamps; build them from the day you
+are recapping in STANDUP_TIMEZONE:
+
+- \`cargo-ai orchestration run count --created-after <start> --created-before <end>\`
+  — how much ran today. Repeat with \`--statuses error\` for the failures. An
+  aggregate answers "was today busy" without listing anything.
+- \`cargo-ai orchestration run list --created-after <start> --created-before <end>
+  --statuses error --limit 20\` — the failures worth naming in What is stuck.
+- \`cargo-ai orchestration run get <uuid>\` — only to explain one of those.
+- \`cargo-ai billing usage get-metrics --from <start> --to <end> --unit billing.credits\`
+  — what today spent. A number you cannot read is a number you do not print.
+- \`cargo-ai orchestration play list\` and \`cargo-ai ai agent list\` — what is
+  actually deployed, so "declared but it never ran" is a fact and not a guess.
+- \`cargo-ai storage model list\` — the models the workspace has. Do not dump
+  records.
+
+Pipe long output through \`jq\` or \`head\` rather than reading it whole.
+
+Read, never write. No \`orchestration action execute\` (step 5's Slack
+fallback is the single exception, and only when the locked use is missing),
+no \`batch create\`, no \`cdk deploy\` or \`cdk destroy\`, no \`login\`/\`logout\`,
+no token minting, no \`workspaceManagement report\`, and nothing carrying
+remove, delete or destroy. Those spend, deploy, or leak; a recap does none of
+the three.
+
+These reads belong here, at recap time, and not in the collector: the dump
+stays git-only and deterministic.
 
 ## 2. Stop if this run already happened
 
@@ -110,12 +125,12 @@ date: YYYY-MM-DD
 ## Worth remembering
 
 Evidence, in order, and only from what is on disk, in the collector dump, or
-returned by a platform tool you actually called:
+returned by a CLI read you actually ran:
 
 1. The raw dump at cadence/log/raw/standup/<YYYY-MM-DD>.md (commits, PRs).
-2. Platform reads from step 1b: runs, usage, model movement. Cite the tool
-   that produced a number. Fleet volume is still not news — a count of green
-   runs is not What moved unless a named play or account changed.
+2. The workspace reads from step 1b: runs, usage, what is deployed. Cite the
+   command that produced a number. Fleet volume is still not news — a count of
+   green runs is not What moved unless a named play or account changed.
 3. Call log entries under cadence/log/calls/ (and meetings/) dated today, if
    call-capture has been producing them.
 4. cadence/carryover/ as it stood this morning, if that folder exists.
@@ -234,7 +249,7 @@ Then record what happened on the pull request body, exactly one of:
 
 Never merge your own pull request, never contact a customer, never write to
 the CRM, never post to a channel other than the locked one, never call the
-Slack API with a token, never execute a platform action that spends, never
+Slack API with a token, never run a CLI command that spends or deploys, never
 edit or delete a raw dump or an existing log section you did not write, never
 resolve a carryover row, never promote a first-occurrence claim into
 context/, and never invent an attendee, a quote, or a number that is not in

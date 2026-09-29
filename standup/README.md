@@ -10,9 +10,9 @@ delivered as one pull request plus one Slack post.
 - **Collects.** `scripts/collect/day.ts` dumps git commits, pull requests, and cadence
   files named for the timezone's current date into `cadence/log/raw/standup/`.
   Deterministic, no LLM anywhere near it.
-- **Recaps.** The agent reads the dump, the workspace via the platform capability
-  (runs, usage, models), and whatever `cadence/` already holds, then writes
-  `cadence/log/<date>.md`: what moved, what is stuck, what is worth remembering.
+- **Recaps.** The agent reads the dump, the workspace through read-only `cargo-ai`
+  calls (runs, usage, what is deployed), and whatever `cadence/` already holds, then
+  writes `cadence/log/<date>.md`: what moved, what is stuck, what is worth remembering.
 - **Posts.** The same recap, cut to a fifteen-second Slack digest, through
   `slack.postMessage` on a bound Slack connector. The channel is locked on the use.
 - **Stops.** One pull request, never merged. Slack goes out from the run; the log waits
@@ -27,9 +27,10 @@ delivered as one pull request plus one Slack post.
 3. **It runs the collector** — `npx tsx scripts/standup/collect/day.ts` — which reads
    `STANDUP_TIMEZONE` from the harness environment. The agent is told not to fetch the
    day itself.
-4. **It reads the workspace** through the platform capability: whoami, the day's
-   runs, usage, models. Read-only. If those tools error because the capability is
-   not live yet, it notes that on the pull request and continues from the dump.
+4. **It reads the workspace** with Cargo's own CLI, which the checkout already has:
+   `whoami`, the day's run counts and failures, usage, what is deployed. Read-only, and
+   no capability is wired on the agent. If `cargo-ai whoami` fails, the sandbox has no
+   session: it notes that on the pull request and continues from the dump.
 5. **It writes the log**, then opens one pull request titled `[cadence] log <date>`.
 6. **It posts the digest** by calling `slack.postMessage` (body only; channel, format and
    unfurling are locked), appending `Full log: <PR URL>`.
@@ -39,7 +40,7 @@ Adds 5 resources plus a script bundle.
 
 | File                               | Resource                   | Role                                                              |
 | ---------------------------------- | -------------------------- | ----------------------------------------------------------------- |
-| `infra/agents/standup.ts`          | `defineAgent` (claudeCode) | schedule, repository binding, platform capability, locked Slack use |
+| `infra/agents/standup.ts`          | `defineAgent` (claudeCode) | schedule, repository binding, locked Slack use                    |
 | `infra/agents/standup.prompt.ts`   | (not a resource)           | the recap contract: window, digest shape, limits                  |
 | `infra/connectors/git.ts`          | `defineConnector` (`github`) | the clone, branch, push and PR path, resolved by binding        |
 | `infra/connectors/slack.ts`        | `defineConnector` (`slack`)  | the post path; OAuth, bound rather than created                 |
@@ -115,7 +116,7 @@ time.
 
 ## What it does not do
 
-It does not contact customers, write to a CRM, merge its own pull request, execute a
-platform action that spends, edit or delete a raw dump or an existing log section,
+It does not contact customers, write to a CRM, merge its own pull request, run a CLI
+command that spends or deploys, edit or delete a raw dump or an existing log section,
 promote first-occurrence claims into `context/`, or touch `plan/` and `infra/`. It
 reports the day; it does not change the strategy or the deployed engine.
