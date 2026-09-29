@@ -203,14 +203,7 @@
         "connectors",
         "folders"
       ],
-      "asked": [
-        {
-          "input": "ASK_CARGO_HANDLE` (`infra/agents/ask-cargo.ts`)",
-          "kind": "asked",
-          "how": "the Slack app's display name, as people type it (`@Cargo`).",
-          "why": "Replies end with the exact text to type to confirm. A wrong handle means people type a mention that wakes nothing, and the proposal waits forever."
-        }
-      ],
+      "asked": [],
       "canChange": [
         {
           "id": "answer-only",

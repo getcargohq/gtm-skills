@@ -48,11 +48,12 @@ export const askCargo = defineAgent("ask-cargo", {
     // taking the connector from the project's own `defineConnector`.
     // `cargo-ai cdk check` prints what it resolved; verify it names the
     // repository root and not `infra/`.
-    env: {
-      // The Slack handle people type, so replies can tell them how to confirm
-      // ("reply `@Cargo go`"). The bot's display name, not the agent's.
-      ASK_CARGO_HANDLE: "@Cargo", // PLACEHOLDER — your Slack app's display name
-    },
+    //
+    // No `env`. The one value a reply needs — the bot's own mention, so it
+    // can say what to type to confirm — arrives in every message that wakes
+    // the agent as Slack's raw `<@U…>` token, which the prompt reuses. A
+    // display name written here would be a second copy that drifts the day
+    // the Slack app is renamed.
   },
   triggers: [
     agentConnectorTrigger({

@@ -79,14 +79,4 @@ for (const id of channelIds) {
   );
 }
 
-const env = agent.spec.repository?.env ?? [];
-const envKeys = new Set(
-  (Array.isArray(env) ? env : []).map((entry) => entry.key),
-);
-assert.equal(
-  envKeys.has("ASK_CARGO_HANDLE"),
-  true,
-  "repository.env must carry ASK_CARGO_HANDLE so replies say exactly what to type to confirm",
-);
-
 console.log("ok: ask-cargo contract");

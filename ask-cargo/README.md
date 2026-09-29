@@ -75,9 +75,9 @@ answering from the cadence log, and turning a Slack message into a diff someone 
 
 1. **Where the bot is** — the trigger is `allChannels`, so the agent answers in every channel the
    bot has been invited to. Keep it out of customer shared channels, or switch to `channelIds`.
-2. **`ASK_CARGO_HANDLE`** — same file: the bot's display name as people type it.
-3. **`languageModel`** — same file: any Anthropic model the workspace's connector can reach.
-4. **`references/roster.md`** — the agents your workspace runs, from `cargo-ai ai agent list`.
+2. **`languageModel`** — `infra/agents/ask-cargo.ts`: any Anthropic model the workspace's connector
+   can reach.
+3. **`references/roster.md`** — the agents your workspace runs, from `cargo-ai ai agent list`.
 
 ## What it does not do
 
