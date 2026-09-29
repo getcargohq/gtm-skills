@@ -197,7 +197,9 @@ it if you still want it, and records why under `## Decisions` in your copy of th
   (`infra/agents/standup.prompt.ts`) Every active initiative gets its block in the log and a
   line in the digest, including the ones that did nothing that day. Group by PR or by resource
   instead and the digest turns into a changelog: activity that reads as progress while a bet
-  quietly stalls. The voice rules (verdict first, plain words, no file paths) are what make it
+  quietly stalls. The one exception runs the other way: a churn, a deal, a failing play or a
+  spend spike that no initiative claims goes first, as "Outside the plan", rather than being
+  squeezed into Engine upkeep. The voice rules (verdict first, plain words, no file paths) are what make it
   readable by someone who was not in the repo.
 - **Do not invent a number.** (`infra/agents/standup.prompt.ts`) Drop a metrics line rather than
   carry yesterday's ARR forward. A made-up delta is worse than no delta, because the digest is
@@ -218,7 +220,8 @@ it if you still want it, and records why under `## Decisions` in your copy of th
 - the digest landed once in the locked channel, with `Full log: <PR URL>` as the last line
 - a re-run the same evening opened no second pull request and posted no second message
 - every `status: active` initiative appears in the log and in the digest, either in its own
-  section or on the `No movement` line
+  section or on the `No movement` line, and anything that big outside the initiatives leads the
+  post as `Outside the plan`
 - a quiet day still produced an entry that says so
 - no number in the digest is absent from the raw dump, a metrics file dated that day, or a
   `cargo-ai` read the agent actually ran. A CLI read that errors is a note on the PR, not a

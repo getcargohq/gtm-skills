@@ -15,6 +15,9 @@ use, so a PR link in the last line stays a link.
 :racing_car: *GTM - Sat Aug 1*
 _Expansion had its best day of the month; EU outbound is still not sending._
 
+:rotating_light: *Outside the plan*
+• Globex churned: $25k ARR, cancellation email this morning
+
 :dart: *Expansion into mid-market*
 • Acme signed, $40k ARR, closed 3 weeks early
 • 12 dossiers drafted; Sam sends 4 of them tomorrow
@@ -48,6 +51,11 @@ Full log: <PR URL>
   channel and the reader has to tell them apart from the first line.
 - Second line is one italic sentence: the verdict on the active initiatives,
   in the words a founder would say out loud. A quiet day says so here.
+- `:rotating_light: *Outside the plan*` comes first, only when something a
+  founder would lead with has no initiative: revenue won or lost, a customer
+  lost or escalating, a play failing more runs than it completes, an
+  unplanned spend spike. Routine work outside the initiatives stays in one
+  `:wrench:` bullet at most.
 - One `:dart:` section per active initiative (`status: active` under
   `initiatives/`) that moved or is blocked, labelled with its `title:`. Every
   active initiative that did nothing is named on the `:zzz: *No movement:*`

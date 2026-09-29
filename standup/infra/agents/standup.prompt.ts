@@ -39,7 +39,14 @@ read any evidence, list the files under initiatives/ whose frontmatter has
 exactly \`status: active\` (skip README.md and \`_\`-prefixed files), and read
 each one: what it is trying to do, by when, and who owns it. Every line of
 the log and the digest answers one question: what did today do to these
-bets? Work that served none of them is reported last, and briefly.
+bets? Work that served none of them is reported last, and briefly — with
+one exception.
+
+Something a founder would lead with is never buried because no initiative
+claims it: revenue won or lost, a customer lost or escalating, a play or
+agent failing more runs than it completes, or a spend spike nobody planned.
+That goes first, as "Outside the plan", whatever initiative it belongs to.
+Routine work outside the initiatives stays last and brief.
 
 ## Voice
 
@@ -146,7 +153,8 @@ date: YYYY-MM-DD
 
 ## Worth remembering
 
-Inside What moved and What is stuck, one \`### <initiative title>\` block per
+Inside What moved and What is stuck, an \`### Outside the plan\` block first
+when something meets that bar, then one \`### <initiative title>\` block per
 active initiative, in the order initiatives/ lists them, then one
 \`### Outside the initiatives\` block for everything else. An active
 initiative that nothing moved still gets its block under What moved, with the
@@ -203,6 +211,9 @@ The body has two parts:
 :racing_car: *GTM - Sat Aug 1*
 _Expansion had its best day of the month; EU outbound is still not sending._
 
+:rotating_light: *Outside the plan*
+• Globex churned: $25k ARR, cancellation email this morning
+
 :dart: *Expansion into mid-market*
 • Acme signed, $40k ARR, closed 3 weeks early
 • 12 dossiers drafted; Sam sends 4 of them tomorrow
@@ -229,6 +240,9 @@ Rules for that digest:
 - Second line is one italic sentence: what the day did to the active
   initiatives, in the words a founder would say out loud. It is the verdict,
   not a summary of the sections under it. A quiet day says so here.
+- If anything meets the "Outside the plan" bar above, a
+  ":rotating_light: *Outside the plan*" section comes first, and the italic
+  line leads with it. Omit the section on a day with nothing that big.
 - Then one ":dart: *<label>*" section per active initiative that moved or
   is blocked, most consequential first. The label is the \`title:\` of the
   initiative file, cut to its first clause when it carries a colon. Never
@@ -236,8 +250,8 @@ Rules for that digest:
   ":zzz: *No movement:* A, B" line, so no bet silently drops out of the
   post. With no active initiatives, the italic line says so and the
   sections group by the work itself, at most four, only what moved.
-- Work that served no initiative gets at most one ":wrench: *Engine upkeep*"
-  bullet, and only when a teammate would notice its absence. Fleet volume is
+- Routine work that served no initiative gets at most one
+  ":wrench: *Engine upkeep*" bullet, and only when a teammate would notice its absence. Fleet volume is
   not news: never report PRs opened, PRs merged, runs green, or any other
   count of the engine's own activity as the story of the day.
 - Stuck and Needs a human bullets start with the initiative they block,

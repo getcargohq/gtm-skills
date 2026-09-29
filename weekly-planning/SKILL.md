@@ -146,10 +146,14 @@ it if you still want it, and records why under `## Decisions` in your copy of th
   its rules every week, because everything downstream is diffed against it. Cargo workspace data is
   the other half of the week, and it is read at recap time by the agent, not by a `cargo-ai` loop
   bolted into the collector.
-- **Zero active initiatives is one workspace pull request. N active is N pull requests.**
-  (`infra/agents/planner.prompt.ts`) Combining them is how a reviewer merges one bet and skips
-  another. Opening a workspace pull request *and* the initiative ones is how unclaimed runs get a
-  second home they were not asked to have: they stay in the dump.
+- **Zero active initiatives is one workspace pull request. N active is N pull requests, plus
+  one `unplanned` only when work outside them is significant.** (`infra/agents/planner.prompt.ts`)
+  Combining them is how a reviewer merges one bet and skips another. Opening a workspace pull
+  request *and* the initiative ones gives routine unclaimed runs a second home they were not asked
+  to have: they stay in the dump. The `unplanned` pull request is the exception, and its bar is
+  concrete (more credits than any initiative, a play failing one run in five, a customer or
+  revenue event no initiative claims). Drop it and an unplanned play can burn the week's credits
+  without ever reaching a reviewer.
 - **The workspace reads are read-only, and they are the CLI.** (`infra/agents/planner.prompt.ts`)
   §1b names the commands: `whoami`, what is deployed, run counts and failures, usage. No
   `capabilities` block is wired on the agent, because the read path is already in the sandbox and
@@ -198,9 +202,10 @@ it if you still want it, and records why under `## Decisions` in your copy of th
   `cadence/plan/<YYYY-Www>.md` with `## Recommendations`
 - with **N** active initiatives, it opened exactly N unmerged pull requests, one per slug, each
   diff containing the dump and exactly one `cadence/plan/<YYYY-Www>-<slug>.md` — never a second
-  initiative in the same diff
+  initiative in the same diff — plus one `[cadence] unplanned <YYYY-Www>` pull request only when
+  work no initiative claims met the bar in the prompt
 - every plan file's `description` and PR body open with the same verdict (On track, Behind, At
-  risk, Blocked, or No active initiatives), and every recommendation names an action and a day
+  risk, Blocked, Unplanned, or No active initiatives), and every recommendation names an action and a day
 - a re-run the same Monday opened no additional pull request for a target whose
   `## Recommendations` section was already on disk
 - no number in a plan file is absent from the raw dump, a metrics file dated that week, or a

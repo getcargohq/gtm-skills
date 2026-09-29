@@ -141,15 +141,27 @@ This is the whole branching rule:
   \`[cadence] <slug> YYYY-Www\` where slug is exactly as the dump lists it
   (the path under initiatives/ without \`.md\`, slashes turned into hyphens).
   File: cadence/plan/YYYY-Www-<slug>.md. Do not put two initiatives in
-  one pull request. Do not also open a workspace pull request: unclaimed
-  runs stay in the dump, and you mention them in an initiative file only
-  when they compete with that initiative (same play, same model, credits
-  it thought it owned).
+  one pull request. Do not also open a workspace pull request. Work no
+  initiative claims is mentioned in an initiative file only when it
+  competes with that initiative (same play, same model, credits it thought
+  it owned) — unless it is big enough for the next rule.
+- **Unplanned, alongside the initiatives.** When active initiatives exist
+  and work none of them claims is significant, open one more pull request,
+  titled \`[cadence] unplanned YYYY-Www\`, file
+  cadence/plan/YYYY-Www-unplanned.md. Significant means at least one of: it
+  spent more credits than any single initiative's work did; a play or agent
+  no initiative names failed more than one run in five; or the cadence log
+  shows revenue or a customer won, lost, or escalating that no initiative
+  claims. Its verdict is "Unplanned", then what it is and why it matters,
+  and its first recommendation is the decision: fold it into an initiative,
+  make it one, or stop it. Below that bar, open nothing extra: routine work
+  stays in the dump.
 
 If cadence/plan/YYYY-Www.md already carries \`## Recommendations\` (zero
 case) or cadence/plan/YYYY-Www-<slug>.md already carries
-\`## Recommendations\` (per-initiative case), that target is done this
-week: skip it. If every target is already written, open nothing and stop.
+\`## Recommendations\` (per-initiative or unplanned case), that target is
+done this week: skip it. If every target is already written, open nothing
+and stop.
 
 The dump at cadence/log/raw/planning/YYYY-Www.md is shared evidence. Include
 it, identical bytes, in every pull request you open this run.
@@ -160,9 +172,9 @@ Match cadence/plan/_template.md if it exists, otherwise:
 
 ---
 title: YYYY-Www <label>
-description: <the verdict — On track | Behind | At risk | Blocked — and why, one sentence>
+description: <the verdict — On track | Behind | At risk | Blocked | Unplanned — and why, one sentence>
 week: YYYY-Www
-target: workspace | <slug>
+target: workspace | unplanned | <slug>
 ---
 
 ## What it asked for
@@ -173,8 +185,9 @@ target: workspace | <slug>
 
 ## Recommendations
 
-Label is \`workspace\` or the initiative title (first line of its
-\`title:\` frontmatter, else the slug).
+Label is \`workspace\`, \`unplanned\`, or the initiative title (first line of
+its \`title:\` frontmatter, else the slug). For the unplanned file, What it
+asked for is "No active initiative asked for this", said once.
 
 Evidence, and only from what is on disk, in the collector dump, or returned
 by a CLI read you actually ran:
@@ -217,7 +230,8 @@ Write every recommendation file first, then open the pull requests. For each
 target that is not already done this week:
 
 1. Branch from the default branch.
-   Name: cadence/plan-YYYY-Www-workspace or cadence/plan-YYYY-Www-<slug>.
+   Name: cadence/plan-YYYY-Www-workspace, cadence/plan-YYYY-Www-unplanned,
+   or cadence/plan-YYYY-Www-<slug>.
 2. Add cadence/log/raw/planning/YYYY-Www.md (identical on every branch) and
    exactly one plan file. Nothing else.
 3. Commit, push, open one unmerged pull request with the title from step 2.
@@ -235,7 +249,8 @@ Never merge your own pull request, never contact a customer, never write to
 the CRM, never run a CLI command that spends or deploys, never deploy, never
 edit or delete a raw dump or an existing recommendation file you did not
 write, never combine two initiatives into one pull request, never open a
-workspace pull request when an active initiative exists, never resolve a
+workspace pull request when an active initiative exists, never open an
+unplanned pull request for work below the bar in step 2, never resolve a
 carryover row, never promote a first-occurrence claim into context/, and
 never invent an attendee, a quote, or a number that is not in the
 evidence.`;
