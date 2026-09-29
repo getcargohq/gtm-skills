@@ -1,12 +1,15 @@
 ---
 name: crm-enrichment
 description: 'Keep CRM accounts and contacts filled and refresh them when they go stale. The contact pipeline uses one enrichment play with three gated tools: Cargo-native Find Email, Cargo-native Find LinkedIn Profile from Email, and custom Contact LinkedIn Enrichment. Triggers: "keep our CRM accounts filled", "keep our CRM contacts filled", "nobody refreshes the company records", "nobody refreshes the contact records", "enrich my CRM", "refresh stale firmographics", "every new CRM company", "every new CRM contact", "contacts are missing emails, LinkedIn URLs, or titles". HubSpot, Salesforce, Attio, Cargo CDK. Skip when: the records are not in a CRM. A supplied company list is enrich-company-data, a supplied LinkedIn URL list is enrich-linkedin-profile, and a one-time email lookup is find-work-email.'
-version: "0.7.0"
+version: "0.7.1"
 compatibility: "Requires the cargo-cdk skill, a Cargo CDK project, @cargo-ai/cdk 1.0.82 or later, and authenticated CRM and LinkedIn connectors. The repository example does not deploy or access a CRM until it is adapted in the consumer project."
 homepage: https://github.com/getcargohq/gtm-skills/tree/main/crm-enrichment
 metadata:
   author: getcargo
   source: cookbook
+  personas:
+    - revops
+    - gtm-engineering
   openclaw:
     requires:
       bins:
@@ -68,6 +71,22 @@ write.
 
 The checked example targets HubSpot companies and contacts by `hs_object_id`. Adapt the connector,
 extracts, record IDs, write action, and blank-only behavior together for Salesforce or Attio.
+
+## Example
+
+> Keep our HubSpot contacts filled: find the missing email or LinkedIn profile, then fill job title, but never overwrite a value a rep already entered.
+
+Illustrative output, fictional records:
+
+| Contact (hs_object_id) | Started with       | Fields filled                                                               | cargo_enrichment_status |
+| ---------------------- | ------------------ | --------------------------------------------------------------------------- | ----------------------- |
+| Priya Raman (51007)    | LinkedIn only      | email priya.raman@northwind.example, linkedin_person_id, jobtitle VP RevOps | succeeded               |
+| Tomás Ortega (51022)   | Email only         | linkedin_profile_url, linkedin_person_id, jobtitle Head of Sales Ops        | succeeded               |
+| Mei Lin (51040)        | Email and LinkedIn | jobtitle left as entered; linkedin_person_id filled                         | succeeded               |
+| Sam Hale (51055)       | Email only         | nothing: no profile resolved                                                | (not stamped)           |
+
+Every write fills blanks only, and `cargo_last_enriched_at` is stamped only after a successful write, so
+a contact where nothing resolved, like Sam Hale, is never marked enriched.
 
 ## Put it in your project
 

@@ -1,12 +1,15 @@
 ---
 name: enrich-linkedin-profile
 description: "Turn a LinkedIn profile URL into a full person profile plus a verified work email in a single call, powered by Cargo. Triggers: \"enrich these LinkedIn profiles\", \"get details from this LinkedIn URL\", \"I have LinkedIn URLs and need emails\", \"enrich LinkedIn data\", \"who is this person\", \"contact enrichment\", \"linkedin enrichment\", \"get their headline and tenure\", \"pull the whole biography\". Providers: aiArk. Skip when: you do not have the LinkedIn URL yet — use find-linkedin-url first; or you only have a name and domain — use find-work-email."
-version: "1.1.0"
+version: "1.1.1"
 compatibility: Requires @cargo-ai/cli (npm). Sign in or create an account with `cargo-ai login --email` (emailed code, no browser), `--oauth`, or an API token
 homepage: https://github.com/getcargohq/gtm-skills
 metadata:
   author: getcargo
   source: one-off
+  personas:
+    - sales-development
+    - account-executive
   openclaw:
     requires:
       bins:
@@ -73,6 +76,20 @@ Full profile — role, seniority, company, history — plus a verified email add
 Operations are asynchronous. `--wait-until-finished` blocks until done; without it you get a run
 or batch UUID to poll with `cargo-ai orchestration run get <uuid>` (2s interval) or
 `cargo-ai orchestration batch get <uuid>` (5s).
+
+## Example
+
+> I have LinkedIn URLs for the 60 people who registered for our roundtable — get me their current role and a work email.
+
+Illustrative output, fictional records:
+
+| linkedinUrl | fullName | title | seniority | company | email |
+|---|---|---|---|---|---|
+| linkedin.com/in/priya-raman-example | Priya Raman | VP Data Platform | VP | Northwind | priya.raman@northwind.example |
+| linkedin.com/in/tomas-ferreira-example | Tomás Ferreira | Head of RevOps | Head | Fabrikam | tferreira@fabrikam.example |
+| linkedin.com/in/lena-voss-example | Lena Voss | Staff Engineer | Senior | Globex | |
+
+58 of 60 profiles returned and 51 of those with a verified email; the 7 without an email billed nothing, so 5.1 credits (51 × 0.1).
 
 ## What it costs
 

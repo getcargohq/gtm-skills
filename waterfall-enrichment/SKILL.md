@@ -1,12 +1,15 @@
 ---
 name: waterfall-enrichment
 description: "Cascade one lookup through several vendors in priority order, so a row the first source misses falls through to the next instead of being lost, powered by Cargo. Triggers: \"waterfall enrichment\", \"cascade through providers\", \"fallback chain\", \"my single vendor has bad coverage\", \"try another source when the first one misses\", \"improve my match rate\", \"multi-vendor fallback\". Providers: waterfall. Skip when: you want one address for one name and domain — use find-work-email, the cheaper single job; or you hold addresses and only want them checked — use verify-email-list."
-version: "1.0.0"
+version: "1.0.1"
 compatibility: Requires @cargo-ai/cli (npm). Sign in or create an account with `cargo-ai login --email` (emailed code, no browser), `--oauth`, or an API token
 homepage: https://github.com/getcargohq/gtm-skills
 metadata:
   author: getcargo
   source: one-off
+  personas:
+    - revops
+    - gtm-engineering
   openclaw:
     requires:
       bins:
@@ -93,6 +96,21 @@ cargo-ai orchestration action execute-batch \
 Operations are asynchronous. `--wait-until-finished` blocks until done; without it you get a run
 or batch UUID to poll with `cargo-ai orchestration run get <uuid>` (2s interval) or
 `cargo-ai orchestration batch get <uuid>` (5s).
+
+## Example
+
+> Run the 20 contacts in `event-leads.csv` through the waterfall and verify every email before I import them.
+
+Illustrative output, fictional records:
+
+| full_name | domain | email | provider | verified |
+|---|---|---|---|---|
+| Priya Raman | northwind.example | priya.raman@northwind.example | rung 1 | valid |
+| Tomás Ferreira | fabrikam.example | tferreira@fabrikam.example | rung 3 | valid |
+| Hannah Okafor | globex.example | h.okafor@globex.example | rung 2 | invalid |
+| Wei Zhang | initech.example | | none | |
+
+16 of 20 enriched and 14 verified deliverable, 4 left empty; 41.6 credits (20 × 2 + 16 × 0.1).
 
 ## What it costs
 

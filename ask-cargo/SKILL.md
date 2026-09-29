@@ -1,12 +1,16 @@
 ---
 name: ask-cargo
 description: 'One agent the whole team @mentions in Slack, sitting on top of your GTM repo and workspace: it answers from context, cadence and live runs, turns change requests into pull requests, and hands work to the other deployed agents only after a go in the thread. Triggers: "let the team ask our GTM agent from slack", "one agent on top of all the others", "a slack bot that knows our repo", "ask cargo from slack", "multiplayer GTM agent in slack", "orchestrator agent for our GTM stack", "let anyone open a PR from slack". Cargo CDK, defineAgent, harness claudeCode, Slack connector trigger, GitHub, cargo-ai CLI, ai message create. Skip when: you want the day recapped and posted to Slack on a schedule, which is standup; or you want an answer in this chat right now with nothing deployed.'
-version: "0.1.0"
+version: "0.1.1"
 compatibility: "Requires @cargo-ai/cli with @cargo-ai/cdk 1.0.67 or later — 1.0.66 brought `harness` and the harness repository spec, 1.0.67 roots the agent at the package.json that declares the CDK rather than at `infra/`. On 1.0.66, declare `rootDirectory: \".\"` yourself. Also needs a Cargo workspace, an authenticated LLM connector (the harness runs against Cargo's proxy), a GTM repository (the shape `cargo-ai cdk init` scaffolds), and authorized GitHub and Slack connectors."
 homepage: https://github.com/getcargohq/gtm-skills/tree/main/ask-cargo
 metadata:
   author: getcargo
   source: cookbook
+  personas:
+    - revops
+    - sales-leadership
+    - gtm-engineering
   openclaw:
     requires:
       bins:
@@ -56,6 +60,27 @@ How Slack reaches it, which shapes the rules (verified against the platform, not
   `postMessage` on the agent, and the prompt forbids the Slack tools the trigger adds on its own.
 - **It does not know who wrote a message.** The Slack user id stays in trigger metadata the model
   never sees, so a pull request quotes the request and does not name the requester.
+
+## Example
+
+> Put one agent in our #gtm Slack channel that answers from this repo, opens a pull request for any edit, and runs nothing until someone says go.
+
+Illustrative output, fictional records:
+
+```text
+#gtm
+Dana:   @Cargo add Globex to our competitors, they keep showing up in fintech deals
+Cargo:  Opened https://github.com/northwind-example/gtm/pull/212 on branch ask-cargo/add-globex-competitor.
+        • Adds Globex to context/ competitors with the fintech positioning from this thread
+        • `cargo-ai cdk check` passes; nothing under infra/ changed
+        Want a battlecard section too? Reply @Cargo with what to add.
+Dana:   @Cargo also note they undercut on price for teams under 50 seats
+Cargo:  Pushed a second commit to the same pull request (#212): pricing note added.
+        Review and merge it when it reads right; I never merge.
+```
+
+One thread became one reviewable pull request with two commits; a request that spends, such as
+re-scoring an account, would instead get a proposal with its live price and wait for `@Cargo go`.
 
 ## Put it in your project
 

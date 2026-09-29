@@ -1,12 +1,15 @@
 ---
 name: track-funding-rounds
 description: "Track which companies recently raised funding, with round, amount, and investors, powered by Cargo. Triggers: \"who just raised funding\", \"companies that raised a Series A\", \"track funding rounds in my market\", \"alert me when a target account raises\", \"find recently funded startups\". Providers: cargo. Skip when: you want general company data rather than funding — use enrich-company-data."
-version: "1.0.0"
+version: "1.0.1"
 compatibility: Requires @cargo-ai/cli (npm). Sign in or create an account with `cargo-ai login --email` (emailed code, no browser), `--oauth`, or an API token
 homepage: https://github.com/getcargohq/gtm-skills
 metadata:
   author: getcargo
   source: one-off
+  personas:
+    - account-executive
+    - sales-development
   openclaw:
     requires:
       bins:
@@ -73,6 +76,21 @@ Funding rounds, amounts, dates, and investors per company.
 Operations are asynchronous. `--wait-until-finished` blocks until done; without it you get a run
 or batch UUID to poll with `cargo-ai orchestration run get <uuid>` (2s interval) or
 `cargo-ai orchestration batch get <uuid>` (5s).
+
+## Example
+
+> Which of the 50 accounts in `tier-a.csv` raised money recently, and from whom?
+
+Illustrative output, fictional records:
+
+| domain | round | amount | date | investors |
+|---|---|---|---|---|
+| northwind.example | Series B | $32M | 2026-07-18 | Harbor Point Ventures, Ridgeline Capital |
+| tailspin.example | Seed | $4M | 2026-05-02 | Lantern Partners |
+| fabrikam.example | Series C | $80M | 2023-11-09 | Ridgeline Capital |
+| umbrella.example | | | | |
+
+7 raised in the last 12 months, 31 show only older rounds, 12 have no funding on record; 50 credits (50 × 1).
 
 ## What it costs
 
