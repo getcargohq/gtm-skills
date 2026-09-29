@@ -174,6 +174,10 @@ it if you still want it, and records why under `## Decisions` in your copy of th
   recommendation is what next week's work is chosen from. Remove the review gate and a hallucinated
   gap, a play misread as idle, or a stuck item filed against the wrong owner becomes the team's
   next bet.
+- **Every file opens with a verdict, in a founder's words.** (`infra/agents/planner.prompt.ts`)
+  On track, Behind, At risk or Blocked, then why, then at most three recommendations each with
+  an owner and a day. Without the verdict a reviewer has to read the whole file to learn whether
+  the bet is in trouble, and a plan nobody finishes reading is one nobody acts on.
 - **Do not invent a number.** (`infra/agents/planner.prompt.ts`) Drop a metrics line rather than
   carry last week's ARR forward. A made-up delta is worse than no delta, because the plan file is
   what leadership reads. A CLI read that errors is a note on the PR, not a count you fill in.
@@ -195,6 +199,8 @@ it if you still want it, and records why under `## Decisions` in your copy of th
 - with **N** active initiatives, it opened exactly N unmerged pull requests, one per slug, each
   diff containing the dump and exactly one `cadence/plan/<YYYY-Www>-<slug>.md` — never a second
   initiative in the same diff
+- every plan file's `description` and PR body open with the same verdict (On track, Behind, At
+  risk, Blocked, or No active initiatives), and every recommendation names an action and a day
 - a re-run the same Monday opened no additional pull request for a target whose
   `## Recommendations` section was already on disk
 - no number in a plan file is absent from the raw dump, a metrics file dated that week, or a

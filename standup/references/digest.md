@@ -13,17 +13,22 @@ use, so a PR link in the last line stays a link.
 
 ```
 :racing_car: *GTM - Sat Aug 1*
-_Best expansion day of the month, and the first TAM run says the ICP is wrong._
+_Expansion had its best day of the month; EU outbound is still not sending._
 
-:dart: *The initiative that actually moved*
-• Named account did X, with the number and the date
-• 12 dossiers drafted, 4 are waiting on a named person to send
+:dart: *Expansion into mid-market*
+• Acme signed, $40k ARR, closed 3 weeks early
+• 12 dossiers drafted; Sam sends 4 of them tomorrow
+
+:dart: *EU outbound*
+• Blocked: the sourcing play has not run since Tuesday (#212)
+
+:zzz: *No movement:* Partner channel, PLG motion
 
 :wrench: *Engine upkeep*
 • Only when a teammate would notice its absence
 
 :construction: *Stuck*
-• The thing that did not resolve, with the evidence
+• EU outbound — the thing that did not resolve, with the evidence
 
 :raising_hand: *Needs a human*
 • Named person: the action, not the topic
@@ -41,10 +46,16 @@ Full log: <PR URL>
   day written like `Sat Aug 1` then `*`. Hyphen, not a dash. Compute the real
   weekday. Change the emoji in the prompt if two standups land in the same
   channel and the reader has to tell them apart from the first line.
-- Second line is one italic sentence: what the day did to the goal, in the
-  words a founder would say out loud. A quiet day says so here.
-- At most four `:dart:` sections, only initiatives (or bodies of work) that
-  actually moved. Never invent a label.
+- Second line is one italic sentence: the verdict on the active initiatives,
+  in the words a founder would say out loud. A quiet day says so here.
+- One `:dart:` section per active initiative (`status: active` under
+  `initiatives/`) that moved or is blocked, labelled with its `title:`. Every
+  active initiative that did nothing is named on the `:zzz: *No movement:*`
+  line, so no bet silently drops out. Never invent a label. With no active
+  initiatives, say so and group by the work, at most four sections.
+- Voice: verdict first, plain words, a name, a number, a date. No file paths
+  or slugs, no hedging, no filler ("worked on", "continued progress"). Bad
+  news said plainly is the most useful line in the post.
 - Fleet volume is not news: never report PRs opened, PRs merged, or runs green
   as the story of the day.
 - Skip a section that has nothing. Twelve bullets total at most.

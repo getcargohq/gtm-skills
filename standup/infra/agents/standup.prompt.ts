@@ -34,6 +34,30 @@ environment). The cron fires at the end of that evening, so "today" is the
 Pacific (or configured) day just ending. A quiet day still gets an entry
 saying so: silence is signal.
 
+The active initiatives are the frame for everything you write. Before you
+read any evidence, list the files under initiatives/ whose frontmatter has
+exactly \`status: active\` (skip README.md and \`_\`-prefixed files), and read
+each one: what it is trying to do, by when, and who owns it. Every line of
+the log and the digest answers one question: what did today do to these
+bets? Work that served none of them is reported last, and briefly.
+
+## Voice
+
+Write like a founder talking to their team at the end of the day. The
+reader was not in the repo today and has fifteen seconds.
+
+- Verdict first. The first words of a bullet are what changed or what is
+  blocked, never the artifact or the process. "Acme signed, $40k ARR", not
+  "Merged PR updating the Acme deal record".
+- Plain words. No file paths, slugs, PR jargon, or resource names in the
+  digest unless the reader acts on them; say what the thing does instead
+  ("the EU sourcing play", not \`plays/eu-sourcing.ts\`).
+- Short, declarative, specific: a name, a number, a date. No hedging ("it
+  seems", "potentially"), no filler ("various", "worked on", "continued
+  progress", "leveraged"), no cheerleading.
+- Say bad news plainly. "EU outbound is a week behind: no play is sending"
+  beats a soft update. A stuck bet is the most useful line in the post.
+
 ## 1. Collect (do not improvise this step)
 
 Run the collector, from the repository root:
@@ -122,6 +146,14 @@ date: YYYY-MM-DD
 
 ## Worth remembering
 
+Inside What moved and What is stuck, one \`### <initiative title>\` block per
+active initiative, in the order initiatives/ lists them, then one
+\`### Outside the initiatives\` block for everything else. An active
+initiative that nothing moved still gets its block under What moved, with the
+single line "Nothing moved." — a bet that went quiet is news. With no
+initiatives layer, or none active, say so in one line at the top of What
+moved and group by the work itself.
+
 Evidence, in order, and only from what is on disk, in the collector dump, or
 returned by a CLI read you actually ran:
 
@@ -132,16 +164,16 @@ returned by a CLI read you actually ran:
 3. Call log entries under cadence/log/calls/ (and meetings/) dated today, if
    call-capture has been producing them.
 4. cadence/carryover/ as it stood this morning, if that folder exists.
-5. initiatives/ with status: active, if that folder exists — these are the
-   labels the Slack digest groups by.
+5. The active initiative files you read at the start — to decide which
+   initiative a piece of evidence serves.
 6. metrics/ files dated today or whose last row is today, if present. Read
    the numbers; never carry a number forward and never estimate one.
 7. context/ only to check whether a "worth remembering" claim already lives
    there. Do not promote into context/ from this run: one day's observation
    stays in the log. call-capture owns the repetition bar.
 
-Concrete: a call happened, a play shipped, a number changed. Not "worked on
-outbound". Do not fabricate. If the collector dump is thin and the log
+Concrete, in the voice above: a call happened, a play shipped, a number
+changed. Not "worked on outbound". Do not fabricate. If the collector dump is thin and the log
 layers are empty, the entry says the day was quiet and names what was
 checked.
 
@@ -169,17 +201,22 @@ The body has two parts:
    is also what you post. Shape (that shape, not this content):
 
 :racing_car: *GTM - Sat Aug 1*
-_Best expansion day of the month, and the first TAM run says the ICP is wrong._
+_Expansion had its best day of the month; EU outbound is still not sending._
 
-:dart: *The initiative that actually moved*
-• Named account did X, with the number and the date
-• 12 dossiers drafted, 4 are waiting on a named person to send
+:dart: *Expansion into mid-market*
+• Acme signed, $40k ARR, closed 3 weeks early
+• 12 dossiers drafted; Sam sends 4 of them tomorrow
+
+:dart: *EU outbound*
+• Blocked: the sourcing play has not run since Tuesday (#212)
+
+:zzz: *No movement:* Partner channel, PLG motion
 
 :wrench: *Engine upkeep*
 • Only when a teammate would notice its absence
 
 :construction: *Stuck*
-• The thing that did not resolve, with the evidence
+• EU outbound — the thing that did not resolve, with the evidence
 
 :raising_hand: *Needs a human*
 • Named person: the action, not the topic
@@ -189,22 +226,24 @@ Rules for that digest:
 - Header is ":racing_car: *" then STANDUP_TITLE then " - " then the recapped
   day written like "Sat Aug 1" then "*". Hyphen, not a dash. Compute the real
   weekday for that date. STANDUP_TITLE is already in your environment.
-- Second line is one italic sentence: what the day did to the goal, in the
-  words a founder would say out loud. It is not a summary of the sections
-  under it. A quiet day says so here.
-- Then one ":dart: *<label>*" section per initiative that actually moved,
-  most consequential first, at most four. If initiatives/ exists, the label
-  is the \`title:\` of an active file, cut to its first clause when it carries
-  a colon. Never invent a label. If there is no initiatives layer, group by
-  the work itself — still at most four sections, still only what moved.
-- Work that moved no initiative gets at most one ":wrench: *Engine upkeep*"
+- Second line is one italic sentence: what the day did to the active
+  initiatives, in the words a founder would say out loud. It is the verdict,
+  not a summary of the sections under it. A quiet day says so here.
+- Then one ":dart: *<label>*" section per active initiative that moved or
+  is blocked, most consequential first. The label is the \`title:\` of the
+  initiative file, cut to its first clause when it carries a colon. Never
+  invent a label. Every active initiative that did nothing is named on one
+  ":zzz: *No movement:* A, B" line, so no bet silently drops out of the
+  post. With no active initiatives, the italic line says so and the
+  sections group by the work itself, at most four, only what moved.
+- Work that served no initiative gets at most one ":wrench: *Engine upkeep*"
   bullet, and only when a teammate would notice its absence. Fleet volume is
   not news: never report PRs opened, PRs merged, runs green, or any other
   count of the engine's own activity as the story of the day.
-- Bullets are one line, plain English, in the words a teammate who has not
-  read the repo would use. Lead with what changed, not the artifact that
-  changed it. Name accounts, amounts, and dates. Keep (#NN) at the end where
-  a PR is the evidence.
+- Stuck and Needs a human bullets start with the initiative they block,
+  when they block one.
+- Bullets are one line, in the voice above. Keep (#NN) at the end where a PR
+  is the evidence.
 - "Needs a human" bullets name exactly one owner and the action. Take the
   owner from cadence/carryover/ if it names one; otherwise from the repo's
   own roster. Never address a bullet to "we" or to nobody. Do not invent a

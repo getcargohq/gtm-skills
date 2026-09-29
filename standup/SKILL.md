@@ -193,6 +193,12 @@ it if you still want it, and records why under `## Decisions` in your copy of th
   those three are already there — that is the idempotency key. Matching on the Slack channel
   instead needs a `conversations.history` read Cargo does not ship, and a sibling bot's post in
   that channel reads as "already ran" — the standup then skips silently for nights at a time.
+- **The day is reported against the active initiatives, in a founder's words.**
+  (`infra/agents/standup.prompt.ts`) Every active initiative gets its block in the log and a
+  line in the digest, including the ones that did nothing that day. Group by PR or by resource
+  instead and the digest turns into a changelog: activity that reads as progress while a bet
+  quietly stalls. The voice rules (verdict first, plain words, no file paths) are what make it
+  readable by someone who was not in the repo.
 - **Do not invent a number.** (`infra/agents/standup.prompt.ts`) Drop a metrics line rather than
   carry yesterday's ARR forward. A made-up delta is worse than no delta, because the digest is
   what leadership reads. A CLI read that errors is a note on the PR, not a count you fill in.
@@ -211,6 +217,8 @@ it if you still want it, and records why under `## Decisions` in your copy of th
   plus a posted-or-not line
 - the digest landed once in the locked channel, with `Full log: <PR URL>` as the last line
 - a re-run the same evening opened no second pull request and posted no second message
+- every `status: active` initiative appears in the log and in the digest, either in its own
+  section or on the `No movement` line
 - a quiet day still produced an entry that says so
 - no number in the digest is absent from the raw dump, a metrics file dated that day, or a
   `cargo-ai` read the agent actually ran. A CLI read that errors is a note on the PR, not a

@@ -35,6 +35,30 @@ The week you recap is the previous complete ISO week in PLANNING_TIMEZONE
 is last Monday through last Sunday. A quiet week still gets the pull
 request(s), saying so: silence is signal.
 
+The active initiatives are the frame. Every file and every pull request you
+write answers one question about one bet: is it on track, and what should
+happen this week? Nothing is reported for its own sake.
+
+## Voice
+
+Write like a founder reviewing the week with the person who owns the bet.
+The reader has not read the repo and gives each pull request thirty seconds.
+
+- Verdict first. Every plan file and every pull request body opens with one
+  of: On track, Behind, At risk, Blocked — then the reason in one clause.
+  "Behind: the EU sourcing play is declared but has not run in nine days."
+- Plain words. Say what a resource does, not its slug or path ("the EU
+  sourcing play", not \`plays/eu-sourcing.ts\`); paths belong in the evidence,
+  not in the sentence.
+- Short, declarative, specific: a name, a number, a date. No hedging ("it
+  seems", "potentially"), no filler ("various", "continue to monitor",
+  "leverage"), no cheerleading.
+- Recommendations are orders, not observations: a verb, an owner, a day.
+  "Sam: fix the EU play's filter and rerun it by Wednesday." Not "consider
+  looking into the EU play".
+- Say bad news plainly. A bet that is behind is the most useful pull request
+  of the week.
+
 ## 1. Collect (do not improvise this step)
 
 Run the collector, from the repository root:
@@ -106,9 +130,12 @@ not active. A missing initiatives/ folder is zero active.
 This is the whole branching rule:
 
 - **Zero active initiatives.** One pull request, titled
-  \`[cadence] workspace YYYY-Www\`. File: cadence/plan/YYYY-Www.md. It
-  checks what is happening on the workspace: declared infra, live runs,
-  usage, cadence logs. That is the whole job when nobody has named a bet.
+  \`[cadence] workspace YYYY-Www\`. File: cadence/plan/YYYY-Www.md. Its
+  verdict is "No active initiatives", because that is the finding: the
+  workspace is spending without a named bet. It checks what is happening —
+  declared infra, live runs, usage, cadence logs — and its first
+  recommendation is to name one, pointing at what the week's work already
+  looks like a bet on.
 - **One or more active initiatives.** One pull request **per** active
   initiative, never one pull request for the run. Title
   \`[cadence] <slug> YYYY-Www\` where slug is exactly as the dump lists it
@@ -133,7 +160,7 @@ Match cadence/plan/_template.md if it exists, otherwise:
 
 ---
 title: YYYY-Www <label>
-description: <one sentence: the gap, or that the week was on track>
+description: <the verdict — On track | Behind | At risk | Blocked — and why, one sentence>
 week: YYYY-Www
 target: workspace | <slug>
 ---
@@ -174,9 +201,9 @@ The gap is a mismatch, not a vibe:
 Fleet volume is not a recommendation: never report PRs opened, PRs merged,
 or runs green as the thing to do next.
 
-Recommendations are at most three bullets. Each names the action, the owner
-if the initiative or roster names one, and the evidence. Not "work on
-outbound". A quiet workspace with no initiatives still gets one to three
+Recommendations are at most three bullets, in the voice above. Each names
+the action, the owner if the initiative or roster names one, when, and the
+evidence. Not "work on outbound". A quiet workspace with no initiatives still gets one to three
 bullets only if a mismatch exists; otherwise Recommendations says the
 workspace is quiet and names what was checked.
 
@@ -199,8 +226,8 @@ target that is not already done this week:
    plan files on one branch.
 
 The pull request body is a short recap a reviewer checks in ten seconds:
-the gap in one sentence, how many recommendations (zero is a number), and
-that the raw dump path is in the diff.
+the verdict line first, word for word as the plan file's description, then
+the recommendations as bullets, then that the raw dump path is in the diff.
 
 ## Never
 
