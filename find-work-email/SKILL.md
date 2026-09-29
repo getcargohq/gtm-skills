@@ -1,12 +1,15 @@
 ---
 name: find-work-email
 description: "Find a verified work email address from a person's name and company domain, powered by Cargo. Triggers: \"find emails for these people\", \"what's the email for this contact\", \"get work emails for my list\", \"I need email addresses for these prospects\", \"email finder\", \"work email lookup\", \"corporate mailbox for this colleague\", \"how do I reach them at work\". Providers: prospeo, FullEnrich. Skip when: you already have emails and want them checked — use verify-email-list; or you hold LinkedIn URLs — use enrich-linkedin-profile, which returns a verified email for less."
-version: "1.1.0"
+version: "1.1.1"
 compatibility: Requires @cargo-ai/cli (npm). Sign in or create an account with `cargo-ai login --email` (emailed code, no browser), `--oauth`, or an API token
 homepage: https://github.com/getcargohq/gtm-skills
 metadata:
   author: getcargo
   source: one-off
+  personas:
+    - sales-development
+    - revops
   openclaw:
     requires:
       bins:
@@ -80,6 +83,21 @@ A work email per contact, with unresolved rows left empty rather than guessed.
 Operations are asynchronous. `--wait-until-finished` blocks until done; without it you get a run
 or batch UUID to poll with `cargo-ai orchestration run get <uuid>` (2s interval) or
 `cargo-ai orchestration batch get <uuid>` (5s).
+
+## Example
+
+> Find work emails for the 40 people in `webinar-attendees.csv` — first name, last name and company domain are all there.
+
+Illustrative output, fictional records:
+
+| firstName | lastName | companyDomain | email | rung |
+|---|---|---|---|---|
+| Priya | Raman | northwind.example | priya.raman@northwind.example | prospeo |
+| Tomás | Ferreira | fabrikam.example | tferreira@fabrikam.example | prospeo |
+| Hannah | Okafor | globex.example | hannah.okafor@globex.example | FullEnrich |
+| Wei | Zhang | initech.example | | no match |
+
+37 of 40 resolved (31 on prospeo, 6 more on FullEnrich from the 9 escalated misses), 3 left empty rather than guessed; 29 credits (40 × 0.5 + 9 × 1).
 
 ## What it costs
 

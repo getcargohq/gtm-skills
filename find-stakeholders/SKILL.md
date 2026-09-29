@@ -1,12 +1,15 @@
 ---
 name: find-stakeholders
 description: "Find the buying committee at a target account — every stakeholder matching a set of titles, seniorities, and departments, powered by Cargo. Triggers: \"find the buying committee at Acme\", \"who are the decision makers at this company\", \"find stakeholders\", \"multi-thread this account\", \"who else should I be talking to at this account\". Providers: aiArk. Skip when: you are sourcing across many companies rather than going deep on a few — use find-b2b-leads."
-version: "1.0.0"
+version: "1.0.1"
 compatibility: Requires @cargo-ai/cli (npm). Sign in or create an account with `cargo-ai login --email` (emailed code, no browser), `--oauth`, or an API token
 homepage: https://github.com/getcargohq/gtm-skills
 metadata:
   author: getcargo
   source: one-off
+  personas:
+    - account-executive
+    - sales-development
   openclaw:
     requires:
       bins:
@@ -80,6 +83,21 @@ Every matching stakeholder at the account, with title, seniority, and department
 Operations are asynchronous. `--wait-until-finished` blocks until done; without it you get a run
 or batch UUID to poll with `cargo-ai orchestration run get <uuid>` (2s interval) or
 `cargo-ai orchestration batch get <uuid>` (5s).
+
+## Example
+
+> Who's on the buying committee at northwind.example — VP and above in Sales, Marketing, Ops and Finance?
+
+Illustrative output, fictional records:
+
+| fullName | title | seniority | department |
+|---|---|---|---|
+| Priya Raman | Chief Revenue Officer | CXO | Sales |
+| Omar Haddad | VP Marketing | VP | Marketing |
+| Grace Lin | Director of Revenue Operations | Director | Operations |
+| Felix Brandt | VP Finance | VP | Finance |
+
+14 stakeholders returned for 0.7 credits (14 × 0.05); 3 are already in the CRM, so only the other 11 go on to enrichment.
 
 ## What it costs
 

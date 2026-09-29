@@ -1,12 +1,15 @@
 ---
 name: monitor-buying-signals
 description: "Watch a list of target accounts for the public events that mean someone is in market, powered by Cargo — hiring for the role you sell into, saying something new, or turning up in a detection feed, each with a date and a link. Triggers: \"tell me when these accounts do something\", \"what changed at my target accounts\", \"who is in market right now\", \"set up intent monitoring\", \"watch these companies for me\", \"any triggers on this list\". Intent, triggers, watchlist, timing, freshness. Skip when: you have no account list yet — use build-tam-list; or you want a verdict on fit rather than on timing — use score-leads."
-version: "1.0.0"
+version: "1.0.1"
 compatibility: Requires @cargo-ai/cli (npm). Sign in or create an account with `cargo-ai login --email` (emailed code, no browser), `--oauth`, or an API token
 homepage: https://github.com/getcargohq/gtm-skills
 metadata:
   author: getcargo
   source: one-off
+  personas:
+    - account-executive
+    - sales-development
   openclaw:
     requires:
       bins:
@@ -139,6 +142,20 @@ on every account teaches people to skim it.
 **Never merge this into a fit score.** Fit and timing answer different questions and averaging them
 produces a number that hides both: a perfect-fit account with no trigger and a poor-fit account
 hiring aggressively can land on the same value.
+
+## Example
+
+> Watch our 20 open-opportunity accounts and tell me which started hiring RevOps in the last 30 days.
+
+Illustrative output, fictional records:
+
+| account | signal | date | source | so_what |
+|---|---|---|---|---|
+| Northwind | Posted "Head of Revenue Operations" | 2026-09-21 | jobs.northwind.example/revops-head | The owner of our deal's process is about to change |
+| Fabrikam | CEO post on consolidating GTM tools | 2026-09-15 | x.com/fabrikam_example/status/1 | Budget is being cut elsewhere; lead with consolidation |
+| Tailspin | Posted "RevOps Analyst" | 2026-09-08 | jobs.tailspin.example/revops-analyst | A team is being built under our champion |
+
+3 of 20 accounts fired and the other 17 are not listed; 2.1 credits (sillage free on all 20, 4 job posts × 0.5, 5 X lookups × 0.02).
 
 ## What it costs
 

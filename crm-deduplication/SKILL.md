@@ -1,12 +1,15 @@
 ---
 name: crm-deduplication
 description: 'Keep CRM accounts and contacts duplicate-free: audit company and person identity, run recurring deduplication plays directly on CRM models, merge safe exact matches, and route uncertain clusters to manual review. Triggers: "deduplicate our CRM accounts", "deduplicate CRM contacts", "our CRM has duplicate people", "merge duplicate contacts in HubSpot", "we keep creating duplicate account records", "merge duplicate companies in HubSpot", "set up recurring CRM deduplication", "review ambiguous duplicates". HubSpot, Salesforce, Attio, Slack, LinkedIn profiles, phone numbers, Cargo CDK, findRecords, Scoring, Human Review, mergeRecords. Skip when: the request is to add or refresh CRM data rather than merge duplicate records; use crm-enrichment.'
-version: "0.1.0"
+version: "0.1.1"
 compatibility: "Requires the cargo-cdk skill, a Cargo CDK project, @cargo-ai/cdk 1.0.82 or later, an authenticated CRM connector, and a Slack connector for each selected path that uses Human Review. The repository example does not deploy or access a CRM until an agent adapts it in the consumer project."
 homepage: https://github.com/getcargohq/gtm-skills/tree/main/crm-deduplication
 metadata:
   author: getcargo
   source: cookbook
+  personas:
+    - revops
+    - gtm-engineering
   openclaw:
     requires:
       bins:
@@ -69,6 +72,29 @@ the selected paths.
 
 When matching-key coverage is weak, recommend `crm-enrichment` before building the affected path.
 That is a recommendation, not a dependency: `crm-deduplication` installs and operates independently.
+
+## Example
+
+> Merge duplicate HubSpot companies automatically only when the LinkedIn company ID matches, and send everything else to #crm-hygiene for a human to approve.
+
+Illustrative output, fictional records:
+
+```text
+#crm-hygiene · Review CRM account merge into 18234
+Duplicate score: 72/100
+Survivor: 18234
+Records to merge: 20911
+Identity conflict: false
+Protected ID conflict: false
+Parent/subsidiary warning: false
+Evidence:
+18234, linkedin id none, linkedin northwind-traders, domain northwind.example, protected no, parent none
+20911, linkedin id none, linkedin northwind-traders, domain northwind.example, protected no, parent none
+[Approve]  [Decline]
+```
+
+Two records sharing a LinkedIn page and a domain, but no LinkedIn company ID, wait for a reviewer;
+approve merges 20911 into 18234, while decline or 24 hours of silence leaves both untouched.
 
 ## Put it in your project
 

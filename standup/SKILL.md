@@ -1,12 +1,15 @@
 ---
 name: standup
 description: 'Every evening the GTM day is recapped into the cadence log and a digest is posted to Slack, as one reviewable pull request against your GTM repo. Triggers: "post the daily standup to slack", "end of day report in slack", "what happened today posted to slack", "keep a cadence log of each day", "replace the GitHub Action that posts our standup", "evening recap of the GTM day". Cargo CDK, defineAgent, harness claudeCode, GitHub, Slack, slack.postMessage, cargo-ai CLI reads, cadence. Skip when: you want one recap of today in this chat with nothing deployed; or you want call transcripts scribed into context, which is call-capture.'
-version: "0.1.0"
+version: "0.1.1"
 compatibility: "Requires @cargo-ai/cli with @cargo-ai/cdk 1.0.67 or later — 1.0.66 brought `harness` and the harness repository spec, 1.0.67 roots the agent at the package.json that declares the CDK rather than at `infra/`. On 1.0.66, declare `rootDirectory: \".\"` yourself. Also needs a Cargo workspace, an authenticated LLM connector (the harness runs against Cargo's proxy, so the agent needs a `connector` and `languageModel` like any other), a GTM repository with `cadence/` at its root (the shape `cargo-ai cdk init` scaffolds), and an authorized Slack connector."
 homepage: https://github.com/getcargohq/gtm-skills/tree/main/standup
 metadata:
   author: getcargo
   source: cookbook
+  personas:
+    - sales-leadership
+    - revops
   openclaw:
     requires:
       bins:
@@ -66,6 +69,33 @@ Three properties make it safe enough to run unattended:
 - **The channel is locked.** `channelId` sits in the action's `config`, the same way
   `mailboxUuid` is locked on `sendEmail`. Leave it as a field the agent fills and a
   mistype posts the internal recap into a customer channel.
+
+## Example
+
+> Every weekday at 6pm, recap what moved on our GTM initiatives into the repo and post the digest to #gtm-daily.
+
+Illustrative output, fictional records:
+
+```text
+:racing_car: *GTM - Tue Oct 6*
+_Mid-market expansion moved; EU outbound is still not sending._
+
+:dart: *Expansion into mid-market*
+• Northwind signed, closed two weeks ahead of the forecast date (#318)
+• Five Fabrikam dossiers drafted; Dana sends them Thursday
+
+:dart: *EU outbound*
+• Blocked: the sourcing play has not run since Friday (#312)
+
+:zzz: *No movement:* Partner channel
+
+:raising_hand: *Needs a human*
+• Dana: approve the EU sourcing budget so the play can resume
+Full log: https://github.com/northwind/gtm/pull/320
+```
+
+The team reads the day in fifteen seconds in Slack, while `cadence/log/2026-10-06.md` lands through the
+"[cadence] log 2026-10-06" pull request for a human to merge.
 
 ## Put it in your project
 

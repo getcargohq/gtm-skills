@@ -1,12 +1,15 @@
 ---
 name: find-companies-using-tech
 description: "Find companies by the technology they run or the roles they are hiring for, powered by Cargo. Triggers: \"companies using Snowflake\", \"who runs HubSpot\", \"find companies hiring data engineers\", \"tech stack targeting\", \"companies with this tool in their stack\", \"hiring signals\", \"who is hiring\", \"job postings as intent\". Providers: theirStack. Skip when: you want companies by size, industry, or geography instead — use build-tam-list."
-version: "1.1.0"
+version: "1.1.1"
 compatibility: Requires @cargo-ai/cli (npm). Sign in or create an account with `cargo-ai login --email` (emailed code, no browser), `--oauth`, or an API token
 homepage: https://github.com/getcargohq/gtm-skills
 metadata:
   author: getcargo
   source: one-off
+  personas:
+    - sales-development
+    - marketing
   openclaw:
     requires:
       bins:
@@ -78,6 +81,20 @@ Companies matching the tech-stack and hiring filters, with the evidence behind e
 Operations are asynchronous. `--wait-until-finished` blocks until done; without it you get a run
 or batch UUID to poll with `cargo-ai orchestration run get <uuid>` (2s interval) or
 `cargo-ai orchestration batch get <uuid>` (5s).
+
+## Example
+
+> Which software companies run Snowflake and posted a Data Engineer role in the last 60 days?
+
+Illustrative output, fictional records:
+
+| company | domain | technology | matchingJob | postedAt |
+|---|---|---|---|---|
+| Northwind | northwind.example | snowflake | Senior Data Engineer | 2026-09-12 |
+| Fabrikam | fabrikam.example | snowflake | Data Engineer, Platform | 2026-08-30 |
+| Contoso | contoso.example | snowflake | Analytics Data Engineer | 2026-08-04 |
+
+38 companies matched both filters, each with the job post that qualified it; 19 credits (38 × 0.5).
 
 ## What it costs
 

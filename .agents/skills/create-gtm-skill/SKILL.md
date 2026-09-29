@@ -77,6 +77,7 @@ Copy the structure of `enrich-company-data/SKILL.md`:
 
 - Setup (CLI install, login, session stamp)
 - Do the job (exact `cargo-ai orchestration action execute` / `execute-batch`)
+- Example (see below)
 - What it costs (table of `integration.action` → credits)
 - Worth knowing / Going further / star ask
 
@@ -94,15 +95,16 @@ these headings:
 
 1. Honest banner: `**State: to-be-approved.**`
 2. `## The outcome`
-3. `## Put it in your project` (copy the procedure from `tam-building`; each
+3. `## Example` (see below)
+4. `## Put it in your project` (copy the procedure from `tam-building`; each
    skill carries its own)
-4. `## What you will be asked` — derive before ask; more than ~4 asked rows
+5. `## What you will be asked` — derive before ask; more than ~4 asked rows
    means you skipped lookups
-5. `## What you can change` — offer unprompted; every variation has a cost
-6. `## What should not change` — name the concrete symptom if violated
-7. `## Done when`
-8. `## What it costs`
-9. `## Composes into`
+6. `## What you can change` — offer unprompted; every variation has a cost
+7. `## What should not change` — name the concrete symptom if violated
+8. `## Done when`
+9. `## What it costs`
+10. `## Composes into`
 
 Folder:
 
@@ -149,6 +151,33 @@ CDK workflow bodies must compile. These fail `cargo-cdk check` / `plan`:
 Register: `skills.sh.json` ("Make it run forever"), `hooks/skill-loads.sh`,
 root README pipeline table, `.github/data/approvals.json` with
 `state: to-be-approved` and empty evidence.
+
+### Both kinds: personas and the example
+
+`validate.ts` requires these of every skill; the site renders them before
+anyone installs.
+
+- `metadata.personas`, right after `metadata.source`: 1–3 of
+  `sales-development`, `account-executive`, `revops`, `sales-leadership`,
+  `marketing`, `gtm-engineering`, primary first.
+- `## Example`, in exactly this shape:
+
+  ```
+  ## Example
+
+  > Find work emails for the 40 people in webinar-attendees.csv.
+
+  Illustrative output, fictional records:
+
+  <table or fenced block, about 20 lines at most>
+
+  <one closing line with the result in numbers>
+  ```
+
+  Fictional companies on the `.example` TLD. A one-off's credits must add up
+  from its own cost table; a pipeline quotes none and shows what the deployed
+  play writes. Never a command in it, and never a table row that opens on a
+  backticked `integration.action` cell — the validator reads that as a price.
 
 ## 4. Finish
 

@@ -1,12 +1,16 @@
 ---
 name: account-scoring
 description: 'Keep every account scored and tiered against your written ICP by a deployed agent that re-scores as accounts arrive and as the ICP changes, writing the rationale back to the CRM. Triggers: "keep our accounts scored as they arrive", "re-score everything when the ICP changes", "which accounts should the team work first", "our scoring is a spreadsheet nobody trusts", "why is this account tier A", "stand up account tiering". Cargo CDK, defineAgent, cargo_score, cargo_tier, HubSpot, Salesforce, Attio. Skip when: someone hands you a list and wants it qualified once, which is cargo-gtm''s job, not a deployed scorer''s.'
-version: "0.2.0"
+version: "0.2.1"
 compatibility: "Requires @cargo-ai/cli with @cargo-ai/cdk 1.0.58 or later, a Cargo workspace, an authorized CRM connection (HubSpot in the example), and an authenticated LLM connector — nothing here needs a credential in .env, and a deploy cannot mint either connection. Self-contained: carries its own accounts model, CRM, Cargo DB and LLM connectors, and an example ICP under context/."
 homepage: https://github.com/getcargohq/gtm-skills/tree/main/account-scoring
 metadata:
   author: getcargo
   source: cookbook
+  personas:
+    - revops
+    - sales-leadership
+    - gtm-engineering
   openclaw:
     requires:
       bins:
@@ -36,6 +40,21 @@ the ICP and accounts re-score against it as they come due.
 looks successful and the scores land nowhere, which wastes the whole batch. And `cargo_score` plus
 `cargo_tier` must be selected as columns on the accounts model, or the tier segments filter on a
 column they cannot see.
+
+## Example
+
+> Score every HubSpot company against the ICP in our context repo and put the tier and the reason on the record, re-checking weekly.
+
+Illustrative output, fictional records:
+
+| Company (domain)              | cargo_score | cargo_tier | cargo_rationale                                                                                                |
+| ----------------------------- | ----------- | ---------- | -------------------------------------------------------------------------------------------------------------- |
+| Northwind (northwind.example) | 86          | A          | 420-person B2B SaaS in the US running HubSpot and Snowflake. Matches the ICP on segment, size band and stack.  |
+| Fabrikam (fabrikam.example)   | 58          | B          | Right industry and region, but 60 employees sits below the ICP's 100–2,000 size band. No disqualifier applies. |
+| Tailspin (tailspin.example)   | 18          | C          | Consumer mobile game studio. B2C is an ICP disqualifier, which caps the score at 20.                           |
+
+Each record also gets `cargo_last_updated_at`, so the Monday sweep skips it for three months; after the next
+model refresh Northwind lands in `tier-a-accounts` and Tailspin in `tier-c-accounts`.
 
 ## Put it in your project
 

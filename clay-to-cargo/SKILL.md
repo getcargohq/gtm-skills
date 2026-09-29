@@ -1,12 +1,15 @@
 ---
 name: clay-to-cargo
 description: "Rebuild a Clay table on Cargo, powered by Cargo — map every Clay enrichment column to its provider action, price the run before it happens, and keep the result as version-controlled code instead of a spreadsheet. Triggers: \"migrate from Clay\", \"move my Clay table to Cargo\", \"Clay alternative\", \"replace Clay\", \"I have a Clay export\", \"what does Clay's enrichment column map to\", \"my Clay bill is too high\", \"Clay but as code\". Migration, mapping, parity, spreadsheet, declarative. Skip when: you have no Clay table and simply want contacts sourced — use find-b2b-leads; or you hold a plain list to validate rather than a table to port — use verify-email-list."
-version: "1.0.0"
+version: "1.0.1"
 compatibility: Requires @cargo-ai/cli (npm). Sign in or create an account with `cargo-ai login --email` (emailed code, no browser), `--oauth`, or an API token
 homepage: https://github.com/getcargohq/gtm-skills
 metadata:
   author: getcargo
   source: one-off
+  personas:
+    - gtm-engineering
+    - revops
   openclaw:
     requires:
       bins:
@@ -160,6 +163,20 @@ Run only the actions the user's columns actually map to. Every one you add is a 
 Operations are asynchronous. `--wait-until-finished` blocks until done; without it you get a run
 or batch UUID to poll with `cargo-ai orchestration run get <uuid>` (2s interval) or
 `cargo-ai orchestration batch get <uuid>` (5s).
+
+## Example
+
+> Rebuild our "Inbound enrichment" Clay table on Cargo — here's the ClayMate JSON export.
+
+Illustrative output, fictional records:
+
+| Clay column | Cargo action | Clay fill | Cargo fill | Agreement |
+|---|---|---|---|---|
+| Work Email | `prospeo.findEmail` → `FullEnrich.findEmail` | 14 / 20 | 16 / 20 | 13 of 14 |
+| Email Valid? | `waterfall.verifyEmail` | 14 / 14 | 16 / 16 | 13 of 14 |
+| Company Industry | `companyEnrich.enrichByDomain` | 20 / 20 | 19 / 20 | 18 of 19 |
+
+20 sample rows, 6 of them rows Clay left empty, for 23.6 credits end to end (20 × 0.5 + 7 × 1 + 16 × 0.1 + 20 × 0.25); whether that parity is enough to switch is the user's call.
 
 ## What it costs
 

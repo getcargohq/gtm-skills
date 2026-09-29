@@ -1,12 +1,15 @@
 ---
 name: weekly-planning
 description: 'Every Monday last week''s GTM work is ranked against active initiatives, declared infra, and live runs, as one reviewable pull request per initiative — or one workspace pull request when there are none. Triggers: "what should we work on this week", "rank our initiatives against what is actually running", "weekly GTM plan from the cadence log", "recommend next work from infra and runs", "the play is deployed but I don''t think it ran". Cargo CDK, defineAgent, harness claudeCode, GitHub, cargo-ai CLI reads, initiatives, cadence. Skip when: you want today recapped and posted to Slack, which is standup; or you want call transcripts scribed into context, which is call-capture.'
-version: "0.1.0"
+version: "0.1.1"
 compatibility: "Requires @cargo-ai/cli with @cargo-ai/cdk 1.0.67 or later — 1.0.66 brought `harness` and the harness repository spec, 1.0.67 roots the agent at the package.json that declares the CDK rather than at `infra/`. On 1.0.66, declare `rootDirectory: \".\"` yourself. Also needs a Cargo workspace, an authenticated LLM connector (the harness runs against Cargo's proxy, so the agent needs a `connector` and `languageModel` like any other), and a GTM repository with `cadence/` at its root (the shape `cargo-ai cdk init` scaffolds). `initiatives/` is optional: without it the run still opens one workspace pull request."
 homepage: https://github.com/getcargohq/gtm-skills/tree/main/weekly-planning
 metadata:
   author: getcargo
   source: cookbook
+  personas:
+    - sales-leadership
+    - revops
   openclaw:
     requires:
       bins:
@@ -61,6 +64,31 @@ Three properties make it safe enough to run unattended:
 - **The pull request is the gate.** The agent has repository write access and no other write path.
   It cannot email anyone, cannot touch the CRM, cannot run a `cargo-ai` command that spends or
   deploys, and cannot merge itself.
+
+## Example
+
+> Every Monday morning, check last week's runs against our initiatives and open one pull request per initiative saying what to do next.
+
+Illustrative output, fictional records:
+
+```text
+[cadence] eu-outbound 2026-W41   ->  cadence/plan/2026-W41-eu-outbound.md
+---
+title: 2026-W41 EU outbound
+description: Blocked. The sourcing play is declared but did not run once this week.
+week: 2026-W41
+target: eu-outbound
+---
+## The gap
+Play is declared, no runs this week: source-eu-accounts shows 0 runs since Oct 2
+(orchestration run list), while the initiative's deadline is Oct 31.
+## Recommendations
+- Dana: re-enable source-eu-accounts today and confirm one run succeeds by Wednesday.
+- Dana: if it fails again, move the deadline in initiatives/eu-outbound.md this week.
+```
+
+Each active initiative gets its own verdict and at most three owned recommendations in its own pull
+request, so the blocked bet cannot hide behind the one that is on track.
 
 ## Put it in your project
 
