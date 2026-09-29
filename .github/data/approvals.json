@@ -40,5 +40,11 @@
     "chain": 7,
     "demoWorkspace": null,
     "implementations": []
+  },
+  "weekly-planning": {
+    "state": "to-be-approved",
+    "chain": 8,
+    "demoWorkspace": null,
+    "implementations": []
   }
 }
