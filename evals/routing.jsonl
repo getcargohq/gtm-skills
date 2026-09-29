@@ -62,7 +62,7 @@
 
 // --- one-off / deployed seam -------------------------------------------------------
 // tam-building, account-scoring, crm-enrichment, crm-deduplication,
-// call-capture, agentic-engagement, standup and weekly-planning are worked CDK
+// call-capture, agentic-engagement, standup, weekly-planning and ask-cargo are worked CDK
 // examples that deploy a pipeline.
 // build-tam-list, score-leads and research-account are one-offs: the same
 // job once, in a turn. The
@@ -123,3 +123,8 @@
 {"prompt": "Recommend next work from infra and runs", "expect": "weekly-planning"}
 {"prompt": "The play is deployed but I don't think it ran", "expect": "weekly-planning", "why": "Deployed-is-not-running is a planning gap, not a daily Slack recap."}
 {"prompt": "What should we do next this week, not a recap of today in Slack", "expect": "weekly-planning", "why": "Recommendations are weekly-planning; standup recaps the day and posts to Slack."}
+{"prompt": "Let the team ask our GTM agent from slack", "expect": "ask-cargo"}
+{"prompt": "One agent on top of all the others that anyone can mention in slack", "expect": "ask-cargo"}
+{"prompt": "A slack bot that knows our repo and can open PRs", "expect": "ask-cargo"}
+{"prompt": "Post the day's recap to slack every evening", "expect": "standup", "why": "A scheduled digest is standup; ask-cargo only answers when mentioned."}
+{"prompt": "Research acme.com for me right now", "expect": "research-account", "why": "A one-off answer in this chat, nothing deployed."}

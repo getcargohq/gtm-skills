@@ -187,6 +187,91 @@
       "partOf": []
     },
     {
+      "name": "ask-cargo",
+      "kind": "cookbook",
+      "job": "One agent the whole team @mentions in Slack, sitting on top of your GTM repo and workspace: it answers from context, cadence and live runs, turns change requests into pull requests, and hands work to the other deployed agents only after a go in the thread.",
+      "description": "One agent the whole team @mentions in Slack, sitting on top of your GTM repo and workspace: it answers from context, cadence and live runs, turns change requests into pull requests, and hands work to the other deployed agents only after a go in the thread. Triggers: \"let the team ask our GTM agent from slack\", \"one agent on top of all the others\", \"a slack bot that knows our repo\", \"ask cargo from slack\", \"multiplayer GTM agent in slack\", \"orchestrator agent for our GTM stack\", \"let anyone open a PR from slack\". Cargo CDK, defineAgent, harness claudeCode, Slack connector trigger, GitHub, cargo-ai CLI, ai message create. Skip when: you want the day recapped and posted to Slack on a schedule, which is standup; or you want an answer in this chat right now with nothing deployed.",
+      "version": "0.1.0",
+      "homepage": "https://github.com/getcargohq/gtm-skills/tree/main/ask-cargo",
+      "group": "Make it run forever",
+      "install": "cargo-ai cdk add cookbook/ask-cargo",
+      "partOf": [],
+      "state": "to-be-approved",
+      "chain": 9,
+      "resources": [
+        "agents",
+        "connectors",
+        "folders"
+      ],
+      "asked": [
+        {
+          "input": "ASK_CARGO_HANDLE` (`infra/agents/ask-cargo.ts`)",
+          "kind": "asked",
+          "how": "the Slack app's display name, as people type it (`@Cargo`).",
+          "why": "Replies end with the exact text to type to confirm. A wrong handle means people type a mention that wakes nothing, and the proposal waits forever."
+        }
+      ],
+      "canChange": [
+        {
+          "id": "answer-only",
+          "when": "You want a Slack oracle over the repo first, and no one running anything from Slack yet",
+          "how": "In `infra/agents/ask-cargo.prompt.ts`, replace §3 and §4 with \"propose the command, never run it\"",
+          "cost": "The team copies commands out of Slack into a terminal, and \"the agent said it would cost X\" stops being checked against what actually ran."
+        },
+        {
+          "id": "listed-channels",
+          "when": "The bot sits in channels it must never answer in, or you want answers in a few channels only",
+          "how": "Replace `allChannels: true` with `channelIds: [\"C…\"]` in `infra/agents/ask-cargo.ts`, from the connector's autocomplete",
+          "cost": "A list to keep in sync: a new team channel gets no answer until someone edits the file and deploys. Listing a channel also takes it from any `allChannels` agent."
+        },
+        {
+          "id": "dms-too",
+          "when": "Individuals want to ask privately",
+          "how": "Add each person's Slack **user id** (`U…`) to `channelIds` next to `allChannels`; DMs are listed by user, not by `D…` channel, and `allChannels` never covers them.",
+          "cost": "The thread stops being multiplayer: nobody else sees the proposal or the go, so a DM go is one person approving spend alone. Keep §3 unchanged if you take this."
+        },
+        {
+          "id": "master-agent-slack",
+          "when": "You only need questions answered, no repo and no pull requests",
+          "how": "Skip this cookbook. Put a Slack trigger on the workspace's built-in Master Agent in the UI.",
+          "cost": "No checkout: it cannot read `infra/` or `cadence/`, and it cannot change anything. Cheaper and faster per question, because there is no sandbox to start."
+        },
+        {
+          "id": "no-handoff",
+          "when": "No other agents are deployed yet",
+          "how": "Delete §4 of the prompt and `references/roster.md",
+          "cost": "Every job is redone by this agent from scratch, without the owning agent's rules. Add §4 back the day the first pipeline deploys."
+        },
+        {
+          "id": "higher-sample-bar",
+          "when": "Your runs are expensive per record, or touch people",
+          "how": "Lower the 25-record threshold and the 5-record sample in §3 of the prompt",
+          "cost": "More round trips in the thread for every batch, and each one needs another `@Cargo go`."
+        }
+      ],
+      "shouldNotChange": [
+        "**The bot is kept out of customer shared channels.** (`infra/agents/ask-cargo.ts`) The trigger is `allChannels`, so where the bot is invited is where the agent answers. A shared channel the bot joined for something else is a channel where the first question reads the ICP and the pipeline to the customer. Remove the bot there, or list the channel on the agent that owns it.",
+        "**Nothing on `uses`.** (`infra/agents/ask-cargo.ts`) The trigger replies by itself, so a `postMessage` use is a second way to post, to any channel. A sub-agent or tool on `uses` is a path that skips the go in the thread, and a sub-agent handle imports another cookbook's file. The contract fails on any of the four.",
+        "**Spend, sends and handoffs wait for a go in the thread.** (`infra/agents/ask-cargo.prompt.ts`) Anyone in the channel can @mention it. Without the gate, a half-typed \"enrich everything\" runs a batch over the whole model, and the only record of who approved it is a Slack thread nobody reread. The go approves the proposal as written, never more records or a higher cost.",
+        "**Changes are one pull request per thread, never a merge, never a deploy.** (`infra/agents/ask-cargo.prompt.ts`) The merge is the approval. An agent that deploys from Slack turns a mistyped message into a production change with no diff anyone read.",
+        "**The agent never calls the Slack tools.** (`infra/agents/ask-cargo.prompt.ts`) The trigger hands it `postMessage` with no channel lock, plus history and search. A reply is its final text, in the thread it was asked in; anything else is how an internal answer lands in the wrong channel.",
+        "**It hands work to the owning agent instead of redoing it.** (`infra/agents/ask-cargo.prompt.ts`) A scorer's rules live in the scorer's prompt. Redoing the job here produces a second score with none of those rules, and the two disagree in the CRM.",
+        "**It does not claim to know who asked.** (`infra/agents/ask-cargo.prompt.ts`) The model is not told. A pull request that names a requester names a guess."
+      ],
+      "doneWhen": [
+        "`node --import tsx evals/contract.mjs` passes: harness is `claudeCode` on an Anthropic connector, one Slack trigger on `allChannels`, nothing on `uses`, no capability",
+        "`cargo-ai cdk plan` reports the agent, the three connectors and the folder",
+        "a question in a channel the bot is in (\"what is our ICP?\") got an answer in the thread that cites a file under `context/`",
+        "a question about the workspace (\"what failed yesterday?\") cites the `cargo-ai` command it ran; a read that errored says so instead of a number",
+        "a change request opened exactly one unmerged pull request, and a follow-up in the same thread added a commit to it rather than opening a second",
+        "a request that spends replied with a proposal and a live price and ran nothing; the same request ran only after `@Cargo go`",
+        "a request an installed agent owns was handed to it with `cargo-ai ai message create`, and the reply names the chat or pull request it produced",
+        "a mention in a channel another agent lists got that agent's reply, not this one's"
+      ],
+      "cost": "Every turn is a harness run: a sandbox, a clone of the repository, and LLM tokens billed through the\nbound Anthropic connector. A turn that only answers a question costs tokens and nothing else. The\nread-only `cargo-ai` calls are API calls, not connector actions, and bill nothing.\n\nWhat spends is what someone approves with a go: the connector actions, batches and agent handoffs in\n§3 of the prompt. The agent reads each price live (`cargo-ai connection integration get <slug>`) and\nsays the total before it asks for the go, so the proposal is the cost line. Nothing runs on a\nschedule.",
+      "composesInto": "`standup` and `weekly-planning` (it can run either on demand, and answers \"what happened this week\"\nfrom the logs they write), `account-scoring` and `crm-enrichment` (it hands them one-account\nrequests instead of scoring or enriching by hand), `call-capture` (the call entries are context it\nanswers from), `agentic-engagement` (it can report what a thread did, never send on its behalf)."
+    },
+    {
       "name": "build-tam-list",
       "kind": "one-off",
       "job": "Build a total addressable market list of companies filtered by industry, headcount, and geography, powered by Cargo.",

@@ -46,5 +46,11 @@
     "chain": 8,
     "demoWorkspace": null,
     "implementations": []
+  },
+  "ask-cargo": {
+    "state": "to-be-approved",
+    "chain": 9,
+    "demoWorkspace": null,
+    "implementations": []
   }
 }
