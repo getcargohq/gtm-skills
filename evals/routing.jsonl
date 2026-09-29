@@ -61,8 +61,9 @@
 {"prompt":"portfolio companies of","expect":"find-portfolio-companies"}
 
 // --- one-off / deployed seam -------------------------------------------------------
-// tam-building, account-scoring, crm-enrichment, crm-deduplication, call-capture
-// and agentic-engagement are worked CDK examples that deploy a pipeline.
+// tam-building, account-scoring, crm-enrichment, crm-deduplication,
+// call-capture, agentic-engagement, standup and weekly-planning are worked CDK
+// examples that deploy a pipeline.
 // build-tam-list, score-leads and research-account are one-offs: the same
 // job once, in a turn. The
 // same words describe both, so these cases pin which way each phrasing goes;
@@ -109,3 +110,16 @@
 {"prompt": "Keep talking to leads over email", "expect": "agentic-engagement", "why": "The standing tell: a loop, not one send."}
 {"prompt": "Native email trigger for lead replies", "expect": "agentic-engagement"}
 {"prompt": "I need email addresses for these prospects so I can start conversations", "expect": "find-work-email", "why": "Addresses first; agentic-engagement is the loop you deploy after you have someone to write to."}
+{"prompt": "Post the daily standup to slack", "expect": "standup"}
+{"prompt": "End of day report in slack", "expect": "standup"}
+{"prompt": "What happened today posted to slack", "expect": "standup", "why": "The standing tell: posted, every evening, not a recap in this chat."}
+{"prompt": "Keep a cadence log of each day", "expect": "standup"}
+{"prompt": "Replace the GitHub Action that posts our standup", "expect": "standup"}
+{"prompt": "Evening recap of the GTM day", "expect": "standup"}
+{"prompt": "Scribe yesterday's calls into the repo every morning", "expect": "call-capture", "why": "Calls are call-capture; standup reads those entries in the evening, it does not scribe them."}
+{"prompt": "What should we work on this week", "expect": "weekly-planning"}
+{"prompt": "Rank our initiatives against what is actually running", "expect": "weekly-planning"}
+{"prompt": "Weekly GTM plan from the cadence log", "expect": "weekly-planning"}
+{"prompt": "Recommend next work from infra and runs", "expect": "weekly-planning"}
+{"prompt": "The play is deployed but I don't think it ran", "expect": "weekly-planning", "why": "Deployed-is-not-running is a planning gap, not a daily Slack recap."}
+{"prompt": "What should we do next this week, not a recap of today in Slack", "expect": "weekly-planning", "why": "Recommendations are weekly-planning; standup recaps the day and posts to Slack."}

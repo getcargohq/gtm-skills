@@ -706,6 +706,94 @@
       "partOf": []
     },
     {
+      "name": "standup",
+      "kind": "cookbook",
+      "job": "Every evening the GTM day is recapped into the cadence log and a digest is posted to Slack, as one reviewable pull request against your GTM repo.",
+      "description": "Every evening the GTM day is recapped into the cadence log and a digest is posted to Slack, as one reviewable pull request against your GTM repo. Triggers: \"post the daily standup to slack\", \"end of day report in slack\", \"what happened today posted to slack\", \"keep a cadence log of each day\", \"replace the GitHub Action that posts our standup\", \"evening recap of the GTM day\". Cargo CDK, defineAgent, harness claudeCode, GitHub, Slack, slack.postMessage, cargo-ai CLI reads, cadence. Skip when: you want one recap of today in this chat with nothing deployed; or you want call transcripts scribed into context, which is call-capture.",
+      "version": "0.1.0",
+      "homepage": "https://github.com/getcargohq/gtm-skills/tree/main/standup",
+      "group": "Make it run forever",
+      "install": "cargo-ai cdk add cookbook/standup",
+      "partOf": [],
+      "state": "to-be-approved",
+      "chain": 7,
+      "resources": [
+        "agents",
+        "connectors",
+        "folders"
+      ],
+      "asked": [
+        {
+          "input": "channelId` (`infra/agents/standup.ts`)",
+          "kind": "asked",
+          "how": "the Slack channel id (`C…`) the digest is allowed to land in. Read it from the connector's channel autocomplete, not by guessing a name. Invite the bot.",
+          "why": "Locked on `postMessage` so the agent cannot pick a customer shared channel. A name (`#general`) collides; an empty lock posts nowhere useful and looks like success."
+        },
+        {
+          "input": "STANDUP_TITLE` (`infra/agents/standup.ts`)",
+          "kind": "asked",
+          "how": "the short name in the Slack header (`:racing_car: *GTM - Sat Aug 1*`). A founder-facing label, not the GitHub slug.",
+          "why": "Two standups in the same channel are told apart from the first line. A repo name here reads as infrastructure, not as the GTM day."
+        }
+      ],
+      "canChange": [
+        {
+          "id": "move-the-hour",
+          "when": "The team reads Slack at a different time, or you are not on Pacific time",
+          "how": "Change `cron` and `STANDUP_TIMEZONE` together in `infra/agents/standup.ts`. The cron is 05:00 UTC because that is 10pm PT in PDT.",
+          "cost": "A morning cron recaps an incomplete day. A timezone the collector does not share with the prompt splits the dump and the log across two dates."
+        },
+        {
+          "id": "skip-slack",
+          "when": "You want the log and the pull request, and a human will paste the digest",
+          "how": "Drop the `uses` entry and the \"Post the Slack digest\" section of `infra/agents/standup.prompt.ts",
+          "cost": "The team stops seeing the day. The log still lands, but the thing people actually read is gone."
+        },
+        {
+          "id": "header-emoji",
+          "when": "Two recaps land in the same channel and the reader has to tell them apart from the first line",
+          "how": "Change `:racing_car:` in `infra/agents/standup.prompt.ts` and `references/digest.md",
+          "cost": "Cosmetic unless you pick the same emoji as another bot in that channel, in which case the two posts merge in the reader's eye."
+        },
+        {
+          "id": "log-only-quiet",
+          "when": "A quiet day should not ping Slack",
+          "how": "In `infra/agents/standup.prompt.ts`, skip the post (and say so on the PR) when What moved is empty",
+          "cost": "Silence on a quiet day is indistinguishable from a missed run. The default is the opposite: a quiet day still gets an entry, because silence is signal."
+        },
+        {
+          "id": "git-only",
+          "when": "The sandbox has no Cargo session, or this agent must not reach the workspace at all",
+          "how": "Drop §1b of `infra/agents/standup.prompt.ts",
+          "cost": "The recap loses runs, usage and what is deployed, so \"declared but it never ran\" stops being visible. The git dump still lands, which is what §1b already falls back to when `cargo-ai whoami` fails."
+        }
+      ],
+      "shouldNotChange": [
+        "**The agent does not fetch git; the script does.** (`scripts/collect/day.ts`) A fetch loop an agent re-derives every evening is a fetch loop that silently changes shape — a window that drifts, a `gh` flag that quietly widens. The raw dump is the one thing here that has to be byte-identical in its rules every day, because everything downstream is diffed against it. Cargo workspace data is the other half of the day, and it is read at recap time by the agent, not by a `cargo-ai` loop bolted into the collector.",
+        "**The workspace reads are read-only, and they are the CLI.** (`infra/agents/standup.prompt.ts`) §1b names the commands: `whoami`, run counts and failures, usage, what is deployed. No `capabilities` block is wired on the agent, because the read path is already in the sandbox and only the prompt can say \"read, never execute\". `orchestration action execute`, `batch create`, `cdk deploy` and anything that removes are the forbidden half of that list — those spend or deploy, and Slack posting is the locked `slack.postMessage` use. If `cargo-ai whoami` fails, the recap says so and continues from the git dump; it does not invent the numbers.",
+        "**`slack.postMessage` is a connector action on the agent. `channelId` is locked in `config`.** (`infra/agents/standup.ts`) Wrapping it in a tool is ceremony, and this repo refuses those. A `SLACK_TOKEN` script, a GitHub Action, or a `chat.postMessage` curl is how the digest escapes Cargo: no run to inspect, no connector to revoke, and a token in the harness env that posts anywhere. Leaving the channel as a field the agent fills is how an internal recap lands in a customer shared channel.",
+        "**`scripts/standup/package.json` stays.** (`scripts/package.json`) It is not decoration. The CDK loader imports every `.ts` under the project root except directories carrying a `package.json`; delete it and `cargo-ai cdk plan` imports the collector and runs git/`gh` on every plan.",
+        "**The harness root stays the directory holding the `package.json` that declares `@cargo-ai/cdk`.** (`infra/agents/standup.ts`) That is where `node_modules` is, so it is the only place `npx tsx …/collect/day.ts` resolves — and in the scaffolded layout it is the repository root, which is also where `cadence/` lives. **Check it, do not assume it:** `cargo-ai cdk check` prints the resolved binding, and a line ending `in infra/` means the harness was rooted where there is no package.json and no node_modules. The collector then cannot run at all, and the evening reports clean and empty. On a CLI old enough to resolve it that way, pin `rootDirectory: \".\"` in the repository block until you upgrade.",
+        "**The agent opens a pull request and never merges it.** (`infra/agents/standup.prompt.ts`) The log is what next Monday's plan is written from. Remove the review gate and a hallucinated number, a vendor call misread as pipeline, or a stuck item filed against the wrong owner becomes the team's memory of the day.",
+        "**One log file per calendar day, and this run owns only its three sections.** (`infra/agents/standup.prompt.ts`) Several runs write the same day's file. Add What moved / What is stuck / Worth remembering, never rewrite a section you did not write, and stop when those three are already there — that is the idempotency key. Matching on the Slack channel instead needs a `conversations.history` read Cargo does not ship, and a sibling bot's post in that channel reads as \"already ran\" — the standup then skips silently for nights at a time.",
+        "**The day is reported against the active initiatives, in a founder's words.** (`infra/agents/standup.prompt.ts`) Every active initiative gets its block in the log and a line in the digest, including the ones that did nothing that day. Group by PR or by resource instead and the digest turns into a changelog: activity that reads as progress while a bet quietly stalls. The one exception runs the other way: a churn, a deal, a failing play or a spend spike that no initiative claims goes first, as \"Outside the plan\", rather than being squeezed into Engine upkeep. The voice rules (verdict first, plain words, no file paths) are what make it readable by someone who was not in the repo.",
+        "**Do not invent a number.** (`infra/agents/standup.prompt.ts`) Drop a metrics line rather than carry yesterday's ARR forward. A made-up delta is worse than no delta, because the digest is what leadership reads. A CLI read that errors is a note on the PR, not a count you fill in."
+      ],
+      "doneWhen": [
+        "`--dry-run` printed the dump, and the run without it wrote `cadence/log/raw/standup/<date>.md`; running it twice that evening overwrote the same file",
+        "`node --import tsx evals/contract.mjs` passes: harness is `claudeCode` bound to an Anthropic connector, no capability is wired, `postMessage` is on `uses` with `channelId` locked, and no tool wraps it",
+        "`cargo-ai cdk plan` reports the agent, the two connectors and the folder, and does **not** run git or `gh` while planning",
+        "the first scheduled run opened one pull request titled `[cadence] log <date>` whose diff contains the raw dump and the three log sections, and whose body carries `## Slack digest` plus a posted-or-not line",
+        "the digest landed once in the locked channel, with `Full log: <PR URL>` as the last line",
+        "a re-run the same evening opened no second pull request and posted no second message",
+        "every `status: active` initiative appears in the log and in the digest, either in its own section or on the `No movement` line, and anything that big outside the initiatives leads the post as `Outside the plan`",
+        "a quiet day still produced an entry that says so",
+        "no number in the digest is absent from the raw dump, a metrics file dated that day, or a `cargo-ai` read the agent actually ran. A CLI read that errors is a note on the PR, not a made-up count"
+      ],
+      "cost": "The collector talks to git and, when `gh` is installed, to GitHub from the harness environment.\nThose calls are not Cargo connector actions.\n\nThe Slack post is `slack.postMessage` on the bound connector. Immediately before the plan, run\n`cargo-ai orchestration action list postMessage --kind connector --integration-slug slack` and\nread the current cost. Say that number out loud as a per-post cost; the run posts once.\n\nThe recurring cost is the harness run itself, once a day, billed as LLM tokens through the bound\nAnthropic connector, and it scales with how much the agent reads — the dump, the day's cadence\nfiles, a short window of git history, and the read-only `cargo-ai` calls in §1b (whoami, run\ncounts, usage, what is deployed). Those reads are API calls, not connector actions, so they bill\nnothing. There is no per-record fan-out, and the recap never runs a command that spends.",
+      "composesInto": "`call-capture` (yesterday's scribed calls are evidence this recap reads), `agentic-engagement`\n(a thread that closed today is something that moved), `tam-building` and `account-scoring` (a\ntiered book is a number the digest can name only when the metrics file actually moved),\n`weekly-planning` (the week's logs are what it ranks against infra and runs)."
+    },
+    {
       "name": "tam-building",
       "kind": "cookbook",
       "job": "Stand up your account universe as a deployed pipeline: an AI Ark company search shaped by your ICP, sized for free before it bills, then tiered A / B / C / disqualified by an agent that reads your rubric from the workspace context and web-searches the evidence the sourced row does not carry.",
@@ -862,6 +950,81 @@
       "group": "Get the contact data",
       "install": "npx skills add getcargohq/gtm-skills/waterfall-enrichment",
       "partOf": []
+    },
+    {
+      "name": "weekly-planning",
+      "kind": "cookbook",
+      "job": "Every Monday last week's GTM work is ranked against active initiatives, declared infra, and live runs, as one reviewable pull request per initiative — or one workspace pull request when there are none.",
+      "description": "Every Monday last week's GTM work is ranked against active initiatives, declared infra, and live runs, as one reviewable pull request per initiative — or one workspace pull request when there are none. Triggers: \"what should we work on this week\", \"rank our initiatives against what is actually running\", \"weekly GTM plan from the cadence log\", \"recommend next work from infra and runs\", \"the play is deployed but I don't think it ran\". Cargo CDK, defineAgent, harness claudeCode, GitHub, cargo-ai CLI reads, initiatives, cadence. Skip when: you want today recapped and posted to Slack, which is standup; or you want call transcripts scribed into context, which is call-capture.",
+      "version": "0.1.0",
+      "homepage": "https://github.com/getcargohq/gtm-skills/tree/main/weekly-planning",
+      "group": "Make it run forever",
+      "install": "cargo-ai cdk add cookbook/weekly-planning",
+      "partOf": [],
+      "state": "to-be-approved",
+      "chain": 8,
+      "resources": [
+        "agents",
+        "connectors",
+        "folders"
+      ],
+      "asked": [
+        {
+          "input": "PLANNING_TIMEZONE` (`infra/agents/planner.ts`)",
+          "kind": "value",
+          "how": "**derived**: default `America/Los_Angeles`. Change it only if the team's week is not Pacific. Change it together with `cron`.",
+          "why": "The previous ISO week is computed in this timezone. A timezone the collector does not share with the prompt splits the dump and the plan files across two weeks."
+        }
+      ],
+      "canChange": [
+        {
+          "id": "move-the-hour",
+          "when": "The team reads pull requests at a different time, or you are not on Pacific time",
+          "how": "Change `cron` and `PLANNING_TIMEZONE` together in `infra/agents/planner.ts`. The cron is 15:00 UTC Monday because that is 8am PT in PDT.",
+          "cost": "A Sunday cron recaps an incomplete week. A timezone the collector does not share with the prompt splits the dump and the plan files across two weeks."
+        },
+        {
+          "id": "skip-on-track",
+          "when": "An on-track initiative should not ping the reviewer",
+          "how": "In `infra/agents/planner.prompt.ts`, skip the pull request when The gap is \"on track\"",
+          "cost": "Silence on an on-track week is indistinguishable from a missed run for that initiative. The default still opens the PR, because a written \"keep going\" is the record."
+        },
+        {
+          "id": "git-only",
+          "when": "The sandbox has no Cargo session, or this agent must not reach the workspace at all",
+          "how": "Drop §1b of `infra/agents/planner.prompt.ts",
+          "cost": "\"Deployed is not running\" stops being answerable, which is most of the point: the gap collapses to what git can see. The dump still lands, which is what §1b already falls back to when `cargo-ai whoami` fails."
+        },
+        {
+          "id": "one-pr",
+          "when": "You want one weekly diff even when there are five initiatives",
+          "how": "Collapse step 2 of `infra/agents/planner.prompt.ts` to a single pull request that holds every plan file",
+          "cost": "The reviewer merges the loud initiative and skips the overdue one. The default splits them because that is the gate."
+        }
+      ],
+      "shouldNotChange": [
+        "**The agent does not fetch git; the script does.** (`scripts/collect/week.ts`) A fetch loop an agent re-derives every Monday is a fetch loop that silently changes shape — a window that drifts, a `gh` flag that quietly widens. The raw dump is the one thing here that has to be byte-identical in its rules every week, because everything downstream is diffed against it. Cargo workspace data is the other half of the week, and it is read at recap time by the agent, not by a `cargo-ai` loop bolted into the collector.",
+        "**Zero active initiatives is one workspace pull request. N active is N pull requests, plus one `unplanned` only when work outside them is significant.** (`infra/agents/planner.prompt.ts`) Combining them is how a reviewer merges one bet and skips another. Opening a workspace pull request *and* the initiative ones gives routine unclaimed runs a second home they were not asked to have: they stay in the dump. The `unplanned` pull request is the exception, and its bar is concrete (more credits than any initiative, a play failing one run in five, a customer or revenue event no initiative claims). Drop it and an unplanned play can burn the week's credits without ever reaching a reviewer.",
+        "**The workspace reads are read-only, and they are the CLI.** (`infra/agents/planner.prompt.ts`) §1b names the commands: `whoami`, what is deployed, run counts and failures, usage. No `capabilities` block is wired on the agent, because the read path is already in the sandbox and only the prompt can say \"read, never execute\". `orchestration action execute`, `batch create`, `cdk deploy` and anything that removes are the forbidden half of that list — a planner that can start a batch is a planner that can spend, and a recommendation is not a deploy. If `cargo-ai whoami` fails, every pull request says so and the recap continues from the git dump; it does not invent the numbers.",
+        "**`scripts/weekly-planning/package.json` stays.** (`scripts/package.json`) It is not decoration. The CDK loader imports every `.ts` under the project root except directories carrying a `package.json`; delete it and `cargo-ai cdk plan` imports the collector and runs git/`gh` on every plan.",
+        "**The harness root stays the directory holding the `package.json` that declares `@cargo-ai/cdk`.** (`infra/agents/planner.ts`) That is where `node_modules` is, so it is the only place `npx tsx …/collect/week.ts` resolves — and in the scaffolded layout it is the repository root, which is also where `cadence/` and `initiatives/` live. **Check it, do not assume it:** `cargo-ai cdk check` prints the resolved binding, and a line ending `in infra/` means the harness was rooted where there is no package.json and no node_modules. The collector then cannot run at all, and Monday reports clean and empty. On a CLI old enough to resolve it that way, pin `rootDirectory: \".\"` in the repository block until you upgrade.",
+        "**The agent opens pull requests and never merges them.** (`infra/agents/planner.prompt.ts`) The recommendation is what next week's work is chosen from. Remove the review gate and a hallucinated gap, a play misread as idle, or a stuck item filed against the wrong owner becomes the team's next bet.",
+        "**Every file opens with a verdict, in a founder's words.** (`infra/agents/planner.prompt.ts`) On track, Behind, At risk or Blocked, then why, then at most three recommendations each with an owner and a day. Without the verdict a reviewer has to read the whole file to learn whether the bet is in trouble, and a plan nobody finishes reading is one nobody acts on.",
+        "**Do not invent a number.** (`infra/agents/planner.prompt.ts`) Drop a metrics line rather than carry last week's ARR forward. A made-up delta is worse than no delta, because the plan file is what leadership reads. A CLI read that errors is a note on the PR, not a count you fill in.",
+        "**Never edit `plan/` or `infra/`.** (`infra/agents/planner.prompt.ts`) The planner recommends. A pull request that rewires a play is a deploy wearing a plan file's name."
+      ],
+      "doneWhen": [
+        "`--dry-run` printed the dump for the previous ISO week, and the run without it wrote `cadence/log/raw/planning/<YYYY-Www>.md`; running it twice that Monday overwrote the same file",
+        "`node --import tsx evals/contract.mjs` passes: harness is `claudeCode` bound to an Anthropic connector and a model, no capability is wired on the agent, there is no Slack action, and no tool wraps git or the CLI",
+        "`cargo-ai cdk plan` reports the agent, the GitHub and Anthropic connectors and the folder, and does **not** run git or `gh` while planning",
+        "with **zero** active initiatives, the first scheduled run opened exactly one unmerged pull request titled `[cadence] workspace <YYYY-Www>` whose diff contains the dump and `cadence/plan/<YYYY-Www>.md` with `## Recommendations`",
+        "with **N** active initiatives, it opened exactly N unmerged pull requests, one per slug, each diff containing the dump and exactly one `cadence/plan/<YYYY-Www>-<slug>.md` — never a second initiative in the same diff — plus one `[cadence] unplanned <YYYY-Www>` pull request only when work no initiative claims met the bar in the prompt",
+        "every plan file's `description` and PR body open with the same verdict (On track, Behind, At risk, Blocked, Unplanned, or No active initiatives), and every recommendation names an action and a day",
+        "a re-run the same Monday opened no additional pull request for a target whose `## Recommendations` section was already on disk",
+        "no number in a plan file is absent from the raw dump, a metrics file dated that week, or a `cargo-ai` read the agent actually ran. A CLI read that errors is a note on the PR, not a made-up count"
+      ],
+      "cost": "The collector talks to git and, when `gh` is installed, to GitHub from the harness environment.\nThose calls are not Cargo connector actions.\n\nThe recurring cost is the harness run itself, once a week, billed as LLM tokens through the bound\nAnthropic connector, and it scales with how much the agent reads — the dump, the week's cadence\nfiles, the active initiative files, declared infra, and the read-only `cargo-ai` calls in §1b\n(whoami, what is deployed, run counts, usage). Those reads are API calls, not connector actions, so\nthey bill nothing. There is no per-record fan-out, and the recap never runs a command that spends.",
+      "composesInto": "`standup` (the week's daily logs are evidence this recap reads), `call-capture` (scribed calls dated\nin the week are evidence), `tam-building` and `account-scoring` (a declared play that did not run is\nthe gap this recap is for)."
     },
     {
       "name": "zoominfo-to-cargo",
