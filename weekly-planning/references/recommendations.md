@@ -26,7 +26,7 @@ the declared infra is for, if that can be read from it.
 ## What ran
 
 Runs, usage, cadence logs, and infra that serve this target. Cite the
-platform tool that produced a number. Fleet volume is not news.
+`cargo-ai` command that produced a number. Fleet volume is not news.
 
 ## The gap
 
@@ -42,8 +42,8 @@ gap. Green run counts are not.
 
 - At most three recommendation bullets. Skip the section when the week is
   on track rather than inventing work.
-- Do not invent a number. A number returned by a platform tool you actually
-  called is evidence; a number the tool did not return is not.
+- Do not invent a number. A number returned by a `cargo-ai` read you actually
+  ran is evidence; a number no command returned is not.
 - Never edit `plan/` or `infra/`. A recommendation is markdown a human
   merges, not a deploy.
 - One initiative per file. The workspace file exists only when there are

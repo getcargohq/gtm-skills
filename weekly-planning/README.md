@@ -11,9 +11,9 @@ request per initiative — or one workspace pull request when there are none.
   commits, pull requests, initiative inventory, declared infra, and cadence
   files dated in that week into `cadence/log/raw/planning/`. Deterministic, no
   LLM anywhere near it.
-- **Reads the workspace.** The agent uses the platform capability (runs, usage,
-  models). Read-only. If those tools error because the capability is not live
-  yet, it notes that on every pull request and continues from the dump.
+- **Reads the workspace.** The agent runs read-only `cargo-ai` commands (what is
+  deployed, runs, usage). No capability is wired on it. If `cargo-ai whoami`
+  fails, it notes that on every pull request and continues from the dump.
 - **Recommends.** Zero active initiatives: one file, `cadence/plan/<week>.md`.
   N active: one file per initiative, `cadence/plan/<week>-<slug>.md`.
 - **Stops.** One unmerged pull request per file. Never a deploy. Never a Slack
@@ -28,8 +28,8 @@ request per initiative — or one workspace pull request when there are none.
 3. **It runs the collector** — `npx tsx scripts/weekly-planning/collect/week.ts`
    — which reads `PLANNING_TIMEZONE` from the harness environment. The agent is
    told not to fetch the week itself.
-4. **It reads the workspace** through the platform capability: whoami, last
-   week's runs, usage, models.
+4. **It reads the workspace** with Cargo's own CLI, which the checkout already
+   has: `whoami`, what is deployed, last week's run counts and failures, usage.
 5. **It writes the plan file(s)** and opens the pull requests from step 2 of
    the prompt: one per active initiative, or one workspace pull request.
 6. **A human merges.** The agent never does.
@@ -38,7 +38,7 @@ Adds 4 resources plus a script bundle.
 
 | File                               | Resource                     | Role                                                              |
 | ---------------------------------- | ---------------------------- | ----------------------------------------------------------------- |
-| `infra/agents/planner.ts`          | `defineAgent` (claudeCode)   | schedule, repository binding, platform capability                 |
+| `infra/agents/planner.ts`          | `defineAgent` (claudeCode)   | schedule, repository binding, env                                 |
 | `infra/agents/planner.prompt.ts`   | (not a resource)             | the recap contract: window, one-PR-per-initiative rule, limits    |
 | `infra/connectors/git.ts`          | `defineConnector` (`github`) | the clone, branch, push and PR path, resolved by binding          |
 | `infra/connectors/anthropic.ts`    | `defineConnector` (`anthropic`) | the model the harness runs on, billed and metered              |
@@ -109,8 +109,8 @@ compete with that initiative.
 
 ## What it does not do
 
-It does not contact customers, write to a CRM, merge its own pull request,
-execute a platform action that spends, deploy, edit or delete a raw dump or an
+It does not contact customers, write to a CRM, merge its own pull request, run
+a CLI command that spends or deploys, edit or delete a raw dump or an
 existing recommendation file, promote first-occurrence claims into `context/`,
 or touch `plan/` and `infra/`. It recommends the week; it does not change the
 strategy or the deployed engine. It does not post to Slack — that is standup.

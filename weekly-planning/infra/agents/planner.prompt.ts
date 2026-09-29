@@ -54,30 +54,48 @@ quiet one.
 If the script fails for a reason a code change would fix, say so in the pull
 request and leave the fix to a human.
 
-## 1b. Read the workspace (platform capability)
+## 1b. Read the workspace (Cargo's CLI, read-only)
 
-You have the \`platform\` capability: the same operating tools as Cargo's
-platform MCP. This recap is read-only against the workspace. Allowed:
+"Deployed is not running" is the question this recap exists for, and git
+cannot answer it. Read the workspace with Cargo's own CLI, which this checkout
+already has — \`cargo-ai\` if it is on PATH, otherwise
+\`npx --yes @cargo-ai/cli\`. No capability is wired on this agent, and none is
+needed. Start with:
 
-- \`capability_platform_whoami\` first — name the workspace. You will not spend.
-- \`capability_platform_query_runs\` — last week's orchestration history
-  (counts, failures). Prefer this over list_runs for anything an aggregate
-  answers. \`capability_platform_list_runs\` is only recent ad-hoc action runs.
-- \`capability_platform_get_run\` / \`capability_platform_get_batch\` — only to
-  explain a failure that belongs in a recommendation.
-- \`capability_platform_get_usage\` — credits used, grouped by integration. A
-  number you cannot read is a number you do not print.
-- \`capability_platform_list_models\` / \`capability_platform_describe_model\` /
-  \`capability_platform_query_models\` — movement on models the workspace
-  actually has. Do not dump records.
+  cargo-ai whoami
 
-Never \`capability_platform_execute_action\` or
-\`capability_platform_execute_action_batch\`. Those spend, and a recommendation
-is not a deploy. Never search_actions looking for a play to start.
+If that fails, this sandbox has no Cargo session: say so on every pull request
+you open, continue from the dump alone, and do not invent the numbers.
 
-If a platform tool errors because the capability is not on this workspace yet,
-say so on every pull request you still open and continue from the dump
-alone — do not fall back to a cargo-ai CLI loop and do not invent the numbers.
+Then only these, as the week needs them. \`--created-after\` / \`--created-before\`
+and \`--from\` / \`--to\` take ISO 8601 timestamps; build them from the ISO week
+you are recapping in PLANNING_TIMEZONE:
+
+- \`cargo-ai orchestration play list\` and \`cargo-ai ai agent list\` — what the
+  workspace actually has deployed. Read against the declared infra in the dump,
+  this is what turns "declared but it never ran" into a fact.
+- \`cargo-ai orchestration run count --created-after <start> --created-before <end>\`
+  — how much ran last week. Repeat with \`--statuses error\` for the failures. An
+  aggregate answers "did this play run" without listing anything.
+- \`cargo-ai orchestration run list --created-after <start> --created-before <end>
+  --statuses error --limit 20\` — the failures worth naming in a recommendation.
+- \`cargo-ai orchestration run get <uuid>\` — only to explain one of those.
+- \`cargo-ai billing usage get-metrics --from <start> --to <end> --unit billing.credits\`
+  — what the week spent, and on what. A number you cannot read is a number you
+  do not print.
+- \`cargo-ai storage model list\` — the models the workspace has. Do not dump
+  records.
+
+Pipe long output through \`jq\` or \`head\` rather than reading it whole.
+
+Read, never write. No \`orchestration action execute\`, no \`batch create\`, no
+\`cdk deploy\` or \`cdk destroy\`, no \`login\`/\`logout\`, no token minting, no
+\`workspaceManagement report\`, and nothing carrying remove, delete or destroy.
+Those spend, deploy, or leak, and a recommendation is none of the three: it is
+markdown a human merges. Do not go looking for a play to start.
+
+These reads belong here, at recap time, and not in the collector: the dump
+stays git-only and deterministic.
 
 ## 2. Decide the pull request set
 
@@ -131,10 +149,10 @@ Label is \`workspace\` or the initiative title (first line of its
 \`title:\` frontmatter, else the slug).
 
 Evidence, and only from what is on disk, in the collector dump, or returned
-by a platform tool you actually called:
+by a CLI read you actually ran:
 
 1. The raw dump at cadence/log/raw/planning/<YYYY-Www>.md.
-2. Platform reads from step 1b. Cite the tool that produced a number.
+2. The workspace reads from step 1b. Cite the command that produced a number.
 3. The initiative file itself, when the target is an initiative.
 4. Declared infra files the dump named that serve this target. Read them;
    do not edit them.
@@ -186,7 +204,7 @@ that the raw dump path is in the diff.
 ## Never
 
 Never merge your own pull request, never contact a customer, never write to
-the CRM, never execute a platform action that spends, never deploy, never
+the CRM, never run a CLI command that spends or deploys, never deploy, never
 edit or delete a raw dump or an existing recommendation file you did not
 write, never combine two initiatives into one pull request, never open a
 workspace pull request when an active initiative exists, never resolve a

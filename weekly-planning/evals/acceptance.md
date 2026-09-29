@@ -21,9 +21,12 @@ Walk every line. A checked template without an evidence-backed consumer adaptati
 - `cargo-ai connection connector list` shows an authorized Anthropic connector,
   and `languageModel` in `infra/agents/planner.ts` names a model it can reach.
   The harness runs against Cargo's proxy, so a missing one throws at `plan`.
+- `cargo-ai whoami` names the workspace this recap should read. It is §1b's
+  first command; whether the harness sandbox carries a session of its own is
+  what the first scheduled run establishes, and the PRs say so either way.
 - `node --import tsx evals/contract.mjs` passes against the adapted graph:
-  harness is `claudeCode` bound to an Anthropic connector and a model, the
-  platform capability is on the agent, there is no Slack action.
+  harness is `claudeCode` bound to an Anthropic connector and a model, no
+  capability is wired on the agent, there is no Slack action.
 - The cadence and initiatives paths in the system prompt match what
   `cadence/README.md` describes, or the new folders are introduced
   deliberately and that README is updated to name them.
@@ -44,8 +47,8 @@ Walk every line. A checked template without an evidence-backed consumer adaptati
 - A quiet week still produced the pull request(s), rather than skipping the
   run.
 - No number, account, or quote in a plan file is absent from the raw dump,
-  the cadence files, or a platform tool the agent actually called.
-  Spot-check two bullets against the dump. A platform-tool error is a note
+  the cadence files, or a `cargo-ai` read the agent actually ran.
+  Spot-check two bullets against the dump. A CLI read that errors is a note
   on the PR, not a made-up count.
 
 ## Isolation
@@ -55,9 +58,9 @@ Walk every line. A checked template without an evidence-backed consumer adaptati
 - Recommendations land as pull requests. No Slack token, no `chat.postMessage`
   script, no GitHub Action, no `execute_action`.
 - `evals/contract.mjs` still passes after adaptation: harness is `claudeCode`
-  bound to an Anthropic connector, the platform capability is on the agent,
-  there is no Slack action, and no tool wraps git or platform.
-- Platform tools used on the first run were read-only (whoami, runs, usage,
-  models). `execute_action` / `execute_action_batch` were not called. If the
-  capability was not live yet, each PR says so and the recap continued from
-  the git dump.
+  bound to an Anthropic connector, no capability is wired on the agent, there
+  is no Slack action, and no tool wraps git or the CLI.
+- The `cargo-ai` calls in the run's transcript were read-only (whoami, play
+  and agent list, run count / list, usage). No `orchestration action execute`,
+  no `batch create`, no `cdk deploy`. If `whoami` failed, each PR says so and
+  the recap continued from the git dump.

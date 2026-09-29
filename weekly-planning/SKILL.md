@@ -1,6 +1,6 @@
 ---
 name: weekly-planning
-description: 'Every Monday last week''s GTM work is ranked against active initiatives, declared infra, and live runs, as one reviewable pull request per initiative — or one workspace pull request when there are none. Triggers: "what should we work on this week", "rank our initiatives against what is actually running", "weekly GTM plan from the cadence log", "recommend next work from infra and runs", "the play is deployed but I don''t think it ran". Cargo CDK, defineAgent, harness claudeCode, GitHub, platform capability, initiatives, cadence. Skip when: you want today recapped and posted to Slack, which is standup; or you want call transcripts scribed into context, which is call-capture.'
+description: 'Every Monday last week''s GTM work is ranked against active initiatives, declared infra, and live runs, as one reviewable pull request per initiative — or one workspace pull request when there are none. Triggers: "what should we work on this week", "rank our initiatives against what is actually running", "weekly GTM plan from the cadence log", "recommend next work from infra and runs", "the play is deployed but I don''t think it ran". Cargo CDK, defineAgent, harness claudeCode, GitHub, cargo-ai CLI reads, initiatives, cadence. Skip when: you want today recapped and posted to Slack, which is standup; or you want call transcripts scribed into context, which is call-capture.'
 version: "0.1.0"
 compatibility: "Requires @cargo-ai/cli with @cargo-ai/cdk 1.0.67 or later — 1.0.66 brought `harness` and the harness repository spec, 1.0.67 roots the agent at the package.json that declares the CDK rather than at `infra/`. On 1.0.66, declare `rootDirectory: \".\"` yourself. Also needs a Cargo workspace, an authenticated LLM connector (the harness runs against Cargo's proxy, so the agent needs a `connector` and `languageModel` like any other), and a GTM repository with `cadence/` at its root (the shape `cargo-ai cdk init` scaffolds). `initiatives/` is optional: without it the run still opens one workspace pull request."
 homepage: https://github.com/getcargohq/gtm-skills/tree/main/weekly-planning
@@ -35,7 +35,7 @@ agent runs, and two things land:
    `cadence/log/raw/planning/<YYYY-Www>.md`. That is the evidence, and it is never edited by the
    agent.
 2. **The recommendation file(s).** The agent reads the dump, the workspace (runs, usage, models,
-   via the platform capability), and the initiative files, and writes markdown a human can merge:
+   through read-only `cargo-ai` calls), and the initiative files, and writes markdown a human can merge:
    - **No active initiatives** — one file, `cadence/plan/YYYY-Www.md`, one pull request titled
      `[cadence] workspace YYYY-Www`. It checks what is happening: declared infra, live runs, usage.
    - **One or more active initiatives** — one file and one pull request **per** initiative, titled
@@ -54,12 +54,13 @@ Three properties make it safe enough to run unattended:
 
 - **The collection is deterministic.** The agent does not fetch PRs. `scripts/collect/week.ts`
   does, the same way every Monday, and the agent is told not to improvise that step. Workspace data
-  (runs, usage, models) comes from the platform capability, not a second fetch the agent invents.
+  (runs, usage, what is deployed) comes from named read-only `cargo-ai` commands at recap time, not
+  from a second fetch inside the collector.
 - **One pull request per initiative, or one for the workspace.** Combining five bets into one diff
   is how a reviewer merges the loud one and skips the overdue one. Splitting them is the gate.
 - **The pull request is the gate.** The agent has repository write access and no other write path.
-  It cannot email anyone, cannot touch the CRM, cannot execute a platform action that spends, and
-  cannot merge itself.
+  It cannot email anyone, cannot touch the CRM, cannot run a `cargo-ai` command that spends or
+  deploys, and cannot merge itself.
 
 ## Put it in your project
 
@@ -116,6 +117,9 @@ Checked before moving on, not after the deploy:
   trailing `in infra/` is the failure to catch here: it roots the harness where there is no
   node_modules, so the collector cannot run
 - `scripts/weekly-planning/package.json` is present in the project after the install
+- `cargo-ai whoami` names the workspace this recap should read. That is the prompt's first
+  command, and the first scheduled run is what proves the harness sandbox carries a session of
+  its own; if it does not, every pull request says so and the recap lands from the dump
 - `node --import tsx evals/contract.mjs` passes
 
 ## What you can change
@@ -128,7 +132,7 @@ default.
 | ---------------- | -------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `move-the-hour`  | The team reads pull requests at a different time, or you are not on Pacific time                         | Change `cron` and `PLANNING_TIMEZONE` together in `infra/agents/planner.ts`. The cron is 15:00 UTC Monday because that is 8am PT in PDT.                    | A Sunday cron recaps an incomplete week. A timezone the collector does not share with the prompt splits the dump and the plan files across two weeks.                  |
 | `skip-on-track`  | An on-track initiative should not ping the reviewer                                                      | In `infra/agents/planner.prompt.ts`, skip the pull request when The gap is "on track"                                                                       | Silence on an on-track week is indistinguishable from a missed run for that initiative. The default still opens the PR, because a written "keep going" is the record.  |
-| `no-platform`    | This agent must not have execute tools on it, even as a prompt-forbidden list                            | Drop `capabilities` in `infra/agents/planner.ts` and §1b of `infra/agents/planner.prompt.ts`                                                                | The recap loses runs, usage, and model movement. The git dump still lands. Until the capability is live on the workspace, the default already continues from the dump if the tools error. |
+| `git-only`       | The sandbox has no Cargo session, or this agent must not reach the workspace at all                      | Drop §1b of `infra/agents/planner.prompt.ts`                                                                                                                | "Deployed is not running" stops being answerable, which is most of the point: the gap collapses to what git can see. The dump still lands, which is what §1b already falls back to when `cargo-ai whoami` fails. |
 | `one-pr`         | You want one weekly diff even when there are five initiatives                                            | Collapse step 2 of `infra/agents/planner.prompt.ts` to a single pull request that holds every plan file                                                     | The reviewer merges the loud initiative and skips the overdue one. The default splits them because that is the gate.                                                   |
 
 ## What should not change
@@ -140,17 +144,20 @@ it if you still want it, and records why under `## Decisions` in your copy of th
   agent re-derives every Monday is a fetch loop that silently changes shape — a window that drifts, a
   `gh` flag that quietly widens. The raw dump is the one thing here that has to be byte-identical in
   its rules every week, because everything downstream is diffed against it. Cargo workspace data is
-  the other half of the week, and it is the platform capability, not a `cargo-ai` CLI loop in the
-  collector.
+  the other half of the week, and it is read at recap time by the agent, not by a `cargo-ai` loop
+  bolted into the collector.
 - **Zero active initiatives is one workspace pull request. N active is N pull requests.**
   (`infra/agents/planner.prompt.ts`) Combining them is how a reviewer merges one bet and skips
   another. Opening a workspace pull request *and* the initiative ones is how unclaimed runs get a
   second home they were not asked to have: they stay in the dump.
-- **The platform capability is read-only.** (`infra/agents/planner.ts`,
-  `infra/agents/planner.prompt.ts`) `execute_action` and `execute_action_batch` spend, and a
-  recommendation is not a deploy. Leaving those tools callable is how a planner starts a batch it
-  cannot undo. Until the capability is on the workspace, the tools error and the recap continues
-  from the git dump — it does not invent the numbers.
+- **The workspace reads are read-only, and they are the CLI.** (`infra/agents/planner.prompt.ts`)
+  §1b names the commands: `whoami`, what is deployed, run counts and failures, usage. No
+  `capabilities` block is wired on the agent, because the read path is already in the sandbox and
+  only the prompt can say "read, never execute". `orchestration action execute`, `batch create`,
+  `cdk deploy` and anything that removes are the forbidden half of that list — a planner that can
+  start a batch is a planner that can spend, and a recommendation is not a deploy. If
+  `cargo-ai whoami` fails, every pull request says so and the recap continues from the git dump; it
+  does not invent the numbers.
 - **`scripts/weekly-planning/package.json` stays.** (`scripts/package.json`) It is not decoration.
   The CDK loader imports every `.ts` under the project root except directories carrying a
   `package.json`; delete it and `cargo-ai cdk plan` imports the collector and runs git/`gh` on every
@@ -169,7 +176,7 @@ it if you still want it, and records why under `## Decisions` in your copy of th
   next bet.
 - **Do not invent a number.** (`infra/agents/planner.prompt.ts`) Drop a metrics line rather than
   carry last week's ARR forward. A made-up delta is worse than no delta, because the plan file is
-  what leadership reads. A platform-tool error is a note on the PR, not a count you fill in.
+  what leadership reads. A CLI read that errors is a note on the PR, not a count you fill in.
 - **Never edit `plan/` or `infra/`.** (`infra/agents/planner.prompt.ts`) The planner recommends. A
   pull request that rewires a play is a deploy wearing a plan file's name.
 
@@ -178,8 +185,8 @@ it if you still want it, and records why under `## Decisions` in your copy of th
 - `--dry-run` printed the dump for the previous ISO week, and the run without it wrote
   `cadence/log/raw/planning/<YYYY-Www>.md`; running it twice that Monday overwrote the same file
 - `node --import tsx evals/contract.mjs` passes: harness is `claudeCode` bound to an Anthropic
-  connector and a model, the platform capability is on the agent, there is no Slack action, and no
-  tool wraps git or platform
+  connector and a model, no capability is wired on the agent, there is no Slack action, and no
+  tool wraps git or the CLI
 - `cargo-ai cdk plan` reports the agent, the GitHub and Anthropic connectors and the folder, and
   does **not** run git or `gh` while planning
 - with **zero** active initiatives, the first scheduled run opened exactly one unmerged pull
@@ -191,7 +198,7 @@ it if you still want it, and records why under `## Decisions` in your copy of th
 - a re-run the same Monday opened no additional pull request for a target whose
   `## Recommendations` section was already on disk
 - no number in a plan file is absent from the raw dump, a metrics file dated that week, or a
-  platform tool the agent actually called. A platform-tool error is a note on the PR, not a
+  `cargo-ai` read the agent actually ran. A CLI read that errors is a note on the PR, not a
   made-up count
 
 ## What it costs
@@ -201,9 +208,9 @@ Those calls are not Cargo connector actions.
 
 The recurring cost is the harness run itself, once a week, billed as LLM tokens through the bound
 Anthropic connector, and it scales with how much the agent reads — the dump, the week's cadence
-files, the active initiative files, declared infra, and the platform reads (whoami, runs, usage,
-models). There is no per-record fan-out. `execute_action` is on the capability; this recap never
-calls it.
+files, the active initiative files, declared infra, and the read-only `cargo-ai` calls in §1b
+(whoami, what is deployed, run counts, usage). Those reads are API calls, not connector actions, so
+they bill nothing. There is no per-record fan-out, and the recap never runs a command that spends.
 
 ## Composes into
 

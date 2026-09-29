@@ -18,12 +18,16 @@ import { agentsFolder } from "../folders";
 // connector and meters usage against this slug. Any Anthropic model works with
 // `claudeCode`; see `../connectors/anthropic.ts`.
 //
-// `platform` is the workspace operating surface (cargo#5815): list and query
-// runs, query models, credit usage. Same tools as the platform MCP.
-// It is not in @cargo-ai/cdk 1.0.68's Capability union yet; the wire payload
-// is still `{ slug, config }`. Drop the assertion once types catch up. This
-// recap is read-only against it — execute_action is how a planner starts
-// spending, and recommendations are markdown a human merges, not a deploy.
+// No `capabilities`, on purpose. The workspace half of the week — whoami, the
+// week's runs, credits, what is even deployed — is read with Cargo's own CLI,
+// which the harness already has: it clones a CDK project, so `cargo-ai` (or
+// its `npx @cargo-ai/cli` form) is right there next to the toolchain that
+// project pins, and the plugin's own approval hook already treats those reads
+// as the safe class. A capability would be a second path to the same data,
+// wired in the release rather than in the prompt, and only the prompt can say
+// "read, never execute" — which is the whole point here, because a
+// recommendation is markdown a human merges, not a deploy. The commands are
+// listed in `planner.prompt.ts` §1b.
 export const planner = defineAgent("weekly-planning", {
   name: "Weekly planning",
   description:
@@ -32,8 +36,6 @@ export const planner = defineAgent("weekly-planning", {
   harness: "claudeCode",
   connector: anthropic,
   languageModel: "claude-sonnet-5", // PLACEHOLDER — your model of choice
-  // @ts-expect-error TS2322: "platform" is not in this package's Capability union yet (cargo#5815)
-  capabilities: [{ slug: "platform", config: {} }],
   repository: {
     // Deliberately partial. `repository`, `defaultBranch`, `rootDirectory` and
     // the GitHub `connector` are all OMITTED so plan and deploy fill them from

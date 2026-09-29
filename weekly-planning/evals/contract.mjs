@@ -67,7 +67,7 @@ assert.equal(
 assert.equal(
   (agent.spec.tools ?? []).length,
   0,
-  "weekly-planning must not wrap platform or git in a tool",
+  "weekly-planning must not wrap git or the CLI in a tool",
 );
 assert.equal(
   (agent.spec.connectorActions ?? []).length,
@@ -75,13 +75,14 @@ assert.equal(
   "weekly-planning has no connector actions: it writes pull requests, it does not post",
 );
 
-const capabilitySlugs = new Set(
-  (agent.spec.capabilities ?? []).map((capability) => capability.slug),
-);
+// Workspace data — runs, usage, what is deployed — is read with the cargo-ai
+// CLI the harness checkout already has, and the prompt is what holds those
+// reads to read-only. A capability here would be a second path to the same
+// data that no prompt line can narrow.
 assert.equal(
-  capabilitySlugs.has("platform"),
-  true,
-  "weekly-planning must carry the platform capability: runs, usage, and models are workspace data, not a git dump",
+  (agent.spec.capabilities ?? []).length,
+  0,
+  "weekly-planning needs no capability: the workspace read path is the cargo-ai CLI in the sandbox",
 );
 
 findOne(
