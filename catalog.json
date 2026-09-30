@@ -592,6 +592,111 @@
       "composesInto": "`crm-context` (verifies the seeded ICP and personas against won and lost deals, and proposes the\ncorrections), `account-scoring` (reads the `icp/` this writes, disqualifier included),\n`monitor-buying-signals` and `tam-building` (the `signal/` candidates and the ICP band), and any\nagent with the `context` capability."
     },
     {
+      "name": "crm-context",
+      "kind": "cookbook",
+      "job": "Every month the CRM's closed deals are audited and what they say lands in context/ as one pull request: the ICP verified against won versus lost with a disqualifier, dated insights on who we talk to, where we win and where we lose with counts and denominators, objections from lost reasons where the CRM records them, and a client file per closed-won account; a five-line Slack digest says what changed. It never edits a persona, and never edits the ICP after the first pass: a change there is a proposal in the pull request.",
+      "description": "Every month the CRM's closed deals are audited and what they say lands in context/ as one pull request: the ICP verified against won versus lost with a disqualifier, dated insights on who we talk to, where we win and where we lose with counts and denominators, objections from lost reasons where the CRM records them, and a client file per closed-won account; a five-line Slack digest says what changed. It never edits a persona, and never edits the ICP after the first pass: a change there is a proposal in the pull request. Triggers: \"verify our ICP against won and lost deals\", \"what do closed-lost deals say about who we should not sell to\", \"keep the context repo current from the CRM every month\", \"which titles are on our won deals\", \"our lost reasons should become objections\", \"audit the CRM before we trust the ICP\". Cargo CDK, defineAgent, harness claudeCode, HubSpot, Salesforce, Attio, Slack, slack.postMessage, GitHub, cargo-ai CLI reads, context, cadence. Skip when: the context repo is empty and there is no CRM yet, which is context-seeding; or you want one account researched before a call, which is research-account.",
+      "version": "0.1.0",
+      "homepage": "https://github.com/getcargohq/gtm-skills/tree/main/crm-context",
+      "group": "Make it run forever",
+      "install": "cargo-ai cdk add cookbook/crm-context",
+      "partOf": [],
+      "personas": [
+        "revops",
+        "sales-leadership",
+        "gtm-engineering"
+      ],
+      "integrations": [
+        "anthropic",
+        "github",
+        "slack"
+      ],
+      "example": {
+        "prompt": "Every month, read what our HubSpot won and lost deals say, verify the ICP, and post the digest to #gtm-context.",
+        "output": "```text\n:bar_chart: *CRM context Oct 2026*: 23 deals closed\nWon 9, lost 14 · lost reason on 11 of 14 · contacts on 19 of 23\nLearned: 6 of 9 wins had a RevOps title on the deal · 8 of 14 losses were under 50 employees · \"no budget this quarter\" on 5 of 11 reasons\nProposed: add \"under 50 employees\" as an ICP disqualifier (8 of 14 losses, 0 of 9 wins), in the PR body\nPR: https://github.com/northwind/gtm/pull/331\n```\n\nThe pull request adds four dated `insight/` files, two `objection/` files and nine `client/` files,\nand modifies nothing under `icp/` or `persona/`; the disqualifier waits for a human."
+      },
+      "state": "to-be-approved",
+      "chain": 11,
+      "resources": [
+        "agents",
+        "connectors",
+        "folders"
+      ],
+      "asked": [
+        {
+          "input": "icp/",
+          "kind": "generated",
+          "how": "**derived**: what separates won from lost across industry, size, geography and what the records hold about stack, with at least one disqualifier. A seeded ICP gets one dated \"Verified against the CRM\" section on the first pass; an empty `icp/` gets the file. Never edited after that.",
+          "why": "The disqualifier is the half of an ICP that protects the team's time, and won versus lost is the only place it comes from with evidence."
+        },
+        {
+          "input": "insight/`, `objection/`, `client/",
+          "kind": "generated",
+          "how": "**derived** from the snapshot: three insight buckets with counts and denominators; objections only when the fill rate is at least half and a reason recurs on two or more deals; one client file per closed-won account, no amount, `reference_permission: unknown`.",
+          "why": "Insights are what next month is diffed against; without dates and denominators the run cannot tell change from guess. Amounts stay in the CRM: `context/` is read by every agent, including the ones that talk to prospects."
+        }
+      ],
+      "canChange": [
+        {
+          "id": "another-crm",
+          "when": "The deals live in Salesforce or Attio",
+          "how": "Write `scripts/collect/crms/<slug>.ts` satisfying `Crm` and register it in `crms/index.ts`; set `CRM` in `config.ts`. `references/crm-audit.md` names the objects and fields",
+          "cost": "Written from API docs until it has run against a live workspace, and the audit says so on every run. Check `--dry-run` reports real counts before trusting a snapshot"
+        },
+        {
+          "id": "raise-the-verify-line",
+          "when": "Twenty wins is too few to separate won from lost in your market (long cycles, few deals)",
+          "how": "Raise `VERIFY_MIN_WON` in `scripts/crm-context/collect/config.ts",
+          "cost": "More months land in hypothesis mode, and the ICP section stays tagged with denominators until the CRM catches up. The operator approves more and the files assert less"
+        },
+        {
+          "id": "wider-window",
+          "when": "Your sales cycle is longer than a year, or last year was not representative",
+          "how": "Raise `WINDOW_DAYS` in the same file",
+          "cost": "Older deals describe an older market. The insight dates say so, but the ICP section does not, and a two-year window on a company that repositioned last spring verifies the old ICP"
+        },
+        {
+          "id": "quarterly",
+          "when": "Fewer than ten deals close a month and the digest is mostly \"nothing new\"",
+          "how": "Change the cron in `infra/agents/crm-context.ts` to the first of every third month",
+          "cost": "A lost reason that recurs in month one is written in month three. The append-only rule means nothing is lost, only late"
+        },
+        {
+          "id": "no-digest",
+          "when": "The team reads pull requests and does not want a Slack post",
+          "how": "Delete `infra/connectors/slack.ts`, the `uses` block on the agent and step 8 of the prompt",
+          "cost": "The pull request is the only surface, and a monthly pull request nobody is pinged about is a monthly pull request nobody opens"
+        }
+      ],
+      "shouldNotChange": [
+        "**The CRM is the only source.** (`crm-context.prompt.ts`) No calls, no postings, no website, no inbox, and no mention of them to the agent. Each is another cookbook's evidence; wire one in here and a verification gets mixed with a hypothesis nobody can tell apart afterwards.",
+        "**The agent does not read the CRM; the script does.** (`scripts/collect/crm.ts`) A fetch loop an agent re-derives each month is a fetch loop that silently changes shape: a window that drifts, a pipeline that quietly joins. The snapshot is what every later run is diffed against, so its rules have to be identical every run.",
+        "**The one-PR write path.** (`infra/agents/crm-context.ts`) The agent never writes the workspace context directly and has no `context` capability: the repository is the source and `cargo-ai cdk deploy` syncs it.",
+        "**Personas are never edited, and the ICP only on the first pass, append-only.** (`crm-context.prompt.ts`) They are what the scorer and every outbound agent key on. A monthly agent quietly rewriting them is how a knowledge base drifts without anyone deciding it should; a proposal in the pull request body with deal ids is how it changes on purpose.",
+        "**The hygiene findings are stated, never worked around.** (`crm-context.prompt.ts`) A fill rate under half means no objections from the CRM this month, said out loud. Let the agent infer reasons from deal names and the objection files become fiction with a receipt tag.",
+        "**Every count carries its denominator.** (`scripts/collect/audit.ts`, `crm-context.prompt.ts`) \"6 of 9 wins\", never \"67%\". Next month's run cannot tell change from guess otherwise, and a reader cannot tell a pattern from two deals.",
+        "**No amounts and no people in `context/`.** (`scripts/collect/audit.ts`, `crm-context.prompt.ts`) The snapshot carries titles and ids, never emails; the agent writes no deal amount. `context/` is read by every agent, including the ones that talk to prospects.",
+        "**The channel is locked on the `postMessage` use.** (`infra/agents/crm-context.ts`) A digest about lost deals in a customer shared channel is the one failure nobody can undo.",
+        "**`scripts/crm-context/package.json` stays.** (`scripts/package.json`) The CDK loader imports every `.ts` under the project root except directories carrying one; delete it and `cargo-ai cdk plan` runs the audit against the live CRM on every plan.",
+        "**The harness root stays the repository root.** (`infra/agents/crm-context.ts`) That is where `node_modules` is, so it is the only place `npx tsx …/collect/crm.ts` resolves, and where `context/` and `cadence/` live. A line ending `in infra/` in `cargo-ai cdk check` means the audit cannot run and the month reports clean and empty."
+      ],
+      "doneWhen": [
+        "`npx tsx scripts/crm-context/collect/crm.ts --dry-run` printed real counts and the mode, and the run without it wrote `cadence/log/raw/crm/<today>.json` with real deal names, a lost-reason fill rate, an association rate and titles on won deals, with no email or amount in the file",
+        "`cargo-ai cdk check` prints the agent bound to the repository root, and `cargo-ai cdk plan` reports one agent, three bound connectors, one folder and no model",
+        "the first pass opened one pull request whose body opens with the two hygiene findings with denominators, then the mode and the won count that set it",
+        "`icp/` carries a disqualifier derived from won versus lost, citing the snapshot, as a new file or as one dated section appended to the seeded one",
+        "`insight/` holds dated files in the three buckets with counts and denominators, and every title on a won deal is mapped to a persona or listed as undetected",
+        "with the fill rate under half, no `objection/` file exists and the body says why; at or above it, every objection cites two or more deals by id",
+        "every `client/` file carries `reference_permission: unknown` and no amount",
+        "nothing under `persona/` changed, and any proposed change is in the pull request body with deal ids",
+        "the Slack digest is five lines, its numbers match the snapshot, and the last line is the pull request link",
+        "a monthly run against a project with new deals opened a pull request that adds files and modifies none under `icp/` or `persona/`; with no new deals it opened none and the digest said so",
+        "after merging and `cargo-ai cdk deploy`, the verified ICP section is readable from the workspace context repository and an agent with the `context` capability quotes it back with its tag"
+      ],
+      "cost": "The audit is free: `searchRecords` on the CRM bills no credits, and it is a few hundred reads at\nmost, paced, once a month. The recurring cost is one harness run a month, scaling with how many\ndeals closed since the previous one, plus the first pass over the whole window.",
+      "composesInto": "`context-seeding` (this verifies the ICP and personas it seeded and proposes the corrections),\n`account-scoring` (reads the verified `icp/`, disqualifier included), `crm-enrichment` (the\nassociation rate this reports is what a contact enrichment raises), and any agent with the\n`context` capability."
+    },
+    {
       "name": "crm-deduplication",
       "kind": "cookbook",
       "job": "Keep CRM accounts and contacts duplicate-free: audit company and person identity, run recurring deduplication plays directly on CRM models, merge safe exact matches, and route uncertain clusters to manual review.",

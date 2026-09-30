@@ -58,5 +58,11 @@
     "chain": 10,
     "demoWorkspace": null,
     "implementations": []
+  },
+  "crm-context": {
+    "state": "to-be-approved",
+    "chain": 11,
+    "demoWorkspace": null,
+    "implementations": []
   }
 }
