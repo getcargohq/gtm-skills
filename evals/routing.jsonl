@@ -62,8 +62,8 @@
 
 // --- one-off / deployed seam -------------------------------------------------------
 // tam-building, account-scoring, crm-enrichment, crm-deduplication,
-// call-capture, agentic-engagement, standup, weekly-planning and ask-cargo are worked CDK
-// examples that deploy a pipeline.
+// call-capture, agentic-engagement, standup, weekly-planning, ask-cargo and
+// context-seeding are worked CDK examples that deploy a pipeline.
 // build-tam-list, score-leads and research-account are one-offs: the same
 // job once, in a turn. The
 // same words describe both, so these cases pin which way each phrasing goes;
@@ -132,4 +132,7 @@
 {"prompt": "One agent on top of all the others that anyone can mention in slack", "expect": "ask-cargo"}
 {"prompt": "A slack bot that knows our repo and can open PRs", "expect": "ask-cargo"}
 {"prompt": "Post the day's recap to slack every evening", "expect": "standup", "why": "A scheduled digest is standup; ask-cargo only answers when mentioned."}
+{"prompt": "Our context repo is empty, seed it from our website", "expect": "context-seeding"}
+{"prompt": "Set up the workspace context from acme.com", "expect": "context-seeding"}
+{"prompt": "Write a first ICP and personas from our public pages and job postings", "expect": "context-seeding", "why": "Derived from the public surface, tagged, as a pull request: not one file written by hand."}
 {"prompt": "Research acme.com for me right now", "expect": "research-account", "why": "A one-off answer in this chat, nothing deployed."}

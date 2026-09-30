@@ -52,5 +52,11 @@
     "chain": 9,
     "demoWorkspace": null,
     "implementations": []
+  },
+  "context-seeding": {
+    "state": "to-be-approved",
+    "chain": 10,
+    "demoWorkspace": null,
+    "implementations": []
   }
 }
