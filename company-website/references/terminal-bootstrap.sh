@@ -74,7 +74,7 @@ fi
 export WEBSITE_MAINTAINER WEBSITE_VISITORS
 
 tools_dir="$(mktemp -d "${TMPDIR:-/tmp}/website-setup-tools.XXXXXX")"
-npm install --prefix "$tools_dir" --ignore-scripts --no-audit --no-fund @cargo-ai/cli@1.0.96 @cargo-ai/cdk@1.0.81
+npm install --prefix "$tools_dir" --ignore-scripts --no-audit --no-fund @cargo-ai/cli@1.0.96 @cargo-ai/cdk@1.0.89
 cargo_bin="$tools_dir/node_modules/.bin/cargo-ai"
 "$cargo_bin" login --help >/dev/null
 "$cargo_bin" project init --help >/dev/null
@@ -95,7 +95,7 @@ cd "$WEBSITE_PROJECT"
 node --input-type=module <<'JS'
 import {readFileSync,writeFileSync} from 'node:fs';
 const p=JSON.parse(readFileSync('package.json','utf8'));
-p.dependencies['@cargo-ai/cdk']='1.0.81';
+p.dependencies['@cargo-ai/cdk']='1.0.89';
 p.devDependencies['@cargo-ai/cli']='1.0.96';
 writeFileSync('package.json',JSON.stringify(p,null,2)+'\n');
 JS

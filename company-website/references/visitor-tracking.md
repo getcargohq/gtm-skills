@@ -94,10 +94,17 @@ this pipeline. Set `visitor-browser.json` with:
 - `privacyPolicyUrl` pointing to that disclosure.
 - `approvedScriptSha256` equal to the exact hash printed by capture, after review.
 
-The starter already includes `visitorTrackingPlugin` in Vite. When importing an
-existing application, retain `visitor-support.mjs`, its declaration file,
-`visitor-browser.json` and `visitor-runtime.js`, and add the plugin to that app's
-Vite configuration. Keep these files inside the self-contained app package.
+The starter wires this at build time. `next.config.ts` calls
+`visitorConsentConfig`, which fails the build for an unapproved script and
+otherwise aliases `@visitor-consent` to the real loader only while tracking is
+enabled; disabled, it resolves to an empty stub, so the export carries no
+consent or tracker code. `app/layout.tsx` renders
+`components/visitor-consent.tsx`, a client component that imports the plain
+`visitor-runtime.js` gate after hydration. The captured provider script lives in
+`public/`, which the export copies to the site root. When importing an existing
+Next.js application, retain `visitor-support.mjs`, `visitor-runtime.js`, their
+declaration files, `visitor-browser.json` and that alias and layout wiring.
+Keep these files inside the self-contained app package.
 
 The supplied consent control loads nothing from Snitcher before acceptance. It
 offers equal accept/reject controls, persistent privacy choices, and honors Global

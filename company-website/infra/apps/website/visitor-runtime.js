@@ -1,9 +1,18 @@
-import config from "./visitor-browser.json";
-
+// Consent gate for the optional Snitcher tracker. Plain DOM code, loaded only
+// by components/visitor-consent.tsx when visitor-browser.json is enabled and
+// reviewed, so the contract and browser evals can exercise it directly.
+//
 // Do not load the provider on previews or before an explicit visitor choice.
 // This gate is stricter than the provider's cookie-consent flag, which can
 // still send events before consent. No form capture or identify calls are added.
-if (config.enabled && location.origin === new URL(config.siteUrl).origin) {
+let started = false;
+
+export function startVisitorConsent(config) {
+  // React may mount the loader twice in development; one gate per page.
+  if (started) return;
+  started = true;
+  if (!config.enabled || location.origin !== new URL(config.siteUrl).origin)
+    return;
   const key = "company-website-visitors-consent-v1";
   let loaded = false;
   const read = () => {

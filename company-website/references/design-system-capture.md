@@ -53,8 +53,9 @@ tokens grounded in its brief. Do not describe these as extracted brand facts.
 ## Link the implementation
 
 Reuse the company's existing token/CSS/component foundation where available.
-Otherwise create a small machine-readable token file or CSS variables in the
-app package and link it from the guide. Avoid maintaining independent copies
+Otherwise map the captured tokens onto the starter's shadcn/ui CSS variables in
+`app/globals.css` (colors, radius, fonts) and the vendored components in
+`components/ui/`, and link those files from the guide. Avoid maintaining independent copies
 of the same values. Preserve original names when supplied; document any mapping
 needed for the target implementation.
 

@@ -1,12 +1,15 @@
 #!/usr/bin/env node
 import { execFileSync } from "node:child_process";
+import { getApi } from "@cargo-ai/cdk/cli";
 import { statePath } from "@cargo-ai/cdk/deploy";
 import { existsSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { parseArgs } from "node:util";
 import {
+  assertDomainSendsNoMail,
   assertStateBound,
+  domainRecordsFromState,
   gitRepository,
   inspectLive,
   readConfig,
@@ -58,9 +61,9 @@ try {
     );
   }
   const command = positionals[0];
-  if (!["check", "doctor", "plan", "verify"].includes(command))
+  if (!["check", "doctor", "plan", "verify", "records"].includes(command))
     throw new Error(
-      "Usage: node scripts/company-website/website.mjs check|doctor|plan|verify [--cdk-dir infra]",
+      "Usage: node scripts/company-website/website.mjs check|doctor|plan|verify|records [--cdk-dir infra]",
     );
   if (command === "check") {
     support.assertUploadable(app);
@@ -90,6 +93,35 @@ try {
         2,
       ),
     );
+  } else if (command === "records") {
+    // External DNS: read the records the last release stored for the app's
+    // hostname, so the operator can add them at the company's DNS provider.
+    verifyIdentity(config, cargo(["whoami"]), gitRepository(project));
+    assertStateBound(project, cdkDir);
+    const pointer = JSON.parse(readFileSync(statePath(cdkDir), "utf8"));
+    const resources = pointer.stateUuid
+      ? (await getApi().workspaceManagement.state.get(pointer.stateUuid)).state
+          .contents.resources
+      : pointer.resources;
+    const records = domainRecordsFromState(
+      config,
+      resources?.[`app:${config.appSlug}`],
+    );
+    const name = config.domain.name.trim().toLowerCase();
+    console.log(
+      JSON.stringify(
+        {
+          domain: name,
+          records,
+          next:
+            `Add each record at ${name}'s DNS provider; "host" is the name relative to the zone. ` +
+            `www.${name} serves the site once the _cargo-verify TXT resolves (minutes to hours). ` +
+            `Forward the apex ${name} to https://www.${name} with the provider's redirect; never point the apex at the app.`,
+        },
+        null,
+        2,
+      ),
+    );
   } else {
     const identity = cargo(["whoami"]);
     verifyIdentity(config, identity, gitRepository(project));
@@ -99,6 +131,7 @@ try {
         ? cargo(["connection", "connector", "list"])
         : [],
     );
+    assertDomainSendsNoMail(config, cargo);
     if (config.visitors?.enabled && config.visitors.connectorUuid) {
       const schema = cargo([
         "connection",

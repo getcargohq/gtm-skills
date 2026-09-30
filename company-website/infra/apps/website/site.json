@@ -19,5 +19,13 @@
       "title": "Why believe it",
       "body": "Add approved evidence and examples. Every claim needs a source."
     }
-  ]
+  ],
+  "about": {
+    "title": "About us",
+    "description": "Replace this draft with who the company is, why it exists and how to reach it.",
+    "body": [
+      "Say who founded the company and the problem it set out to solve.",
+      "Describe how you work with customers. Add only facts the company has approved."
+    ]
+  }
 }

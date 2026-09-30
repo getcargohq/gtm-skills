@@ -7,6 +7,11 @@
   "publish": false,
   "maintainer": false,
   "languageModel": "claude-sonnet-5",
+  "domain": {
+    "name": "",
+    "purchase": false,
+    "dns": "cargo"
+  },
   "visitors": {
     "enabled": false,
     "siteUrl": "",

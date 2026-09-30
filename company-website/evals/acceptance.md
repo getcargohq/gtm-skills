@@ -19,8 +19,9 @@ Expected observable results:
   missing decisions. It does not invent customers, metrics or approved pricing.
 - After brief approval, the guide labels new tokens as proposed/approved, links
   to implementation tokens, and the source contains the agreed facts and CTA.
-- A clean install builds in the installed app package. Initial HTML has title,
-  description and page content. Drafts carry noindex. Desktop, mobile, intermediate
+- A clean install builds in the installed app package. `dist/index.html` and
+  `dist/about/index.html` carry their own title, description and page content,
+  and `dist/robots.txt` and `dist/sitemap.xml` exist. Drafts carry noindex. Desktop, mobile, intermediate
   widths, keyboard controls and theme states are checked in a real browser.
 - The local preview and evidence are delivered; no Cargo state or live surface
   changes occur from a preview-only instruction.
@@ -87,6 +88,22 @@ guard, source-content updates, identity/state preservation and live-verification
 failure paths using isolated local fixtures and mocked Cargo/HTTP responses.
 It does not call Cargo deployment, grant OAuth or exercise a hosted agent.
 
+## Company domain
+
+1. With the default `domain` block, the plan has no domain and the app declares
+   no hostname. Set a domain the test workspace already owns with
+   `purchase: false`: the plan adopts it, never creates it.
+2. Read the live zone. List every record it still needs next to the app's
+   records, then review the plan's zone diff before release.
+3. After release, the hostname becomes active only after `_cargo-verify`
+   resolves. `https://www.<name>/` serves the reviewed source marker, the apex
+   redirects and mail (if any) still delivers.
+4. Remove the block in a later release: the hostname stays attached and the
+   domain is retained unless a prune is separately approved.
+
+Buying a domain is not part of acceptance unless the operator explicitly
+approves the non-refundable `+ create domain:<name>` plan line.
+
 ## Visitor tracking opt-in and lifecycle
 
 1. Run fresh setup and decline both optional modules. The graph has no agent,
@@ -115,13 +132,15 @@ From the distribution checkout, use an isolated tool directory:
 
 ```sh
 website_browser_tools="$(mktemp -d)"
-npm install --prefix "$website_browser_tools" --no-save vite@6.4.3 playwright@1.63.0
+npm install --prefix "$website_browser_tools" --no-save playwright@1.63.0
 "$website_browser_tools/node_modules/.bin/playwright" install chromium
-WEBSITE_TEST_NODE_MODULES="$website_browser_tools/node_modules" \
 WEBSITE_PLAYWRIGHT_MODULE="$website_browser_tools/node_modules/playwright/index.mjs" \
 node company-website/evals/browser.mjs
 ```
 
-An existing Chrome binary can be selected with `WEBSITE_CHROME`. The test builds
-an isolated copy, serves it through intercepted browser requests, and uses an
-inert local tracker. It prints the evidence directory with screenshots and results.
+An existing Chrome binary can be selected with `WEBSITE_CHROME`. The test copies
+the app, runs `npm ci` from its lockfile and the package's own Next.js build,
+checks the exported pages and that a disabled build ships no tracking code,
+then serves `dist/` the way Cargo's static routing does through intercepted browser
+requests. It covers navigation, direct `/about` entry, the theme control and
+mobile overflow, then the consent scenarios with an inert local tracker. It prints the evidence directory with screenshots and results.

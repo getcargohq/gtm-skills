@@ -2,13 +2,14 @@ import {
   defineAgent,
   defineApp,
   defineConnector,
+  defineDomain,
   defineFolder,
   defineModel,
   connectorRef,
 } from "@cargo-ai/cdk";
 import { readFileSync } from "node:fs";
 import { relative, sep } from "node:path";
-import { appPath, settings } from "./settings";
+import { appPath, domain, settings } from "./settings";
 import { assertVisitorBinding } from "./apps/website/visitor-support.mjs";
 import { maintainerPrompt } from "./agents/maintainer.prompt";
 import {
@@ -104,16 +105,41 @@ if (settings.publish) {
       "Bind this project and approve site.json before enabling publication.",
     );
   }
+  if (
+    domain &&
+    content.canonicalUrl &&
+    content.canonicalUrl !== `https://${domain.host}/`
+  )
+    throw new Error(
+      `site.json canonicalUrl must be https://${domain.host}/ once the domain is declared.`,
+    );
   const folder = defineFolder("company-website-apps", {
     kind: "app",
     name: "Company website",
   });
-  defineApp(settings.appSlug, {
+  const app = defineApp(settings.appSlug, {
     name: "Company website",
     // CDK hashes the path string. Keep it stable across local and CI checkouts.
     path: relative(process.cwd(), appPath).split(sep).join("/"),
     description: "Public website built from this project's reviewed source.",
     folder,
+    // A hostname removed later stays attached; detach it in Cargo on purpose.
+    domains: domain ? [domain.host] : undefined,
     // Public bundle: no Cargo SDK login, private context or browser secrets.
   });
+  // External DNS: the zone stays at the company's provider. Cargo only
+  // attaches www; `website.mjs records` prints what to add there.
+  if (domain?.dns === "cargo") {
+    // purchase: true registers the domain: it charges Cargo credits and is not
+    // refundable. The plan's `+ create domain:<name>` line is that approval.
+    // Otherwise adopt binds a domain this workspace already owns, never buys.
+    defineDomain(domain.name, {
+      adopt: domain.purchase !== true,
+      // The WHOLE zone: it replaces every live record, including mail. Add the
+      // domain's other records here, next to the app's TXT and CNAMEs.
+      dnsRecords: [app.domainRecords],
+      // The apex cannot CNAME to the app, so it forwards to the www host.
+      redirectUrl: `https://${domain.host}`,
+    });
+  }
 }

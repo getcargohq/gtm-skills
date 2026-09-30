@@ -98,10 +98,13 @@ Do not turn an unrun check into a pass.
 - [ ] Current app, promoted deployment, actual state binding, and reviewed plan
       agree. The previous successful deployment or recoverable source revision is
       recorded before replacement. Production writes follow repository rules.
-- [ ] Requested custom-domain support is verified using current Cargo
-      documentation/API/CLI. Do not treat a domain purchase or sending-domain DNS
-      resource as proof that hosting supports a custom website domain. If support
-      is absent or unverified, say so. Any domain/DNS change has its own approval.
+- [ ] If a domain is declared, the plan shows `adopt` unless a purchase was
+      explicitly approved; a `+ create domain:<name>` line is a non-refundable
+      purchase. The declared zone keeps every existing record the domain needs
+      (mail, verifications); the plan's record diff is reviewed. After release,
+      `_cargo-verify` resolves, `https://www.<name>/` serves the site with a valid
+      certificate, the apex redirects to it and canonicals point at it. A pending
+      TXT or certificate is reported as pending. See [domain](domain.md).
 - [ ] A real release completed successfully and the promoted deployment matches
       the intended version. Use the actual returned live URL, then test anonymous
       access, nested-route refresh, assets, and agreed form behavior there.

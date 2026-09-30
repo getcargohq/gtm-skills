@@ -97,7 +97,7 @@ async function main() {
     writeFileSync(
       ".gitignore",
       readFileSync(".gitignore", "utf8") +
-        "\n# Local builds and Cargo state working files, never the committed pointer.\ndist/\n*.tsbuildinfo\ncargo.state.cache.json\ncargo.state.lock\ncargo.state.bak.json\ncargo.state.audit.jsonl\n",
+        "\n# Local builds and Cargo state working files, never the committed pointer.\ndist/\nout/\n.next/\nnext-env.d.ts\n*.tsbuildinfo\ncargo.state.cache.json\ncargo.state.lock\ncargo.state.bak.json\ncargo.state.audit.jsonl\n",
     );
 
     // Vendor documentation has its own style. Company prose remains checked.

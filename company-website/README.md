@@ -15,9 +15,19 @@ release workflow. The bootstrap stops before deploying the maintainer or website
 
 ## Why these resources exist
 
-- The public Vite app is the customer-facing output. Keeping its package under
+- The public Next.js app is the customer-facing output: App Router pages
+  exported statically (`output: "export"`, `trailingSlash: true`), Tailwind CSS
+  v4 and vendored shadcn/ui components. Its build script moves Next's `out/` to
+  `dist/`, where Cargo Hosting reads it. Because the export writes pages as
+  `about/index.html`, Cargo's build gives the deployment static routing, so
+  `/about` serves `about/index.html` with nothing to declare. Keeping its package under
   `infra/apps/website/` preserves paths when Cargo moves the resource directory.
   Its package boundary prevents CDK discovery from executing browser code.
+- An optional domain serves the site on `www.<domain>`. With Cargo DNS it
+  publishes the zone and forwards the apex, adopting an owned domain unless
+  `purchase: true` is set explicitly. With `dns: "external"` the zone stays
+  at the company's provider and `website.mjs records` lists what to add
+  there. See [domain](references/domain.md).
 - The local coding harness reads the skill and prepares changes without a
   Cargo agent. This is the default.
 - Opt-in Snitcher models collect actual visiting companies and sessions. The
@@ -33,12 +43,16 @@ release workflow. The bootstrap stops before deploying the maintainer or website
 
 ## Source, design and release
 
-`site.json` separates starter content from layout and tokens. Vite renders text
-and metadata into initial HTML, so the one-page starter can be read without JS.
-The design reference connects company evidence to actual CSS/components. A
-supplied repository should replace the neutral starter where appropriate.
+`site.json` separates starter content from layout and tokens. The static
+export prerenders every page with its own title, description, canonical and
+Open Graph tags (Next `metadata` exports), so pages read without JavaScript.
+`app/robots.ts` and `app/sitemap.ts` use `canonicalUrl`; drafts disallow
+crawling. The design reference connects company evidence to the Tailwind
+tokens in `app/globals.css` and the components in `components/ui/`. A supplied
+repository should replace the neutral starter where appropriate.
 
-`website-build.json` identifies the sorted source files used by the build. The
+`website-build.json`, written into `dist/` by `build-marker.mjs` after
+`next build`, identifies the sorted source files used by the build. The
 verification helper requires Cargo's promoted deployment and a matching marker
 from an anonymous HTTPS request. It also rejects workspace/repository mismatches.
 This detects a stale served build, but does not attest that the code is correct:
@@ -58,9 +72,10 @@ tests repeat installation and target/state guards, and rejects stale deployments
 It makes no Cargo writes. The acceptance scenarios cover the browser and hosted
 steps that deterministic checks cannot establish.
 
-Current limitations: no verified custom-domain support, no connected form,
-no multi-page routing implementation, and no live deployment/hosted-agent outcome
-claim. Visitor tracking requires explicit setup and a reviewed privacy disclosure.
+Current limitations: the domain module needs CDK 1.0.89 or later and has no
+live acceptance yet; no connected form; no live
+deployment/hosted-agent outcome claim. Unknown routes serve Cargo's own
+noindex "App not found" page, not the app's `not-found` page. Visitor tracking requires explicit setup and a reviewed privacy disclosure.
 The pipeline does not supply a legal privacy policy or guarantee company matches.
 The pinned CDK's UTF-8 upload cannot preserve raw binary assets. Release checks
 reject incompatible bytes and app-local `.env` files; source recreations must

@@ -49,10 +49,16 @@ jobs:
           npx --no-install cargo-ai project deploy --dir infra --yes
           if node -e 'process.exit(JSON.parse(require("fs").readFileSync("infra/company-website/website.json")).publish ? 0 : 1)'; then
             node scripts/company-website/website.mjs verify | tee website-release.json
+            # External DNS: list the records the operator adds at the provider.
+            if node -e 'const d = JSON.parse(require("fs").readFileSync("infra/company-website/website.json")).domain; process.exit(d?.name && d.dns === "external" ? 0 : 1)'; then
+              node scripts/company-website/website.mjs records | tee website-dns-records.json
+            fi
           fi
       - uses: actions/upload-artifact@v4
         if: success()
         with:
           name: website-release
-          path: website-release.json
+          path: |
+            website-release.json
+            website-dns-records.json
           if-no-files-found: ignore

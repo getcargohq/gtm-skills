@@ -7,6 +7,8 @@ uses the resources selected by the operator. The public website is released
 after its brief, design and implementation are reviewed.
 
 Validated against Cargo CLI 1.0.96, CDK 1.0.81 and Node 22.23.2 on 2026-09-16.
+The Next.js app, static routing and domain module need CDK 1.0.89, which the
+bootstrap now pins; that combination has local contract and browser checks only.
 The local setup/build and offline resource tests are checked. Workspace creation,
 token-based GitHub connection, Actions deployment and hosted agent execution still
 require live acceptance in the new workspace. This is an unmerged pilot, not a
@@ -185,7 +187,7 @@ npm ci --prefix infra/company-website/apps/website
 npm run lint
 npm run typecheck
 node scripts/company-website/website.mjs check
-npm run dev --prefix infra/company-website/apps/website -- --host 127.0.0.1
+npm run dev --prefix infra/company-website/apps/website
 ```
 
 The last command prints the local preview URL and keeps serving until Ctrl-C.
@@ -199,7 +201,8 @@ Record tests that actually ran and gaps, particularly image loading, navigation,
 keyboard access, page metadata and real form delivery. Raw binary assets are
 blocked by this CDK version's text-only upload: convert them to reviewed text-safe
 representations or use approved asset URLs as described in `build-and-review.md`.
-Custom domains/DNS and form backends require separate verified setup.
+Form backends require separate verified setup. To serve the site on the company
+domain, follow `references/domain.md` in the release PR below.
 
 ## 5. Publish the reviewed website
 
@@ -230,6 +233,11 @@ git push -u origin release/company-website
 gh pr create --base main --title 'Publish reviewed company website' \
   --body 'Enable the reviewed company website. See the implementation PR for content, design and browser QA; review the Cargo plan before release.'
 ```
+
+To serve the site on the company domain in the same release, also set the
+`domain` block and the matching `canonicalUrl` by following
+`references/domain.md`. Keep `purchase: false` unless the operator approved
+buying it; the plan's `+ create domain:<name>` line is that purchase.
 
 Draft starter content still fails the readiness guard. Do not bypass it. After
 the release PR checks and review pass, merge it and dispatch the release:

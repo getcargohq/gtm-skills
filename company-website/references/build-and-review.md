@@ -30,11 +30,24 @@ reference, not a license to apply its brand to this company.
 
 ## Implementation
 
-Keep source in the installed app package. The starter uses Cargo's supported
-Vite bundle format. If replacing it, verify `cargo-ai hosting app init --help`
-and the current supported template first. Use the hosting skill for commands.
-Keep the lockfile and `website-build.json` generation, or replace the verification
-contract deliberately and document how the served revision will be checked.
+Keep source in the installed app package. The starter is a Next.js App Router
+site with `output: "export"`, `trailingSlash: true` and unoptimized images, so
+`next build` writes one HTML file per page. Its `build` script moves `out/` to
+`dist/`, where Cargo reads the output, then writes `dist/website-build.json`.
+Cargo runs that script on deploy, sees pages written as `<route>/index.html`
+and routes the deployment statically — the build log says `Routing: static`.
+Keep `trailingSlash: true`: without it pages export as `about.html` and
+`/about` serves the home page. A server-rendering feature (route handlers with request
+data, middleware, `next/image` optimization, ISR) does not survive a static
+export. Use the hosting skill for commands. Keep the lockfile and the marker
+step, or replace the verification contract deliberately and document how the
+served revision will be checked.
+
+Build UI from the vendored shadcn/ui components in `components/ui/` and the
+tokens in `app/globals.css`. Add a component with the shadcn CLI
+(`npx shadcn@latest add <name>`, which reads `components.json`) and commit the
+generated source; review it like any other change. Icons come from
+`lucide-react`. Replace the neutral tokens with the company's captured ones.
 
 **Asset transport is a release requirement.** The currently pinned CDK uploads
 file contents as UTF-8 strings. Raw PNG/JPEG/font binaries can build locally but
@@ -50,11 +63,15 @@ real company's content is approved. Internal anchors can be valid CTAs; a reques
 for a demo/signup form still requires a real destination and receipt test.
 Add no invented proof, customer logos, testimonials, prices or results.
 
-The starter serves one page with build-time metadata. If the brief needs more
-pages, explicitly implement and verify their initial metadata, direct-route
-refresh, unknown-route behavior and sitemap. A Vite SPA fallback is not a proven
-multi-page SEO implementation. Check custom-domain capabilities through current
-Cargo help/docs before promising one; sending domains are a different resource.
+The starter prerenders home, about and a not-found page. Each page exports its
+own `metadata` (title, description, canonical, Open Graph) through
+`pageMetadata` in `lib/site.ts`. For another page, add `app/<route>/page.tsx`
+with its metadata, add the route to `app/sitemap.ts`, and verify its initial
+HTML, direct entry with and without the trailing slash, and refresh. Unknown
+routes serve Cargo's own noindex "App not found" page with a 200, not the
+app's `not-found` page. Serving on the company domain is optional; follow
+[domain](domain.md). Sending domains for mailboxes are a separate use of the
+same Cargo domain and must keep their records in the declared zone.
 
 ## Review and updates
 

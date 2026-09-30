@@ -22,8 +22,9 @@ when available. Keep company content outside the reusable skill. Never add
 fabricated testimonials, statistics, customer logos, or prices. Preserve source
 licenses. Distinguish inherited defects from errors introduced by reconstruction.
 
-Build from the app package and its lockfile. Cargo builds source with npm ci and
-Vite, so the source must be self-contained. No credentials or workspace-private
+Build from the app package and its lockfile. Cargo runs npm ci and the package
+build script (a Next.js static export into dist/), so the source must be
+self-contained. Use the vendored shadcn/ui components and Tailwind tokens. No credentials or workspace-private
 data belong in public assets. Workspace environment variables may be available
 to the harness; never print or copy them into source or reports. Do not submit
 forms to an external service unless its destination and test data are authorized.
@@ -44,7 +45,7 @@ the business outcome it serves. Append an outputs/YYYY-MM-DD-<slug>/ record with
 title, description and outcome. Never rewrite existing output history.
 
 Never merge a PR, deploy or promote a Cargo app, create deployment state, change
-domains/DNS, or send outreach. CI and the human reviewer own publication. Do not
+domains/DNS (including website.json domain), buy a domain, or send outreach. CI and the human reviewer own publication. Do not
 edit workflows or approvals to make a failed check pass. If credentials, context,
 browser tooling, or repository access are missing, report the exact unmet step
 and deliver the useful work already completed. Stop after the reviewable result;

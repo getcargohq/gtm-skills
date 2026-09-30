@@ -100,8 +100,12 @@ show a concrete PR with these changes and the local preview:
   is still the intended approved revision; preserve the prior successful app
   deployment and source commit in the release record.
 - Once publication is approved, set `publish: true`, replace draft content and
-  set its status to `ready`. The app declaration then appears in the plan and
-  Cargo builds and promotes it during the authorized release.
+  set its status to `ready`. The app declaration then appears in the plan and Cargo builds and promotes it during the
+  authorized release.
+- A company domain is a separate decision recorded in `website.json` `domain`
+  (off by default; adopt unless `purchase: true`). Review the domain line and
+  the full zone in the plan. With `dns: "external"`, run `website.mjs records`
+  after the release and add them at the provider; follow [domain](domain.md).
 - After deployment, run `node scripts/company-website/website.mjs verify`.
   Archive its returned app/workspace URLs, deployment ID and source match, then
   run the browser and form checks on that actual public URL.
@@ -129,7 +133,7 @@ this release. Check promotion and caches; do not mark the release complete.
 ## Portable app declarations
 
 Keep the `defineApp` path relative to the active CDK project directory. The CLI
-enters that directory before loading resources. CDK 1.0.81 hashes the path string
+enters that directory before loading resources. The CDK (1.0.81 and later) hashes the path string
 as part of the app specification, so an absolute local path and an absolute CI
 path produce different plans even when their source content matches. The
 resource declaration derives a relative path from its module location, and the

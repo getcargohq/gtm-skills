@@ -79,21 +79,15 @@ export function assertVisitorBinding(root, visitors) {
       "Browser tracking and the Cargo visitor models must target the same enabled website.",
     );
 }
-export function visitorTrackingPlugin(root) {
+// Read at build time by app/layout.tsx. Returns the public browser settings
+// only when tracking is enabled and its provider script is approved; null keeps
+// the consent loader, and with it all tracking code, out of every page.
+export function visitorConsentConfig(root) {
+  const config = validateBrowserVisitors(root);
+  if (!config.enabled) return null;
   return {
-    name: "company-website-visitors",
-    transformIndexHtml: {
-      order: "pre",
-      handler() {
-        if (!validateBrowserVisitors(root).enabled) return [];
-        return [
-          {
-            tag: "script",
-            attrs: { type: "module", src: "/visitor-runtime.js" },
-            injectTo: "body",
-          },
-        ];
-      },
-    },
+    enabled: true,
+    siteUrl: config.siteUrl,
+    privacyPolicyUrl: config.privacyPolicyUrl,
   };
 }

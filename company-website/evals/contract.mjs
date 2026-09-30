@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { runInNewContext } from "node:vm";
 import { operate, providerJavascript } from "../scripts/visitors.mjs";
-import { assertVisitorBinding, sha256, visitorTrackingPlugin } from "../infra/apps/website/visitor-support.mjs";
+import { assertVisitorBinding, sha256, visitorConsentConfig } from "../infra/apps/website/visitor-support.mjs";
 import { execFileSync } from "node:child_process";
 import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -9,7 +9,7 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { statePath, writeStatePointer } from "@cargo-ai/cdk/deploy";
 import { install, filesToInstall } from "../scripts/install.mjs";
-import { assertStateBound, inspectLive, readConfig, repositoryFromOrigin, verifyConnectors, verifyIdentity, verifyPublic } from "../scripts/lifecycle.mjs";
+import { assertDomainSendsNoMail, assertStateBound, domainRecordsFromState, inspectLive, readConfig, repositoryFromOrigin, verifyConnectors, verifyIdentity, verifyPublic } from "../scripts/lifecycle.mjs";
 import { assertReady, assertUploadable, escapeHtml, sourceHash } from "../infra/apps/website/build-support.mjs";
 
 // Compare our pre-merge/fork installer with the real installed CDK algorithm.
@@ -53,6 +53,9 @@ try {
     assert.ok(ours.includes("scripts/company-website/package.json"));
     assert.ok(ours.includes(".agents/skills/company-website/SKILL.md"));
     assert.ok(!ours.some(f => /cargo\.state|(^|\/)\.env/.test(f)));
+    assert.ok(ours.includes("infra/company-website/apps/website/next.config.ts"));
+    assert.ok(ours.includes("infra/company-website/apps/website/components.json"));
+    assert.ok(!ours.some(f => /\/(\.next|out|dist)\/|next-env\.d\.ts$/.test(f)));
     const rootPackage = readFileSync(join(project, "package.json"), "utf8");
     assert.equal(install(source, project).written.length, ours.length);
     assert.equal(readFileSync(join(project, "package.json"), "utf8"), rootPackage);
@@ -64,6 +67,8 @@ try {
     assert.deepEqual(graph.nodes, []);
     assert.equal(readConfig(infra).maintainer, false);
     assert.equal(readConfig(infra).visitors.enabled, false);
+    // The domain block ships off, and adopting is the default when it is set.
+    assert.deepEqual(readConfig(infra).domain, { name: "", purchase: false, dns: "cargo" });
     save(configFile, { ...readConfig(infra), maintainer: true });
   });
 
@@ -161,7 +166,7 @@ try {
   let publishedGraph;
   await test("ready app is public, self-contained, foldered and targets the consuming repository", () => {
     const site = json(join(app, "site.json"));
-    save(join(app, "site.json"), { ...site, status: "ready", companyName: "Fixture company", headline: "A shared checklist", description: "One checklist for the operations team.", cta: { label: "Contact", href: "mailto:team@fixture.test" } });
+    save(join(app, "site.json"), { ...site, status: "ready", companyName: "Fixture company", headline: "A shared checklist", description: "One checklist for the operations team.", cta: { label: "Contact", href: "mailto:team@fixture.test" }, about: { title: "About Fixture", description: "Fixture builds checklists for operations teams.", body: ["Founded to keep operations work visible."] } });
     publishedGraph = check();
     validGraph(publishedGraph);
     const node = publishedGraph.nodes.find(n => n.kind === "app");
@@ -169,6 +174,8 @@ try {
     assert.equal(realpathSync(resolve(project, "infra", node.spec.path)), realpathSync(app));
     assert.ok(existsSync(resolve(project, "infra", node.spec.path, "package-lock.json")));
     assert.deepEqual(node.spec.env, {});
+    assert.equal(node.spec.domains, undefined);
+    assert.ok(!publishedGraph.nodes.some(n => n.kind === "domain"));
     assert.equal(node.spec.folderUuid.resourceId, "folder:company-website-apps");
     assert.equal(publishedGraph.nodes.find(n => n.kind === "agent").spec.repository.repository, config.repository);
   });
@@ -211,6 +218,65 @@ try {
     assert.deepEqual(graph.nodes.map(n => n.kind).sort(), ["app", "folder"]);
   });
 
+  await test("a declared domain serves www on the app and adopts the owned apex unless purchase is explicit", () => {
+    const site = json(join(app, "site.json"));
+    save(configFile, { ...config, publish: true, maintainer: false, domain: { name: "fixture.test", purchase: false } });
+    let graph = check();
+    validGraph(graph);
+    const appNode = graph.nodes.find(n => n.kind === "app");
+    assert.deepEqual(appNode.spec.domains, ["www.fixture.test"]);
+    let domainNode = graph.nodes.find(n => n.kind === "domain");
+    assert.equal(domainNode.id, "domain:fixture.test");
+    assert.equal(domainNode.spec.adopt, true);
+    assert.equal(domainNode.spec.redirectUrl, "https://www.fixture.test");
+    // The zone is exactly the app's records: nothing else is published or kept.
+    assert.equal(domainNode.spec.dnsRecords.length, 1);
+    assert.equal(domainNode.spec.dnsRecords[0].resourceId, appNode.id);
+    assert.equal(domainNode.spec.dnsRecords[0].field, "domainRecords");
+    assert.ok(graph.compile.plan.findIndex(e => e.id === appNode.id) < graph.compile.plan.findIndex(e => e.id === domainNode.id));
+    // Buying is never inferred: only an explicit purchase: true drops adopt.
+    save(configFile, { ...config, publish: true, maintainer: false, domain: { name: "fixture.test", purchase: true } });
+    graph = check();
+    validGraph(graph);
+    domainNode = graph.nodes.find(n => n.kind === "domain");
+    assert.equal(domainNode.spec.adopt, false);
+    assert.equal(graph.compile.plan.find(e => e.id === domainNode.id).change, "create");
+    for (const name of ["www.fixture.test", "fixture", "https://fixture.test"]) {
+      save(configFile, { ...config, publish: true, maintainer: false, domain: { name, purchase: false } });
+      assert.ok(check().loadErrors.some(e => /registrable domain/.test(e.message)), name);
+    }
+    save(configFile, { ...config, publish: true, maintainer: false, domain: { name: "fixture.test", purchase: false } });
+    save(join(app, "site.json"), { ...site, canonicalUrl: "https://fixture.cargo.app/" });
+    assert.ok(check().loadErrors.some(e => /canonicalUrl must be https:\/\/www\.fixture\.test\//.test(e.message)));
+    save(join(app, "site.json"), { ...site, canonicalUrl: "https://www.fixture.test/" });
+    validGraph(check());
+    // External DNS attaches www on the app and leaves the zone alone: no domain node.
+    save(configFile, { ...config, publish: true, maintainer: false, domain: { name: "fixture.test", purchase: false, dns: "external" } });
+    graph = check();
+    validGraph(graph);
+    assert.deepEqual(graph.nodes.find(n => n.kind === "app").spec.domains, ["www.fixture.test"]);
+    assert.ok(!graph.nodes.some(n => n.kind === "domain"));
+    save(join(app, "site.json"), { ...site, canonicalUrl: "https://fixture.cargo.app/" });
+    assert.ok(check().loadErrors.some(e => /canonicalUrl must be https:\/\/www\.fixture\.test\//.test(e.message)));
+    save(join(app, "site.json"), { ...site, canonicalUrl: "https://www.fixture.test/" });
+    // Cargo cannot buy a domain whose DNS lives elsewhere; unknown modes fail too.
+    save(configFile, { ...config, publish: true, maintainer: false, domain: { name: "fixture.test", purchase: true, dns: "external" } });
+    assert.ok(check().loadErrors.some(e => /purchase cannot be true with dns "external"/.test(e.message)));
+    assert.throws(() => readConfig(infra), /purchase cannot be true with dns "external"/);
+    save(configFile, { ...config, publish: true, maintainer: false, domain: { name: "fixture.test", purchase: false, dns: "route53" } });
+    assert.ok(check().loadErrors.some(e => /domain\.dns must be/.test(e.message)));
+    assert.throws(() => readConfig(infra), /domain\.dns must be/);
+    // A missing dns is Cargo DNS, so pre-existing configs keep their zone node.
+    save(configFile, { ...config, publish: true, maintainer: false, domain: { name: "fixture.test", purchase: false } });
+    assert.equal(readConfig(infra).domain.dns, undefined);
+    assert.equal(check().nodes.find(n => n.kind === "domain").spec.adopt, true);
+    // Publication off declares neither the app nor the domain.
+    save(configFile, { ...config, publish: false, maintainer: false, domain: { name: "fixture.test", purchase: true } });
+    assert.ok(!check().nodes.some(n => n.kind === "domain" || n.kind === "app"));
+    save(join(app, "site.json"), site);
+    save(configFile, { ...config, publish: true, maintainer: false });
+  });
+
   await test("visitor opt-in provisions native incremental company and session models without an agent", () => {
     const visitors = { enabled: true, siteUrl: "https://fixture.cargo.app/", connectorUuid: "", snitcherWorkspaceUuid: "" };
     save(configFile, { ...config, publish: true, maintainer: false, visitors });
@@ -234,7 +300,7 @@ try {
   await test("browser tracking requires reviewed bytes and a matching enabled model binding", () => {
     const file = join(app, "visitor-browser.json");
     const disabled = json(file);
-    assert.deepEqual(visitorTrackingPlugin(app).transformIndexHtml.handler(), []);
+    assert.equal(visitorConsentConfig(app), null);
     const browser = { enabled: true, siteUrl: "https://fixture.cargo.app/", privacyPolicyUrl: "/privacy.html", approvedScriptSha256: "" };
     mkdirSync(join(app, "public"), { recursive: true });
     const script = "window.fixtureTracker = true;";
@@ -244,7 +310,7 @@ try {
     save(file, { ...browser, approvedScriptSha256: sha256(script) });
     assert.throws(() => assertVisitorBinding(app, { enabled: false }), /same enabled website/);
     assertVisitorBinding(app, { enabled: true, siteUrl: browser.siteUrl, connectorUuid: "", snitcherWorkspaceUuid: uuid });
-    assert.equal(visitorTrackingPlugin(app).transformIndexHtml.handler().length, 1);
+    assert.deepEqual(visitorConsentConfig(app), { enabled: true, siteUrl: browser.siteUrl, privacyPolicyUrl: browser.privacyPolicyUrl });
     writeFileSync(join(app, "public/website-visitors-provider.js"), script + "changed");
     assert.throws(() => assertVisitorBinding(app), /SHA256/);
     save(file, disabled);
@@ -296,13 +362,69 @@ try {
     assert.equal(readFileSync(join(captureApp,"public/website-visitors-provider.js"),"utf8"),saved);
   });
 
+  await test("refuses to publish a domain that Cargo mailboxes send from", () => {
+    // defineDomain replaces the whole zone, so publishing would drop the MX,
+    // SPF, DKIM and DMARC records these mailboxes send with.
+    const domain = { name: "acme.com", purchase: false };
+    const page = (emails) => ({ mailboxes: emails.map((email) => ({ email })) });
+    const filler = Array.from({ length: 100 }, (_, i) => `rep${i}@outreach.io`);
+    const calls = [];
+    const cargo = (args) => {
+      calls.push(args);
+      return args.includes("0") ? page(filler) : page(["Sales@ACME.com"]);
+    };
+    // The sender is on the second page: the check must page, not sample.
+    assert.throws(() => assertDomainSendsNoMail({ publish: true, domain }, cargo), /acme\.com sends mail from 1 Cargo mailbox.*Sales@ACME\.com.*dedicated domain/s);
+    assert.equal(calls.length, 2);
+    // Silent when nothing is published, no domain is declared, or no mailbox uses it.
+    assert.doesNotThrow(() => assertDomainSendsNoMail({ publish: false, domain }, () => { throw new Error("must not query"); }));
+    assert.doesNotThrow(() => assertDomainSendsNoMail({ publish: true, domain: { name: "", purchase: false } }, () => { throw new Error("must not query"); }));
+    assert.doesNotThrow(() => assertDomainSendsNoMail({ publish: true, domain }, () => page(["hi@notacme.com", "ops@mail.acme.com.evil"])));
+    assert.throws(() => assertDomainSendsNoMail({ publish: true, domain }, () => ({})), /Unrecognized mailbox-list response/);
+    // Cargo never writes an external zone, so its mail records are not at risk.
+    assert.doesNotThrow(() => assertDomainSendsNoMail({ publish: true, domain: { ...domain, dns: "external" } }, () => { throw new Error("must not query"); }));
+    assert.throws(() => assertDomainSendsNoMail({ publish: true, domain: { ...domain, dns: "cargo" } }, () => page(["sales@acme.com"])), /sends mail/);
+  });
+
+  await test("records reads the app's stored domainRecords with zone-relative hosts", () => {
+    const external = { appSlug: "fixture-website", domain: { name: "Acme.com", purchase: false, dns: "external" } };
+    const records = [
+      { type: "TXT", name: "_cargo-verify.www.acme.com", value: "cargo-verify=abc" },
+      { type: "CNAME", name: "_x1.www.acme.com", value: "_y2.acm-validations.aws" },
+      { type: "CNAME", name: "www.acme.com", value: "d123.cloudfront.net" },
+    ];
+    const entry = { uuid, hash: "h", outputs: { domainRecords: JSON.stringify(records) } };
+    assert.deepEqual(domainRecordsFromState(external, entry).map(r => [r.type, r.host, r.value]), [
+      ["TXT", "_cargo-verify.www", "cargo-verify=abc"],
+      ["CNAME", "_x1.www", "_y2.acm-validations.aws"],
+      ["CNAME", "www", "d123.cloudfront.net"],
+    ]);
+    assert.equal(domainRecordsFromState(external, entry)[0].name, "_cargo-verify.www.acme.com");
+    // A draft release stores "null": the hostname was never attached.
+    assert.throws(() => domainRecordsFromState(external, { ...entry, outputs: { domainRecords: "null" } }), /non-draft release/);
+    assert.throws(() => domainRecordsFromState(external, { ...entry, outputs: {} }), /non-draft release/);
+    assert.throws(() => domainRecordsFromState(external, undefined), /not deployed yet/);
+    assert.throws(() => domainRecordsFromState({ ...external, domain: { ...external.domain, dns: "cargo" } }, entry), /dns "external"/);
+    assert.throws(() => domainRecordsFromState({ ...external, domain: { ...external.domain, name: "" } }, entry), /dns "external"/);
+    assert.throws(() => domainRecordsFromState(external, { ...entry, outputs: { domainRecords: JSON.stringify([{ type: "TXT" }]) } }), /Unrecognized domainRecords/);
+    assert.throws(() => domainRecordsFromState(external, { ...entry, outputs: { domainRecords: JSON.stringify([{ ...records[2], name: "www.acme.com.evil" }]) } }), /outside acme\.com/);
+  });
+
   await test("source marker ignores outputs and local secrets; changed source changes identity", () => {
     const first = sourceHash(app);
     mkdirSync(join(app, "dist"), { recursive: true });
     writeFileSync(join(app, "dist/generated.txt"), "output");
     writeFileSync(join(app, ".env.local"), "SYNTHETIC_TEST_ONLY=ignored");
+    // Next.js generated files are not source either.
+    mkdirSync(join(app, ".next/cache"), { recursive: true });
+    writeFileSync(join(app, ".next/cache/tsconfig.tsbuildinfo"), "{}");
+    mkdirSync(join(app, "out"), { recursive: true });
+    writeFileSync(join(app, "out/index.html"), "<!doctype html>");
+    writeFileSync(join(app, "next-env.d.ts"), "/// <reference types=\"next\" />");
     assert.equal(sourceHash(app), first);
-    writeFileSync(join(app, "src/extra.css"), ":root { color-scheme: light; }");
+    assert.throws(() => assertUploadable(app), /stale out\/ export/);
+    rmSync(join(app, "out"), { recursive: true });
+    writeFileSync(join(app, "app/extra.css"), ":root { color-scheme: light; }");
     assert.notEqual(sourceHash(app), first);
     assert.equal(escapeHtml('<script a="b">&'), "&lt;script a=&quot;b&quot;&gt;&amp;");
   });
@@ -318,6 +440,10 @@ try {
     assert.equal(sourceHash(transported), sourceHash(join(source, "infra/apps/website")));
     const assets = join(temp, "transport-fixture");
     mkdirSync(assets);
+    // The hosting build needs these at the root, so the release guard does too.
+    writeFileSync(join(assets, "package.json"), "{}");
+    assert.throws(() => assertUploadable(assets), /missing package-lock.json/);
+    writeFileSync(join(assets, "package-lock.json"), "{}");
     const png = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+a3ioAAAAASUVORK5CYII=", "base64");
     const file = join(assets, "logo.png");
     writeFileSync(file, png);

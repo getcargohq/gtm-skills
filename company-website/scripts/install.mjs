@@ -20,7 +20,15 @@ export function filesToInstall(source) {
   function walk(dir) {
     for (const entry of readdirSync(dir, { withFileTypes: true })) {
       if (
-        ["node_modules", "dist", ".git", ".DS_Store"].includes(entry.name) ||
+        [
+          "node_modules",
+          "dist",
+          "out",
+          ".next",
+          "next-env.d.ts",
+          ".git",
+          ".DS_Store",
+        ].includes(entry.name) ||
         entry.name.startsWith(".env") ||
         entry.name.endsWith(".tsbuildinfo") ||
         entry.name === "cargo.state.json"

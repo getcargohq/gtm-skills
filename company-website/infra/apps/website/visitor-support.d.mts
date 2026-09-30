@@ -18,4 +18,9 @@ export function assertVisitorBinding(
     snitcherWorkspaceUuid: string;
   },
 ): void;
-export function visitorTrackingPlugin(root: string): import("vite").Plugin;
+export interface VisitorConsentConfig {
+  enabled: true;
+  siteUrl: string;
+  privacyPolicyUrl: string;
+}
+export function visitorConsentConfig(root: string): VisitorConsentConfig | null;

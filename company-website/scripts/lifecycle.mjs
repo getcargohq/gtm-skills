@@ -20,6 +20,23 @@ export function readConfig(infra) {
     typeof config.visitors.enabled !== "boolean"
   )
     throw new Error("visitors.enabled must be an explicit boolean.");
+  if (
+    config.domain !== undefined &&
+    (typeof config.domain.name !== "string" ||
+      typeof config.domain.purchase !== "boolean")
+  )
+    throw new Error(
+      "domain needs a name string (empty while off) and an explicit purchase boolean.",
+    );
+  if (
+    config.domain !== undefined &&
+    !["cargo", "external", undefined].includes(config.domain.dns)
+  )
+    throw new Error('domain.dns must be "cargo" (default) or "external".');
+  if (config.domain?.dns === "external" && config.domain.purchase)
+    throw new Error(
+      'domain.purchase cannot be true with dns "external": Cargo can only buy a domain whose DNS it holds.',
+    );
   return config;
 }
 
@@ -133,6 +150,87 @@ export function assertStateBound(project, cdkDir) {
       "Cargo state is unbound. Use the installed CLI state commands.",
     );
   return file;
+}
+
+// With dns "cargo" the release publishes the domain's zone with defineDomain,
+// which REPLACES every record — including the MX, SPF, DKIM and DMARC records
+// a Cargo mailbox sends with. Refuse before a deploy can wipe them. An
+// external zone stays at the company's provider and Cargo never writes it, so
+// it is skipped. Pages through every mailbox because the CLI filters by domain
+// uuid, which the config doesn't have; the email's domain is exact either way.
+const MAILBOX_PAGE = 100;
+export function assertDomainSendsNoMail(config, cargo) {
+  if (!config.publish || !config.domain?.name) return;
+  if (config.domain.dns === "external") return;
+  const suffix = `@${config.domain.name.toLowerCase()}`;
+  const senders = [];
+  for (let offset = 0; ; offset += MAILBOX_PAGE) {
+    const response = cargo([
+      "mailboxManagement",
+      "mailbox",
+      "list",
+      "--limit",
+      String(MAILBOX_PAGE),
+      "--offset",
+      String(offset),
+    ]);
+    const mailboxes = response?.mailboxes;
+    if (!Array.isArray(mailboxes))
+      throw new Error("Unrecognized mailbox-list response.");
+    for (const mailbox of mailboxes)
+      if (String(mailbox.email).toLowerCase().endsWith(suffix))
+        senders.push(mailbox.email);
+    if (mailboxes.length < MAILBOX_PAGE) break;
+  }
+  if (senders.length)
+    throw new Error(
+      `${config.domain.name} sends mail from ${senders.length} Cargo mailbox(es) (${senders.slice(0, 3).join(", ")}${senders.length > 3 ? ", …" : ""}). ` +
+        "Publishing the website replaces the domain's whole DNS zone, which would remove the MX, SPF, DKIM and DMARC records those mailboxes need. " +
+        "Use a dedicated domain for the website — outreach reputation shouldn't touch it anyway — or add every mail record to the domain's dnsRecords in infra/company-website/resources.ts and remove this check deliberately.",
+    );
+}
+
+// An app declaring domains stores the records its hostnames need as the
+// `domainRecords` output: a JSON string of { type, name, value }[] with
+// fully-qualified names, or "null" until a non-draft release attached them.
+// Returns them with the zone-relative name an external DNS provider expects.
+export function domainRecordsFromState(config, entry) {
+  const name = config.domain?.name?.trim().toLowerCase();
+  if (!name || config.domain.dns !== "external")
+    throw new Error(
+      'Declare domain.name with dns "external" in website.json. A Cargo-held domain publishes these records itself.',
+    );
+  if (!entry?.uuid)
+    throw new Error(
+      "The app is not deployed yet. Release it through the project's CDK workflow first.",
+    );
+  const raw = entry.outputs?.domainRecords;
+  const records = raw === undefined ? null : JSON.parse(raw);
+  if (records === null)
+    throw new Error(
+      `No DNS records for www.${name} yet. Run a non-draft release that declares the domain first.`,
+    );
+  if (
+    !Array.isArray(records) ||
+    !records.every(
+      (r) =>
+        typeof r?.type === "string" &&
+        typeof r.name === "string" &&
+        typeof r.value === "string",
+    )
+  )
+    throw new Error("Unrecognized domainRecords output in Cargo state.");
+  return records.map(({ type, name: fqdn, value }) => {
+    const host = fqdn.toLowerCase().replace(/\.$/, "");
+    if (host !== name && !host.endsWith(`.${name}`))
+      throw new Error(`Record ${fqdn} is outside ${name}.`);
+    return {
+      type,
+      name: fqdn,
+      host: host === name ? "@" : host.slice(0, -(name.length + 1)),
+      value,
+    };
+  });
 }
 
 export function inspectLive(config, cargo) {
