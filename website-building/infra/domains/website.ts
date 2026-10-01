@@ -4,7 +4,7 @@ import { website } from "../apps/website";
 
 // PLACEHOLDER — the domain the website lives on, when Cargo holds its DNS.
 //
-// DNS somewhere else (Cloudflare, GoDaddy, Route 53…)? DELETE THIS FILE. Keep
+// DNS hosted at another provider? DELETE THIS FILE. Keep
 // `domains` on the app; after a release, read the records the hostname needs
 // and add them at the provider (references/domain.md, "External DNS"). Cargo
 // never writes a zone it does not hold.

@@ -44,8 +44,8 @@ Three resources make the site:
    Cargo's own `*.app.getcargo.run` URL is `noindex`; the company domain is what search engines
    index.
 3. **A domain, when Cargo holds its DNS.** `defineDomain` publishes the app's records and forwards
-   the apex to `www`. When the DNS lives at Cloudflare, GoDaddy or any other provider, that file
-   is deleted and the same records are added at the provider instead.
+   the apex to `www`. When the DNS is hosted at another provider, that file is deleted and the
+   same records are added at the provider instead.
 
 **Two failure modes worth knowing before you start.** `dnsRecords` replaces the whole zone, so
 adopting a domain that Cargo mailboxes send from deletes their mail records and outreach stops.
@@ -54,7 +54,7 @@ succeeded is not yet a live site.
 
 ## Example
 
-> Build our company website on Cargo from our brand guide, and serve it on www.fabrikam.example — our DNS is at Cloudflare.
+> Build our company website on Cargo from our brand guide, and serve it on www.fabrikam.example — our DNS is hosted elsewhere.
 
 Illustrative output, fictional records:
 
@@ -65,11 +65,11 @@ app:website      deployed   Routing: static (pages found as <route>/index.html)
   live           https://website-1a2b3c4d.app.getcargo.run/pricing/   → Pricing | Fabrikam
   hostname       www.fabrikam.example   pending  (_cargo-verify not resolved yet)
 
-Add at Cloudflare (DNS lives there, so infra/domains/website.ts was deleted):
+Add at the DNS provider (DNS is hosted there, so infra/domains/website.ts was deleted):
   TXT    _cargo-verify.www   cargo-verify=9c1e…
   CNAME  _x1.www             _y1.acm-validations.aws
   CNAME  www                 d123.cloudfront.net
-  apex   fabrikam.example  → https://www.fabrikam.example   (Cloudflare redirect rule)
+  apex   fabrikam.example  → https://www.fabrikam.example   (provider redirect)
 ```
 
 Once the TXT resolves, `www.fabrikam.example` serves the reviewed pages with their own canonical
@@ -134,14 +134,14 @@ Checked before moving on, not after the deploy:
 The code is a worked example. These reshapes are expected, and the agent offers them rather than
 waiting to be asked. Every one costs something.
 
-| Variation           | When it is right                                                                                           | How                                                                                                                                                   | What it costs                                                                                                                                                 |
-| ------------------- | ---------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `external-dns`      | The domain's DNS is at Cloudflare, GoDaddy, Route 53 or any other provider (most existing company domains) | Delete `infra/domains/website.ts`; keep `domains` on the app; add the records at the provider after the first deploy ([domain](references/domain.md)) | Three records and a redirect to maintain by hand at the provider; Cargo cannot fix them for you.                                                              |
-| `register-domain`   | The company wants a new, dedicated website domain bought through Cargo                                     | Drop `adopt: true` in `infra/domains/website.ts`                                                                                                      | Workspace credits, not refundable. The plan's `+ create domain:…` line is the purchase, approved explicitly. Update the contract's adopt check and record it. |
-| `source-recreation` | An authorized repository or live site already exists                                                       | Port its pages and assets into the app, keeping attribution ([build and review](references/build-and-review.md))                                      | Dependency migration, inherited defects to separate from new ones, and binary assets to adapt for a text-only upload.                                         |
-| `redesign`          | The current site no longer fits the company                                                                | Approve new tokens, structure and copy instead of matching the old pixels                                                                             | More design decisions, and a new baseline for every comparison.                                                                                               |
-| `more-pages`        | The brief needs pricing, landing or legal pages                                                            | Add `app/<route>/page.tsx` with `pageMetadata`, and list the route in `app/sitemap.ts`                                                                | Each page is metadata and sitemap to keep current.                                                                                                            |
-| `working-form`      | The brief needs a demo or contact form that delivers                                                       | Point the form at an approved destination and test a real submission                                                                                  | A backend outside this static app, and its own consent and cost. A form with no destination is reported unfinished.                                           |
+| Variation           | When it is right                                                               | How                                                                                                                                                   | What it costs                                                                                                                                                 |
+| ------------------- | ------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `external-dns`      | The domain's DNS is hosted at another provider (most existing company domains) | Delete `infra/domains/website.ts`; keep `domains` on the app; add the records at the provider after the first deploy ([domain](references/domain.md)) | Three records and a redirect to maintain by hand at the provider; Cargo cannot fix them for you.                                                              |
+| `register-domain`   | The company wants a new, dedicated website domain bought through Cargo         | Drop `adopt: true` in `infra/domains/website.ts`                                                                                                      | Workspace credits, not refundable. The plan's `+ create domain:…` line is the purchase, approved explicitly. Update the contract's adopt check and record it. |
+| `source-recreation` | An authorized repository or live site already exists                           | Port its pages and assets into the app, keeping attribution ([build and review](references/build-and-review.md))                                      | Dependency migration, inherited defects to separate from new ones, and binary assets to adapt for a text-only upload.                                         |
+| `redesign`          | The current site no longer fits the company                                    | Approve new tokens, structure and copy instead of matching the old pixels                                                                             | More design decisions, and a new baseline for every comparison.                                                                                               |
+| `more-pages`        | The brief needs pricing, landing or legal pages                                | Add `app/<route>/page.tsx` with `pageMetadata`, and list the route in `app/sitemap.ts`                                                                | Each page is metadata and sitemap to keep current.                                                                                                            |
+| `working-form`      | The brief needs a demo or contact form that delivers                           | Point the form at an approved destination and test a real submission                                                                                  | A backend outside this static app, and its own consent and cost. A form with no destination is reported unfinished.                                           |
 
 ## What should not change
 

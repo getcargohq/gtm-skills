@@ -9,7 +9,7 @@ Both need `@cargo-ai/cdk` 1.0.89 or later.
 
 Ask which domain the site should use and where its DNS lives.
 
-- **Another provider (Cloudflare, GoDaddy, Route 53…).** The usual case for an existing company
+- **Another DNS provider.** The usual case for an existing company
   domain. **Delete `infra/domains/website.ts`** and keep `domains` on the app. Cargo attaches the
   hostname and never writes the zone. See [External DNS](#external-dns).
 - **Cargo.** A domain bought in the Cargo UI, or one to buy now, ideally dedicated to the

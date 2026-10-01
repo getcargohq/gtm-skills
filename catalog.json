@@ -1510,8 +1510,8 @@
       ],
       "integrations": [],
       "example": {
-        "prompt": "Build our company website on Cargo from our brand guide, and serve it on www.fabrikam.example — our DNS is at Cloudflare.",
-        "output": "```text\nPR #12  Website: home, about, pricing from the brand guide   (reviewed, merged)\n\napp:website      deployed   Routing: static (pages found as <route>/index.html)\n  live           https://website-1a2b3c4d.app.getcargo.run/pricing/   → Pricing | Fabrikam\n  hostname       www.fabrikam.example   pending  (_cargo-verify not resolved yet)\n\nAdd at Cloudflare (DNS lives there, so infra/domains/website.ts was deleted):\n  TXT    _cargo-verify.www   cargo-verify=9c1e…\n  CNAME  _x1.www             _y1.acm-validations.aws\n  CNAME  www                 d123.cloudfront.net\n  apex   fabrikam.example  → https://www.fabrikam.example   (Cloudflare redirect rule)\n```\n\nOnce the TXT resolves, `www.fabrikam.example` serves the reviewed pages with their own canonical\nURLs, and the next change to the site is another pull request."
+        "prompt": "Build our company website on Cargo from our brand guide, and serve it on www.fabrikam.example — our DNS is hosted elsewhere.",
+        "output": "```text\nPR #12  Website: home, about, pricing from the brand guide   (reviewed, merged)\n\napp:website      deployed   Routing: static (pages found as <route>/index.html)\n  live           https://website-1a2b3c4d.app.getcargo.run/pricing/   → Pricing | Fabrikam\n  hostname       www.fabrikam.example   pending  (_cargo-verify not resolved yet)\n\nAdd at the DNS provider (DNS is hosted there, so infra/domains/website.ts was deleted):\n  TXT    _cargo-verify.www   cargo-verify=9c1e…\n  CNAME  _x1.www             _y1.acm-validations.aws\n  CNAME  www                 d123.cloudfront.net\n  apex   fabrikam.example  → https://www.fabrikam.example   (provider redirect)\n```\n\nOnce the TXT resolves, `www.fabrikam.example` serves the reviewed pages with their own canonical\nURLs, and the next change to the site is another pull request."
       },
       "state": "to-be-approved",
       "chain": 10,
@@ -1524,7 +1524,7 @@
       "canChange": [
         {
           "id": "external-dns",
-          "when": "The domain's DNS is at Cloudflare, GoDaddy, Route 53 or any other provider (most existing company domains)",
+          "when": "The domain's DNS is hosted at another provider (most existing company domains)",
           "how": "Delete `infra/domains/website.ts`; keep `domains` on the app; add the records at the provider after the first deploy ([domain](references/domain.md))",
           "cost": "Three records and a redirect to maintain by hand at the provider; Cargo cannot fix them for you."
         },
