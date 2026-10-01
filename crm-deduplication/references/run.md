@@ -18,7 +18,7 @@ Resolve `workspaceUuid` from `cargo-ai whoami` (`workspace.uuid`) and each selec
 
 Immediately before either pilot, refresh the live audit and target population, re-read the selected
 CRM integration schema and costs plus Slack for paths with active review, inspect the compiled graph,
-and run:
+and run from this skill's folder:
 
 ```sh
 node --import tsx evals/contract.mjs
