@@ -13,10 +13,15 @@ limit, provider page limit, all-or-up-to-N result count and separately requested
 
 Immediately before the preview, read current prices for company resolution,
 Sales Navigator sourcing, LinkedIn profiles, the selected qualification model,
-and any email/phone tool and verification action. Inspect internal enrichment
+its connector's own-key versus Cargo-credit billing mode, and any email/phone
+tool and verification action. For agent mode inspect its deployed model, output
+schema, one-step limit and empty capabilities/actions before pricing. Inspect internal enrichment
 tool routes and retry bounds; a top-level tool name is not a cost quote. Record
 lookup time, CLI version, action slugs, units and token assumptions. Do not
 count on a cache hit or free retry without evidence.
+BYOK provider charges remain part of the maximum cost even when Cargo's credit
+receipt does not include them. Quote provider currency and Cargo credits
+separately rather than reporting an own-key qualification as free.
 
 | Stage              | Maximum approved units                                                                   |
 | ------------------ | ---------------------------------------------------------------------------------------- |

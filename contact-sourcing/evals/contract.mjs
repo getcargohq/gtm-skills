@@ -29,8 +29,12 @@ assert.ok(
   "Set CONTACT_SOURCING_INFRA to the adapted index.ts if using a custom layout",
 );
 resetRegistry();
-const { configuration, buildContactSourcing, qualificationSchema } =
-  await import(pathToFileURL(infraPath).href);
+const {
+  configuration,
+  buildContactSourcing,
+  qualificationSchema,
+  qualificationAgentSettings,
+} = await import(pathToFileURL(infraPath).href);
 // The standalone example owns exactly these resources. A consumer can import
 // compatible existing handles; their unrelated resources are reviewed in its
 // project plan, not mistaken for dependencies introduced by this tool.
@@ -39,7 +43,17 @@ if (infraPath === localInfra)
     resources()
       .map((r) => r.kind)
       .sort(),
-    ["connector", "connector", "connector", "folder", "tool"],
+    configuration.qualificationBackend === "agent"
+      ? [
+          "agent",
+          "connector",
+          "connector",
+          "connector",
+          "folder",
+          "folder",
+          "tool",
+        ]
+      : ["connector", "connector", "connector", "folder", "tool"],
   );
 const deployed = resources().find((r) => r.id === "tool:contact_sourcing");
 assert.ok(deployed);
@@ -252,6 +266,25 @@ const enrichmentPolicies = [
   phonePolicy,
   { ...emailPolicy, phone: true, phoneToolUuid: phonePolicy.phoneToolUuid },
 ];
+const agentFixtureUuid = "52000000-0000-4000-8000-000000000004";
+const qualificationPolicies = [
+  {
+    qualificationBackend: "openai_action",
+    qualificationProvider: "openAi",
+    qualificationModel: "gpt-5-mini",
+  },
+  {
+    qualificationBackend: "agent",
+    qualificationProvider: "openAi",
+    qualificationModel: "gpt-5-mini",
+  },
+  // Fixture identifier only; consumers resolve a real supported model at setup.
+  {
+    qualificationBackend: "agent",
+    qualificationProvider: "anthropic",
+    qualificationModel: "claude-fixture",
+  },
+];
 
 const exercise = async ({
   policy = {},
@@ -273,9 +306,10 @@ const exercise = async ({
     searchLimit: 50,
     topN: null,
     minimumScore: null,
+    ...qualificationPolicies[0],
     ...policy,
   };
-  const graph = buildContactSourcing(config);
+  const graph = buildContactSourcing(config, agentFixtureUuid);
   validateGraph(graph.nodes);
   const calls = [];
   const result = await runGraph(
@@ -305,7 +339,14 @@ const exercise = async ({
         return Object.hasOwn(profiles, id) ? profiles[id] : profile(id);
       }
       if (node.slug === "qualify") {
-        assert.equal(data.model, config.qualificationModel);
+        if (config.qualificationBackend === "agent") {
+          assert.equal(node.kind, "agent");
+          assert.equal(node.agentUuid, agentFixtureUuid);
+          assert.equal(data.output.type, "jsonSchema");
+        } else {
+          assert.equal(node.kind, "connector");
+          assert.equal(data.model, config.qualificationModel);
+        }
         assert.deepEqual(data.output.jsonSchema, qualificationSchema);
         assert.ok(data.prompt.includes(config.sellerCriteria));
         assert.ok(data.prompt.includes(JSON.stringify(local.profile)));
@@ -362,6 +403,56 @@ await check("the selected installation configuration executes", async () => {
   assert.equal(result.contacts.length, expected);
   assert.equal(result.status, expected ? "succeeded" : "no_qualified_contacts");
 });
+
+await check(
+  "three is the proposed default; changing N only changes the selected count",
+  async () => {
+    // The repository default is a proposal to confirm, not a universal constant.
+    if (infraPath === localInfra) assert.equal(configuration.topN, 3);
+    for (const topN of [3, 1, 4, null]) {
+      const { result, calls } = await exercise({
+        policy: { topN },
+        rows: ["1", "2", "3", "4", "5"].map((id) => candidate(id)),
+      });
+      assert.equal(result.contacts.length, topN ?? 5);
+      assert.equal(calls.filter((c) => c.slug === "qualify").length, 5);
+    }
+  },
+);
+
+await check(
+  "OpenAI and Claude qualification agents preserve schema, evidence and failures",
+  async () => {
+    assert.deepEqual(
+      qualificationAgentSettings.output.jsonSchema,
+      qualificationSchema,
+    );
+    assert.equal(qualificationAgentSettings.maxSteps, 1);
+    for (const key of ["capabilities", "uses", "mcpClients", "triggers"])
+      assert.deepEqual(qualificationAgentSettings[key], []);
+    for (const policy of qualificationPolicies.slice(1)) {
+      const { result, graph } = await exercise({ policy });
+      assert.equal(result.contacts[0].qualification.score, verdict().score);
+      assert.deepEqual(
+        result.contacts[0].qualification.evidence,
+        verdict().evidence,
+      );
+      assert.equal(
+        walk(graph.nodes).filter((n) => n.kind === "agent").length,
+        1,
+      );
+      assert.equal(
+        walk(graph.nodes).some((n) => n.actionSlug === "instruct"),
+        false,
+      );
+      const invalid = await exercise({ policy, answers: { 1: { score: 8 } } });
+      assert.equal(invalid.result.status, "qualification_failed");
+      const failed = await exercise({ policy, failure: ["qualify"] });
+      assert.equal(failed.result.contacts.length, 0);
+      assert.equal(failed.result.coverage.qualificationFailures, 1);
+    }
+  },
+);
 
 await check(
   "ID bypasses company lookup; no CRM, agent, model or schedule",
@@ -847,50 +938,56 @@ await check(
     for (const inputMode of ["id", "url", "domain", "multiple"]) {
       for (const topN of [null, 2]) {
         for (const mode of enrichmentPolicies) {
-          const graph = buildContactSourcing({
-            ...configuration,
-            inputMode,
-            ...mode,
-            topN,
-          });
-          validateGraph(graph.nodes);
-          const planned = await compile({
-            nodes: resources().map((resource) =>
-              resource.id === "tool:contact_sourcing"
-                ? {
-                    ...resource,
-                    spec: {
-                      ...resource.spec,
-                      nodes: graph.nodes,
-                      formFields: graph.formFields,
-                    },
-                  }
-                : resource,
-            ),
-          });
-          assert.deepEqual(
-            planned.errors,
-            [],
-            "every variant must pass the actual CDK compiler/planner",
-          );
-
-          assert.equal(
-            walk(graph.nodes).some((n) => n.slug === "phone_lookup"),
-            !!mode.phone,
-          );
-          assert.equal(
-            walk(graph.nodes).some((n) => n.slug === "email_lookup"),
-            !!mode.email,
-          );
-          const selected = graph.nodes.find((n) => n.slug === "selected");
-          assert.equal(!!selected, topN !== null || mode.email || mode.phone);
-          if (selected)
-            assert.equal(
-              selected.config.variables[0].value.expression,
-              topN === null
-                ? "{{nodes.rank.result.contacts}}"
-                : "{{nodes.rank.result.contacts.slice(0, 2)}}",
+          for (const qualification of qualificationPolicies) {
+            const graph = buildContactSourcing(
+              {
+                ...configuration,
+                inputMode,
+                ...mode,
+                topN,
+                ...qualification,
+              },
+              agentFixtureUuid,
             );
+            validateGraph(graph.nodes);
+            const planned = await compile({
+              nodes: resources().map((resource) =>
+                resource.id === "tool:contact_sourcing"
+                  ? {
+                      ...resource,
+                      spec: {
+                        ...resource.spec,
+                        nodes: graph.nodes,
+                        formFields: graph.formFields,
+                      },
+                    }
+                  : resource,
+              ),
+            });
+            assert.deepEqual(
+              planned.errors,
+              [],
+              "every variant must pass the actual CDK compiler/planner",
+            );
+
+            assert.equal(
+              walk(graph.nodes).some((n) => n.slug === "phone_lookup"),
+              !!mode.phone,
+            );
+            assert.equal(
+              walk(graph.nodes).some((n) => n.slug === "email_lookup"),
+              !!mode.email,
+            );
+            const selected = graph.nodes.find((n) => n.slug === "selected");
+            assert.equal(!!selected, topN !== null || mode.email || mode.phone);
+            if (selected)
+              assert.equal(
+                selected.config.variables[0].value.expression,
+                topN === null
+                  ? "{{nodes.rank.result.contacts}}"
+                  : "{{nodes.rank.result.contacts.slice(0, 2)}}",
+              );
+          }
         }
       }
     }
@@ -1020,6 +1117,10 @@ await check(
       "recommend N",
       "Otherwise, ask directly",
       "Do not add a separate audit",
+      "Do you have an OpenAI or Anthropic",
+      "never paste",
+      "slightly broader",
+      "up to three",
       "Recommend",
       "tradeoff",
       "search limit",

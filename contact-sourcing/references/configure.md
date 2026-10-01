@@ -3,9 +3,10 @@
 Use the approved personas from `audit.md` and the consumer's current resources.
 `infra/index.ts` is the sole infrastructure adaptation surface. Defaults are
 fictional and unapproved; derive facts, explain choices, and build only the
-selected configuration. Read `cargo-cdk` and reconcile compatible connectors and
+selected configuration. Read `cargo-project` and reconcile compatible connectors and
 tools before adding resources. The default plan is one tool, its folder and
-three adopted connectors; no CRM, model, play or research agent is required.
+three adopted connectors; the optional agent backend adds a bounded qualifier
+and its folder. No CRM, storage model, play or research agent is required.
 
 ## Company input: remove unnecessary resolution
 
@@ -60,15 +61,21 @@ example, if the reviewed wins usually involved three relevant stakeholders,
 recommend up to three on that basis, while noting that more qualified people may
 exist. Count people supported by deal evidence, not every associated contact.
 Otherwise, ask directly. Do not add a separate audit or CRM read to choose N.
-Ask for the operator's choice, retaining any answer already given:
+Propose **up to three qualified people per company** by default, unless useful
+existing evidence supports a different recommendation. Three is an editable
+maximum, not an average, quota or fixed requirement. Ask for the operator's
+choice, retaining any answer already given:
 
-> How many qualified people should the tool return per company: all, or up to N?
+> How many qualified people should the tool return per company? I suggest up to
+> three by default; would you like three, another number, or all qualified people?
 
 If they choose a maximum without specifying the number, ask for N. Set `topN`
 to `null` for all qualified people found within the search limit, or a positive
 integer for up to N. Apply `contacts.slice(0, N)` **after qualification and
 sorting, before optional enrichment**, including when no enrichment is requested.
-N is a maximum: return fewer if fewer qualify. There is no fixed default N.
+N is a maximum: return fewer if fewer qualify. The example sets `topN: 3`;
+changing it to any positive integer only changes the slice, not sourcing,
+qualification or the enrichment choice. Use `null` for all.
 
 Then explain that contact details are ready to consume but add lookup and
 verification costs; leaving enrichment to a play gives that play control over
@@ -109,6 +116,44 @@ verification, freshness and phone requirements. A non-empty value is not enough.
 Conflicting reusable values trigger a fresh lookup for that selected person.
 No email/phone field requires another LinkedIn profile retrieval.
 
+## Qualification provider and API key
+
+Inspect existing LLM connectors and qualification agents first. Confirm their
+provider and whether billing uses the operator's key or Cargo credits without
+reading or displaying secret values. If the choice is not already answered, ask:
+
+> Do you have an OpenAI or Anthropic (Claude) API key you'd like to use, or
+> would you prefer Cargo credits? If both are available, which provider do you prefer?
+
+Connect keys through Cargo's secure connector settings; **never paste** them
+into chat, source code, fixtures or criteria documents. An OpenAI key uses OpenAI
+models; an Anthropic key uses Claude models. A Claude choice does not run through
+an OpenAI key. Confirm the selected connector's billing mode before deployment;
+having a connected provider alone does not mean BYOK billing is enabled.
+
+For a chosen own-key provider, use `qualificationBackend: agent` and set
+`qualificationProvider` to `openAi` or `anthropic`. Select the matching supported
+`qualificationModel` from the consumer connector's model autocomplete; Claude
+uses the Anthropic connector. Reuse a suitable existing agent, or adapt the
+example's `contact_sourcing_qualifier` definition. It has the shared
+`qualificationSchema` as JSON Schema output, one step, and no tools, web search,
+memory, MCP clients, triggers or heartbeat. It only evaluates the supplied
+profile, approved criteria and account context. This does not introduce an
+autonomous research process.
+
+The default `openai_action` backend retains the existing OpenAI node for a
+Cargo-credit installation that chooses it; an agent can also use Cargo credits.
+Compile only the chosen backend. When reusing an agent, remove the duplicate
+declaration and pass its UUID as the second argument to `buildContactSourcing`.
+Inspect its deployed release and require the same schema and bounded behavior.
+
+Both backends return `answer` to the same validation/normalization step. Swapping
+the LLM changes its provider/model binding, not persona IDs, the 0–10 score scale,
+evidence fields, sorting, slice or enrichment. Preserve explanations and
+`insufficient_evidence`; rerun contracts and calibrate affected sample cases
+after a model change, with any extra cost approved. Record backend, provider,
+model, billing choice and schema version with the criteria.
+
 ## Search coverage and qualification
 
 Explain that the **search limit** controls candidate coverage and profile/AI
@@ -117,6 +162,12 @@ They are separate limits. Recommend a modest page-aligned cap such as 25 or 50
 for a first sample, based on account size and persona breadth; raise it only when
 missed stakeholders justify the added cost. Sales Navigator returns pages of 25:
 a search limit of 30 requests up to 50 provider rows but profiles only the first 30. Show both numbers and their separate costs before accepting that choice.
+
+Recommend a **slightly broader** job-title Boolean than the operator would use
+for an unscored search, because profile qualification and scoring will assess
+each candidate before the slice. Show plausible adjacent titles for confirmation;
+retain hard exclusions and company scope. Explain the extra profile/LLM cost
+within the approved cap rather than promising that scoring makes breadth free.
 
 Recommend no numeric minimum until the anchors have been calibrated against
 representative accounts. If a minimum is wanted, propose it from reviewed
@@ -135,7 +186,9 @@ employment. Other employees' titles cannot establish reporting lines.
 
 ## Current provider contract
 
-Live metadata was read on 2026-09-09 with Cargo CLI 1.0.91. Re-read it at
+Source/enrichment metadata was read on 2026-09-09 with Cargo CLI 1.0.91;
+OpenAI/Anthropic metadata and the agent contract were checked again on 2026-09-30
+with CLI 1.0.102. Re-read them at
 installation; metadata inspection makes no paid provider run.
 
 | Step               | Action and inputs                                                                                                                                       | Returned paths used                                                                                                                               |
@@ -155,12 +208,13 @@ codes. `role.titleKeywords` supports strings/arrays; it is not a generic Boolean
 parser. LinkedIn authentication identities, if needed in the consumer workspace,
 come from `listIdentityIds`; do not confuse acting identities with company IDs.
 
-`qualificationModel` remains configurable; current Cargo metadata lists
+`qualificationModel` remains configurable; Cargo's checked OpenAI metadata lists
 `gpt-5-mini` as supported and recommended. Keep the stable output schema and score
 anchors when changing it. This production setting is independent of the model
-used by Conductor to author the skill. Web search is off; the current example
-sets an output-token ceiling with reasoning headroom and does not assume an
-unsupported temperature setting. Cost it using the actual model and token policy.
+used by Conductor to author the skill. Web search is off. The OpenAI action
+sets an output-token ceiling with reasoning headroom; audit the selected agent's
+model/token policy separately. Neither path assumes a universal temperature
+setting. Cost the chosen provider and billing mode using current metadata.
 
 ## Returned contract
 

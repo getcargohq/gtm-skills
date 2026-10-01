@@ -7,8 +7,8 @@ answered question or ask for facts that can be inspected.
 
 ## Inspect before asking
 
-Read the consumer project's context directory, any existing `defineContext`
-singleton, personas, prior decisions and declared resources. Use `cargo-ai whoami`
+Read the consumer project's existing context graph, context directory, any
+`defineContext` singleton, personas, prior decisions and declared resources. Use `cargo-ai whoami`
 to confirm the workspace, then inspect authenticated connectors and reusable tools
 with `cargo-ai connection connector list` and `cargo-ai orchestration tool list`.
 Inspect relevant tool releases and their output schemas. Do not mint a duplicate
@@ -18,8 +18,12 @@ Establish the seller's product/use case from available context. Ask only if it i
 missing or several products make the intended one ambiguous. Explain that a
 person can be relevant to one product and irrelevant to another.
 
-Crawl the **seller's** website, product pages and customer stories using an
-available browser or approved research capability. Retain source URLs and the
+Derive the title Boolean and key decision makers from that context when it is
+useful and current. If it is missing or incomplete, crawl the **seller's**
+website, product pages and customer stories using an available browser or
+approved research capability to understand the product and relevant decision
+makers, influencers and practitioners. Fill only the gaps; do not repeat research
+already present in the context graph. Retain context paths, source URLs and the
 retrieval date. Do not crawl target accounts to rediscover the seller on each
 run. If a paid research action is needed, price it and obtain its own limited
 approval before using it. Repository authoring does not authorize paid research.
@@ -58,7 +62,10 @@ consumer project under its own access conventions, never in this public skill.
 ## Present three things together
 
 Use one concise presentation containing the persona table, the human-readable
-sourcing Boolean and the actual person-qualification prompt.
+job-title Boolean and the actual person-qualification prompt. Show the exact
+included title variations, OR groups and exclusions, and say whether they came
+from the context graph or seller website research. Have the operator confirm this
+Boolean before building the provider filters.
 
 | Persona                          | Responsibility and positive evidence                         | Title variations                             | Likely buying role                                | Exclusions                                        | Support                                       |
 | -------------------------------- | ------------------------------------------------------------ | -------------------------------------------- | ------------------------------------------------- | ------------------------------------------------- | --------------------------------------------- |
@@ -79,8 +86,12 @@ AND TITLE NOT IN ("financial planning" OR "urban planning")
 Explain: titles find candidates; responsibilities establish relevance. A
 “Planning Manager” could own construction schedules, financial forecasts or urban
 planning. Profile qualification distinguishes those responsibilities. Recommend
-starting broad enough to find title variations, with evidence-based exclusions;
-a very narrow title list costs less but misses relevant practitioners.
+a slightly broader title search than a title-only shortlist, including adjacent
+titles with plausible responsibility. Each retrieved candidate with usable
+evidence will be qualified and scored before selection. Keep the company scope,
+hard exclusions and approved cap; broader search adds profile/LLM cost and does
+not guarantee finding every relevant person. Show the proposed additions before
+approval.
 
 Translate that intent into current supported provider filters; do not pass this
 whole Boolean as a search string. The checked Sales Navigator configuration uses
@@ -96,6 +107,9 @@ employment check, evidence requirement and likely buying-role inference. Do not
 assign extra relevance solely for seniority or invent a universal cutoff.
 
 Ask:
+
+> Can you confirm this job-title Boolean, including its title variations and
+> exclusions, or tell me what to add or remove?
 
 > Are these the right people to target? Who is missing, who should be excluded,
 > and which personas are most relevant?

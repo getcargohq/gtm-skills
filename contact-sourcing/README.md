@@ -3,6 +3,8 @@
 Build an on-demand Cargo tool that returns the stakeholders most relevant to a
 seller's product at each supplied account. Choose all qualified people or up to
 N per company, independently of optional verified work email and phone enrichment.
+The proposed default is three, confirmed with the operator and adjustable to
+any positive N; `null` returns all qualified people.
 
 The workflow resolves a company only when needed, searches current employees,
 deduplicates stable identities, retrieves profiles, qualifies responsibilities,
@@ -25,13 +27,18 @@ customer intelligence is optional. A CRM, model and play are unnecessary.
 | `evals/acceptance.md`     | Fresh-workspace blind test and approval evidence                        |
 | `evals/contract.mjs`      | Offline execution of emitted graphs with fictional external responses   |
 
-The checked configuration is **ID → all qualified, no enrichment**, using a fictional capital-
+The checked configuration is **ID → up to three, no enrichment**, using a fictional capital-
 project scheduling seller. `buildContactSourcing` also emits URL, domain and
 multiple-input variants. Each supports all or up to N results, with no enrichment,
 email-only, phone-only or both. `topN: null` means all; a positive integer caps
 results. The `email`/`phone` flags select enrichment without an `outputMode`. Change
 only the consumer's configuration and audited output mappings. It declares one
 tool, its folder and three adopted connectors; it declares no recurring trigger.
+The optional agent backend adds a one-step qualification agent and its folder,
+using the operator's chosen OpenAI or Anthropic connection and the same schema.
+Setup confirms the title Boolean from existing context or seller research,
+recommends slightly broader titles for subsequent scoring, and asks about an
+existing API key versus Cargo credits without collecting secrets in chat.
 See the workflow diagram in `SKILL.md` and the exact output contract in
 `references/configure.md`.
 
@@ -43,6 +50,8 @@ profile fields, page rounding and `openAi.instruct` structured output. The email
 reference returns only `email`; this example therefore explicitly verifies a newly
 looked-up address. A consumer tool that exposes equivalent verifier evidence can
 reuse that result after its output contract is audited.
+The LLM metadata and agent contract were rechecked read-only on 2026-09-30 with
+CLI 1.0.102; provider changes still require sample calibration.
 
 No paid provider run, deployment or fresh-workspace installation was performed
 for this build. Static contracts do not prove live coverage, classification

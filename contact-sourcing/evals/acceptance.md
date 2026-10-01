@@ -24,7 +24,8 @@ group item graphs, exact scripts and end mappings against fictional provider
 responses. It reverses group results to test preservation of rank. It does not
 call a provider or reproduce the remote engine's complete behavior.
 
-Check all 32 input/count/enrichment variants, not just the checked ID/all/no-enrichment default:
+Check all 96 input/count/enrichment/qualification variants, not just the checked
+ID/up-to-three/no-enrichment/OpenAI-action default:
 
 - ID bypasses company enrichment; URL/domain resolve before sourcing; multiple
   input uses ID then URL then domain and conflicting/unverified identities stop.
@@ -45,6 +46,9 @@ Check all 32 input/count/enrichment variants, not just the checked ID/all/no-enr
 - Lookup/verification failures retain selected people and their original ranks;
   there is no automatic backfill to N reachable contacts.
 - Suitable existing verified data can be reused; found is distinct from verified.
+- Three is the proposed default; another positive N changes only the slice.
+- OpenAI and Claude agent paths share the qualification schema, evidence and
+  failure handling, with one step and no autonomous tools or capabilities.
 - Optional closed-won research is gated by the operator's choice; decision-local
   recommendations and reusable feedback updates are present in the procedure.
 
@@ -64,7 +68,10 @@ instructions were insufficient, even if an expert could improvise a fix.
 2. Record the actual persona table, human Boolean, supported filter translation
    and prompt shown together. Confirm the explanation of ambiguous titles,
    responsibilities and buying-role inference. Give one correction and verify
-   all reusable criteria change consistently before approval.
+   all reusable criteria change consistently before approval. Test reuse of
+   existing context graph evidence, and website research when that context is
+   missing. Confirm the exact job-title Boolean and the slightly broader search
+   recommendation, including its extra profile/LLM cost.
 3. Exercise the ID installation without enrichment, for both all and up to N.
    Verify that the count question is asked independently of enrichment and
    that the slice follows qualification/sorting, returning fewer if fewer qualify.
@@ -72,6 +79,12 @@ instructions were insufficient, even if an expert could improvise a fix.
    selected graph, reconciles existing connectors and needs no CRM/model/play.
    Review criteria/configuration and the plan before explicitly authorizing
    deployment. Preserve that approval evidence and the direct tool link.
+   Verify that three is proposed, then change N and confirm only the selected
+   count changes. Ask about OpenAI/Anthropic keys versus Cargo credits without
+   collecting the secret. For a selected own-key provider, test the bounded
+   qualification agent and its shared schema; confirm Claude uses Anthropic and
+   OpenAI uses OpenAI. An agent's live structured-output enforcement and billing
+   need separate approved validation; static compilation cannot establish them.
 4. In a separately approved adaptation, exercise URL and domain paths and then
    both all and a chosen N with email-only, phone-only and combined enrichment,
    using real consumer tools whose mappings were inspected. No unused
@@ -119,7 +132,8 @@ implementations before changing the approval state or removing the banner.
 - No paid profile, search, qualification, email or phone action was run.
 - No consumer resources were deployed and no fresh demo was installed.
 - Real provider coverage, primary-employment judgment, verifier outcomes,
-  nested-tool retry/cost behavior and remote failed-item envelopes are unverified.
+  nested-tool retry/cost behavior, agent schema enforcement/BYOK billing and
+  remote failed-item envelopes are unverified.
 - Operator calibration and customer/partner implementations have not occurred.
 
 Read-only current integration metadata and the three supplied saved workflow
