@@ -15,12 +15,11 @@ import { website } from "../apps/website";
 // to register a new domain. That charges workspace credits, is not
 // refundable, and the plan's `+ create domain:…` line is the approval.
 //
-// `dnsRecords` REPLACES THE WHOLE ZONE, every live record included. That is
-// why this must never be a domain Cargo mailboxes send from: publishing the
-// zone removes their MX, SPF, DKIM and DMARC records and mail stops. Check
-// `cargo-ai mailboxManagement mailbox list` first, and give the website a
-// dedicated domain. Any other record the domain needs goes in this list next
-// to the app's.
+// `dnsRecords` is merged into the live zone: records this deploy did not
+// write, mail records included, are left where they are. The `www` CNAME
+// takes over whatever `www` pointed to and `redirectUrl` replaces the apex
+// forward, so read the plan's DNS diff before deploying. Any other record the
+// domain needs goes in this list next to the app's; dropping one deletes it.
 //
 // `website.domainRecords` expands at deploy to what the app's hostnames need:
 // the `_cargo-verify` TXT, the certificate-validation CNAME and the `www`

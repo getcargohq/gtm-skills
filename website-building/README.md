@@ -24,7 +24,7 @@ flowchart TD
     pr["pull request<br/>site.json, app/"] --> plan["cargo-ai cdk plan"]
     plan --> app["defineApp website<br/>next build → dist/"]
     app --> host["www hostname<br/>_cargo-verify TXT"]
-    app -->|"domainRecords"| domain["defineDomain<br/>whole zone, apex → www"]
+    app -->|"domainRecords"| domain["defineDomain<br/>records merged, apex → www"]
     app -.->|"DNS elsewhere"| provider["records added<br/>at the provider"]
 ```
 
@@ -55,11 +55,10 @@ optimization, a form that delivers) lives somewhere else and is called from the 
 
 ## Why a domain file you might delete
 
-`dnsRecords` is the whole zone. That is what lets one deploy publish everything the hostname
-needs, and it is also why the file is dangerous on the wrong domain: a zone Cargo mailboxes send
-from loses its mail records. Most existing company domains keep their DNS at a provider, so for
-them the file goes and the three records are added by hand. A dedicated domain held by Cargo
-keeps the file.
+When Cargo holds the DNS, the file lets one deploy publish everything the hostname needs:
+`dnsRecords` is merged into the live zone, so mail and every other record the deploy did not write
+stay put, and the plan prints the diff record by record. Most existing company domains keep their
+DNS at a provider, so for them the file goes and the three records are added by hand.
 
 ## Placeholders (edit before deploy)
 
