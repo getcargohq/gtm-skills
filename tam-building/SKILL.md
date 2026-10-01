@@ -101,7 +101,8 @@ help.
    rubric, and to authorize deploying the resources with the play disabled. Nothing bills in this
    phase.
 2. **Build disabled.** Adapt, check, plan, and deploy with `isEnabled: false`. Run
-   `node --import tsx evals/contract.mjs` against the adapted resources before the plan is reviewed.
+   `node --import tsx evals/contract.mjs` from this skill's folder against the adapted resources
+   before the plan is reviewed.
    Send a direct Cargo UI link for the model, the agent, and the play. Show the counted pool, the
    `limit` that will actually be sourced, the current per-record sourcing price fetched live, and
    the per-company tiering cost. End by asking the operator to approve the first sourcing run at
@@ -155,8 +156,9 @@ sizing or template work if the skill cannot be installed or read.
    is what you offer unprompted (nobody asks for a variant they do not know exists); _What you will
    be asked_ is the floor, and you derive before you ask. If you are asking more than about four
    questions you have skipped lookups. Record what you changed and why under a `## Decisions`
-   section in your copy of this file. Then run `node --import tsx evals/contract.mjs`, followed by
-   `cargo-ai cdk types && cargo-ai cdk check && cargo-ai cdk plan`. Show the diff and deploy with the
+   section in your copy of this file. Then run `node --import tsx evals/contract.mjs` from this skill's
+   folder, followed by `cargo-ai cdk types && cargo-ai cdk check && cargo-ai cdk plan` from the
+   project root. Show the diff and deploy with the
    play disabled. Never run `cargo-ai cdk init --force` in a non-empty directory.
 5. **Hand off for cost approval.** Resolve the workspace and resource UUIDs, send the Cargo UI links
    from [`references/run.md`](references/run.md), and show the counted pool, the `limit`, the live
