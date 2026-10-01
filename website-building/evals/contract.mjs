@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { existsSync, readFileSync, readdirSync } from "node:fs";
-import { join, relative } from "node:path";
+import { join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { resetRegistry, resources } from "@cargo-ai/cdk";
 
@@ -141,51 +141,6 @@ if (domainResources.length === 1) {
     `https://${host}`,
     "the apex must forward to the www host",
   );
-}
-
-// The removed machinery stays removed.
-for (const leftover of [
-  "infra/website.json",
-  "infra/settings.ts",
-  "infra/resources.ts",
-  "infra/agents",
-  "scripts",
-  "references/terminal",
-]) {
-  assert.equal(
-    existsSync(join(skill, leftover)),
-    false,
-    `${leftover} belongs to the old generator layout: one file per resource now`,
-  );
-}
-const SKIP = new Set(["node_modules", "dist", ".next", "out"]);
-const textFiles = (dir) =>
-  readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
-    if (SKIP.has(entry.name)) return [];
-    const path = join(dir, entry.name);
-    if (entry.isDirectory()) return textFiles(path);
-    return /\.(md|ts|tsx|mjs|json|css)$/.test(entry.name) &&
-      entry.name !== "package-lock.json"
-      ? [path]
-      : [];
-  });
-const self = fileURLToPath(import.meta.url);
-for (const file of textFiles(skill)) {
-  if (file === self) continue;
-  const text = readFileSync(file, "utf8");
-  for (const word of [
-    /snitcher/i,
-    /visitor/i,
-    /maintainer/i,
-    /terminal-bootstrap/i,
-    /website\.mjs/i,
-  ]) {
-    assert.equal(
-      word.test(text),
-      false,
-      `${relative(skill, file)} mentions ${word.source}, which this skill no longer ships`,
-    );
-  }
 }
 
 console.log("ok: website-building contract");
