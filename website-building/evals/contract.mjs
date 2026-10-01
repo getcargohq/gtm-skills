@@ -67,7 +67,7 @@ assert.match(nextConfig, /output:\s*"export"/, 'next.config.ts must keep output:
 assert.match(
   nextConfig,
   /trailingSlash:\s*true/,
-  "next.config.ts must keep trailingSlash: true, or /about serves the home page",
+  "next.config.ts must keep trailingSlash: true, so links, canonicals and the sitemap share one URL form",
 );
 
 // A Cargo-held domain publishes what the app needs and forwards the apex.

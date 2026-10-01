@@ -33,8 +33,8 @@ Serve `dist/` with any static server and keep a screenshot of each check.
 
 ## After deploy
 
-- The deploy log says `Routing: static`.
 - The Cargo URL serves `/`, `/about` and `/about/` directly, each with its own title.
+- A missing page (`/does-not-exist`) returns the site's not-found page with status 404.
 - The hostname reaches `active` once `_cargo-verify` resolves (`refresh-status`, see
   [domain](../references/domain.md)). Until then it is reported as pending.
 - For external DNS, the three records read from the hosting API were added at the provider, and the

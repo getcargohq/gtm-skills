@@ -61,7 +61,7 @@ Illustrative output, fictional records:
 ```text
 PR #12  Website: home, about and pricing from the brand guide        merged after review
 
-app:website   deployed   Routing: static
+app:website   deployed
   https://website-1a2b3c4d.app.getcargo.run/pricing/    Pricing | Fabrikam
   www.fabrikam.example                                  pending: _cargo-verify not resolved
 
@@ -158,7 +158,8 @@ it if you still want it, and records why under `## Decisions` in your copy of th
 - **`dnsRecords` includes `website.domainRecords`.** (`infra/domains/website.ts`) Without it the
   zone has no `_cargo-verify` TXT and no `www` CNAME, and the hostname never verifies.
 - **The app stays a static export.** (`infra/apps/website/next.config.ts`) `output: "export"`
-  and `trailingSlash: true`. Without the trailing slash, `/about` serves the home page.
+  and `trailingSlash: true`. Cargo serves `/about` from `about/index.html`; the trailing slash keeps
+  the links, canonicals and sitemap on the one form, `/about/`.
 - **Only reviewed content publishes.** (`infra/apps/website/site.json`) `status` stays `draft`
   (noindex, robots disallow) until the operator approved the pages. No invented customers,
   numbers, prices or testimonials.
@@ -182,7 +183,8 @@ it if you still want it, and records why under `## Decisions` in your copy of th
   deleted
 - `cargo-ai cdk plan` shows the folder, the app and the domain (or no domain) as an adopt, not a
   create, and the operator approved it
-- the deploy log says `Routing: static`, and the Cargo URL serves `/about` and `/about/` directly
+- the Cargo URL serves `/about` and `/about/` directly, and a missing page returns the site's
+  not-found page with status 404
 - `https://www.<domain>/` serves the site in an anonymous session with a valid certificate, the
   apex redirects to it, and pages carry it as their canonical URL; a pending TXT is reported as
   pending
