@@ -133,9 +133,9 @@
 {"prompt": "A slack bot that knows our repo and can open PRs", "expect": "ask-cargo"}
 {"prompt": "Post the day's recap to slack every evening", "expect": "standup", "why": "A scheduled digest is standup; ask-cargo only answers when mentioned."}
 {"prompt": "Research acme.com for me right now", "expect": "research-account", "why": "A one-off answer in this chat, nothing deployed."}
-{"prompt": "Build our company website on Cargo and keep it updated through reviewed PRs", "expect": "company-website"}
-{"prompt": "Recreate our website on Cargo from our existing GitHub repository", "expect": "company-website"}
-{"prompt": "Capture our design system so a website maintainer can follow it", "expect": "company-website"}
-{"prompt": "I forked the company website pipeline and need it in our own Cargo workspace", "expect": "company-website"}
+{"prompt": "Build our company website on Cargo and keep it updated through reviewed PRs", "expect": "website-building"}
+{"prompt": "Recreate our website on Cargo from our existing GitHub repository", "expect": "website-building"}
+{"prompt": "Capture our design system so our website follows it", "expect": "website-building"}
+{"prompt": "Put our website on our own domain, served by Cargo", "expect": "website-building"}
+{"prompt": "Host our marketing site on Cargo", "expect": "website-building"}
 {"prompt": "Research this prospect website and brief me before our sales call", "expect": "research-account", "why": "Researching another account is a one-off briefing, not maintaining our company website."}
-{"prompt": "Build our company website on Cargo and ask us whether we want Snitcher visitor tracking", "expect": "company-website"}
