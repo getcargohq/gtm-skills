@@ -27,8 +27,11 @@ Deploy with the play disabled, as it ships. Then:
 
 - at least one run through the new-account route, with the qualifier's
   verdict and rationale, and one company it declined if the ten contain one
-- every route the ten reached, with the task on the right owner and attached to
-  both the account and the contact
+- every route the ten reached, with the task on the right person (the account
+  owner on deals, the CSM on customers) and attached to both the account and
+  the contact, and no task on known accounts
+- any person found at another company was moved to the new account, not
+  created twice, and the task says so
 - no duplicate account: a company already in the CRM was routed as known, not
   created again. A duplicate here means the domain match needs a variant
 - `no_domain` runs, if any, named with the company that had no domain

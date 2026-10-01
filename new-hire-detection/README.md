@@ -6,23 +6,24 @@ into the CRM by what the CRM already holds. This file explains why the design is
 
 ```mermaid
 flowchart TD
-  search["Sales Navigator search<br/>titles x industry x headcount x region<br/>+ changed jobs, under a year in role"] --> person["New person in the model"]
-  person --> enrich["Enrich the company<br/>LinkedIn"]
+  search["Sales Navigator search<br/>titles x industry x headcount x region<br/>+ changed jobs, under a year in role"] --> added["New person in the model"]
+  added --> enrich["Enrich the company<br/>LinkedIn"]
   enrich --> domain{"Domain?"}
   domain -->|no| stop1["Stop: no_domain"]
   domain -->|yes| lookup["Look the account up by domain"]
-  lookup -->|not found| qualify["Qualifier agent<br/>reads context/icp.md"]
+  lookup --> who["Find the person anywhere in the CRM<br/>by LinkedIn identity"]
+  who -->|account not found| qualify["Qualifier agent<br/>reads context/icp.md"]
   qualify --> gate{"ICP?"}
   gate -->|no| stop2["Stop: not_icp"]
-  gate -->|yes| create["Create account, find email,<br/>create contact"]
+  gate -->|yes| create["Create account, find email,<br/>create or move the contact"]
   create --> task1["Task for the named owner<br/>on account and contact"]
-  lookup -->|found| known{"Person already<br/>a contact?"}
-  known -->|yes| stop3["Stop: contact_already_in_crm"]
-  known -->|no| contact["Find email, create contact"]
+  who -->|account found| here{"Already a contact<br/>on this account?"}
+  here -->|yes| stop3["Stop: contact_already_on_account"]
+  here -->|no| contact["Find email, create the contact<br/>or move it from another company"]
   contact --> stage{"Account state"}
   stage -->|open deal| task2["HIGH task for the owner:<br/>new decision-maker mid-deal"]
-  stage -->|customer| task3["HIGH task for the owner:<br/>welcome before they form a view"]
-  stage -->|known, no deal| task4["Task for the owner:<br/>a reason to reach out"]
+  stage -->|customer| task3["HIGH task for the CSM:<br/>welcome before they form a view"]
+  stage -->|any other stage, lead included| done4["Contact added, no task"]
 ```
 
 ## Resources
@@ -31,7 +32,7 @@ flowchart TD
 | ------------------------ | --------- | ------------------------------------------------------------------------ |
 | `new_hires`              | Model     | The Sales Navigator job-change search, one row per person                |
 | `new-hire-icp-qualifier` | Agent     | Judges a company not in the CRM against `context/icp.md`                 |
-| `route-new-hires`        | Play      | Routes each added person into the CRM and raises the owner's task        |
+| `route-new-hires`        | Play      | Routes each added person into the CRM and tells the right person |
 | `crm`, `linkedin`, `sales_navigator`, `anthropic` | Connectors | Bound to the workspace defaults; nothing is created          |
 | Find Email               | Native tool | Cargo's email lookup, referenced by UUID after it is instantiated      |
 
@@ -42,10 +43,11 @@ market slice, not from contacts you already hold. That is the difference from `t
 which asks whether your own people moved. Here most people are strangers to the CRM, which is why
 the first question is always what the CRM knows about their company.
 
-**The routes are the play.** One job-change event means four different things. A company you have
+**The routes are the play.** One job-change event means different things. A company you have
 never heard of needs qualifying before anything is written. A company with an open deal needs its
-owner told today. A customer needs a welcome before the new leader decides the tool they inherited
-is the problem. A known account without a deal needs a reason to call. Collapsing them into one
+owner told today. A customer needs its CSM to welcome the new leader before they decide the tool
+they inherited is the problem. Any other known account, a lead included, already has whatever
+motion owns it: the contact is added and nobody is allocated anything. Collapsing these into one
 path either pollutes the CRM or loses the urgent cases among the routine ones.
 
 **Enrich, guard, then match.** A Sales Navigator lead carries a company URL. The CRM is matched on a
@@ -59,16 +61,22 @@ it reads the description and specialties and can apply exclusions no number can:
 agencies, holding companies. It reads the ICP from the workspace context, the same file the search
 was shaped from, so the two cannot drift apart.
 
-**A known contact is not news.** On every account the CRM already holds, the play checks for the
-person by LinkedIn URL before paying for an email. Someone the team already has does not deserve a
-task, and re-finding their email on every sync is spend with no result.
+**One contact per person.** Before the routes split, the person is looked up across the whole CRM by
+their LinkedIn identity. People who change jobs are often already in the CRM, attached to the
+company they left. Searching only the new account would miss them and create a second record;
+searching everywhere finds them, and the write moves that record to the new account (the task says
+so, because a known person landing somewhere new is the strongest version of this signal). Already
+a contact on this very account: not news, and the run stops before paying for an email. Some teams
+want one contact per person per company instead, so it is asked at install.
 
-**The contact key follows what was found.** With an email, the contact is matched on it, so it
-merges with one a rep created by hand. Without one, it is matched on the LinkedIn URL, so the person
-is still created, still reachable, and still deduped on the next sync.
+**The contact key follows what was found.** A known person is matched on their record ID. Otherwise,
+with an email the contact is matched on it, so it merges with one a rep created by hand; without
+one, on the LinkedIn URL, so the person is still created, still reachable, and still deduped on the
+next sync. A mover with no new email keeps the one on file rather than having it blanked.
 
-**Every task has an owner and a place.** Tasks go to the account owner (or the named owner for new
-accounts) and are associated to both the account and the contact. HubSpot cannot associate a task
+**Every task has an owner and a place.** Tasks go to the account owner on open deals, to the CSM on
+customers (the account owner when no CSM is set), and to the named owner on new accounts. They are
+associated to both the account and the contact. HubSpot cannot associate a task
 when it creates it, so explicit association nodes follow each task; they continue on failure, so a
 missing ID never undoes a run that already wrote the contact and the task.
 

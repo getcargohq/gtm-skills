@@ -19,6 +19,12 @@ const findEmail = toolRef<{ email?: string }>(
 // lands in nobody's queue. Resolve it from the live owner list; never guess.
 const newAccountOwnerId = "REPLACE-WITH-HUBSPOT-OWNER-ID";
 
+// PLACEHOLDER: the company property that holds the customer's CSM, as a
+// HubSpot owner. HubSpot has no standard one; find the portal's custom field
+// in the live company schema. The customer task goes to that person, and to
+// the account owner when the field is empty or the portal has none.
+const csmOwnerProperty = "REPLACE-WITH-CSM-OWNER-PROPERTY";
+
 // HubSpot's task-to-company and task-to-contact association types. A task
 // cannot be associated when it is created (`insertRecord` takes mappings
 // only), so each task is followed by explicit associations, or it surfaces in
@@ -33,14 +39,17 @@ const taskToContact = "HUBSPOT_DEFINED:204";
 //   not in the CRM      -> qualify, then create the account, the contact and
 //                          a task for the new account's owner
 //   open opportunity    -> a new decision-maker mid-deal: tell the owner now
-//   customer            -> a new stakeholder who did not choose you: the
-//                          owner welcomes them before they form a view
-//   known, no open deal -> a reason to call an account that already has an
-//                          owner
+//   customer            -> a new stakeholder who did not choose you: the CSM
+//                          welcomes them before they form a view
+//   any other stage     -> add the contact to the account, nothing else. No
+//   (lead, MQL, SQL…)      task and no allocation: the account already has
+//                          whatever motion owns it
 //
-// On every account the CRM already holds, a person who is already a contact
-// there is not news, so the run stops before paying for an email. Ends at the
-// CRM write: no message is drafted or sent.
+// One contact per person. The person is looked up across the whole CRM by
+// their LinkedIn identity before anything is written. Found on the very
+// account they just joined: not news, the run stops. Found anywhere else:
+// they moved, and that record is updated onto the new account instead of a
+// second contact being created. Ends at the CRM write: nothing is sent.
 const routeNewHire = defineWorkflow(
   "route-new-hire",
   {
@@ -66,13 +75,18 @@ const routeNewHire = defineWorkflow(
       status: z.enum([
         "written",
         "not_icp",
-        "contact_already_in_crm",
+        "contact_already_on_account",
         "skipped",
       ]),
       rationale: z.string().optional(),
     }),
     uses: { crm, linkedin, findEmail, icpQualifier },
-    imports: { newAccountOwnerId, taskToCompany, taskToContact },
+    imports: {
+      newAccountOwnerId,
+      csmOwnerProperty,
+      taskToCompany,
+      taskToContact,
+    },
   },
   ({ input, uses }) => {
     // The lead carries a company URL, not a domain, and the CRM is matched on
@@ -109,6 +123,19 @@ const routeNewHire = defineWorkflow(
           },
         ],
       },
+    });
+
+    // The person, anywhere in the CRM, by LinkedIn identity. Criteria are
+    // OR'd and empty values skipped. Add the portal's LinkedIn ID property as
+    // a second criterion when it has one; never match on the full name alone,
+    // which finds namesakes. `findRecords` is exact: if the portal stores
+    // LinkedIn URLs in another shape (no `https://www.`, a trailing slash),
+    // normalise the value here or every mover reads as a stranger.
+    const people = uses.crm.findRecords({
+      objectType: "contacts",
+      criterias: [
+        { propertyName: "hs_linkedin_url", value: input.linkedin_profile_url },
+      ],
     });
 
     if (accounts.length === 0) {
@@ -152,15 +179,33 @@ const routeNewHire = defineWorkflow(
         last_name: input.last_name,
       });
 
-      // Keyed on the email when one was found, so the contact dedupes against
-      // one the team created by hand; keyed on the LinkedIn URL when not, so
-      // it is still reachable and still dedupes on the next sync.
+      // A known person is moved, not duplicated: matched on their record ID.
+      // Otherwise keyed on the email when one was found, so the contact
+      // dedupes against one the team created by hand, and on the LinkedIn URL
+      // when not. A mover with no new email keeps the one on file.
       const contact = uses.crm.upsertRecords({
         objectType: "contacts",
-        matchingPropertyName: found.email ? "email" : "hs_linkedin_url",
-        matchingValue: found.email ? found.email : input.linkedin_profile_url,
+        matchingPropertyName:
+          people.length > 0
+            ? "hs_object_id"
+            : found.email
+              ? "email"
+              : "hs_linkedin_url",
+        matchingValue:
+          people.length > 0
+            ? people[0].id
+            : found.email
+              ? found.email
+              : input.linkedin_profile_url,
         mappings: [
-          { propertyName: "email", value: found.email ? found.email : "" },
+          {
+            propertyName: "email",
+            value: found.email
+              ? found.email
+              : people.length > 0
+                ? people[0].properties.email
+                : "",
+          },
           { propertyName: "firstname", value: input.first_name },
           { propertyName: "lastname", value: input.last_name },
           { propertyName: "jobtitle", value: input.job_title },
@@ -181,7 +226,7 @@ const routeNewHire = defineWorkflow(
           },
           {
             propertyName: "hs_task_body",
-            value: `${input.first_name} ${input.last_name} just joined ${company.company_name} as ${input.job_title} (${input.tenure_length}). The account was not in the CRM; it was created because it qualified.\n\nICP: ${verdict.answer.fit_tier}, ${verdict.answer.fit_score}/100, ${verdict.answer.confidence} confidence. ${verdict.answer.rationale}\n\nLinkedIn: ${input.linkedin_profile_url}`,
+            value: `${input.first_name} ${input.last_name} just joined ${company.company_name} as ${input.job_title} (${input.tenure_length}). The account was not in the CRM; it was created because it qualified.${people.length > 0 ? " They were already in the CRM as a contact at another company, and the record was moved here." : ""}\n\nICP: ${verdict.answer.fit_tier}, ${verdict.answer.fit_score}/100, ${verdict.answer.confidence} confidence. ${verdict.answer.rationale}\n\nLinkedIn: ${input.linkedin_profile_url}`,
           },
           { propertyName: "hs_task_status", value: "NOT_STARTED" },
           { propertyName: "hs_task_priority", value: "MEDIUM" },
@@ -230,28 +275,14 @@ const routeNewHire = defineWorkflow(
           ? ("customer" as const)
           : ("known_account" as const);
 
-    const known = uses.crm.searchRecords({
-      objectType: "contacts",
-      limit: 1,
-      filter: {
-        conjonction: "or",
-        groups: [
-          {
-            conjonction: "and",
-            conditions: [
-              {
-                propertyName: "hs_linkedin_url",
-                operator: "is",
-                values: [input.linkedin_profile_url],
-              },
-            ],
-          },
-        ],
-      },
-    });
-
-    if (known.length > 0) {
-      return { route, status: "contact_already_in_crm" as const };
+    // Already a contact on this very account: not news. Stop before paying
+    // for an email. Found on another account, they moved: carry on, and the
+    // write below moves that record here.
+    if (
+      people.length > 0 &&
+      people[0].properties.associatedcompanyid === accounts[0].id
+    ) {
+      return { route, status: "contact_already_on_account" as const };
     }
 
     const found = uses.findEmail({
@@ -262,10 +293,27 @@ const routeNewHire = defineWorkflow(
 
     const contact = uses.crm.upsertRecords({
       objectType: "contacts",
-      matchingPropertyName: found.email ? "email" : "hs_linkedin_url",
-      matchingValue: found.email ? found.email : input.linkedin_profile_url,
+      matchingPropertyName:
+        people.length > 0
+          ? "hs_object_id"
+          : found.email
+            ? "email"
+            : "hs_linkedin_url",
+      matchingValue:
+        people.length > 0
+          ? people[0].id
+          : found.email
+            ? found.email
+            : input.linkedin_profile_url,
       mappings: [
-        { propertyName: "email", value: found.email ? found.email : "" },
+        {
+          propertyName: "email",
+          value: found.email
+            ? found.email
+            : people.length > 0
+              ? people[0].properties.email
+              : "",
+        },
         { propertyName: "firstname", value: input.first_name },
         { propertyName: "lastname", value: input.last_name },
         { propertyName: "jobtitle", value: input.job_title },
@@ -274,8 +322,8 @@ const routeNewHire = defineWorkflow(
       ],
     });
 
-    // The routes differ in who is told, how urgently and why. Each task goes
-    // to the account owner and sits on both the account and the contact.
+    // The routes differ in who is told and why. Each task sits on both the
+    // account and the contact.
     if (stage === "opportunity") {
       // The highest-urgency route and the one most CRMs miss: a new
       // decision-maker landed mid-deal. The owner hears it today.
@@ -288,7 +336,7 @@ const routeNewHire = defineWorkflow(
           },
           {
             propertyName: "hs_task_body",
-            value: `${input.first_name} ${input.last_name} just joined ${company.company_name} as ${input.job_title} (${input.tenure_length}), and the account has an open deal. They were not in the CRM before today. Multi-thread now: a new decision-maker either unblocks the deal or restarts it.\n\nLinkedIn: ${input.linkedin_profile_url}`,
+            value: `${input.first_name} ${input.last_name} just joined ${company.company_name} as ${input.job_title} (${input.tenure_length}), and the account has an open deal.${people.length > 0 ? " They were already in the CRM as a contact at another company, and the record was moved here." : " They were not in the CRM before today."} Multi-thread now: a new decision-maker either unblocks the deal or restarts it.\n\nLinkedIn: ${input.linkedin_profile_url}`,
           },
           { propertyName: "hs_task_status", value: "NOT_STARTED" },
           { propertyName: "hs_task_priority", value: "HIGH" },
@@ -323,8 +371,8 @@ const routeNewHire = defineWorkflow(
       return { route: "open_opportunity" as const, status: "written" as const };
     } else if (stage === "customer") {
       // A new leader inside a customer is a churn risk before it is an
-      // expansion: they did not choose you. The account owner welcomes them
-      // before they form a view.
+      // expansion: they did not choose you. The CSM welcomes them before they
+      // form a view; the account owner when no CSM is set.
       const task = uses.crm.insertRecord({
         objectType: "tasks",
         mappings: [
@@ -334,7 +382,7 @@ const routeNewHire = defineWorkflow(
           },
           {
             propertyName: "hs_task_body",
-            value: `${input.first_name} ${input.last_name} just joined ${company.company_name} as ${input.job_title} (${input.tenure_length}). This is a customer, and a new leader arrives with opinions about the tools they used before. Welcome them and walk them through what the team already runs this week, before the renewal becomes their decision instead of the team's.\n\nLinkedIn: ${input.linkedin_profile_url}`,
+            value: `${input.first_name} ${input.last_name} just joined ${company.company_name} as ${input.job_title} (${input.tenure_length}).${people.length > 0 ? " They were already in the CRM as a contact at another company, and the record was moved here." : ""} This is a customer, and a new leader arrives with opinions about the tools they used before. Welcome them and walk them through what the team already runs this week, before the renewal becomes their decision instead of the team's.\n\nLinkedIn: ${input.linkedin_profile_url}`,
           },
           { propertyName: "hs_task_status", value: "NOT_STARTED" },
           { propertyName: "hs_task_priority", value: "HIGH" },
@@ -342,7 +390,9 @@ const routeNewHire = defineWorkflow(
           { propertyName: "hs_timestamp", value: new Date() },
           {
             propertyName: "hubspot_owner_id",
-            value: accounts[0].properties.hubspot_owner_id,
+            value: accounts[0].properties[csmOwnerProperty]
+              ? accounts[0].properties[csmOwnerProperty]
+              : accounts[0].properties.hubspot_owner_id,
           },
         ],
       });
@@ -368,49 +418,8 @@ const routeNewHire = defineWorkflow(
       );
       return { route: "customer" as const, status: "written" as const };
     } else {
-      // Known account, no open deal: it already has an owner, so it is
-      // neither re-qualified nor dropped. The owner gets a reason to call.
-      const task = uses.crm.insertRecord({
-        objectType: "tasks",
-        mappings: [
-          {
-            propertyName: "hs_task_subject",
-            value: `New ${input.job_title} at ${company.company_name}: a reason to reach out`,
-          },
-          {
-            propertyName: "hs_task_body",
-            value: `${input.first_name} ${input.last_name} just joined ${company.company_name} as ${input.job_title} (${input.tenure_length}). The account is in the CRM with no open deal. A new leader has a mandate and no vendor loyalty yet.\n\nLinkedIn: ${input.linkedin_profile_url}`,
-          },
-          { propertyName: "hs_task_status", value: "NOT_STARTED" },
-          { propertyName: "hs_task_priority", value: "MEDIUM" },
-          { propertyName: "hs_task_type", value: "TODO" },
-          { propertyName: "hs_timestamp", value: new Date() },
-          {
-            propertyName: "hubspot_owner_id",
-            value: accounts[0].properties.hubspot_owner_id,
-          },
-        ],
-      });
-      uses.crm.createAssociation(
-        {
-          fromObjectType: "tasks",
-          fromObjectId: task[0].id,
-          toObjectType: "companies",
-          toObjectId: accounts[0].id,
-          associationTypeId: taskToCompany,
-        },
-        { continueOnFailure: true },
-      );
-      uses.crm.createAssociation(
-        {
-          fromObjectType: "tasks",
-          fromObjectId: task[0].id,
-          toObjectType: "contacts",
-          toObjectId: contact[0].id,
-          associationTypeId: taskToContact,
-        },
-        { continueOnFailure: true },
-      );
+      // Any other stage, lead included: the contact is on the account and
+      // that is the whole job. No task, no allocation.
       return { route: "known_account" as const, status: "written" as const };
     }
   },
@@ -435,7 +444,7 @@ const routeNewHire = defineWorkflow(
 // backfill rows that landed while the play was off.
 export const routeNewHires = definePlay("route-new-hires", {
   description:
-    "Routes each person who just took a target role into the CRM by what the CRM already holds: qualify and create, alert the deal owner, warn the account owner, or flag a known account.",
+    "Routes each person who just took a target role into the CRM by what the CRM already holds: qualify and create, alert the deal owner, have the CSM welcome them at a customer, or add them to a known account.",
   folder: playsFolder,
   model: newHires,
   workflow: routeNewHire,

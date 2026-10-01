@@ -1098,8 +1098,8 @@
     {
       "name": "new-hire-detection",
       "kind": "cookbook",
-      "job": "Watch your whole market for people who just took a role you sell to, and route each one into the CRM by what it already holds: qualify and create a new account, alert the owner of an open deal, warn the owner of a customer, or flag a known account. A deployed pipeline on a Sales Navigator job-change search, ending at the CRM write.",
-      "description": "Watch your whole market for people who just took a role you sell to, and route each one into the CRM by what it already holds: qualify and create a new account, alert the owner of an open deal, warn the owner of a customer, or flag a known account. A deployed pipeline on a Sales Navigator job-change search, ending at the CRM write. Triggers: \"watch our market for new hires and put them in HubSpot\", \"a decision-maker just joined a company in our market\", \"new KDM detection\", \"route new hires into the CRM\", \"tell the deal owner when a new decision-maker lands mid-deal\", \"new VPs of Sales at companies in our ICP\", \"run our new-hire play on a schedule\". Cargo CDK, Sales Navigator, HubSpot, Salesforce, Attio. Skip when: your own CRM contacts may have moved jobs, which is track-job-changes; or you want a list of people once, which is find-b2b-leads.",
+      "job": "Watch your whole market for people who just took a role you sell to, and route each one into the CRM by what it already holds: qualify and create a new account, alert the owner of an open deal, have the CSM welcome them at a customer, or add them to a known account. A deployed pipeline on a Sales Navigator job-change search, ending at the CRM write.",
+      "description": "Watch your whole market for people who just took a role you sell to, and route each one into the CRM by what it already holds: qualify and create a new account, alert the owner of an open deal, have the CSM welcome them at a customer, or add them to a known account. A deployed pipeline on a Sales Navigator job-change search, ending at the CRM write. Triggers: \"watch our market for new hires and put them in HubSpot\", \"a decision-maker just joined a company in our market\", \"new KDM detection\", \"route new hires into the CRM\", \"tell the deal owner when a new decision-maker lands mid-deal\", \"new VPs of Sales at companies in our ICP\", \"run our new-hire play on a schedule\". Cargo CDK, Sales Navigator, HubSpot, Salesforce, Attio. Skip when: your own CRM contacts may have moved jobs, which is track-job-changes; or you want a list of people once, which is find-b2b-leads.",
       "version": "0.1.0",
       "homepage": "https://github.com/getcargohq/gtm-skills/tree/main/new-hire-detection",
       "group": "Make it run forever",
@@ -1118,7 +1118,7 @@
       ],
       "example": {
         "prompt": "Every time a new VP Sales or head of RevOps starts at a US software company with 51 to 500 people, put them in HubSpot and tell the right owner.",
-        "output": "| Person (role)                        | Company (domain)              | Route            | What landed in HubSpot                                                                          |\n| ------------------------------------ | ----------------------------- | ---------------- | ----------------------------------------------------------------------------------------------- |\n| Priya Raman (VP Sales)               | Northwind (northwind.example) | open_opportunity | Contact created; HIGH task \"New decision-maker mid-deal\" on the account owner, on the account   |\n| Tomás Ortega (Head of RevOps)        | Fabrikam (fabrikam.example)   | customer         | Contact created; HIGH task to welcome them before they form a view, on the account owner        |\n| Mei Lin (Chief Revenue Officer)      | Contoso (contoso.example)     | new_account      | Qualified Tier 1 (84/100); account, contact and task created for the named owner                |\n| Sam Hale (VP Sales)                  | Tailspin (tailspin.example)   | new_account      | Not ICP: a consumer app, a disqualifier in the ICP. Nothing written                              |\n| Ana Costa (Director of RevOps)       | Litware (litware.example)     | known_account    | Already a contact on the account. Nothing written, no email paid for                             |"
+        "output": "| Person (role)                        | Company (domain)              | Route            | What landed in HubSpot                                                                          |\n| ------------------------------------ | ----------------------------- | ---------------- | ----------------------------------------------------------------------------------------------- |\n| Priya Raman (VP Sales)               | Northwind (northwind.example) | open_opportunity | Contact created; HIGH task \"New decision-maker mid-deal\" on the account owner, on the account   |\n| Tomás Ortega (Head of RevOps)        | Fabrikam (fabrikam.example)   | customer         | Existing contact moved from his previous company; HIGH welcome task on the account's CSM        |\n| Mei Lin (Chief Revenue Officer)      | Contoso (contoso.example)     | new_account      | Qualified Tier 1 (84/100); account, contact and task created for the named owner                |\n| Sam Hale (VP Sales)                  | Tailspin (tailspin.example)   | new_account      | Not ICP: a consumer app, a disqualifier in the ICP. Nothing written                              |\n| Ana Costa (Director of RevOps)       | Litware (litware.example)     | known_account    | Lead-stage account: contact added to it, no task                                                 |\n| Ben Ito (Head of Sales)              | Adatum (adatum.example)       | known_account    | Already a contact on this account. Nothing written, no email paid for                            |"
       },
       "state": "to-be-approved",
       "chain": 10,
@@ -1161,6 +1161,18 @@
           "why": "A new account has no owner, and a task with no owner lands in nobody's queue"
         },
         {
+          "input": "person_dedupe",
+          "kind": "asked",
+          "how": "One contact per person (default: a mover's existing record is moved to the new account) or a new contact per company. Ask; do not assume",
+          "why": "Teams disagree on it, and it decides whether a person's history follows them or stays with their previous company"
+        },
+        {
+          "input": "csm_owner_field",
+          "kind": "derived",
+          "how": "Find the company property holding the CSM as an owner in the live schema and set `csmOwnerProperty`. Ask \"which field holds the CSM?\" only when none is obvious",
+          "why": "The customer task goes to the CSM; with no field it falls back to the account owner, which is right only if the owner is the CSM"
+        },
+        {
           "input": "routing_signal",
           "kind": "derived",
           "how": "HubSpot: confirm `lifecyclestage` is populated on companies. Salesforce: check `Account.Type`; fall back to the opportunities. Attio: the deal stage or a status attribute",
@@ -1169,8 +1181,8 @@
         {
           "input": "contact_key",
           "kind": "derived",
-          "how": "The CRM field holding a LinkedIn URL (`hs_linkedin_url` on HubSpot; a custom field on Salesforce, found with `listObjectFields`)",
-          "why": "It is the existence check and the dedupe key. Without it every sync can create the same person again"
+          "how": "The CRM fields holding a LinkedIn identity: `hs_linkedin_url` on HubSpot (plus a LinkedIn ID property if the portal has one), a custom field on Salesforce. Check the stored URL shape against Sales Navigator's",
+          "why": "It is the person lookup. An exact match on a differently shaped URL finds nobody, so every mover reads as a stranger and gets duplicated"
         },
         {
           "input": "find_email_tool",
@@ -1200,9 +1212,21 @@
         },
         {
           "id": "csm_queue",
-          "when": "Customers are owned by customer success, not by the account owner field",
-          "how": "Assign the customer route's task to the CSM owner field or a queue instead of the account owner (`infra/plays/route-new-hires.ts`)",
-          "cost": "One more field to verify per CRM. Leave the other routes on the account owner"
+          "when": "Customer success works from a pooled queue rather than a named CSM per account",
+          "how": "Put the customer task in a HubSpot task queue instead of on the CSM field (`infra/plays/route-new-hires.ts`)",
+          "cost": "Nobody is named, so the task waits until someone picks it up"
+        },
+        {
+          "id": "contact_per_company",
+          "when": "The team keeps one contact per person per company, so history stays with the old employer",
+          "how": "Drop the person lookup's match from the contact write and key on email or LinkedIn URL only, and stop only when the person is on this account (`infra/plays/route-new-hires.ts`)",
+          "cost": "Two records per mover; reporting on a person spans both, and the move is no longer noted on the task"
+        },
+        {
+          "id": "match_on_name",
+          "when": "The CRM holds few LinkedIn URLs, so movers are rarely found",
+          "how": "Add first and last name as a criterion, and accept the match only when the found contact's company matches the one the person just left",
+          "cost": "Namesakes: a common name matches a stranger, and moving their record corrupts it. Never name alone"
         },
         {
           "id": "route_on_deals",
@@ -1211,10 +1235,10 @@
           "cost": "One more lookup per existing-account run, and the deal association has to be read reliably"
         },
         {
-          "id": "drop_known_accounts",
-          "when": "Known accounts without a deal are already worked by another motion and the task would be noise",
-          "how": "Make the known-account route return before the email lookup (`infra/plays/route-new-hires.ts`)",
-          "cost": "The largest bucket in most markets stops producing anything, including the accounts nobody is actually working"
+          "id": "task_known_accounts",
+          "when": "Known accounts without a deal are not worked by any motion, and someone should be told",
+          "how": "Add a task for the account owner on the known-account route, as on the customer route (`infra/plays/route-new-hires.ts`)",
+          "cost": "The largest bucket in most markets starts raising tasks; owners who already work these accounts will read most of them as noise"
         },
         {
           "id": "draft_first_touch",
@@ -1228,8 +1252,8 @@
         "**Enrich the company first, match on the domain second, and stop when there is no domain.** (`infra/plays/route-new-hires.ts`) A Sales Navigator lead has a company URL, not a domain. Without the guard, an empty domain matches no account on HubSpot (so it looks new and gets created) and every account on a `contains` lookup in Salesforce (so the first one in the org wins).",
         "**The qualifier runs on the new-account route only, and its verdict gates every write.** (`infra/plays/route-new-hires.ts`, `infra/agents/icp-qualifier.ts`) Without the gate every company in the market lands in the CRM and the play becomes a pollution machine. Qualifying customers and open deals wastes a call and can drop an account somebody already sold.",
         "**The ICP lives in the workspace context, not in the prompt.** (`infra/agents/icp-qualifier.ts`) In the prompt, changing who qualifies becomes a deploy, and the search and the qualifier drift apart because they no longer read the same file.",
-        "**On an account the CRM already holds, a known contact stops the run.** (`infra/plays/route-new-hires.ts`) Someone already in the CRM is not news. Without the check every sync pays for their email again and raises a task about a person the owner already knows.",
-        "**Every task names an owner and sits on the account.** (`infra/plays/route-new-hires.ts`) A task with no owner is in nobody's queue, and one not attached to the account is invisible to the rep who opens it. HubSpot cannot attach at insert, so the association nodes stay.",
+        "**The person is looked up before anything is written, and a contact on the same account stops the run.** (`infra/plays/route-new-hires.ts`) Someone already on the account is not news; without the stop every sync pays for their email again and raises a task the owner does not need. And without the lookup, a person who moved gets a second contact while their old one sits on a company they left.",
+        "**Every task names an owner and sits on the account.** (`infra/plays/route-new-hires.ts`) The deal route goes to the account owner, the customer route to the CSM with the owner as fallback. A task with no owner is in nobody's queue, and one not attached to the account is invisible to the rep who opens it. HubSpot cannot attach at insert, so the association nodes stay.",
         "**`changeKinds: [\"added\"]` stays.** (`infra/plays/route-new-hires.ts`) Each sync re-extracts the whole search. Without `added`, every sync re-routes everyone in it, re-pays for every enrichment and every email, and raises the same tasks again.",
         "**Lookups never use SOQL.** (`references/crm-adaptation.md`) On Salesforce they are `findRecords` or `searchRecords`. A hand-written query skips field validation, so a misspelled field or an unquoted domain returns nothing at run time and routes everyone down the wrong branch while every run reports success.",
         "**The play ends at the CRM write.** Sending belongs to the team's own sequencer, after a person has read the task. A play that sends on a job-change signal mails people on their first week with nobody reviewing it."
@@ -1240,12 +1264,13 @@
         "every run in the pilot ended in a named route and status, and every route the ten reached is shown with its CRM record links",
         "a new-account run shows the qualifier's verdict and rationale, and a declined company wrote nothing",
         "no account the CRM already held was created again",
-        "every task carries an owner and is attached to the account and the contact",
-        "a person already in the CRM produced no task and no email lookup",
+        "every task carries an owner (the CSM on customers) and is attached to the account and the contact",
+        "a person already on the account produced no task and no email lookup",
+        "a person found at another company was moved, not duplicated, and the task says so",
         "`node --import tsx evals/contract.mjs` passes against the adapted resources",
         "after opening up, the next sync created runs only for people new since the previous one"
       ],
-      "cost": "Fetch live prices before every estimate: `cargo-ai connection integration get salesNavigator`,\n`linkedin`, and the Find Email tool's template, plus the LLM connector's model. Quote the lookup\ntime with the estimate.\n\n**Extraction is the main spend, and it repeats.** `fetchLeadSearch` bills per extracted lead, and\nit is not incremental: every sync extracts the whole search again, including the people already in\nthe model. \"Changed jobs\" spans roughly the last 90 days, so a sync every two weeks re-pays for most\nof the previous sync to find the ones who are new. One sync costs the counted search (capped at\n`limit` per URL) times the per-lead price; a month costs that times the number of syncs.\n\n**Routing is per new person, and only new people.** Each run pays one company enrichment. A\ncompany not in the CRM adds one qualifier call; a qualified one adds an email lookup. An account\nthe CRM already holds adds an email lookup only when the person is not already a contact. The CRM\nactions carry no per-call price of their own; confirm it with `cargo-ai connection integration get`\non the CRM's slug if the workspace's plan says otherwise.\n\n**Counting is cheap and comes first.** One `searchPersonMetrics` call per candidate URL tells you\nwhat a sync will extract before anything is extracted.",
+      "cost": "Fetch live prices before every estimate: `cargo-ai connection integration get salesNavigator`,\n`linkedin`, and the Find Email tool's template, plus the LLM connector's model. Quote the lookup\ntime with the estimate.\n\n**Extraction is the main spend, and it repeats.** `fetchLeadSearch` bills per extracted lead, and\nit is not incremental: every sync extracts the whole search again, including the people already in\nthe model. \"Changed jobs\" spans roughly the last 90 days, so a sync every two weeks re-pays for most\nof the previous sync to find the ones who are new. One sync costs the counted search (capped at\n`limit` per URL) times the per-lead price; a month costs that times the number of syncs.\n\n**Routing is per new person, and only new people.** Each run pays one company enrichment. A\ncompany not in the CRM adds one qualifier call; a qualified one adds an email lookup. An account\nthe CRM already holds adds an email lookup only when the person is not already a contact on it. The CRM\nactions carry no per-call price of their own; confirm it with `cargo-ai connection integration get`\non the CRM's slug if the workspace's plan says otherwise.\n\n**Counting is cheap and comes first.** One `searchPersonMetrics` call per candidate URL tells you\nwhat a sync will extract before anything is extracted.",
       "composesInto": "`crm-enrichment` (fills the contacts and accounts this play creates), `account-scoring` (a standing\nscore on the accounts it adds), and the team's own sequencer after a person reads the task.\n`track-job-changes` is the sibling for people already in your CRM."
     },
     {

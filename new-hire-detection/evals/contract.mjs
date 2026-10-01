@@ -101,8 +101,10 @@ assert.ok(
 // The qualifier runs on the new-account route only, and gates every write.
 const agent = findOne((node) => node.kind === "agent", "exactly one agent: the qualifier");
 assert.equal(agent.agentUuid?.resourceId, "agent:new-hire-icp-qualifier");
+const isLookup = (node) =>
+  isCrm(node) && ["searchRecords", "findRecords"].includes(node.actionSlug);
 assert.ok(
-  ancestorsOf(agent).every((node) => !isCrm(node) || node.uuid === guardElse.uuid),
+  ancestorsOf(agent).every((node) => !isCrm(node) || isLookup(node)),
   "the qualifier must sit on the new-account route, before any CRM write",
 );
 const gate = childrenOf(agent)[0];
@@ -118,8 +120,31 @@ const accountWrites = nodes.filter(
 );
 assert.ok(accountWrites.length > 0, "the new-account route must write to the CRM");
 
-// On accounts the CRM already holds, a known contact stops the run before the
-// email lookup is paid for.
+// One contact per person: the person is looked up across the CRM before the
+// routes split, and every contact write keys on that lookup first, so a mover
+// is moved rather than duplicated.
+const accountSplit = parentOf(agent);
+const personLookup = parentOf(accountSplit);
+assert.ok(
+  isLookup(personLookup) && personLookup.uuid !== guardElse.uuid,
+  "the person lookup must sit between the account lookup and the route split",
+);
+const contactWrites = nodes.filter(
+  (node) =>
+    isCrm(node) &&
+    node.actionSlug === "upsertRecords" &&
+    /^contacts?$/i.test(String(node.config.objectType)),
+);
+assert.equal(contactWrites.length, 2, "one contact write per account state: new, and already held");
+for (const write of contactWrites) {
+  assert.ok(
+    String(write.config.matchingPropertyName?.expression).includes(`nodes.${personLookup.slug}`),
+    "a contact write must match the person found by the lookup before keying on anything else",
+  );
+}
+
+// On accounts the CRM already holds, a person who is already a contact on that
+// very account stops the run before the email lookup is paid for.
 const emailLookups = nodes.filter(
   (node) => node.kind === "tool" && node.toolUuid === "REPLACE-WITH-FIND-EMAIL-TOOL-UUID",
 );
@@ -127,23 +152,22 @@ assert.equal(emailLookups.length, 2, "one email lookup per account state: new, a
 const existingRouteLookup = emailLookups.find((node) => !ancestorsOf(node).includes(agent));
 assert.ok(existingRouteLookup, "the existing-account route must look the email up");
 const contactGate = parentOf(existingRouteLookup);
-assert.ok(isBranch(contactGate), "the email lookup must be gated on the contact check");
-assert.ok(childrenOf(contactGate).some(isEnd), "a known contact must end the run");
-const contactCheck = parentOf(contactGate);
+assert.ok(isBranch(contactGate), "the email lookup must be gated on the same-account check");
+assert.ok(childrenOf(contactGate).some(isEnd), "a person already on the account must end the run");
 assert.ok(
-  isCrm(contactCheck) && ["searchRecords", "findRecords"].includes(contactCheck.actionSlug),
-  "the contact check must be a CRM lookup",
+  contactGate.config.condition.expression.includes(`nodes.${personLookup.slug}`),
+  "the same-account check must read the person lookup",
 );
 
-// Every route that writes ends by telling someone, on the account. Four
-// routes write: new, open opportunity, customer, known. A task on HubSpot and
-// Salesforce; a note on Attio, which has no task write.
+// Three routes tell someone, on the account: new, open opportunity, customer.
+// The known-account route adds the contact and stops: no task, no allocation.
+// A task on HubSpot and Salesforce; a note on Attio, which has no task write.
 const tasks = nodes.filter(
   (node) => isCrm(node) &&
     ((node.actionSlug === "insertRecord" && /^tasks?$/i.test(String(node.config.objectType))) ||
       node.actionSlug === "createNote"),
 );
-assert.equal(tasks.length, 4, "one task per writing route");
+assert.equal(tasks.length, 3, "one task each for new account, open opportunity and customer");
 for (const task of tasks) {
   if (task.actionSlug === "createNote") continue;
   const props = new Set(task.config.mappings.map((mapping) => mapping.propertyName));
@@ -164,7 +188,9 @@ const routing = findOne(
   (node) => node.kind === "native" && node.actionSlug === "switch",
   "the existing-account routes must be one explicit switch",
 );
-assert.equal(childrenOf(routing).length, 3, "open opportunity, customer, known account");
+const routes = childrenOf(routing);
+assert.equal(routes.length, 3, "open opportunity, customer, known account");
+assert.ok(isEnd(routes[2]), "the known-account route adds the contact and raises no task");
 
 // Ends at the CRM write: nothing is drafted or sent.
 assert.equal(

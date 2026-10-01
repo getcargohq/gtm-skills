@@ -11,8 +11,9 @@ change together, and changing four of them is the usual failure:
 5. the task: object, owner field, and how it is attached to the account
 
 What does not change: the Sales Navigator model, the company enrichment, the
-domain guard, the qualifier and its gate, the email lookup, and the rule that
-an existing contact stops the run. Run `evals/contract.mjs` after adapting; it
+domain guard, the person lookup before the routes split, the qualifier and its
+gate, the email lookup, the rule that a contact already on the account stops
+the run, and the known-account route adding the contact without a task. Run `evals/contract.mjs` after adapting; it
 reads the integration from the compiled graph, not from this file.
 
 Before writing a single mapping, read the live schema. Field names on
@@ -109,9 +110,11 @@ Salesforce has no LinkedIn field by default. Find the org's custom field
 and if there is none, ask before creating one: it is the key that stops the
 next sync from creating the same person twice.
 
-- existence check: `findRecords({ objectType: "Contact", criterias: [{ propertyName: "<LinkedIn field>", value: input.linkedin_profile_url }] })`
-- write: `upsertRecords` on `Contact`, matching `Email` when the email was
-  found and the LinkedIn field when not, with `AccountId` set to the account
+- person lookup, before the routes split: `findRecords({ objectType: "Contact", criterias: [{ propertyName: "<LinkedIn field>", value: input.linkedin_profile_url }] })`
+- same-account stop: the found contact's `AccountId` equals the account's `Id`
+- write: `upsertRecords` on `Contact`, matching `Id` when the person was found
+  (a mover is moved, not duplicated), else `Email` when the email was found,
+  else the LinkedIn field, with `AccountId` set to the account
 - new account: `upsertRecords` on `Account` matching `Website`, with `OwnerId`
   set to the owner the operator named
 
@@ -126,7 +129,7 @@ away. `insertRecord` on `Task` with:
 | `Description` | the route's body                                                       |
 | `WhoId`       | the contact's `Id`                                                     |
 | `WhatId`      | the open opportunity's `Id` on that route, the account's `Id` on others |
-| `OwnerId`     | the opportunity's `OwnerId` on that route, the account's on others     |
+| `OwnerId` | the opportunity's `OwnerId` on that route; on customers the account's CSM field (often a custom user lookup), else the account's `OwnerId` |
 | `Status`      | `Not Started`                                                          |
 | `Priority`    | `High` or `Normal`                                                     |
 | `ActivityDate` | today                                                                 |
@@ -143,7 +146,8 @@ Attio has `findRecords`, `searchRecords`, `upsertRecords`, `insertRecord` and
 - the routing signal: Attio has no lifecycle stage; read the deal records
   linked to the company (the `deals` object and its stage attribute, whose
   names vary per workspace) or a company status attribute the team maintains
-- contacts: `people`, matched on `email_addresses` or the LinkedIn attribute
+- contacts: `people`, found by the LinkedIn attribute before the routes split,
+  and moved by updating their company relationship when they sit on another one
 - the task: there is no task write, so the owner is told with `createNote` on
   the company record (title and markdown body from the route), or through the
   team's Slack connector. Say which one before deploying: a note on the record

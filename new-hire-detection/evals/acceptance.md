@@ -24,7 +24,11 @@ as passed.
       (connector, lookups, routing signal, contact key, task).
 - [ ] No lookup uses `soqlQuery`.
 - [ ] The routing signal is populated on the accounts it routes on, or routing was moved to deals.
-- [ ] The contact key field exists and is the one the existence check reads.
+- [ ] The LinkedIn identity fields exist, the person lookup reads them, and the stored URL shape
+      matches what Sales Navigator returns.
+- [ ] The operator chose one contact per person (default) or one per company.
+- [ ] `csmOwnerProperty` names the portal's CSM field, or the operator confirmed the account owner
+      is the CSM.
 - [ ] The owner for new accounts is a real owner ID from the live owner list.
 - [ ] The Find Email placeholder is replaced, and the tool's live inputs and output path match the
       call.
@@ -46,8 +50,10 @@ as passed.
 - [ ] A new-account run shows the qualifier's verdict and rationale; a declined company wrote
       nothing.
 - [ ] No account the CRM already held was created again.
-- [ ] Every task carries an owner and is attached to the account and the contact.
-- [ ] A person already in the CRM produced no email lookup and no task.
+- [ ] Every task carries an owner (the CSM on customers) and is attached to the account and the
+      contact; known accounts got the contact and no task.
+- [ ] A person already on the account produced no email lookup and no task.
+- [ ] A person found at another company was moved, not duplicated, and the task says so.
 - [ ] Any route the ten did not reach is named as unverified, or was run on a chosen record.
 
 ## Opening up
