@@ -155,7 +155,7 @@
         {
           "id": "register-domain",
           "when": "The workspace does not yet own a sending domain",
-          "how": "Drop `adopt: true` on `defineDomain`. Do not add `dnsRecords` unless you mean to replace the whole zone (`infra/domains/outreach.ts`)",
+          "how": "Drop `adopt: true` on `defineDomain`. Leave `dnsRecords` off: the registrar writes the mail records (`infra/domains/outreach.ts`)",
           "cost": "Registration charges workspace credits and is not refundable. The deploy waits until the domain is `active` before creating the mailbox."
         },
         {
@@ -182,7 +182,7 @@
         "**`sendEmail` is a native action on the agent. `mailboxUuid` is locked in `config`.** (`infra/agents/engager.ts`) Wrapping it in a tool is ceremony. Leaving the mailbox as a field the agent fills sends from an inbox the trigger is not watching, and the run looks successful. `listEmailEvents` stays on the same agent so a heartbeat can read status instead of inferring it from chat history.",
         "**A reply carries `inReplyTo` and the full `references` chain, oldest first.** (`infra/agents/engager.prompt.ts`) Passing only the parent Message-ID is how mail clients split the conversation. The next wake then has no thread to continue.",
         "**Domain, username and type on the mailbox are create-only.** (`infra/mailboxes/rep.ts`) Editing them in place is not an update. It is destroy plus a new inbox, back at five real sends a day, with a new address the lead does not know.",
-        "**`dnsRecords` is omitted unless this file is meant to own the zone.** (`infra/domains/outreach.ts`) Declaring it replaces every live record, including the ones the registrar wrote at purchase.",
+        "**`dnsRecords` holds only the records this file should manage.** (`infra/domains/outreach.ts`) From `@cargo-ai/cdk` 1.0.92 it is merged into the live zone, so the MX, SPF, DKIM and DMARC records the registrar wrote stay, and dropping a declared record deletes it on the next deploy. Earlier versions replace every live record, mail included.",
         "**The From name is a real person.** (`infra/mailboxes/rep.ts`) A fabricated sender is a refusal, not a configuration question.",
         "**No credentials, deploy commands, or customer data in this repository.**"
       ],

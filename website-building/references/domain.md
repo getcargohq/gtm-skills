@@ -30,6 +30,22 @@ changed, `-` deleted). Show it to the operator before the deploy, get a yes for 
 and record it under `## Decisions`. A record edited by hand after the deploy published it makes the
 plan stop and name both values; put the one to keep in the code.
 
+## The first deploy
+
+The hostname attaches during the first deploy, so that plan cannot list the app's records: it says
+the records "are not in the diff above" and are published with the zone. A `~` on `www` is
+therefore invisible the one time it matters. Look first: `dig +short www.<domain>`.
+
+- **Nothing answers:** one deploy is fine; the next plan shows the records as `= noop`.
+- **Something answers:** deploy in two steps. Leave `website.domainRecords` out of `dnsRecords`
+  (or leave `dnsRecords` off) and deploy: the hostname attaches and the zone is untouched. Put it
+  back and run `cargo-ai cdk plan`: the diff now lists every record, and the deploy waits for the
+  operator's yes on it.
+
+The registrar can take a few minutes to publish the records on its nameservers. A browser that
+looked up `www` before then keeps the "no such host" answer until it expires, so test with
+`dig @<nameserver>` and `curl --resolve` rather than a reload.
+
 ## Adopt or purchase
 
 - **Adopt** (the example): `adopt: true` binds a domain the workspace already owns. The deploy
