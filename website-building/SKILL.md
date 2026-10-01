@@ -102,7 +102,9 @@ including CI that plans every pull request and deploys on merge; if not, this is
    offer unprompted; _What you will be asked_ is the floor, and you derive before you ask. Record
    what you changed and why under a `## Decisions` section in your copy of this file.
 6. **Plan, then stop.** `node --import tsx evals/contract.mjs` from this skill's folder, then
-   `npm run check && cargo-ai cdk plan` from the project root, show the diff, and deploy only on an explicit yes: `cargo-ai cdk deploy`. A
+   `npm run check && cargo-ai cdk plan` from the project root, show the diff, and deploy only on
+   an explicit yes: `cargo-ai cdk deploy`. The first deploy's plan cannot list the app's records,
+   so when `www` already answers, deploy in two steps ([domain](references/domain.md#the-first-deploy)). A
    `+ create domain:…` line is a non-refundable purchase, not an adopt. If the project deploys
    from CI, the merged pull request is the deploy; do not also deploy from a laptop.
 7. **Verify.** Walk _Done when_ line by line and report each with evidence. A deploy whose TXT
