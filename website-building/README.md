@@ -30,7 +30,7 @@ flowchart TD
 
 1. **A pull request** changes the content or the pages; the app builds locally to `dist/`.
 2. **The plan** shows the app's new content hash; the deploy uploads the package and Cargo
-   builds it, routing statically because pages are exported as `<route>/index.html`.
+   builds it and serves each page from the file it exported, `<route>/index.html`.
 3. **The hostname** is attached on deploy and verified once its `_cargo-verify` TXT resolves.
 4. **The domain** publishes the TXT, the certificate-validation CNAME and the `www` CNAME, and
    forwards the apex to `www`.
@@ -48,9 +48,10 @@ Adds 2 resource kinds plus the folder they file into.
 ## Why a static export
 
 Cargo Hosting serves files. A static export gives every page real HTML, its own metadata and a
-URL that works when entered directly, with no server to run. `trailingSlash: true` writes each
-page as `<route>/index.html`, which is what Cargo's build detects to route statically; without it,
-`/about` serves the home page. What needs a server (route handlers, middleware, image
+URL that works when entered directly, with no server to run. Cargo serves a path from the file
+the export wrote for it (`about/index.html`, else `about.html`), a missing page from `404.html`
+with status 404, and only then the root `index.html`. `trailingSlash: true` keeps every link,
+canonical and sitemap URL on one form, `/about/`. What needs a server (route handlers, middleware, image
 optimization, a form that delivers) lives somewhere else and is called from the page.
 
 ## Why a domain file you might delete
