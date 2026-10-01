@@ -11,8 +11,8 @@ Walk every line. A checked template without an evidence-backed consumer adaptati
   initial HTML carries its own title and description, and a draft carries `noindex`. The build
   output, `node_modules/` and `next-env.d.ts` are deleted afterwards.
 - The DNS path is recorded: Cargo-held (domain file kept) or external (domain file deleted). For a
-  Cargo-held domain, `cargo-ai mailboxManagement mailbox list` shows no mailbox on it, and the
-  output is recorded.
+  Cargo-held domain, the plan's DNS diff is recorded: the app's records are added, and every `~` or
+  `-` was approved by the operator.
 - `site.json` `canonicalUrl` is `https://www.<domain>/` before `status` is `ready`.
 - `node --import tsx evals/contract.mjs` passes against the adapted graph.
 - `cargo-ai cdk types && cargo-ai cdk check && cargo-ai cdk plan` pass in the consumer project. The

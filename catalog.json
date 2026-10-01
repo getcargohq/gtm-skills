@@ -1560,7 +1560,7 @@
         }
       ],
       "shouldNotChange": [
-        "**Never adopt a domain Cargo mailboxes send from.** (`infra/domains/website.ts`) `dnsRecords` replaces the whole zone, so the MX, SPF, DKIM and DMARC records disappear and mail stops. Give the website a dedicated domain, or leave the DNS where it is and delete the file.",
+        "**Read the DNS diff before a deploy touches the domain.** (`infra/domains/website.ts`) Records the deploy did not write stay, mail included, but a `~` on `www` or a new `redirectUrl` replaces what the domain served before, and a `-` deletes a record an earlier deploy published. Each of those needs the operator's yes.",
         "**The site is served on `www`, never the apex.** (`infra/apps/website.ts`) The apex cannot CNAME to an app; it forwards to `https://www.<domain>`, and `site.json` `canonicalUrl` is `https://www.<domain>/`, so search engines index one origin.",
         "**`dnsRecords` includes `website.domainRecords`.** (`infra/domains/website.ts`) Without it the zone has no `_cargo-verify` TXT and no `www` CNAME, and the hostname never verifies.",
         "**The app stays a static export.** (`infra/apps/website/next.config.ts`) `output: \"export\"` and `trailingSlash: true`. Without the trailing slash, `/about` serves the home page.",
@@ -1573,14 +1573,14 @@
         "`node --import tsx evals/contract.mjs` passes: one app in the `website-building-apps` folder with a `www` hostname and a static-export build, and either no domain or an adopted domain whose `dnsRecords` holds the app's `domainRecords` and whose apex forwards to `www`",
         "`npm ci && npm run check && npm run build` in the app writes `dist/index.html`, `dist/about/index.html`, `dist/robots.txt` and `dist/sitemap.xml`, each page with its own title, description and canonical in the initial HTML",
         "the operator reviewed the local preview: every changed page at 1440 and 390 pixels wide with no horizontal scroll, reachable by keyboard with visible focus, readable in both themes, with no console errors or failed requests",
-        "the mailbox check is recorded, or the domain file was deleted",
+        "the plan's DNS diff is recorded and every `~` or `-` in it was approved, or the domain file was deleted",
         "`cargo-ai cdk plan` shows the folder, the app and the domain (or no domain) as an adopt, not a create, and the operator approved it",
         "the deploy log says `Routing: static`, and the Cargo URL serves `/about` and `/about/` directly",
         "`https://www.<domain>/` serves the site in an anonymous session with a valid certificate, the apex redirects to it, and pages carry it as their canonical URL; a pending TXT is reported as pending",
         "`site.json` is `ready` only for approved content, and a content change reaches the site through one reviewed pull request whose plan shows the same app with a new content hash"
       ],
       "cost": "Each merge is one deployment of a static app; read the workspace's current hosting usage before\nthe first deploy, and say what you found. Adopting a domain the workspace owns adds no charge.\nRegistering one (`register-domain`) charges workspace credits once and is **not refundable**: read\nthe current price and the credit balance before proposing it, and quote both with the plan. A\nworking form adds whatever its backend costs. Nothing in the workspace runs on a schedule; your\ncoding agent's usage is the rest.",
-      "composesInto": "`call-capture` (the customer language it collects is what the pages should say), `account-scoring`\nand `tam-building` (the ICP they write down is who the site speaks to), `agentic-engagement` (its\nsending domain is never the website's)."
+      "composesInto": "`call-capture` (the customer language it collects is what the pages should say), `account-scoring`\nand `tam-building` (the ICP they write down is who the site speaks to), `agentic-engagement` (when\nits sending domain carries the site, both sets of records go on its one `defineDomain`)."
     },
     {
       "name": "weekly-planning",

@@ -88,7 +88,7 @@ for (const domain of domains) {
     (domain.spec.dnsRecords ?? []).some(
       (record) => record?.resourceId === app.id && record.field === "domainRecords",
     ),
-    "dnsRecords must include the app's domainRecords: the zone is replaced by this list",
+    "dnsRecords must include the app's domainRecords, or the zone gets no _cargo-verify TXT or www CNAME",
   );
   assert.equal(
     domain.spec.redirectUrl,
