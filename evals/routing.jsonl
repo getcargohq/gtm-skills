@@ -61,8 +61,9 @@
 {"prompt":"portfolio companies of","expect":"find-portfolio-companies"}
 
 // --- one-off / deployed seam -------------------------------------------------------
-// tam-building, account-scoring, crm-enrichment, crm-deduplication, call-capture
-// and agentic-engagement are worked CDK examples that deploy a pipeline.
+// tam-building, account-scoring, crm-enrichment, crm-deduplication,
+// call-capture, agentic-engagement, standup, weekly-planning and ask-cargo are worked CDK
+// examples that deploy a pipeline.
 // build-tam-list, score-leads and research-account are one-offs: the same
 // job once, in a turn. The
 // same words describe both, so these cases pin which way each phrasing goes;
@@ -87,10 +88,21 @@
 {"prompt": "Enrich my CRM", "expect": "crm-enrichment"}
 {"prompt": "Our account data was accurate a year ago, but new companies and old firmographics keep going stale", "expect": "crm-enrichment"}
 {"prompt": "Every new CRM company should get standard identity and firmographics, then be refreshed when it goes stale", "expect": "crm-enrichment"}
+{"prompt": "Keep our CRM contacts filled", "expect": "crm-enrichment"}
+{"prompt": "Nobody refreshes the contact records", "expect": "crm-enrichment"}
+{"prompt": "Every new CRM contact should get a LinkedIn profile, person ID, and title, then be refreshed when stale", "expect": "crm-enrichment"}
+{"prompt": "Half our contacts are missing LinkedIn URLs and job titles, and nobody keeps them fresh", "expect": "crm-enrichment"}
+{"prompt": "Enrich this supplied list of 40 LinkedIn profile URLs once", "expect": "enrich-linkedin-profile", "why": "A supplied one-off list should not route to the CRM contact pipeline."}
+{"prompt": "Find work emails for these 50 people I exported", "expect": "find-work-email", "why": "A one-off email lookup stays with the email finder, not the contact pipeline's optional email route."}
 {"prompt": "Deduplicate our CRM accounts and keep the ambiguous company matches in review", "expect": "crm-deduplication"}
 {"prompt": "Set up recurring account deduplication in Cargo", "expect": "crm-deduplication"}
 {"prompt": "Merge duplicate companies in HubSpot automatically when confidence is high, and ask me to review uncertain matches", "expect": "crm-deduplication"}
 {"prompt": "Our CRM has duplicate account records sharing LinkedIn company IDs and domains", "expect": "crm-deduplication"}
+{"prompt": "Clean duplicate contact records in HubSpot and keep low-confidence people matches in review", "expect": "crm-deduplication"}
+{"prompt": "Set up recurring contact deduplication in Cargo", "expect": "crm-deduplication"}
+{"prompt": "Our CRM has duplicate people with the same LinkedIn profile and phone number", "expect": "crm-deduplication"}
+{"prompt": "Merge duplicate CRM contacts when the LinkedIn person ID matches exactly", "expect": "crm-deduplication"}
+{"prompt": "Verify these emails", "expect": "verify-email-list", "why": "Email validation is the one-off verifier, not CRM contact deduplication."}
 {"prompt": "Our call recordings never make it into the knowledge base", "expect": "call-capture"}
 {"prompt": "Turn yesterday's call transcripts into context updates every morning", "expect": "call-capture", "why": "The standing tell: every morning, not this one call."}
 {"prompt": "We relearn the same objection every quarter because nobody writes it down", "expect": "call-capture", "why": "The repetition bar promoting a twice-heard objection is exactly this pipeline."}
@@ -103,6 +115,24 @@
 {"prompt": "Keep talking to leads over email", "expect": "agentic-engagement", "why": "The standing tell: a loop, not one send."}
 {"prompt": "Native email trigger for lead replies", "expect": "agentic-engagement"}
 {"prompt": "I need email addresses for these prospects so I can start conversations", "expect": "find-work-email", "why": "Addresses first; agentic-engagement is the loop you deploy after you have someone to write to."}
+{"prompt": "Post the daily standup to slack", "expect": "standup"}
+{"prompt": "End of day report in slack", "expect": "standup"}
+{"prompt": "What happened today posted to slack", "expect": "standup", "why": "The standing tell: posted, every evening, not a recap in this chat."}
+{"prompt": "Keep a cadence log of each day", "expect": "standup"}
+{"prompt": "Replace the GitHub Action that posts our standup", "expect": "standup"}
+{"prompt": "Evening recap of the GTM day", "expect": "standup"}
+{"prompt": "Scribe yesterday's calls into the repo every morning", "expect": "call-capture", "why": "Calls are call-capture; standup reads those entries in the evening, it does not scribe them."}
+{"prompt": "What should we work on this week", "expect": "weekly-planning"}
+{"prompt": "Rank our initiatives against what is actually running", "expect": "weekly-planning"}
+{"prompt": "Weekly GTM plan from the cadence log", "expect": "weekly-planning"}
+{"prompt": "Recommend next work from infra and runs", "expect": "weekly-planning"}
+{"prompt": "The play is deployed but I don't think it ran", "expect": "weekly-planning", "why": "Deployed-is-not-running is a planning gap, not a daily Slack recap."}
+{"prompt": "What should we do next this week, not a recap of today in Slack", "expect": "weekly-planning", "why": "Recommendations are weekly-planning; standup recaps the day and posts to Slack."}
+{"prompt": "Let the team ask our GTM agent from slack", "expect": "ask-cargo"}
+{"prompt": "One agent on top of all the others that anyone can mention in slack", "expect": "ask-cargo"}
+{"prompt": "A slack bot that knows our repo and can open PRs", "expect": "ask-cargo"}
+{"prompt": "Post the day's recap to slack every evening", "expect": "standup", "why": "A scheduled digest is standup; ask-cargo only answers when mentioned."}
+{"prompt": "Research acme.com for me right now", "expect": "research-account", "why": "A one-off answer in this chat, nothing deployed."}
 {"prompt": "Build our company website on Cargo and keep it updated through reviewed PRs", "expect": "company-website"}
 {"prompt": "Recreate our website on Cargo from our existing GitHub repository", "expect": "company-website"}
 {"prompt": "Capture our design system so a website maintainer can follow it", "expect": "company-website"}

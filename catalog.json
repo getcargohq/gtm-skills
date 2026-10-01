@@ -6,11 +6,24 @@
       "kind": "cookbook",
       "job": "Keep every account scored and tiered against your written ICP by a deployed agent that re-scores as accounts arrive and as the ICP changes, writing the rationale back to the CRM.",
       "description": "Keep every account scored and tiered against your written ICP by a deployed agent that re-scores as accounts arrive and as the ICP changes, writing the rationale back to the CRM. Triggers: \"keep our accounts scored as they arrive\", \"re-score everything when the ICP changes\", \"which accounts should the team work first\", \"our scoring is a spreadsheet nobody trusts\", \"why is this account tier A\", \"stand up account tiering\". Cargo CDK, defineAgent, cargo_score, cargo_tier, HubSpot, Salesforce, Attio. Skip when: someone hands you a list and wants it qualified once, which is cargo-gtm's job, not a deployed scorer's.",
-      "version": "0.2.0",
+      "version": "0.2.1",
       "homepage": "https://github.com/getcargohq/gtm-skills/tree/main/account-scoring",
       "group": "Make it run forever",
       "install": "cargo-ai cdk add cookbook/account-scoring",
       "partOf": [],
+      "personas": [
+        "revops",
+        "sales-leadership",
+        "gtm-engineering"
+      ],
+      "integrations": [
+        "hubspot",
+        "openAi"
+      ],
+      "example": {
+        "prompt": "Score every HubSpot company against the ICP in our context repo and put the tier and the reason on the record, re-checking weekly.",
+        "output": "| Company (domain)              | cargo_score | cargo_tier | cargo_rationale                                                                                                |\n| ----------------------------- | ----------- | ---------- | -------------------------------------------------------------------------------------------------------------- |\n| Northwind (northwind.example) | 86          | A          | 420-person B2B SaaS in the US running HubSpot and Snowflake. Matches the ICP on segment, size band and stack.  |\n| Fabrikam (fabrikam.example)   | 58          | B          | Right industry and region, but 60 employees sits below the ICP's 100–2,000 size band. No disqualifier applies. |\n| Tailspin (tailspin.example)   | 18          | C          | Consumer mobile game studio. B2C is an ICP disqualifier, which caps the score at 20.                           |\n\nEach record also gets `cargo_last_updated_at`, so the Monday sweep skips it for three months; after the next\nmodel refresh Northwind lands in `tier-a-accounts` and Tailspin in `tier-c-accounts`."
+      },
       "state": "to-be-approved",
       "chain": 1,
       "resources": [
@@ -87,11 +100,22 @@
       "kind": "cookbook",
       "job": "Deploy an agent that holds email conversations with leads: a sending domain, a mailbox, native sendEmail and listEmailEvents on the agent, a native email trigger on reply and unsubscribe, and a heartbeat that checks thread status when nothing inbound happened.",
       "description": "Deploy an agent that holds email conversations with leads: a sending domain, a mailbox, native sendEmail and listEmailEvents on the agent, a native email trigger on reply and unsubscribe, and a heartbeat that checks thread status when nothing inbound happened. Triggers: \"handle email conversations with leads\", \"agentic engagement\", \"an agent that replies to inbound email\", \"stand up a conversation agent on a Cargo mailbox\", \"native email trigger for lead replies\", \"keep talking to leads over email\". Cargo CDK, defineDomain, defineMailbox, defineAgent, agentNativeTrigger, heartbeat, sendEmail, listEmailEvents. Skip when: you want to send one email right now, which is a native sendEmail from the CLI and needs nothing deployed; or you want a play that blasts a list rather than holding a thread.",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "homepage": "https://github.com/getcargohq/gtm-skills/tree/main/agentic-engagement",
       "group": "Make it run forever",
       "install": "cargo-ai cdk add cookbook/agentic-engagement",
       "partOf": [],
+      "personas": [
+        "sales-development",
+        "gtm-engineering"
+      ],
+      "integrations": [
+        "openAi"
+      ],
+      "example": {
+        "prompt": "Give our jordan@ mailbox an agent that answers leads who reply to my first emails, and checks quiet threads once for a single follow-up.",
+        "output": "```text\nFrom:    Priya Raman <priya@northwind.example>\nStatus:  replied  (native email trigger wakes the engager's chat)\nSubject: Re: Routing inbound leads at Northwind\n> Interesting. Does this work if our CRM is Salesforce, not HubSpot?\n\nFrom:        Jordan <jordan@outreach.fabrikam.example>   (the bound mailbox)\nSubject:     Re: Routing inbound leads at Northwind\nIn-Reply-To: <msg-2@northwind.example>\nReferences:  <msg-1@outreach.fabrikam.example> <msg-2@northwind.example>\n> Yes. Salesforce is a native connector, same as HubSpot, so routing writes\n> straight to your lead owner field. Worth 20 minutes next week to see it on\n> your own queue?\n```\n\nOne threaded reply per wake, grounded in the workspace context; had Priya unsubscribed instead, the same\nwake would have ended with no send, and a thread left at `sent` gets at most one heartbeat follow-up."
+      },
       "state": "to-be-approved",
       "chain": 5,
       "resources": [
@@ -178,35 +202,174 @@
     {
       "name": "apollo-to-cargo",
       "kind": "one-off",
-      "job": "Rebuild an Apollo list on Cargo and price the two side by side before you move anything, powered by Cargo.",
+      "job": "Rebuild an Apollo list on Cargo and price the two side by side before you move anything.",
       "description": "Rebuild an Apollo list on Cargo and price the two side by side before you move anything, powered by Cargo. Triggers: \"Apollo alternative\", \"migrate off Apollo\", \"move my Apollo list to Cargo\", \"replace Apollo.io\", \"I have an Apollo export\", \"Apollo credits ran out\", \"is Cargo cheaper than Apollo\", \"Apollo coverage is bad in my niche\". Providers: apolloio, waterfall. Skip when: you are porting a Clay table rather than an Apollo list — use clay-to-cargo; or you simply want contacts sourced and have nothing to migrate — use find-b2b-leads.",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "homepage": "https://github.com/getcargohq/gtm-skills",
       "group": "Coming from another tool",
       "install": "npx skills add getcargohq/gtm-skills/apollo-to-cargo",
-      "partOf": []
+      "partOf": [],
+      "personas": [
+        "revops",
+        "gtm-engineering"
+      ],
+      "integrations": [
+        "apolloio",
+        "waterfall"
+      ],
+      "example": {
+        "prompt": "Before our Apollo renewal, compare it with Cargo on 20 rows from `apollo-q3-export.csv`.",
+        "output": "| Source | Emails found | Verified | Credits | Credits per verified |\n|---|---|---|---|---|\n| Apollo, via Cargo | 15 / 20 | 11 | 21.5 | 1.95 |\n| Cargo waterfall | 18 / 20 | 17 | 41.8 | 2.46 |\n\n63.3 credits for the whole comparison (20 × 1 + 15 × 0.1 on Apollo, 20 × 2 + 18 × 0.1 on the waterfall): the waterfall verified 6 more addresses at a higher cost per address, and the call is the user's."
+      },
+      "cost": "| Action | Credits |\n|---|---|\n| `waterfall.verifyEmail` | 0.1 |\n| `apolloio.enrichPerson` | 1 |\n| `apolloio.enrichOrganization` | 1 |\n| `waterfall.enrichContact` | 2 |\n\nA 20-row comparison running both sides is roughly 20 × (1 + 2 + 0.1 × 2), around 64 credits,\nwhich fits inside the free balance a new account starts with.\n\n**Never run this across a full list on the first attempt.** Sample 10–20 records, report the\nobserved cost and hit-rate, then get the user to approve the full run — quoting the record count\nand the credit estimate. A batch fans out across every record in the source, and the bill scales\nwith it.",
+      "worthKnowing": [
+        "**Do not quote a saving you have not measured.** The comparison above exists because the answer varies by niche: Apollo's coverage is genuinely strong in some segments and thin in others, and the sample is what tells you which one you are in.",
+        "**`apolloio.enrichPerson` costs 3 rather than 1 with `revealPhoneNumber: true`.** Leave it off unless phones are the reason for the migration, and say so when you turn it on.",
+        "**An Apollo export is a snapshot.** Rows exported months ago carry stale titles and stale companies, so a low hit rate on an old export is a fact about the export, not about either vendor. Check the export date before reading anything into the numbers."
+      ]
+    },
+    {
+      "name": "ask-cargo",
+      "kind": "cookbook",
+      "job": "One agent the whole team @mentions in Slack, sitting on top of your GTM repo and workspace: it answers from context, cadence and live runs, turns change requests into pull requests, and hands work to the other deployed agents only after a go in the thread.",
+      "description": "One agent the whole team @mentions in Slack, sitting on top of your GTM repo and workspace: it answers from context, cadence and live runs, turns change requests into pull requests, and hands work to the other deployed agents only after a go in the thread. Triggers: \"let the team ask our GTM agent from slack\", \"one agent on top of all the others\", \"a slack bot that knows our repo\", \"ask cargo from slack\", \"multiplayer GTM agent in slack\", \"orchestrator agent for our GTM stack\", \"let anyone open a PR from slack\". Cargo CDK, defineAgent, harness claudeCode, Slack connector trigger, GitHub, cargo-ai CLI, ai message create. Skip when: you want the day recapped and posted to Slack on a schedule, which is standup; or you want an answer in this chat right now with nothing deployed.",
+      "version": "0.1.1",
+      "homepage": "https://github.com/getcargohq/gtm-skills/tree/main/ask-cargo",
+      "group": "Make it run forever",
+      "install": "cargo-ai cdk add cookbook/ask-cargo",
+      "partOf": [],
+      "personas": [
+        "revops",
+        "sales-leadership",
+        "gtm-engineering"
+      ],
+      "integrations": [
+        "anthropic",
+        "github",
+        "slack"
+      ],
+      "example": {
+        "prompt": "Put one agent in our #gtm Slack channel that answers from this repo, opens a pull request for any edit, and runs nothing until someone says go.",
+        "output": "```text\n#gtm\nDana:   @Cargo add Globex to our competitors, they keep showing up in fintech deals\nCargo:  Opened https://github.com/northwind-example/gtm/pull/212 on branch ask-cargo/add-globex-competitor.\n        • Adds Globex to context/ competitors with the fintech positioning from this thread\n        • `cargo-ai cdk check` passes; nothing under infra/ changed\n        Want a battlecard section too? Reply @Cargo with what to add.\nDana:   @Cargo also note they undercut on price for teams under 50 seats\nCargo:  Pushed a second commit to the same pull request (#212): pricing note added.\n        Review and merge it when it reads right; I never merge.\n```\n\nOne thread became one reviewable pull request with two commits; a request that spends, such as\nre-scoring an account, would instead get a proposal with its live price and wait for `@Cargo go`."
+      },
+      "state": "to-be-approved",
+      "chain": 9,
+      "resources": [
+        "agents",
+        "connectors",
+        "folders"
+      ],
+      "asked": [],
+      "canChange": [
+        {
+          "id": "answer-only",
+          "when": "You want a Slack oracle over the repo first, and no one running anything from Slack yet",
+          "how": "In `infra/agents/ask-cargo.prompt.ts`, replace §3 and §4 with \"propose the command, never run it\"",
+          "cost": "The team copies commands out of Slack into a terminal, and \"the agent said it would cost X\" stops being checked against what actually ran."
+        },
+        {
+          "id": "listed-channels",
+          "when": "The bot sits in channels it must never answer in, or you want answers in a few channels only",
+          "how": "Replace `allChannels: true` with `channelIds: [\"C…\"]` in `infra/agents/ask-cargo.ts`, from the connector's autocomplete",
+          "cost": "A list to keep in sync: a new team channel gets no answer until someone edits the file and deploys. Listing a channel also takes it from any `allChannels` agent."
+        },
+        {
+          "id": "dms-too",
+          "when": "Individuals want to ask privately",
+          "how": "Add each person's Slack **user id** (`U…`) to `channelIds` next to `allChannels`; DMs are listed by user, not by `D…` channel, and `allChannels` never covers them.",
+          "cost": "The thread stops being multiplayer: nobody else sees the proposal or the go, so a DM go is one person approving spend alone. Keep §3 unchanged if you take this."
+        },
+        {
+          "id": "master-agent-slack",
+          "when": "You only need questions answered, no repo and no pull requests",
+          "how": "Skip this cookbook. Put a Slack trigger on the workspace's built-in Master Agent in the UI.",
+          "cost": "No checkout: it cannot read `infra/` or `cadence/`, and it cannot change anything. Cheaper and faster per question, because there is no sandbox to start."
+        },
+        {
+          "id": "no-handoff",
+          "when": "No other agents are deployed yet",
+          "how": "Delete §4 of the prompt and `references/roster.md",
+          "cost": "Every job is redone by this agent from scratch, without the owning agent's rules. Add §4 back the day the first pipeline deploys."
+        },
+        {
+          "id": "higher-sample-bar",
+          "when": "Your runs are expensive per record, or touch people",
+          "how": "Lower the 25-record threshold and the 5-record sample in §3 of the prompt",
+          "cost": "More round trips in the thread for every batch, and each one needs another `@Cargo go`."
+        }
+      ],
+      "shouldNotChange": [
+        "**The bot is kept out of customer shared channels.** (`infra/agents/ask-cargo.ts`) The trigger is `allChannels`, so where the bot is invited is where the agent answers. A shared channel the bot joined for something else is a channel where the first question reads the ICP and the pipeline to the customer. Remove the bot there, or list the channel on the agent that owns it.",
+        "**Nothing on `uses`.** (`infra/agents/ask-cargo.ts`) The trigger replies by itself, so a `postMessage` use is a second way to post, to any channel. A sub-agent or tool on `uses` is a path that skips the go in the thread, and a sub-agent handle imports another cookbook's file. The contract fails on any of the four.",
+        "**Spend, sends and handoffs wait for a go in the thread.** (`infra/agents/ask-cargo.prompt.ts`) Anyone in the channel can @mention it. Without the gate, a half-typed \"enrich everything\" runs a batch over the whole model, and the only record of who approved it is a Slack thread nobody reread. The go approves the proposal as written, never more records or a higher cost.",
+        "**Changes are one pull request per thread, never a merge, never a deploy.** (`infra/agents/ask-cargo.prompt.ts`) The merge is the approval. An agent that deploys from Slack turns a mistyped message into a production change with no diff anyone read.",
+        "**The agent never calls the Slack tools.** (`infra/agents/ask-cargo.prompt.ts`) The trigger hands it `postMessage` with no channel lock, plus history and search. A reply is its final text, in the thread it was asked in; anything else is how an internal answer lands in the wrong channel.",
+        "**It hands work to the owning agent instead of redoing it.** (`infra/agents/ask-cargo.prompt.ts`) A scorer's rules live in the scorer's prompt. Redoing the job here produces a second score with none of those rules, and the two disagree in the CRM.",
+        "**It does not claim to know who asked.** (`infra/agents/ask-cargo.prompt.ts`) The model is not told. A pull request that names a requester names a guess."
+      ],
+      "doneWhen": [
+        "`node --import tsx evals/contract.mjs` passes: harness is `claudeCode` on an Anthropic connector, one Slack trigger on `allChannels`, nothing on `uses`, no capability",
+        "`cargo-ai cdk plan` reports the agent, the three connectors and the folder",
+        "a question in a channel the bot is in (\"what is our ICP?\") got an answer in the thread that cites a file under `context/`",
+        "a question about the workspace (\"what failed yesterday?\") cites the `cargo-ai` command it ran; a read that errored says so instead of a number",
+        "a change request opened exactly one unmerged pull request, and a follow-up in the same thread added a commit to it rather than opening a second",
+        "a request that spends replied with a proposal and a live price and ran nothing; the same request ran only after `@Cargo go`",
+        "a request an installed agent owns was handed to it with `cargo-ai ai message create`, and the reply names the chat or pull request it produced",
+        "a mention in a channel another agent lists got that agent's reply, not this one's"
+      ],
+      "cost": "Every turn is a harness run: a sandbox, a clone of the repository, and LLM tokens billed through the\nbound Anthropic connector. A turn that only answers a question costs tokens and nothing else. The\nread-only `cargo-ai` calls are API calls, not connector actions, and bill nothing.\n\nWhat spends is what someone approves with a go: the connector actions, batches and agent handoffs in\n§3 of the prompt. The agent reads each price live (`cargo-ai connection integration get <slug>`) and\nsays the total before it asks for the go, so the proposal is the cost line. Nothing runs on a\nschedule.",
+      "composesInto": "`standup` and `weekly-planning` (it can run either on demand, and answers \"what happened this week\"\nfrom the logs they write), `account-scoring` and `crm-enrichment` (it hands them one-account\nrequests instead of scoring or enriching by hand), `call-capture` (the call entries are context it\nanswers from), `agentic-engagement` (it can report what a thread did, never send on its behalf)."
     },
     {
       "name": "build-tam-list",
       "kind": "one-off",
-      "job": "Build a total addressable market list of companies filtered by industry, headcount, and geography, powered by Cargo.",
+      "job": "Build a total addressable market list of companies filtered by industry, headcount, and geography.",
       "description": "Build a total addressable market list of companies filtered by industry, headcount, and geography, powered by Cargo. Triggers: \"build a TAM list\", \"how many companies match our ICP\", \"list every SaaS company in Europe under 200 employees\", \"size our addressable market\", \"find target accounts\", \"list building\", \"build a list of companies\". Providers: salesNavigator. Skip when: you want the people at those companies — use find-b2b-leads or find-stakeholders; or you want companies by tech stack — use find-companies-using-tech.",
-      "version": "1.1.0",
+      "version": "1.1.1",
       "homepage": "https://github.com/getcargohq/gtm-skills",
       "group": "Find the accounts and the people",
       "install": "npx skills add getcargohq/gtm-skills/build-tam-list",
-      "partOf": []
+      "partOf": [],
+      "personas": [
+        "revops",
+        "sales-leadership"
+      ],
+      "integrations": [
+        "salesNavigator"
+      ],
+      "example": {
+        "prompt": "Size the market of US software companies with 51–200 employees and give me the first 100.",
+        "output": "| name | domain | headcount | industry | linkedinUrl |\n|---|---|---|---|---|\n| Northwind | northwind.example | 51-200 | Software Development | linkedin.com/company/northwind-example |\n| Tailspin | tailspin.example | 51-200 | Software Development | linkedin.com/company/tailspin-example |\n| Initech | initech.example | 51-200 | Software Development | linkedin.com/company/initech-example |\n\nThe first 100 companies for 5 credits (100 × 0.05); nothing is enriched yet, so the market is sized before any per-company spend."
+      },
+      "cost": "| Action | Credits |\n|---|---|\n| `salesNavigator.searchAccounts` | 0.05 |\n\n**Never run this across a full list on the first attempt.** Sample 10–20 records, report the\nobserved cost and hit-rate, then get the user to approve the full run — quoting the record count\nand the credit estimate. A batch fans out across every record in the source, and the bill scales\nwith it.",
+      "worthKnowing": [
+        "Cheapest at-scale company sourcing in the catalog.",
+        "Size the market before you enrich it — a count is nearly free, enriching 10,000 companies is not."
+      ]
     },
     {
       "name": "call-capture",
       "kind": "cookbook",
       "job": "Every call the team records is collected into the cadence layer each morning, scribed into a log entry, and — once a claim repeats — promoted into the context knowledge layer, as one reviewable pull request against your GTM repo. Nine recorders ship; a tenth is one adapter file.",
       "description": "Every call the team records is collected into the cadence layer each morning, scribed into a log entry, and — once a claim repeats — promoted into the context knowledge layer, as one reviewable pull request against your GTM repo. Nine recorders ship; a tenth is one adapter file. Triggers: \"our call recordings never make it into the knowledge base\", \"turn our call transcripts into context\", \"we relearn the same objection every quarter\", \"scribe yesterday's calls into the repo every morning\", \"replace the GitHub Action that summarizes our meetings\", \"we record on Granola, not Avoma\". Cargo CDK, defineAgent, harnessSlug claudeCode, workspace env var, GitHub, Avoma, Granola, Fathom, Gong, Fireflies, Grain, tl;dv, Modjo, Clari Copilot, cadence, context. Skip when: you want one call summarized right now, which is a read against the recorder's own API and needs nothing deployed.",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "homepage": "https://github.com/getcargohq/gtm-skills/tree/main/call-capture",
       "group": "Make it run forever",
       "install": "cargo-ai cdk add cookbook/call-capture",
       "partOf": [],
+      "personas": [
+        "sales-leadership",
+        "account-executive",
+        "revops"
+      ],
+      "integrations": [
+        "anthropic",
+        "github"
+      ],
+      "example": {
+        "prompt": "Every morning, pull yesterday's Gong calls into this repo as log entries and open one pull request with anything worth adding to our context.",
+        "output": "```diff\n[call-capture] scribe 2026-10-06\nCaptured 5 · scribed fresh 5 · scribed from backfill 0 · pending 0\n\n+ cadence/log/raw/calls/2026-10-05-northwind.md\n+ cadence/log/calls/2026-10-05-northwind.md\n+   ## Objections\n+   - \"We already pay for Globex, I can't justify a second tool\" (Priya Raman, VP RevOps)\n+   ## Actions\n+   - [ ] Send the Globex migration one-pager to Priya\n+ context/objection/already-have-globex.md\n+   Heard on 2 calls: cadence/log/calls/2026-09-22-fabrikam.md,\n+   cadence/log/calls/2026-10-05-northwind.md\n```\n\nFive calls became five log entries, and the Globex objection reached `context/` only because a second\naccount raised it; a single mention would have stayed in its log entry."
+      },
       "state": "to-be-approved",
       "chain": 4,
       "resources": [
@@ -292,13 +455,34 @@
     {
       "name": "clay-to-cargo",
       "kind": "one-off",
-      "job": "Rebuild a Clay table on Cargo, powered by Cargo — map every Clay enrichment column to its provider action, price the run before it happens, and keep the result as version-controlled code instead of a spreadsheet.",
+      "job": "Rebuild a Clay table on Cargo — map every Clay enrichment column to its provider action, price the run before it happens, and keep the result as version-controlled code instead of a spreadsheet.",
       "description": "Rebuild a Clay table on Cargo, powered by Cargo — map every Clay enrichment column to its provider action, price the run before it happens, and keep the result as version-controlled code instead of a spreadsheet. Triggers: \"migrate from Clay\", \"move my Clay table to Cargo\", \"Clay alternative\", \"replace Clay\", \"I have a Clay export\", \"what does Clay's enrichment column map to\", \"my Clay bill is too high\", \"Clay but as code\". Migration, mapping, parity, spreadsheet, declarative. Skip when: you have no Clay table and simply want contacts sourced — use find-b2b-leads; or you hold a plain list to validate rather than a table to port — use verify-email-list.",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "homepage": "https://github.com/getcargohq/gtm-skills",
       "group": "Coming from another tool",
       "install": "npx skills add getcargohq/gtm-skills/clay-to-cargo",
-      "partOf": []
+      "partOf": [],
+      "personas": [
+        "gtm-engineering",
+        "revops"
+      ],
+      "integrations": [
+        "prospeo",
+        "FullEnrich",
+        "waterfall",
+        "companyEnrich"
+      ],
+      "example": {
+        "prompt": "Rebuild our \"Inbound enrichment\" Clay table on Cargo — here's the ClayMate JSON export.",
+        "output": "| Clay column | Cargo action | Clay fill | Cargo fill | Agreement |\n|---|---|---|---|---|\n| Work Email | `prospeo.findEmail` → `FullEnrich.findEmail` | 14 / 20 | 16 / 20 | 13 of 14 |\n| Email Valid? | `waterfall.verifyEmail` | 14 / 14 | 16 / 16 | 13 of 14 |\n| Company Industry | `companyEnrich.enrichByDomain` | 20 / 20 | 19 / 20 | 18 of 19 |\n\n20 sample rows, 6 of them rows Clay left empty, for 23.6 credits end to end (20 × 0.5 + 7 × 1 + 16 × 0.1 + 20 × 0.25); whether that parity is enough to switch is the user's call."
+      },
+      "cost": "| Action | Credits |\n|---|---|\n| `prospeo.findEmail` | 0.5 |\n| `FullEnrich.findEmail` | 1 |\n| `waterfall.verifyEmail` | 0.1 |\n| `companyEnrich.enrichByDomain` | 0.25 |\n| `prospeo.enrichLinkedin` | 0.5 |\n\n**Never run this across a full list on the first attempt.** Sample 10–20 rows from the export,\nreport the observed cost and per-column fill rate, then get the user to approve the full run —\nquoting the row count and the credit estimate. A batch fans out across every record in the source,\nand the bill scales with it.",
+      "worthKnowing": [
+        "Run the cheap rung across everything, then escalate only the misses — never run both on the full list.",
+        "`prospeo.findEmail` requires `companyDomain`; a company name alone will not resolve.",
+        "`FullEnrich.findEmail` takes `domainName`, not `companyDomain`. The two rungs disagree on the field name, and a copy-paste between them silently resolves nothing.",
+        "Clay's per-row credit and Cargo's credit are different units. Never compare the two numbers directly — compare what one sample of rows cost end to end on each."
+      ]
     },
     {
       "name": "company-website",
@@ -310,8 +494,21 @@
       "group": "Make it run forever",
       "install": "cargo-ai cdk add cookbook/company-website",
       "partOf": [],
+      "personas": [
+        "marketing",
+        "gtm-engineering"
+      ],
+      "integrations": [
+        "anthropic",
+        "github",
+        "snitcher"
+      ],
+      "example": {
+        "prompt": "Build our company website on Cargo from our brand guide, and serve it on www.fabrikam.example — our DNS is at Cloudflare.",
+        "output": "```text\nPR #12  Company website: home, about, pricing   (reviewed, merged)\n\nrelease  app:company-website   deployment 3f2a…   promoted\n  build    npm run build → dist/   # Routing: static (pages found as <dir>/index.html)\n  live     https://company-website-1a2b3c4d.app.getcargo.run/pricing  → Pricing page\n\nwebsite.mjs records   (add at Cloudflare, then wait for the TXT to resolve)\n  TXT    _cargo-verify.www   cargo-verify=9c1e…\n  CNAME  _x1.www             _y1.acm-validations.aws\n  CNAME  www                 d123.cloudfront.net\n  apex   fabrikam.example → https://www.fabrikam.example   (provider redirect)\n```\n\nEvery page has its own URL and prerendered HTML; `www.fabrikam.example` serves the site once\nits TXT record resolves, and the Cargo hostname stays `noindex`."
+      },
       "state": "to-be-approved",
-      "chain": 6,
+      "chain": 10,
       "resources": [
         "agents",
         "apps",
@@ -352,127 +549,204 @@
     {
       "name": "crm-deduplication",
       "kind": "cookbook",
-      "job": "Keep CRM accounts duplicate-free: audit company identity, build a recurring deduplication play directly on the CRM model, search and score duplicate candidates, merge safe exact matches, and route uncertain clusters to manual review.",
-      "description": "Keep CRM accounts duplicate-free: audit company identity, build a recurring deduplication play directly on the CRM model, search and score duplicate candidates, merge safe exact matches, and route uncertain clusters to manual review. Triggers: \"deduplicate our CRM accounts\", \"we keep creating duplicate account records\", \"merge duplicate companies in HubSpot\", \"set up recurring account deduplication\", \"review ambiguous company duplicates\", \"our CRM has duplicate companies\". HubSpot, Salesforce, Attio, Slack, Cargo CDK, findRecords, Scoring, Human Review, mergeRecords. Skip when: the request is to add or refresh CRM firmographics rather than merge duplicate records; use crm-enrichment.",
-      "version": "0.1.0",
+      "job": "Keep CRM accounts and contacts duplicate-free: audit company and person identity, run recurring deduplication plays directly on CRM models, merge safe exact matches, and route uncertain clusters to manual review.",
+      "description": "Keep CRM accounts and contacts duplicate-free: audit company and person identity, run recurring deduplication plays directly on CRM models, merge safe exact matches, and route uncertain clusters to manual review. Triggers: \"deduplicate our CRM accounts\", \"deduplicate CRM contacts\", \"our CRM has duplicate people\", \"merge duplicate contacts in HubSpot\", \"we keep creating duplicate account records\", \"merge duplicate companies in HubSpot\", \"set up recurring CRM deduplication\", \"review ambiguous duplicates\". HubSpot, Salesforce, Attio, Slack, LinkedIn profiles, phone numbers, Cargo CDK, findRecords, Scoring, Human Review, mergeRecords. Skip when: the request is to add or refresh CRM data rather than merge duplicate records; use crm-enrichment.",
+      "version": "0.1.1",
       "homepage": "https://github.com/getcargohq/gtm-skills/tree/main/crm-deduplication",
       "group": "Make it run forever",
       "install": "cargo-ai cdk add cookbook/crm-deduplication",
       "partOf": [],
+      "personas": [
+        "revops",
+        "gtm-engineering"
+      ],
+      "integrations": [
+        "hubspot",
+        "slack"
+      ],
+      "example": {
+        "prompt": "Merge duplicate HubSpot companies automatically only when the LinkedIn company ID matches, and send everything else to #crm-hygiene for a human to approve.",
+        "output": "```text\n#crm-hygiene · Review CRM account merge into 18234\nDuplicate score: 72/100\nSurvivor: 18234\nRecords to merge: 20911\nIdentity conflict: false\nProtected ID conflict: false\nParent/subsidiary warning: false\nEvidence:\n18234, linkedin id none, linkedin northwind-traders, domain northwind.example, protected no, parent none\n20911, linkedin id none, linkedin northwind-traders, domain northwind.example, protected no, parent none\n[Approve]  [Decline]\n```\n\nTwo records sharing a LinkedIn page and a domain, but no LinkedIn company ID, wait for a reviewer;\napprove merges 20911 into 18234, while decline or 24 hours of silence leaves both untouched."
+      },
       "state": "to-be-approved",
       "chain": 6,
       "resources": [
         "connectors",
+        "folders",
         "models",
         "plays"
       ],
       "asked": [
         {
-          "input": "crm",
+          "input": "crm_shape",
           "kind": "derived",
-          "how": "Inspect authenticated connectors, generated action types, and existing CDK resources",
-          "why": "The play must search and merge in the authoritative CRM"
+          "how": "Inspect authenticated connectors, selected extracts, and generated action types",
+          "why": "Sets objects, IDs, search, merge, and property behavior"
         },
         {
-          "input": "deduplication_evidence",
+          "input": "selected_paths",
           "kind": "derived",
-          "how": "Normalize live CRM identifiers, classify candidate clusters, conflicts, and survivor evidence",
-          "why": "Policy approval must be grounded in current records"
+          "how": "Read whether the request names account deduplication, contact deduplication, or both",
+          "why": "Sets which audits, resources, approvals, and pilots are in scope"
         },
         {
-          "input": "current_action_costs",
+          "input": "action_costs",
           "kind": "derived",
-          "how": "Read live CRM and Slack integration metadata immediately before each preview",
-          "why": "The pilot handoff must disclose current cost"
+          "how": "Read current CRM metadata plus Slack metadata for paths with active review",
+          "why": "Each path's handoff must disclose its current maximum cost"
         },
         {
-          "input": "approved_policy",
-          "kind": "asked",
-          "how": "Review matching keys, protected fields, survivor precedence, score, and automatic class",
-          "why": "It controls every candidate and automatic merge"
+          "input": "account_evidence",
+          "kind": "derived",
+          "how": "Audit company identifiers, conflicts, candidate classes, and survivor inputs",
+          "why": "Grounds the account policy in current CRM records"
         },
         {
-          "input": "manual_review",
+          "input": "account_policy",
           "kind": "asked",
-          "how": "Select the Slack connector, channel, owner, and timeout",
-          "why": "Uncertain clusters need an accountable decision path"
+          "how": "Review keys, protected fields, survivor precedence, score, and automatic class",
+          "why": "Controls every company candidate and unattended merge"
         },
         {
-          "input": "approved_build",
+          "input": "account_review",
           "kind": "asked",
-          "how": "Authorize deployment of the adapted resources with the play disabled",
-          "why": "Repository review does not authorize workspace mutation"
+          "how": "Select Slack channel, owner, and timeout for uncertain company clusters",
+          "why": "Gives manual company decisions an accountable owner"
         },
         {
-          "input": "approved_pilot",
+          "input": "account_authorizations",
           "kind": "asked",
-          "how": "Review the live play link and approve the exact merge-capable population",
-          "why": "A disabled play can still mutate CRM records when manually run"
+          "how": "Approve the disabled build, then the exact merge-capable pilot as separate decisions",
+          "why": "Separates deployment from company-record mutation"
+        },
+        {
+          "input": "contact_evidence",
+          "kind": "derived",
+          "how": "Audit person identifiers, conflicts, candidate classes, and survivor inputs",
+          "why": "Grounds the contact policy in current CRM records"
+        },
+        {
+          "input": "contact_policy",
+          "kind": "asked",
+          "how": "Review keys, global guards, survivor precedence, and automatic classes",
+          "why": "Controls every person candidate and unattended merge"
+        },
+        {
+          "input": "contact_review",
+          "kind": "asked",
+          "how": "Decide whether low-confidence groups enter review; if yes, approve channel and timeout",
+          "why": "Defines the non-automatic contact path"
+        },
+        {
+          "input": "contact_authorizations",
+          "kind": "asked",
+          "how": "Approve the disabled build, then the exact merge-capable pilot as separate decisions",
+          "why": "Separates deployment from contact-record mutation"
         }
       ],
       "canChange": [
         {
           "id": "crm",
           "when": "The consumer uses Salesforce or Attio",
-          "how": "Replace the checked HubSpot connector, extractor, record ID, search action, merge action, and properties",
-          "cost": "Generated types and merge semantics must be revalidated"
-        },
-        {
-          "id": "matching_keys",
-          "when": "The CRM has an approved durable identity beyond the defaults",
-          "how": "Add the normalized key to search, score, evidence, conflicts, and contract tests",
-          "cost": "Wider matching can create new false-positive classes"
-        },
-        {
-          "id": "survivor_precedence",
-          "when": "Protected lifecycle, billing, tier, or customer policy must win",
-          "how": "Update both survivor implementations and record the exact order",
-          "cost": "A policy change can select a different survivor for every cluster"
+          "how": "Replace connector, extract, record ID, search, merge, and properties across selected paths",
+          "cost": "Generated types and native merge semantics must be revalidated"
         },
         {
           "id": "structured_ai_review",
-          "when": "Ambiguous evidence needs a review aid",
-          "how": "Add priced structured evidence before Human Review only",
-          "cost": "Adds current model cost and a non-deterministic review surface"
+          "when": "Ambiguous evidence needs a concise review aid",
+          "how": "Add priced structured evidence before Human Review only; never use it to bypass deterministic guards",
+          "cost": "Adds model cost and a non-deterministic review surface"
+        },
+        {
+          "id": "account_matching_keys",
+          "when": "The CRM has another approved durable company identity",
+          "how": "Add it to search, normalization, evidence, conflict gates, review, and contract tests",
+          "cost": "Wider matching can create new false-positive company classes"
+        },
+        {
+          "id": "account_survivor_precedence",
+          "when": "Protected lifecycle, billing, tier, or customer policy must win",
+          "how": "Change the account ranker and its contract fixtures together",
+          "cost": "A policy change can select a different survivor for every cluster"
+        },
+        {
+          "id": "contact_matching_keys",
+          "when": "The CRM has another approved durable person identity",
+          "how": "Add it to both searches, normalization, evidence, conflict gates, review, and tests",
+          "cost": "Wider matching can create new false-positive person classes"
+        },
+        {
+          "id": "contact_survivor_precedence",
+          "when": "Commercial history or activity policy differs",
+          "how": "Change the contact ranker and its contract fixtures together",
+          "cost": "A policy change can select a different survivor for every group"
+        },
+        {
+          "id": "low_confidence_review",
+          "when": "The operator wants phone-only or ambiguous groups surfaced",
+          "how": "Keep Human Review enabled, or remove that branch and update the contact contract so those groups end untouched",
+          "cost": "Review volume changes; disabled review leaves more duplicates"
         }
       ],
       "shouldNotChange": [
-        "**Run on the authoritative CRM model.** (`infra/plays/deduplicate-accounts.ts`) The play uses the CRM-backed account extract and CRM record ID. A native account or candidate model introduces another identity system and can target the wrong record.",
-        "**Search live CRM rows before scoring.** (`infra/plays/deduplicate-accounts.ts`) `findRecords` refreshes candidate membership for every run. Audit snapshots can become stale before a merge.",
-        "**Search, score, select, then decide.** (`infra/scripts/evidence.ts`) Deterministic preparation retains the fresh source exactly once. Native Scoring evaluates the evidence before deterministic survivor selection and the automatic gate.",
-        "**Keep the automatic class narrow.** (`infra/plays/deduplicate-accounts.ts`) Exact shared LinkedIn company ID, score at least 60, and no identity, protected-ID, or parent-subsidiary conflict are all required. Every other candidate reaches Human Review.",
-        "**Merge only on automatic or approved paths.** (`infra/plays/deduplicate-accounts.ts`) Human approval reaches the reviewed merge. Decline and timeout end without a CRM write.",
-        "**Stop stale queued rows.** (`infra/plays/deduplicate-accounts.ts`) A source missing from the fresh search ends before scoring or emitting merge IDs.",
-        "**Keep one CRM shape in the folder.** Adapt HubSpot in place for Salesforce or Attio. Parallel CRM branches drift from the generated types actually connected.",
-        "**Keep the pilot disabled, serial, and limited.** (`infra/plays/deduplicate-accounts.ts`) The play remains disabled, `noConcurrency`, and limited to 15 CRM rows until the verified pilot is approved for expansion.",
-        "**Keep the repository inert.** It contains no credential, deploy command, customer data, or live merge result."
+        "**Run on authoritative CRM models.** (`infra/plays/`) Each selected play uses its object-specific CRM extract and record ID. A candidate model introduces another identity system and can target the wrong record.",
+        "**Search live CRM rows before scoring.** (`infra/plays/`) The CRM search refreshes candidate membership for every run. Audit snapshots can become stale before a merge.",
+        "**Search, prepare, score, then decide.** (`infra/scripts/`) Deterministic preparation retains the fresh source once, normalizes evidence, and selects one survivor before the automatic gate.",
+        "**Merge only on automatic or approved paths.** (`infra/plays/`) Human approval reaches the reviewed merge. Decline and timeout end without a CRM write.",
+        "**Stop stale queued rows.** (`infra/plays/`) A source missing from the fresh search ends before scoring or emitting merge IDs.",
+        "**Keep one CRM shape.** Adapt HubSpot in place. Parallel CRM branches drift from the generated types connected to the selected paths.",
+        "**Keep pilots disabled, serial, and limited.** (`infra/plays/`) Each selected play remains disabled, `noConcurrency`, and limited to 15 rows until its verified pilot is approved for expansion.",
+        "**Keep the automatic company class narrow.** (`infra/plays/deduplicate-accounts.ts`) Exact shared LinkedIn company ID, score at least 60, and no identity, protected-ID, or parent-subsidiary conflict are all required. Every other candidate reaches Human Review.",
+        "**Keep names out of identity.** (`infra/scripts/accounts/`) Company name is excluded from candidate generation and scoring. The checked review payload does not rely on it.",
+        "**Protect business identities and corporate structure.** Conflicting protected IDs and parent-subsidiary clusters never merge automatically.",
+        "**Apply person guards globally.** (`infra/scripts/contacts/evidence.ts`) Every automatic contact class is disqualified by a LinkedIn identity conflict or generic or shared email.",
+        "**Keep phone-only groups out of automatic merge.** Phone is a candidate key and review aid, not sufficient unattended identity evidence.",
+        "**Expand transitive groups before deciding.** (`infra/plays/deduplicate-contacts.ts`) The second live search gathers every high-confidence identity key discovered by the direct search.",
+        "**End after native merge.** (`infra/plays/deduplicate-contacts.ts`) Deduplication creates no post-merge update node. A separate approved workflow owns normalization, enrichment, and association changes."
       ],
       "doneWhen": [
-        "the audit JSON, Markdown, and chat summary agree on identifier coverage, candidates, and conflicts",
-        "the operator approved matching keys, protected fields, survivor precedence, automatic class, and manual-review destination",
-        "the isolated plan contains one CRM connector, one Slack connector, one CRM account model, and one disabled deduplication play, with no staging model",
-        "the play runs directly on the CRM model and matches the audited CRM record ID",
-        "its compiled workflow contains CRM `findRecords`, one deterministic preparation script bundled from `infra/scripts/evidence.ts` that also selects the survivor, native Scoring, the guarded Branch, native Human Review, and CRM merge actions only on automatic or approved paths",
-        "`node --import tsx evals/contract.mjs` passes against the adapted graph",
-        "generated consumer types confirm the selected search, merge, and Human Review payloads",
-        "the Slack review connector and channel resolve; approval, decline, and timeout reach their intended paths",
-        "the play is disabled, `noConcurrency`, and limited to 15 CRM rows",
-        "the operator separately approved the disabled deployment and exact merge-capable pilot",
-        "the final report verifies every survivor and absorbed ID and accounts for every terminal outcome"
+        "the operator selected account deduplication, contact deduplication, or both",
+        "each selected path has its own reconciled audit, policy approval, disabled-build approval, priced pilot approval, and final report",
+        "the selected resources use one CRM connector, a Slack connector for every path with active review, object-specific CRM models, and no candidate or staging model",
+        "generated types confirm selected search and merge payloads plus Human Review for paths that use it",
+        "`node --import tsx evals/contract.mjs`, `cargo-ai cdk types`, `cargo-ai cdk check`, and `cargo-ai cdk plan` pass after adaptation",
+        "every selected play is disabled, `noConcurrency`, and limited to 15 CRM rows before its pilot",
+        "the account audit reconciles company identifier coverage, mutually exclusive classes, conflicts, survivor evidence, and proposed merge IDs to the source total",
+        "`deduplicate_accounts` runs directly on `crm_accounts` and searches companies live",
+        "its graph contains preparation, native Scoring, the guarded Branch, native Human Review, and CRM merges only on automatic or approved paths",
+        "automatic merge requires exact shared LinkedIn company ID and every account conflict guard",
+        "every account survivor and absorbed company ID is verified in the CRM",
+        "the contact audit reconciles source totals, person identifier coverage, unique candidate clusters, conflicts, survivor evidence, and proposed merge IDs, and reports overlapping matched classes separately",
+        "`deduplicate_contacts` runs directly on `crm_contacts` and performs both direct and transitive live searches",
+        "its graph contains preparation, native Scoring, the guarded Branch, optional native Human Review, and CRM merges only on automatic or approved paths",
+        "automatic merge requires one approved high-confidence class plus every global contact guard",
+        "the merge is the final CRM write, and every contact survivor and absorbed ID is verified in the CRM"
       ],
-      "cost": "Immediately before each preview, run `cargo-ai connection integration get <crm>` and\n`cargo-ai connection integration get slack`. Read the current cost metadata for the selected search,\nmerge, and Human Review actions. Record the CLI version, lookup time, action slugs, and applicable\ncosts. If structured AI evidence is added, price it separately.\n\nThe repository does not hard-code action prices. Human approval authorizes only the exact cluster\nshown in that review message. Enabling the recurring schedule is the last approval after the pilot\npasses, not an initial input.",
-      "composesInto": "- `crm-enrichment` when matching-key coverage is too weak for reliable duplicate candidates\n- `account-scoring` after duplicate records have been consolidated into authoritative survivors"
+      "cost": "Immediately before each selected path's preview, run\n`cargo-ai connection integration get <crm>` and, when review is enabled,\n`cargo-ai connection integration get slack`. Record the CLI version, lookup time, action slugs, and\ncurrent cost metadata. The repository does not hard-code pipeline action prices.\n\n### Path 1: Account cost\n\nPrice the account search, automatic or approved company merge, and Human Review actions against the\nexact account population. Approval authorizes only the company clusters shown for that pilot.\n\n### Path 2: Contact cost\n\nPrice both contact searches, automatic or approved contact merge, and enabled Human Review actions\nagainst the exact contact population. Approval authorizes only the person clusters shown for that\npilot.\n\nEnabling either recurring schedule is a separate final approval after that path's pilot passes.",
+      "composesInto": "- `crm-enrichment` when either object path lacks reliable matching-key coverage\n- `account-scoring` after duplicate account records have been consolidated into authoritative survivors"
     },
     {
       "name": "crm-enrichment",
       "kind": "cookbook",
-      "job": "Keep CRM accounts filled and refresh them when they go stale: a deployed play that fills approved blank firmographics from LinkedIn and re-enrolls a record after six months.",
-      "description": "Keep CRM accounts filled and refresh them when they go stale: a deployed play that fills approved blank firmographics from LinkedIn and re-enrolls a record after six months. Triggers: \"keep our CRM accounts filled\", \"keep our CRM companies filled\", \"enrich my CRM\", \"CRM enrichment\", \"old firmographics keep going stale\", \"every new CRM account\", \"every new CRM company\", \"nobody refreshes the company records\", \"refresh stale firmographics\". HubSpot, Salesforce, Attio, Cargo CDK. Skip when: the records are not in a CRM. A supplied company list is enrich-company-data.",
-      "version": "0.6.4",
+      "job": "Keep CRM accounts and contacts filled and refresh them when they go stale. The contact pipeline uses one enrichment play with three gated tools: Cargo-native Find Email, Cargo-native Find LinkedIn Profile from Email, and custom Contact LinkedIn Enrichment.",
+      "description": "Keep CRM accounts and contacts filled and refresh them when they go stale. The contact pipeline uses one enrichment play with three gated tools: Cargo-native Find Email, Cargo-native Find LinkedIn Profile from Email, and custom Contact LinkedIn Enrichment. Triggers: \"keep our CRM accounts filled\", \"keep our CRM contacts filled\", \"nobody refreshes the company records\", \"nobody refreshes the contact records\", \"enrich my CRM\", \"refresh stale firmographics\", \"every new CRM company\", \"every new CRM contact\", \"contacts are missing emails, LinkedIn URLs, or titles\". HubSpot, Salesforce, Attio, Cargo CDK. Skip when: the records are not in a CRM. A supplied company list is enrich-company-data, a supplied LinkedIn URL list is enrich-linkedin-profile, and a one-time email lookup is find-work-email.",
+      "version": "0.7.1",
       "homepage": "https://github.com/getcargohq/gtm-skills/tree/main/crm-enrichment",
       "group": "Make it run forever",
       "install": "cargo-ai cdk add cookbook/crm-enrichment",
       "partOf": [],
+      "personas": [
+        "revops",
+        "gtm-engineering"
+      ],
+      "integrations": [
+        "hubspot",
+        "linkedin"
+      ],
+      "example": {
+        "prompt": "Keep our HubSpot contacts filled: find the missing email or LinkedIn profile, then fill job title, but never overwrite a value a rep already entered.",
+        "output": "| Contact (hs_object_id) | Started with       | Fields filled                                                               | cargo_enrichment_status |\n| ---------------------- | ------------------ | --------------------------------------------------------------------------- | ----------------------- |\n| Priya Raman (51007)    | LinkedIn only      | email priya.raman@northwind.example, linkedin_person_id, jobtitle VP RevOps | succeeded               |\n| Tomás Ortega (51022)   | Email only         | linkedin_profile_url, linkedin_person_id, jobtitle Head of Sales Ops        | succeeded               |\n| Mei Lin (51040)        | Email and LinkedIn | jobtitle left as entered; linkedin_person_id filled                         | succeeded               |\n| Sam Hale (51055)       | Email only         | nothing: no profile resolved                                                | (not stamped)           |\n\nEvery write fills blanks only, and `cargo_last_enriched_at` is stamped only after a successful write, so\na contact where nothing resolved, like Sam Hale, is never marked enriched."
+      },
       "state": "to-be-approved",
       "chain": 3,
       "resources": [
@@ -484,225 +758,590 @@
       ],
       "asked": [
         {
-          "input": "crm",
+          "input": "crm_shape",
           "kind": "derived",
-          "how": "Inspect authenticated connectors and existing CDK resources",
-          "why": "Reusing them prevents a second CRM connector and a second extract"
+          "how": "Inspect authenticated connectors, selected extracts, and live CRM properties",
+          "why": "Determines objects, record IDs, destinations, and write behavior"
         },
         {
-          "input": "field_candidates",
+          "input": "selected_paths",
           "kind": "derived",
-          "how": "Join live LinkedIn paths and types to live CRM properties, fill rates, and compatible transformations",
-          "why": "The operator should choose from evidence, not recall provider fields"
+          "how": "Read whether the request names account enrichment, contact enrichment, or both",
+          "why": "Sets which resources, audits, approvals, and pilots are in scope"
         },
         {
-          "input": "approved_field_contract",
+          "input": "account_provider_schema",
+          "kind": "derived",
+          "how": "Inspect both live LinkedIn company actions",
+          "why": "Prevents guessed output paths and types"
+        },
+        {
+          "input": "account_field_contract",
           "kind": "asked",
-          "how": "Review the recommended base fields, optional candidates, transformations, destinations, and exclusions",
-          "why": "It defines every write mapping and authorizes the disabled build"
+          "how": "Review one decision row per company provider property",
+          "why": "Controls every company mutation"
         },
         {
-          "input": "target_population",
+          "input": "account_population",
           "kind": "derived",
-          "how": "Count eligible rows by mutually exclusive route after field approval",
-          "why": "It makes the cost estimate reproducible"
+          "how": "Count mutually exclusive LinkedIn URL and domain fallback routes",
+          "why": "Sets account scope and spend"
         },
         {
-          "input": "approved_run",
+          "input": "account_run",
           "kind": "asked",
-          "how": "Review the disabled Cargo links, target, and exact maximum credits",
-          "why": "It is the explicit gate before any enrichment call"
+          "how": "Review disabled resource links, exact population, and maximum spend",
+          "why": "Authorizes only the account pilot"
+        },
+        {
+          "input": "contact_tool_contracts",
+          "kind": "derived",
+          "how": "Inspect profile enrichment and both instantiated Cargo-native tools",
+          "why": "Prevents guessed inputs, output paths, and prices"
+        },
+        {
+          "input": "contact_field_contract",
+          "kind": "asked",
+          "how": "Review one decision row per contact provider property",
+          "why": "Controls every contact mutation"
+        },
+        {
+          "input": "contact_population",
+          "kind": "derived",
+          "how": "Count both-identifiers, LinkedIn-only, email-only, and neither routes",
+          "why": "Sets contact scope and spend"
+        },
+        {
+          "input": "contact_run",
+          "kind": "asked",
+          "how": "Review disabled resource links, exact population, and maximum spend",
+          "why": "Authorizes only the contact pilot"
         }
       ],
       "canChange": [
         {
-          "id": "crm",
-          "when": "The consumer uses Salesforce or Attio instead of HubSpot",
-          "how": "Keep one CRM shape in `infra/`. The example is HubSpot. **Salesforce:** generated Account update matching `Id`; there is no `skipIfExist` — read the Account first and omit any field that is already populated, including numeric zero. **Attio:** generated company-record update matching the record id; same read-then-omit guard. Do not copy HubSpot's flag.",
-          "cost": "Live generated types must be rechecked; a guessed flag writes or no-ops silently"
+          "id": "crm_shape",
+          "when": "The consumer uses Salesforce or Attio",
+          "how": "Replace the connector, selected extracts, object names, record IDs, write action, and blank-only guard together",
+          "cost": "Generated types and write semantics must be reverified"
         },
         {
-          "id": "selected_fields",
-          "when": "The approved contract differs from the starting recommendation",
-          "how": "Present every live candidate at the field-selection gate. After approval, change the result schema, destinations, per-field write policy, and both provider mappings in `infra/tools/account-enrichment.ts` and `infra/plays/enrich-accounts.ts`. Industry requires an approved array-to-enum transformation when the CRM destination is a single enum.",
-          "cost": "Each added field expands mapping and type review"
+          "id": "refresh_cadence",
+          "when": "The default window does not fit the data policy",
+          "how": "Change freshness independently for each selected path and report repeat-spend impact",
+          "cost": "Faster cadence repeats provider charges more often"
         },
         {
-          "id": "eligibility",
-          "when": "Only a governed subset should be enriched",
-          "how": "Intersect the play filter with approved lifecycle, tier, ownership, or gap conditions (`infra/plays/enrich-accounts.ts`)",
+          "id": "account_fields",
+          "when": "The approved company contract differs from the starting fields",
+          "how": "Change account tool outputs, CRM mappings, and transformations together",
+          "cost": "Every added field expands schema and write review"
+        },
+        {
+          "id": "account_eligibility",
+          "when": "Only a governed company subset should be enriched",
+          "how": "Intersect the account play filter with approved lifecycle, tier, or ownership conditions",
           "cost": "Narrower scope reduces coverage and paid calls"
         },
         {
-          "id": "approved_refresh_behavior",
-          "when": "Populated fields must be refreshed after explicit approval",
-          "how": "Drop `skipIfExist` / the read-then-omit guard on the approved fields only, preview the replacements, and compare against a fresh CRM read (`infra/plays/enrich-accounts.ts`)",
-          "cost": "Refresh can overwrite CRM-authoritative values if the preview and the write disagree"
+          "id": "account_refresh_policy",
+          "when": "Approved populated company fields must be refreshed",
+          "how": "Remove blank-only protection only for approved fields and compare against a fresh CRM read",
+          "cost": "The provider snapshot can replace CRM-authoritative values"
+        },
+        {
+          "id": "contact_fields",
+          "when": "The approved person contract differs from the starting fields",
+          "how": "Change custom tool outputs, contact mappings, blank filters, and transformations together",
+          "cost": "Every added field expands schema and write review"
+        },
+        {
+          "id": "contact_eligibility",
+          "when": "Only a governed contact subset should be enriched",
+          "how": "Intersect the contact play filter with approved lifecycle, tier, or ownership conditions",
+          "cost": "Narrower scope reduces coverage and paid calls"
+        },
+        {
+          "id": "native_tool_contracts",
+          "when": "The deployed native tools expose different schemas",
+          "how": "Update each `toolRef`, call payload, and result access from the verified live schema",
+          "cost": "A guessed path can create paid calls with no usable result"
+        },
+        {
+          "id": "profile_provider",
+          "when": "The workspace uses an equivalent approved profile action",
+          "how": "Replace the provider call inside `contact_linkedin_enrichment` and remap its output",
+          "cost": "Coverage, fields, and unit price change"
         }
       ],
       "shouldNotChange": [
-        "**The play runs on `crm_accounts` and matches the CRM record id.** (`infra/plays/enrich-accounts.ts`) HubSpot's example uses `hs_object_id`. Sending a Cargo row id, or a native `accounts` id, to a CRM action targets the wrong identifier system; the run looks successful and nothing lands.",
-        "**The tool enriches; the play orchestrates and writes.** (`infra/tools/`, `infra/plays/`) `account_enrichment` accepts provider identifiers, normalizes them, and returns company data without a CRM connector or write. Its `defineWorkflow` body first branches around rows with no identifier, then routes each eligible row to exactly one provider action. `enrich_accounts` starts with one Tool node targeting `account_enrichment`, applies the approved per-field policy, and owns the only CRM update. A tool that writes to the CRM is not reusable; a play that repeats the provider action bypasses the reviewed tool. Run `node --import tsx evals/contract.mjs` after every adaptation to enforce this compiled graph.",
-        "**One CRM shape in the folder.** (`infra/connectors/crm.ts`) The checked example is HubSpot. Adapt that one connector, and the write that uses it, for Salesforce or Attio. Parallel HubSpot/Salesforce/Attio branches drift from the generated types of the CRM that is actually connected.",
-        "**At most one paid route per row, LinkedIn URL first.** (`infra/tools/account-enrichment.ts`) A row without a handle or a domain makes no paid call. A handle that is already an `http` URL is used as-is; otherwise it is prefixed as `https://www.linkedin.com/company/<handle>`.",
-        "**Destinations are live properties on the connected CRM.** (`infra/plays/enrich-accounts.ts`) The HubSpot example writes `linkedin_company_id`, `name`, `domain`, `website`, `linkedin_company_page`, `numberofemployees`, `cargo_last_enriched_at`, and `cargo_enrichment_status`. Provider-derived business properties keep neutral names; Cargo-owned operational stamps use the `cargo_` prefix. Leaving another CRM's names in the write can send provider data to the wrong property.",
-        "**Fill approved blanks only.** (`infra/plays/enrich-accounts.ts` `skipIfExist` or the Salesforce/Attio read-then-omit guard) A stale snapshot overwrites authoritative CRM data, including numeric zero.",
-        "**Eligibility and freshness live in the play trigger.** (`infra/plays/enrich-accounts.ts`) Require an identifier and freshness null or older than six months in the managed segment. Destination fill-state is not an eligibility condition: an approved refresh must be able to re-enrich populated stale fields. The row workflow starts with the reusable tool call instead of repeating trigger conditions as branches. A standalone `defineSegment` or duplicate workflow gate drifts from the play.",
-        "**The first play is disabled and `noConcurrency`.** (`infra/plays/enrich-accounts.ts`) Removing those expands an unapproved pilot.",
-        "**No credentials, deploy commands, or customer data in this repository.**"
+        "**Each path runs on its direct CRM extract.** The account play matches the company record ID and the contact play matches the contact record ID. A second identity system makes writes look successful while nothing lands.",
+        "**Tools enrich and plays write.** Custom tools contain no CRM access. Plays do not duplicate provider connector actions.",
+        "**Fill approved blanks only.** Every business-field mapping uses a CRM-native blank-only flag or an equivalent fresh-read guard. Do not overwrite an authoritative CRM value without an explicit field-level refresh approval.",
+        "**Freshness follows a write.** Stamp `cargo_last_enriched_at` and `cargo_enrichment_status=succeeded` only on successful CRM write paths.",
+        "**Selected plays deploy disabled and use `noConcurrency`.** Removing either expands an unapproved pilot.",
+        "**LinkedIn first, domain fallback.** One account takes exactly one provider route. Rows without either identifier make no paid call.",
+        "**One account tool and one account play.** `account_enrichment` owns provider routing; `enrich_accounts` owns the only company write.",
+        "**Account eligibility does not require a blank destination.** Populated stale records remain eligible for an explicitly approved refresh policy.",
+        "**One contact play and three tool resources.** Keep contact orchestration in `enrich_contacts` and use only Find Email, Find LinkedIn Profile from Email, and Contact LinkedIn Enrichment.",
+        "**Real branch gating.** Find Email runs only for LinkedIn-only rows. Find LinkedIn Profile from Email runs only for email-only rows. Contact LinkedIn Enrichment runs only with a LinkedIn URL.",
+        "**No unresolved write.** When email cannot resolve to LinkedIn, stop without custom enrichment, CRM write, or successful freshness.",
+        "**Null-safe blank filters.** Pair `isNull` and `isEmpty` for every contact string destination.",
+        "**No contact creation or movement tracking.** Update only the triggering contact. Do not create, merge, move, or alert on contacts in this path."
       ],
       "doneWhen": [
-        "the audit JSON, Markdown, and chat summary agree on every count",
-        "the audit records an operator-approved field contract with provider paths, live CRM destinations, types, transformations, write policies, and reasons for every exclusion",
-        "the CDK plan contains one CRM account model (`crm_accounts`) and no native `accounts` unification",
-        "the agent installed and read the `cargo-cdk` skill before auditing or adapting the template",
-        "the CDK plan contains the reusable `account_enrichment` tool and disabled `enrich_accounts` play; the play contains one Tool node targeting `account_enrichment`, followed by the only CRM update",
-        "`node --import tsx evals/contract.mjs` passes against the adapted compiled graph; the tool begins with an identifier Branch and contains no CRM action, while the play contains no provider action",
-        "generated consumer types confirm the selected provider fields, CRM destinations, write action, and fill-blank semantics",
-        "every destination is a live property on the connected CRM",
-        "the managed segment excludes records without an identifier but allows populated stale records; the approved per-field write policy decides fill blank versus refresh",
-        "the play targets `crm_accounts` and the write matches the audited CRM record id",
-        "the managed segment uses the null-or-six-month freshness rule, daily evaluation, and `changeKinds: [\"added\"]`, with no destination fill-state filter",
-        "the first plan shows `isEnabled: false` and `runCreationRule: noConcurrency`",
-        "LinkedIn and domain route counts are mutually exclusive and reproduce the credit estimate",
-        "the phase-two handoff contains working Cargo UI links for the disabled play and tool, plus the exact target and estimated credits",
-        "the operator explicitly approved the run after reviewing the links and cost",
-        "the post-run report shows before-and-after fill rates, every outcome count, failures, actual credits against estimate, and one recommended next step"
+        "The approved account field contract names every destination, type, transformation, and write policy.",
+        "The plan contains one account model, one account enrichment tool, and one disabled account play.",
+        "The compiled graph proves one mutually exclusive company provider route and one play-owned CRM write.",
+        "The account write matches the audited company record ID and preserves populated business values.",
+        "The account write probe and approved pilot pass.",
+        "The account report includes route, processed, written, skipped, failed, fill-rate, spend, and direct-link evidence.",
+        "The approved contact field contract names every destination, type, transformation, and write policy.",
+        "Native tool UUIDs and live schemas are verified and placeholders are gone.",
+        "The plan contains one contact model, exactly three contact tool targets, and one disabled contact play.",
+        "The compiled graph proves both native calls are gated and every custom enrichment call has a LinkedIn URL.",
+        "Unresolved and identifier-free rows stop without custom enrichment, CRM write, or successful freshness.",
+        "The contact write probe and approved pilot pass.",
+        "The contact report includes route, processed, written, unresolved, skipped, failed, fill-rate, spend, and direct-link evidence."
       ],
-      "cost": "Immediately before every preview, run `cargo-ai connection integration get linkedin`. Read the\napplicable current entries from `integration.actions.enrichCompany.credits.costs` and\n`integration.actions.enrichCompanyFromDomain.credits.costs`. Record the CLI version, lookup time,\naction slugs, and selected unit costs. Then preview\n`linkedin_url_path * linkedin_url_unit_credits + domain_path * domain_unit_credits`.\n\nThis play runs on eligible `crm_accounts` rows and updates that same CRM record. Eligibility means\nthe row has an identifier and passes freshness and governance filters. Destination fill-state does\nnot control enrollment. The approved per-field write policy decides whether populated stale values\nare preserved or refreshed. Recompute the target and credit preview after approval, then report the\nsegment count.\nDeduplication follows enrichment because the new matching keys improve duplicate detection.\n\nDo not enable the daily schedule until the disabled pilot has passed. Enabling is not an\ninput; it is the last yes after _Done when_.",
-      "composesInto": "`crm-deduplication` (duplicate records are what makes a filled book wrong), `account-scoring` (a\nfilled book is what the scorer can cite), `find-stakeholders` (the buyers at every filled account),\n`tam-building` (the universe these records join)."
+      "cost": "Fetch live prices from the workspace before every preview. Cost only the selected paths. A failed\nCRM write can cause provider calls to be billed again on retry, so probe write capability before a\nbatch.\n\n### Path 1: Account cost\n\nQuote both LinkedIn company actions. Multiply the mutually exclusive LinkedIn URL and domain\nfallback populations by their respective live unit prices. Rows with neither identifier make no\npaid call.\n\n### Path 2: Contact cost\n\nQuote both Cargo-native tools and the LinkedIn profile enrichment action. Per contact, the maximum\npaid chain is:\n\n- LinkedIn only: Find Email plus Contact LinkedIn Enrichment.\n- Email only: Find LinkedIn Profile from Email plus Contact LinkedIn Enrichment when resolution\n  succeeds.\n- Both identifiers: Contact LinkedIn Enrichment only.\n- Neither identifier: no paid call.\n\nShow mutually exclusive route counts and maximum spend before requesting approval for either path.",
+      "composesInto": "`crm-deduplication` after account enrichment, `find-stakeholders` for coverage gaps,\n`segment-accounts` for activation, and `track-job-changes` as a separate one-time movement check."
     },
     {
       "name": "enrich-company-data",
       "kind": "one-off",
-      "job": "Enrich a list of companies with firmographics — industry, size, geography, founding year, and headquarters, powered by Cargo.",
+      "job": "Enrich a list of companies with firmographics — industry, size, geography, founding year, and headquarters.",
       "description": "Enrich a list of companies with firmographics — industry, size, geography, founding year, and headquarters, powered by Cargo. Triggers: \"enrich these companies\", \"add company size and industry to my list\", \"get firmographics for these domains\", \"enrich a supplied spreadsheet of company domains once\", \"fill in company data\", \"company enrichment\", \"enrich companies\", \"what sector is this business in\", \"how big is this organisation\". Providers: cargo. Skip when: you want funding history — use track-funding-rounds; or tech stack — use find-companies-using-tech.",
-      "version": "1.1.0",
+      "version": "1.1.1",
       "homepage": "https://github.com/getcargohq/gtm-skills",
       "group": "Get the contact data",
       "install": "npx skills add getcargohq/gtm-skills/enrich-company-data",
-      "partOf": []
+      "partOf": [],
+      "personas": [
+        "revops",
+        "sales-development"
+      ],
+      "integrations": [
+        "aiArk"
+      ],
+      "example": {
+        "prompt": "Add industry, headcount and HQ to the 300 domains in `accounts-export.csv`.",
+        "output": "| domain | industry | headcount | country | foundedYear | headquarters |\n|---|---|---|---|---|---|\n| northwind.example | Logistics software | 240 | US | 2014 | Chicago, IL |\n| fabrikam.example | Industrial IoT | 1,100 | DE | 2009 | Munich |\n| tailspin.example | Travel tech | 85 | UK | 2019 | Manchester |\n| umbrella.example | | | | | |\n\n291 of 300 enriched, 9 left empty rather than guessed; 3 credits (300 × 0.01)."
+      },
+      "cost": "| Action | Credits |\n|---|---|\n| `aiArk.enrichCompany` | 0.01 |\n\n**Never run this across a full list on the first attempt.** Sample 10–20 records, report the\nobserved cost and hit-rate, then get the user to approve the full run — quoting the record count\nand the credit estimate. A batch fans out across every record in the source, and the bill scales\nwith it.",
+      "worthKnowing": [
+        "`aiArk.enrichCompany` keys on `domain` — no match step required, which is cheaper than the old two-step flow."
+      ]
     },
     {
       "name": "enrich-linkedin-profile",
       "kind": "one-off",
-      "job": "Turn a LinkedIn profile URL into a full person profile plus a verified work email in a single call, powered by Cargo.",
+      "job": "Turn a LinkedIn profile URL into a full person profile plus a verified work email in a single call.",
       "description": "Turn a LinkedIn profile URL into a full person profile plus a verified work email in a single call, powered by Cargo. Triggers: \"enrich these LinkedIn profiles\", \"get details from this LinkedIn URL\", \"I have LinkedIn URLs and need emails\", \"enrich LinkedIn data\", \"who is this person\", \"contact enrichment\", \"linkedin enrichment\", \"get their headline and tenure\", \"pull the whole biography\". Providers: aiArk. Skip when: you do not have the LinkedIn URL yet — use find-linkedin-url first; or you only have a name and domain — use find-work-email.",
-      "version": "1.1.0",
+      "version": "1.1.1",
       "homepage": "https://github.com/getcargohq/gtm-skills",
       "group": "Get the contact data",
       "install": "npx skills add getcargohq/gtm-skills/enrich-linkedin-profile",
-      "partOf": []
+      "partOf": [],
+      "personas": [
+        "sales-development",
+        "account-executive"
+      ],
+      "integrations": [
+        "aiArk"
+      ],
+      "example": {
+        "prompt": "I have LinkedIn URLs for the 60 people who registered for our roundtable — get me their current role and a work email.",
+        "output": "| linkedinUrl | fullName | title | seniority | company | email |\n|---|---|---|---|---|---|\n| linkedin.com/in/priya-raman-example | Priya Raman | VP Data Platform | VP | Northwind | priya.raman@northwind.example |\n| linkedin.com/in/tomas-ferreira-example | Tomás Ferreira | Head of RevOps | Head | Fabrikam | tferreira@fabrikam.example |\n| linkedin.com/in/lena-voss-example | Lena Voss | Staff Engineer | Senior | Globex | |\n\n58 of 60 profiles returned and 51 of those with a verified email; the 7 without an email billed nothing, so 5.1 credits (51 × 0.1)."
+      },
+      "cost": "| Action | Credits |\n|---|---|\n| `aiArk.enrichPerson` | 0.1 |\n\n**Never run this across a full list on the first attempt.** Sample 10–20 records, report the\nobserved cost and hit-rate, then get the user to approve the full run — quoting the record count\nand the credit estimate. A batch fans out across every record in the source, and the bill scales\nwith it.",
+      "worthKnowing": [
+        "Bills 0 when no email is found, so a miss is free.",
+        "The single best value in the catalog when you already hold LinkedIn URLs: profile and verified email together for less than a separate email lookup alone."
+      ]
     },
     {
       "name": "find-b2b-leads",
       "kind": "one-off",
-      "job": "Find B2B leads by job title, company, and keyword, and return them as a structured list, powered by Cargo.",
+      "job": "Find B2B leads by job title, company, and keyword, and return them as a structured list.",
       "description": "Find B2B leads by job title, company, and keyword, and return them as a structured list, powered by Cargo. Triggers: \"find 50 VPs of Sales at fintech companies\", \"build me a list of leads\", \"who are the heads of engineering at Series B startups\", \"get me prospects matching this profile\", \"source leads for my outbound\", \"build a b2b lead list\", \"lead sourcing\". Providers: salesNavigator. Skip when: you need companies rather than people — use build-tam-list; or you already have the people and need contact details — use find-work-email.",
-      "version": "1.1.0",
+      "version": "1.1.1",
       "homepage": "https://github.com/getcargohq/gtm-skills",
       "group": "Find the accounts and the people",
       "install": "npx skills add getcargohq/gtm-skills/find-b2b-leads",
-      "partOf": []
+      "partOf": [],
+      "personas": [
+        "sales-development"
+      ],
+      "integrations": [
+        "salesNavigator"
+      ],
+      "example": {
+        "prompt": "Find 25 VPs of Sales at US software companies and give me their LinkedIn URLs.",
+        "output": "| fullName | title | company | location | linkedinUrl |\n|---|---|---|---|---|\n| Priya Raman | VP of Sales | Northwind | Austin, TX | linkedin.com/in/priya-raman-example |\n| Marcus Hale | VP Sales, North America | Contoso | Denver, CO | linkedin.com/in/marcus-hale-example |\n| Dana Whitfield | Vice President of Sales | Tailspin | Boston, MA | linkedin.com/in/dana-whitfield-example |\n\nOne page of 25 leads for 0.5 credits (25 × 0.02); no emails yet — pipe the URLs into `enrich-linkedin-profile` for those."
+      },
+      "cost": "| Action | Credits |\n|---|---|\n| `salesNavigator.searchLeads` | 0.02 |\n\n**Never run this across a full list on the first attempt.** Sample 10–20 records, report the\nobserved cost and hit-rate, then get the user to approve the full run — quoting the record count\nand the credit estimate. A batch fans out across every record in the source, and the bill scales\nwith it.",
+      "worthKnowing": [
+        "The cheapest at-scale people sourcing in the catalog — start here before any paid enrichment.",
+        "Pages come back in blocks of 25; ask for a `limit` in multiples of 25.",
+        "Sourcing returns profiles, not emails. Pipe the LinkedIn URLs into `enrich-linkedin-profile` for verified emails."
+      ]
     },
     {
       "name": "find-companies-using-tech",
       "kind": "one-off",
-      "job": "Find companies by the technology they run or the roles they are hiring for, powered by Cargo.",
+      "job": "Find companies by the technology they run or the roles they are hiring for.",
       "description": "Find companies by the technology they run or the roles they are hiring for, powered by Cargo. Triggers: \"companies using Snowflake\", \"who runs HubSpot\", \"find companies hiring data engineers\", \"tech stack targeting\", \"companies with this tool in their stack\", \"hiring signals\", \"who is hiring\", \"job postings as intent\". Providers: theirStack. Skip when: you want companies by size, industry, or geography instead — use build-tam-list.",
-      "version": "1.1.0",
+      "version": "1.1.1",
       "homepage": "https://github.com/getcargohq/gtm-skills",
       "group": "Watch for the moment to reach out",
       "install": "npx skills add getcargohq/gtm-skills/find-companies-using-tech",
-      "partOf": []
+      "partOf": [],
+      "personas": [
+        "sales-development",
+        "marketing"
+      ],
+      "integrations": [
+        "theirStack"
+      ],
+      "example": {
+        "prompt": "Which software companies run Snowflake and posted a Data Engineer role in the last 60 days?",
+        "output": "| company | domain | technology | matchingJob | postedAt |\n|---|---|---|---|---|\n| Northwind | northwind.example | snowflake | Senior Data Engineer | 2026-09-12 |\n| Fabrikam | fabrikam.example | snowflake | Data Engineer, Platform | 2026-08-30 |\n| Contoso | contoso.example | snowflake | Analytics Data Engineer | 2026-08-04 |\n\n38 companies matched both filters, each with the job post that qualified it; 19 credits (38 × 0.5)."
+      },
+      "cost": "| Action | Credits |\n|---|---|\n| `theirStack.searchCompanies` | 0.5 |\n\n**Never run this across a full list on the first attempt.** Sample 10–20 records, report the\nobserved cost and hit-rate, then get the user to approve the full run — quoting the record count\nand the credit estimate. A batch fans out across every record in the source, and the bill scales\nwith it.",
+      "worthKnowing": [
+        "Combines tech-stack and job-posting filters in one call — 'runs Snowflake AND is hiring analytics engineers' is a single query.",
+        "Hiring intent decays fast. A job posting is a signal for weeks, not quarters."
+      ]
     },
     {
       "name": "find-linkedin-url",
       "kind": "one-off",
-      "job": "Resolve a person's LinkedIn profile URL from their name and company, with an identity-validation gate that rejects wrong matches, powered by Cargo.",
+      "job": "Resolve a person's LinkedIn profile URL from their name and company, with an identity-validation gate that rejects wrong matches.",
       "description": "Resolve a person's LinkedIn profile URL from their name and company, with an identity-validation gate that rejects wrong matches, powered by Cargo. Triggers: \"find the LinkedIn for John Smith at Acme\", \"get LinkedIn URLs for these contacts\", \"what's this person's LinkedIn\", \"add LinkedIn profiles to my list\". Providers: linkedin. Skip when: you already have the LinkedIn URL and want the profile data — use enrich-linkedin-profile.",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "homepage": "https://github.com/getcargohq/gtm-skills",
       "group": "Get the contact data",
       "install": "npx skills add getcargohq/gtm-skills/find-linkedin-url",
-      "partOf": []
+      "partOf": [],
+      "personas": [
+        "sales-development",
+        "revops"
+      ],
+      "integrations": [
+        "linkedin"
+      ],
+      "example": {
+        "prompt": "These 25 customer champions in `champions.csv` have no LinkedIn URL — find the right profile for each.",
+        "output": "| fullName | companyName | linkedinUrl | status |\n|---|---|---|---|\n| Priya Raman | Northwind | linkedin.com/in/priya-raman-example | validated |\n| Tomás Ferreira | Fabrikam | linkedin.com/in/tomas-ferreira-example | validated |\n| Sam Lee | Globex | | rejected: candidate works at Globex Foods |\n| Ana Costa | Initech | | no candidate |\n\n20 of 25 validated, 2 rejected on a company mismatch, 3 with no candidate; 11.75 credits (25 × 0.25 to resolve + 22 × 0.25 to validate)."
+      },
+      "cost": "| Action | Credits |\n|---|---|\n| `linkedin.findProfileUrl` | 0.25 |\n| `linkedin.enrichProfile` | 0.25 |\n\n**Never run this across a full list on the first attempt.** Sample 10–20 records, report the\nobserved cost and hit-rate, then get the user to approve the full run — quoting the record count\nand the credit estimate. A batch fans out across every record in the source, and the bill scales\nwith it.",
+      "worthKnowing": [
+        "Step 2 is not optional. Unvalidated resolution runs ~50% accurate because of same-name collisions; validated it is ~80%.",
+        "Reject rather than guess — never write back a low-confidence URL."
+      ]
     },
     {
       "name": "find-portfolio-companies",
       "kind": "one-off",
-      "job": "Find every portfolio company of an investor or accelerator, then the people inside them, powered by Cargo.",
+      "job": "Find every portfolio company of an investor or accelerator, then the people inside them.",
       "description": "Find every portfolio company of an investor or accelerator, then the people inside them, powered by Cargo. Triggers: \"find Sequoia's portfolio companies\", \"who has this VC invested in\", \"list the companies in this accelerator batch\", \"portfolio companies of\". Providers: peopleDataLabs. Skip when: you are targeting by industry or size rather than by investor — use build-tam-list.",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "homepage": "https://github.com/getcargohq/gtm-skills",
       "group": "Find the accounts and the people",
       "install": "npx skills add getcargohq/gtm-skills/find-portfolio-companies",
-      "partOf": []
+      "partOf": [],
+      "personas": [
+        "account-executive",
+        "sales-development"
+      ],
+      "integrations": [
+        "peopleDataLabs"
+      ],
+      "example": {
+        "prompt": "Pull every portfolio company of Harbor Point Ventures so I can ask the partners for warm intros.",
+        "output": "| name | domain | industry | headcount | linkedinUrl |\n|---|---|---|---|---|\n| Northwind | northwind.example | Logistics software | 240 | linkedin.com/company/northwind-example |\n| Tailspin | tailspin.example | Travel tech | 85 | linkedin.com/company/tailspin-example |\n| Wingtip | | Fintech | 30 | linkedin.com/company/wingtip-example |\n\n20 portfolio companies on the first pull for 60 credits (20 × 3); 2 have no domain on record and are left empty for enrichment, and the full portfolio waits for your go."
+      },
+      "cost": "| Action | Credits |\n|---|---|\n| `peopleDataLabs.queryCompanies` | 3 |\n\n**Never run this across a full list on the first attempt.** Sample 10–20 records, report the\nobserved cost and hit-rate, then get the user to approve the full run — quoting the record count\nand the credit estimate. A batch fans out across every record in the source, and the bill scales\nwith it.",
+      "worthKnowing": [
+        "Investor membership needs SQL: `summary.investors LIKE %Name%` is not expressible in cargo's filter shape, which is why this uses PDL's SQL query rather than a cheaper structured search.",
+        "Accelerator batches work the same way — YC and similar are stored in `summary.investors` alongside VCs.",
+        "PDL bills per returned row: 3 credits a company, so a 140-company portfolio is 420 credits. `limit` caps the bill; an uncapped query is the expensive mistake.",
+        "One warm investor intro beats fifty cold emails; pull the list, then ask the investor for the intro."
+      ]
     },
     {
       "name": "find-stakeholders",
       "kind": "one-off",
-      "job": "Find the buying committee at a target account — every stakeholder matching a set of titles, seniorities, and departments, powered by Cargo.",
+      "job": "Find the buying committee at a target account — every stakeholder matching a set of titles, seniorities, and departments.",
       "description": "Find the buying committee at a target account — every stakeholder matching a set of titles, seniorities, and departments, powered by Cargo. Triggers: \"find the buying committee at Acme\", \"who are the decision makers at this company\", \"find stakeholders\", \"multi-thread this account\", \"who else should I be talking to at this account\". Providers: aiArk. Skip when: you are sourcing across many companies rather than going deep on a few — use find-b2b-leads.",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "homepage": "https://github.com/getcargohq/gtm-skills",
       "group": "Find the accounts and the people",
       "install": "npx skills add getcargohq/gtm-skills/find-stakeholders",
-      "partOf": []
+      "partOf": [],
+      "personas": [
+        "account-executive",
+        "sales-development"
+      ],
+      "integrations": [
+        "aiArk"
+      ],
+      "example": {
+        "prompt": "Who's on the buying committee at northwind.example — VP and above in Sales, Marketing, Ops and Finance?",
+        "output": "| fullName | title | seniority | department |\n|---|---|---|---|\n| Priya Raman | Chief Revenue Officer | CXO | Sales |\n| Omar Haddad | VP Marketing | VP | Marketing |\n| Grace Lin | Director of Revenue Operations | Director | Operations |\n| Felix Brandt | VP Finance | VP | Finance |\n\n14 stakeholders returned for 0.7 credits (14 × 0.05); 3 are already in the CRM, so only the other 11 go on to enrichment."
+      },
+      "cost": "| Action | Credits |\n|---|---|\n| `aiArk.searchPeople` | 0.05 per returned record |\n\n**Never run this across a full list on the first attempt.** Sample 10–20 records, report the\nobserved cost and hit-rate, then get the user to approve the full run — quoting the record count\nand the credit estimate. A batch fans out across every record in the source, and the bill scales\nwith it.",
+      "worthKnowing": [
+        "Filter-rich: title, seniority, department, tenure, past company, and firmographics all narrow the committee.",
+        "Dedupe against contacts you already own before enriching — re-enriching a known contact is pure waste."
+      ]
     },
     {
       "name": "find-work-email",
       "kind": "one-off",
-      "job": "Find a verified work email address from a person's name and company domain, powered by Cargo.",
+      "job": "Find a verified work email address from a person's name and company domain.",
       "description": "Find a verified work email address from a person's name and company domain, powered by Cargo. Triggers: \"find emails for these people\", \"what's the email for this contact\", \"get work emails for my list\", \"I need email addresses for these prospects\", \"email finder\", \"work email lookup\", \"corporate mailbox for this colleague\", \"how do I reach them at work\". Providers: prospeo, FullEnrich. Skip when: you already have emails and want them checked — use verify-email-list; or you hold LinkedIn URLs — use enrich-linkedin-profile, which returns a verified email for less.",
-      "version": "1.1.0",
+      "version": "1.1.1",
       "homepage": "https://github.com/getcargohq/gtm-skills",
       "group": "Get the contact data",
       "install": "npx skills add getcargohq/gtm-skills/find-work-email",
-      "partOf": []
+      "partOf": [],
+      "personas": [
+        "sales-development",
+        "revops"
+      ],
+      "integrations": [
+        "prospeo",
+        "FullEnrich"
+      ],
+      "example": {
+        "prompt": "Find work emails for the 40 people in `webinar-attendees.csv` — first name, last name and company domain are all there.",
+        "output": "| firstName | lastName | companyDomain | email | rung |\n|---|---|---|---|---|\n| Priya | Raman | northwind.example | priya.raman@northwind.example | prospeo |\n| Tomás | Ferreira | fabrikam.example | tferreira@fabrikam.example | prospeo |\n| Hannah | Okafor | globex.example | hannah.okafor@globex.example | FullEnrich |\n| Wei | Zhang | initech.example | | no match |\n\n37 of 40 resolved (31 on prospeo, 6 more on FullEnrich from the 9 escalated misses), 3 left empty rather than guessed; 29 credits (40 × 0.5 + 9 × 1)."
+      },
+      "cost": "| Action | Credits |\n|---|---|\n| `prospeo.findEmail` | 0.5 |\n| `FullEnrich.findEmail` | 1 |\n\n**Never run this across a full list on the first attempt.** Sample 10–20 records, report the\nobserved cost and hit-rate, then get the user to approve the full run — quoting the record count\nand the credit estimate. A batch fans out across every record in the source, and the bill scales\nwith it.",
+      "worthKnowing": [
+        "Run the cheap rung across everything, then escalate only the misses — never run both on the full list.",
+        "`prospeo.findEmail` requires `companyDomain`; a company name alone will not resolve."
+      ]
     },
     {
       "name": "monitor-buying-signals",
       "kind": "one-off",
-      "job": "Watch a list of target accounts for the public events that mean someone is in market, powered by Cargo — hiring for the role you sell into, saying something new, or turning up in a detection feed, each with a date and a link.",
+      "job": "Watch a list of target accounts for the public events that mean someone is in market — hiring for the role you sell into, saying something new, or turning up in a detection feed, each with a date and a link.",
       "description": "Watch a list of target accounts for the public events that mean someone is in market, powered by Cargo — hiring for the role you sell into, saying something new, or turning up in a detection feed, each with a date and a link. Triggers: \"tell me when these accounts do something\", \"what changed at my target accounts\", \"who is in market right now\", \"set up intent monitoring\", \"watch these companies for me\", \"any triggers on this list\". Intent, triggers, watchlist, timing, freshness. Skip when: you have no account list yet — use build-tam-list; or you want a verdict on fit rather than on timing — use score-leads.",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "homepage": "https://github.com/getcargohq/gtm-skills",
       "group": "Watch for the moment to reach out",
       "install": "npx skills add getcargohq/gtm-skills/monitor-buying-signals",
-      "partOf": []
+      "partOf": [],
+      "personas": [
+        "account-executive",
+        "sales-development"
+      ],
+      "integrations": [
+        "sillage",
+        "theirStack",
+        "x"
+      ],
+      "example": {
+        "prompt": "Watch our 20 open-opportunity accounts and tell me which started hiring RevOps in the last 30 days.",
+        "output": "| account | signal | date | source | so_what |\n|---|---|---|---|---|\n| Northwind | Posted \"Head of Revenue Operations\" | 2026-09-21 | jobs.northwind.example/revops-head | The owner of our deal's process is about to change |\n| Fabrikam | CEO post on consolidating GTM tools | 2026-09-15 | x.com/fabrikam_example/status/1 | Budget is being cut elsewhere; lead with consolidation |\n| Tailspin | Posted \"RevOps Analyst\" | 2026-09-08 | jobs.tailspin.example/revops-analyst | A team is being built under our champion |\n\n3 of 20 accounts fired and the other 17 are not listed; 2.1 credits (sillage free on all 20, 4 job posts × 0.5, 5 X lookups × 0.02)."
+      },
+      "cost": "| Action | Credits |\n|---|---|\n| `sillage.searchLeads` | 0 |\n| `theirStack.searchJobs` | 0.5 |\n| `x.getUserPosts` | 0.02 |\n\n**Never run this across a full list on the first attempt.** Sample 10–20 accounts, report the\nobserved cost and how many actually fired, then get the user to approve the full run — quoting the\naccount count and the credit estimate. A batch fans out across every record in the source, and the\nbill scales with it.\n\nThe fire rate from the sample is the number that matters more than the cost. If two accounts in\ntwenty fired, a weekly run over 500 accounts is worth it. If none did, the triggers from step 1 are\nwrong and running wider will not fix that.",
+      "worthKnowing": [
+        "**The free rung is not optional.** `sillage.searchLeads` costs 0, so running it first is a pure saving. It needs a `modelUuid`, which is a setup step rather than a retry if detections are not being delivered yet.",
+        "`theirStack.searchJobs` filters on `--data`, not `--records`. Domains go in `companyFields`; passing them as records returns an unfiltered page and bills for it.",
+        "**Confirm an X handle from the company's own site.** Squatted and parody handles resolve fine and return confident nonsense.",
+        "Engagement lists (followers, likers, retweeters) are not part of this skill. People who engaged with a post did not ask to hear from you, and building a send list from them is the thing the basis test above exists to stop.",
+        "Re-running on a schedule is where the cost lives. Gate on accounts whose last check is older than the interval, or every run re-bills accounts that did nothing."
+      ]
     },
     {
       "name": "research-account",
       "kind": "one-off",
-      "job": "Research one company and its public website before a meeting and hand back a briefing, powered by Cargo — what it does, what it publicly says is hard right now, and who it names as competition, each line traceable to where it came from.",
+      "job": "Research one company and its public website before a meeting and hand back a briefing — what it does, what it publicly says is hard right now, and who it names as competition, each line traceable to where it came from.",
       "description": "Research one company and its public website before a meeting and hand back a briefing, powered by Cargo — what it does, what it publicly says is hard right now, and who it names as competition, each line traceable to where it came from. Triggers: \"research this company\", \"brief me on this account\", \"prep me for this meeting\", \"what should I know about them\", \"write me a one-pager on\", \"what are they struggling with\", \"who do they compete with\". Meeting prep, briefing, dossier, talking points. Skip when: you want many companies filtered rather than one understood — use build-tam-list; or you want the people to contact there — use find-stakeholders.",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "homepage": "https://github.com/getcargohq/gtm-skills",
       "group": "Decide who is worth the time",
       "install": "npx skills add getcargohq/gtm-skills/research-account",
-      "partOf": []
+      "partOf": [],
+      "personas": [
+        "account-executive",
+        "sales-development"
+      ],
+      "integrations": [
+        "linkedin",
+        "parallel",
+        "theirStack"
+      ],
+      "example": {
+        "prompt": "I have a discovery call with Fabrikam tomorrow — we sell data-pipeline monitoring. Brief me.",
+        "output": "```text\nFabrikam (fabrikam.example) — Industrial IoT, ~1,100 staff, Munich    [linkedin]\nWhat they do: sensor analytics for factory lines, sold to OEMs        [site]\nPriorities, last 12 months:\n  - Moving plant telemetry to a single cloud warehouse                [press, 2026-03]\n  - \"Fewer, better dashboards\" for plant managers                     [CEO talk, 2026-06]\nHiring: 6 data engineers, 1 Head of Data Reliability (posted 9 days)  [jobs]\nLikely: pipeline breakage is a live pain — rests on the reliability hire\nUnknown: current monitoring vendor; no public statement\nAsk them:\n  1. What broke the last time a plant's data went missing?\n  2. Who owns the warehouse migration, and when is it done?\n  3. What will the Head of Data Reliability be measured on?\n```\n\nOne briefing for 1.175 credits (0.5 + 2 × 0.025 + 0.125 + 0.5): every line sourced, one marked Likely:, one marked unknown."
+      },
+      "cost": "| Action | Credits |\n|---|---|\n| `linkedin.enrichCompanyFromDomain` | 0.5 |\n| `parallel.extract` | 0.025 |\n| `parallel.createTask` | 0.125 |\n| `theirStack.searchJobs` | 0.5 |\n\n**Never run this across a full list on the first attempt.** Sample 10–20 records, report the\nobserved cost and hit-rate, then get the user to approve the full run — quoting the record count\nand the credit estimate. A batch fans out across every record in the source, and the bill scales\nwith it.\n\nOne account is about 1.15 credits, so a single briefing is cheap and a hundred of\nthem is a decision. Say the total before running a list. `parallel.extract` bills\nper URL, so two pages is 0.05 and ten is 0.25.",
+      "worthKnowing": [
+        "**Most of this reads public material**, so a private company with a thin web presence returns little. That is a real answer: report the gap rather than padding the page.",
+        "**`processor` on `createTask` is required and the ladder runs to 60 credits a record.** Pin `lite`. Escalate to `base` (0.25) on a specific hard target, never across a list.",
+        "`theirStack.searchJobs` filters on `--data`, not on `--records`. Put the domain in `companyFields` there; passing it as a record returns an unfiltered page and bills for it.",
+        "Ask for the domain, not the company name. Every call here keys off it.",
+        "For a renewal, drop steps 2 and 3 and keep the baseline and the roles. The account team already knows the story; what they want is what changed."
+      ]
     },
     {
       "name": "score-leads",
       "kind": "one-off",
-      "job": "Score a list of companies against your ideal customer profile and rank them, powered by Cargo — every row gets a number, the reason behind it, and a tier, so the bottom of the list can be dropped before anyone spends time on it.",
+      "job": "Score a list of companies against your ideal customer profile and rank them — every row gets a number, the reason behind it, and a tier, so the bottom of the list can be dropped before anyone spends time on it.",
       "description": "Score a list of companies against your ideal customer profile and rank them, powered by Cargo — every row gets a number, the reason behind it, and a tier, so the bottom of the list can be dropped before anyone spends time on it. Triggers: \"score these leads\", \"which of these fit our ICP\", \"rank this list\", \"prioritise these accounts\", \"who should we go after first\", \"disqualify the bad ones\", \"tier this list\". Firmographic fit, thresholds, tiering, prioritisation. Skip when: you have no list yet and need one built — use build-tam-list or find-b2b-leads; or you want people inside an account rather than a verdict on the account — use find-stakeholders.",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "homepage": "https://github.com/getcargohq/gtm-skills",
       "group": "Decide who is worth the time",
       "install": "npx skills add getcargohq/gtm-skills/score-leads",
-      "partOf": []
+      "partOf": [],
+      "personas": [
+        "revops",
+        "sales-development"
+      ],
+      "integrations": [
+        "companyEnrich"
+      ],
+      "example": {
+        "prompt": "Score the 20 companies in `webinar-accounts.csv` against our ICP: 50–500 employees, B2B software, US or UK, competitors out.",
+        "output": "| domain | score | tier | reason | missing |\n|---|---|---|---|---|\n| northwind.example | 92 | A | 240 staff, B2B software, US | |\n| tailspin.example | 61 | B | B2B software, UK; 85 staff is small but inside range | |\n| globex.example | 0 | — | disqualified: competitor | |\n| umbrella.example | | unranked | | headcount, industry |\n\n20 enriched for 5 credits (20 × 0.25): 4 tier A, 8 tier B, 5 tier C, 1 disqualified, 2 unranked for missing data."
+      },
+      "cost": "| Action | Credits |\n|---|---|\n| `companyEnrich.enrichByDomain` | 0.25 |\n\n**Never run this across a full list on the first attempt.** Sample 10–20 rows, report the\nobserved cost and the score distribution, then get the user to approve the full run —\nquoting the record count and the credit estimate. A batch fans out across every record in the\nsource, and the bill scales with it.\n\nShow the distribution with the sample, not just the cost. If every row lands in\none tier the criteria are not discriminating, and that is worth finding out at\n20 rows rather than at 2,000.",
+      "worthKnowing": [
+        "**`enrichByDomain` needs a domain, not a company name.** A list carrying only names has to be resolved first, and that is a different job: say so rather than sending names and reporting the misses as bad fits.",
+        "Scoring is deterministic and free. Keep it that way: an LLM asked to \"rate fit\" produces a number nobody can reproduce or argue with.",
+        "Re-scoring after the criteria change costs nothing, because the enrichment is already stored. Say so, because users assume otherwise and under-ask as a result.",
+        "Richer firmographics exist at a higher tier if a criterion genuinely needs them. Reach for one only when a stated criterion cannot be answered from the fields above, never by default."
+      ]
+    },
+    {
+      "name": "standup",
+      "kind": "cookbook",
+      "job": "Every evening the GTM day is recapped into the cadence log and a digest is posted to Slack, as one reviewable pull request against your GTM repo.",
+      "description": "Every evening the GTM day is recapped into the cadence log and a digest is posted to Slack, as one reviewable pull request against your GTM repo. Triggers: \"post the daily standup to slack\", \"end of day report in slack\", \"what happened today posted to slack\", \"keep a cadence log of each day\", \"replace the GitHub Action that posts our standup\", \"evening recap of the GTM day\". Cargo CDK, defineAgent, harness claudeCode, GitHub, Slack, slack.postMessage, cargo-ai CLI reads, cadence. Skip when: you want one recap of today in this chat with nothing deployed; or you want call transcripts scribed into context, which is call-capture.",
+      "version": "0.1.1",
+      "homepage": "https://github.com/getcargohq/gtm-skills/tree/main/standup",
+      "group": "Make it run forever",
+      "install": "cargo-ai cdk add cookbook/standup",
+      "partOf": [],
+      "personas": [
+        "sales-leadership",
+        "revops"
+      ],
+      "integrations": [
+        "anthropic",
+        "github",
+        "slack"
+      ],
+      "example": {
+        "prompt": "Every weekday at 6pm, recap what moved on our GTM initiatives into the repo and post the digest to #gtm-daily.",
+        "output": "```text\n:racing_car: *GTM - Tue Oct 6*\n_Mid-market expansion moved; EU outbound is still not sending._\n\n:dart: *Expansion into mid-market*\n• Northwind signed, closed two weeks ahead of the forecast date (#318)\n• Five Fabrikam dossiers drafted; Dana sends them Thursday\n\n:dart: *EU outbound*\n• Blocked: the sourcing play has not run since Friday (#312)\n\n:zzz: *No movement:* Partner channel\n\n:raising_hand: *Needs a human*\n• Dana: approve the EU sourcing budget so the play can resume\nFull log: https://github.com/northwind/gtm/pull/320\n```\n\nThe team reads the day in fifteen seconds in Slack, while `cadence/log/2026-10-06.md` lands through the\n\"[cadence] log 2026-10-06\" pull request for a human to merge."
+      },
+      "state": "to-be-approved",
+      "chain": 7,
+      "resources": [
+        "agents",
+        "connectors",
+        "folders"
+      ],
+      "asked": [
+        {
+          "input": "channelId` (`infra/agents/standup.ts`)",
+          "kind": "asked",
+          "how": "the Slack channel id (`C…`) the digest is allowed to land in. Read it from the connector's channel autocomplete, not by guessing a name. Invite the bot.",
+          "why": "Locked on `postMessage` so the agent cannot pick a customer shared channel. A name (`#general`) collides; an empty lock posts nowhere useful and looks like success."
+        },
+        {
+          "input": "STANDUP_TITLE` (`infra/agents/standup.ts`)",
+          "kind": "asked",
+          "how": "the short name in the Slack header (`:racing_car: *GTM - Sat Aug 1*`). A founder-facing label, not the GitHub slug.",
+          "why": "Two standups in the same channel are told apart from the first line. A repo name here reads as infrastructure, not as the GTM day."
+        }
+      ],
+      "canChange": [
+        {
+          "id": "move-the-hour",
+          "when": "The team reads Slack at a different time, or you are not on Pacific time",
+          "how": "Change `cron` and `STANDUP_TIMEZONE` together in `infra/agents/standup.ts`. The cron is 05:00 UTC because that is 10pm PT in PDT.",
+          "cost": "A morning cron recaps an incomplete day. A timezone the collector does not share with the prompt splits the dump and the log across two dates."
+        },
+        {
+          "id": "skip-slack",
+          "when": "You want the log and the pull request, and a human will paste the digest",
+          "how": "Drop the `uses` entry and the \"Post the Slack digest\" section of `infra/agents/standup.prompt.ts",
+          "cost": "The team stops seeing the day. The log still lands, but the thing people actually read is gone."
+        },
+        {
+          "id": "header-emoji",
+          "when": "Two recaps land in the same channel and the reader has to tell them apart from the first line",
+          "how": "Change `:racing_car:` in `infra/agents/standup.prompt.ts` and `references/digest.md",
+          "cost": "Cosmetic unless you pick the same emoji as another bot in that channel, in which case the two posts merge in the reader's eye."
+        },
+        {
+          "id": "log-only-quiet",
+          "when": "A quiet day should not ping Slack",
+          "how": "In `infra/agents/standup.prompt.ts`, skip the post (and say so on the PR) when What moved is empty",
+          "cost": "Silence on a quiet day is indistinguishable from a missed run. The default is the opposite: a quiet day still gets an entry, because silence is signal."
+        },
+        {
+          "id": "git-only",
+          "when": "The sandbox has no Cargo session, or this agent must not reach the workspace at all",
+          "how": "Drop §1b of `infra/agents/standup.prompt.ts",
+          "cost": "The recap loses runs, usage and what is deployed, so \"declared but it never ran\" stops being visible. The git dump still lands, which is what §1b already falls back to when `cargo-ai whoami` fails."
+        }
+      ],
+      "shouldNotChange": [
+        "**The agent does not fetch git; the script does.** (`scripts/collect/day.ts`) A fetch loop an agent re-derives every evening is a fetch loop that silently changes shape — a window that drifts, a `gh` flag that quietly widens. The raw dump is the one thing here that has to be byte-identical in its rules every day, because everything downstream is diffed against it. Cargo workspace data is the other half of the day, and it is read at recap time by the agent, not by a `cargo-ai` loop bolted into the collector.",
+        "**The workspace reads are read-only, and they are the CLI.** (`infra/agents/standup.prompt.ts`) §1b names the commands: `whoami`, run counts and failures, usage, what is deployed. No `capabilities` block is wired on the agent, because the read path is already in the sandbox and only the prompt can say \"read, never execute\". `orchestration action execute`, `batch create`, `cdk deploy` and anything that removes are the forbidden half of that list — those spend or deploy, and Slack posting is the locked `slack.postMessage` use. If `cargo-ai whoami` fails, the recap says so and continues from the git dump; it does not invent the numbers.",
+        "**`slack.postMessage` is a connector action on the agent. `channelId` is locked in `config`.** (`infra/agents/standup.ts`) Wrapping it in a tool is ceremony, and this repo refuses those. A `SLACK_TOKEN` script, a GitHub Action, or a `chat.postMessage` curl is how the digest escapes Cargo: no run to inspect, no connector to revoke, and a token in the harness env that posts anywhere. Leaving the channel as a field the agent fills is how an internal recap lands in a customer shared channel.",
+        "**`scripts/standup/package.json` stays.** (`scripts/package.json`) It is not decoration. The CDK loader imports every `.ts` under the project root except directories carrying a `package.json`; delete it and `cargo-ai cdk plan` imports the collector and runs git/`gh` on every plan.",
+        "**The harness root stays the directory holding the `package.json` that declares `@cargo-ai/cdk`.** (`infra/agents/standup.ts`) That is where `node_modules` is, so it is the only place `npx tsx …/collect/day.ts` resolves — and in the scaffolded layout it is the repository root, which is also where `cadence/` lives. **Check it, do not assume it:** `cargo-ai cdk check` prints the resolved binding, and a line ending `in infra/` means the harness was rooted where there is no package.json and no node_modules. The collector then cannot run at all, and the evening reports clean and empty. On a CLI old enough to resolve it that way, pin `rootDirectory: \".\"` in the repository block until you upgrade.",
+        "**The agent opens a pull request and never merges it.** (`infra/agents/standup.prompt.ts`) The log is what next Monday's plan is written from. Remove the review gate and a hallucinated number, a vendor call misread as pipeline, or a stuck item filed against the wrong owner becomes the team's memory of the day.",
+        "**One log file per calendar day, and this run owns only its three sections.** (`infra/agents/standup.prompt.ts`) Several runs write the same day's file. Add What moved / What is stuck / Worth remembering, never rewrite a section you did not write, and stop when those three are already there — that is the idempotency key. Matching on the Slack channel instead needs a `conversations.history` read Cargo does not ship, and a sibling bot's post in that channel reads as \"already ran\" — the standup then skips silently for nights at a time.",
+        "**The day is reported against the active initiatives, in a founder's words.** (`infra/agents/standup.prompt.ts`) Every active initiative gets its block in the log and a line in the digest, including the ones that did nothing that day. Group by PR or by resource instead and the digest turns into a changelog: activity that reads as progress while a bet quietly stalls. The one exception runs the other way: a churn, a deal, a failing play or a spend spike that no initiative claims goes first, as \"Outside the plan\", rather than being squeezed into Engine upkeep. The voice rules (verdict first, plain words, no file paths) are what make it readable by someone who was not in the repo.",
+        "**Do not invent a number.** (`infra/agents/standup.prompt.ts`) Drop a metrics line rather than carry yesterday's ARR forward. A made-up delta is worse than no delta, because the digest is what leadership reads. A CLI read that errors is a note on the PR, not a count you fill in."
+      ],
+      "doneWhen": [
+        "`--dry-run` printed the dump, and the run without it wrote `cadence/log/raw/standup/<date>.md`; running it twice that evening overwrote the same file",
+        "`node --import tsx evals/contract.mjs` passes: harness is `claudeCode` bound to an Anthropic connector, no capability is wired, `postMessage` is on `uses` with `channelId` locked, and no tool wraps it",
+        "`cargo-ai cdk plan` reports the agent, the two connectors and the folder, and does **not** run git or `gh` while planning",
+        "the first scheduled run opened one pull request titled `[cadence] log <date>` whose diff contains the raw dump and the three log sections, and whose body carries `## Slack digest` plus a posted-or-not line",
+        "the digest landed once in the locked channel, with `Full log: <PR URL>` as the last line",
+        "a re-run the same evening opened no second pull request and posted no second message",
+        "every `status: active` initiative appears in the log and in the digest, either in its own section or on the `No movement` line, and anything that big outside the initiatives leads the post as `Outside the plan`",
+        "a quiet day still produced an entry that says so",
+        "no number in the digest is absent from the raw dump, a metrics file dated that day, or a `cargo-ai` read the agent actually ran. A CLI read that errors is a note on the PR, not a made-up count"
+      ],
+      "cost": "The collector talks to git and, when `gh` is installed, to GitHub from the harness environment.\nThose calls are not Cargo connector actions.\n\nThe Slack post is `slack.postMessage` on the bound connector. Immediately before the plan, run\n`cargo-ai orchestration action list postMessage --kind connector --integration-slug slack` and\nread the current cost. Say that number out loud as a per-post cost; the run posts once.\n\nThe recurring cost is the harness run itself, once a day, billed as LLM tokens through the bound\nAnthropic connector, and it scales with how much the agent reads — the dump, the day's cadence\nfiles, a short window of git history, and the read-only `cargo-ai` calls in §1b (whoami, run\ncounts, usage, what is deployed). Those reads are API calls, not connector actions, so they bill\nnothing. There is no per-record fan-out, and the recap never runs a command that spends.",
+      "composesInto": "`call-capture` (yesterday's scribed calls are evidence this recap reads), `agentic-engagement`\n(a thread that closed today is something that moved), `tam-building` and `account-scoring` (a\ntiered book is a number the digest can name only when the metrics file actually moved),\n`weekly-planning` (the week's logs are what it ranks against infra and runs)."
     },
     {
       "name": "tam-building",
       "kind": "cookbook",
       "job": "Stand up your account universe as a deployed pipeline: an AI Ark company search shaped by your ICP, sized for free before it bills, then tiered A / B / C / disqualified by an agent that reads your rubric from the workspace context and web-searches the evidence the sourced row does not carry.",
       "description": "Stand up your account universe as a deployed pipeline: an AI Ark company search shaped by your ICP, sized for free before it bills, then tiered A / B / C / disqualified by an agent that reads your rubric from the workspace context and web-searches the evidence the sourced row does not carry. Triggers: \"our TAM is a stale CSV\", \"build our account universe\", \"source companies matching our ICP and rank them\", \"keep our market list current\", \"which of these companies are actually worth a rep\", \"tier the market we just sourced\". Cargo CDK, aiArk, countCompanies, fetchCompanies, agent tiering, workspace context, webSearch. Skip when: you want the list once rather than a pipeline that keeps producing it, which is build-tam-list; or the accounts already exist in a CRM or an accounts model and only need judging, which is account-scoring.",
-      "version": "0.3.0",
+      "version": "0.3.1",
       "homepage": "https://github.com/getcargohq/gtm-skills/tree/main/tam-building",
       "group": "Make it run forever",
       "install": "cargo-ai cdk add cookbook/tam-building",
       "partOf": [],
+      "personas": [
+        "revops",
+        "gtm-engineering",
+        "sales-leadership"
+      ],
+      "integrations": [
+        "aiArk",
+        "anthropic"
+      ],
+      "example": {
+        "prompt": "Source every US B2B software company with 100 to 1,000 employees from AI Ark and tier each one against the rubric in our context repo.",
+        "output": "| Company (domain)              | tier         | tier_rationale                                                                                                          | tier_evidence_url                         |\n| ----------------------------- | ------------ | ----------------------------------------------------------------------------------------------------------------------- | ----------------------------------------- |\n| Northwind (northwind.example) | A            | Fits the firmographics and has an open GTM Engineer role. Rubric line: evidence ranked 1.                               | https://northwind.example/careers/gtm-eng |\n| Globex (globex.example)       | B            | Fits the firmographics; its public stack lists a warehouse and a reverse-ETL tool, which the rubric ranks 3.            | https://globex.example/blog/data-stack    |\n| Initech (initech.example)     | C            | Fits size, industry and region, but no visible technical champion or automation practice. The sourced facts settled it. |                                           |\n| Tailspin (tailspin.example)   | disqualified | The sourced domain redirects to its acquirer, so the record is wrong about the company.                                 |                                           |\n\nEvery row also gets a `tiered_at` stamp and lands in `tam-tier-a`, `tam-tier-b`, `tam-tier-c` or\n`tam-disqualified`; the run report closes with the tier distribution and one recommended next step."
+      },
       "state": "to-be-approved",
       "chain": 2,
       "resources": [
@@ -810,57 +1449,227 @@
     {
       "name": "track-funding-rounds",
       "kind": "one-off",
-      "job": "Track which companies recently raised funding, with round, amount, and investors, powered by Cargo.",
+      "job": "Track which companies recently raised funding, with round, amount, and investors.",
       "description": "Track which companies recently raised funding, with round, amount, and investors, powered by Cargo. Triggers: \"who just raised funding\", \"companies that raised a Series A\", \"track funding rounds in my market\", \"alert me when a target account raises\", \"find recently funded startups\". Providers: cargo. Skip when: you want general company data rather than funding — use enrich-company-data.",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "homepage": "https://github.com/getcargohq/gtm-skills",
       "group": "Watch for the moment to reach out",
       "install": "npx skills add getcargohq/gtm-skills/track-funding-rounds",
-      "partOf": []
+      "partOf": [],
+      "personas": [
+        "account-executive",
+        "sales-development"
+      ],
+      "integrations": [
+        "enrichCrm"
+      ],
+      "example": {
+        "prompt": "Which of the 50 accounts in `tier-a.csv` raised money recently, and from whom?",
+        "output": "| domain | round | amount | date | investors |\n|---|---|---|---|---|\n| northwind.example | Series B | $32M | 2026-07-18 | Harbor Point Ventures, Ridgeline Capital |\n| tailspin.example | Seed | $4M | 2026-05-02 | Lantern Partners |\n| fabrikam.example | Series C | $80M | 2023-11-09 | Ridgeline Capital |\n| umbrella.example | | | | |\n\n7 raised in the last 12 months, 31 show only older rounds, 12 have no funding on record; 50 credits (50 × 1)."
+      },
+      "cost": "| Action | Credits |\n|---|---|\n| `enrichCrm.getFunding` | 1 |\n\n**Never run this across a full list on the first attempt.** Sample 10–20 records, report the\nobserved cost and hit-rate, then get the user to approve the full run — quoting the record count\nand the credit estimate. A batch fans out across every record in the source, and the bill scales\nwith it.",
+      "worthKnowing": [
+        "`enrichCrm.getFunding` is the catalog's only credits-based funding action. Coverage is strong on venture-backed companies.",
+        "Fresh funding is a budget signal — pair it with find-stakeholders to reach the new buyer."
+      ]
     },
     {
       "name": "track-job-changes",
       "kind": "one-off",
-      "job": "Detect which of your contacts have changed jobs, and where they went, powered by Cargo.",
+      "job": "Detect which of your contacts have changed jobs, and where they went.",
       "description": "Detect which of your contacts have changed jobs, and where they went, powered by Cargo. Triggers: \"who changed jobs\", \"track job changes in my CRM\", \"did any of my contacts move companies\", \"alert me when a champion leaves\", \"find people who recently started a new role\", \"job changes\", \"job change signals\". Providers: waterfall. Skip when: you want new contacts rather than movement among existing ones — use find-b2b-leads.",
-      "version": "1.1.0",
+      "version": "1.1.1",
       "homepage": "https://github.com/getcargohq/gtm-skills",
       "group": "Watch for the moment to reach out",
       "install": "npx skills add getcargohq/gtm-skills/track-job-changes",
-      "partOf": []
+      "partOf": [],
+      "personas": [
+        "account-executive",
+        "sales-development"
+      ],
+      "integrations": [
+        "waterfall"
+      ],
+      "example": {
+        "prompt": "Check whether any of the 30 champions from last year's closed-won deals have changed jobs.",
+        "output": "| professional_email | status | newCompany | newTitle |\n|---|---|---|---|\n| priya.raman@northwind.example | MOVED | Contoso | VP Data Platform |\n| t.ferreira@fabrikam.example | NO_CHANGE | | |\n| hannah.okafor@globex.example | LEFT | | |\n| wei.zhang@initech.example | UNKNOWN | | |\n\n4 MOVED, 2 LEFT, 22 NO_CHANGE, 2 UNKNOWN across 30 contacts; 90 credits (30 × 3)."
+      },
+      "cost": "| Action | Credits |\n|---|---|\n| `waterfall.detectJobChange` | 3 |\n\n**Never run this across a full list on the first attempt.** Sample 10–20 records, report the\nobserved cost and hit-rate, then get the user to approve the full run — quoting the record count\nand the credit estimate. A batch fans out across every record in the source, and the bill scales\nwith it.",
+      "worthKnowing": [
+        "At 3 credits a contact this is the most expensive skill in this set — run it on a filtered segment, never your whole database.",
+        "A champion who moved is the highest-intent signal in outbound: they already bought from you once.",
+        "On a schedule, this re-bills every run. Monthly on a curated segment beats weekly on everything."
+      ]
     },
     {
       "name": "verify-email-list",
       "kind": "one-off",
-      "job": "Verify a list of email addresses so you stop sending to bounces, powered by Cargo.",
+      "job": "Verify a list of email addresses so you stop sending to bounces.",
       "description": "Verify a list of email addresses so you stop sending to bounces, powered by Cargo. Triggers: \"verify these emails\", \"clean my email list\", \"check if these addresses are valid\", \"our bounce rate is too high\", \"validate emails before sending\". Providers: waterfall. Skip when: you do not have the emails yet — use find-work-email first.",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "homepage": "https://github.com/getcargohq/gtm-skills",
       "group": "Get the contact data",
       "install": "npx skills add getcargohq/gtm-skills/verify-email-list",
-      "partOf": []
+      "partOf": [],
+      "personas": [
+        "marketing",
+        "sales-development",
+        "revops"
+      ],
+      "integrations": [
+        "waterfall"
+      ],
+      "example": {
+        "prompt": "Check the 200 addresses in `q3-newsletter-optins.csv` before tomorrow's send and tell me which to drop.",
+        "output": "| email | status | reason |\n|---|---|---|\n| priya.raman@northwind.example | valid | mailbox exists |\n| sales@fabrikam.example | risky | catch-all domain |\n| j.doe@globex.example | invalid | mailbox does not exist |\n| m.klein@contoso.example | valid | mailbox exists |\n\n171 valid, 18 risky (catch-all), 11 invalid — drop 29 before sending; 20 credits (200 × 0.1)."
+      },
+      "cost": "| Action | Credits |\n|---|---|\n| `waterfall.verifyEmail` | 0.1 |\n\n**Never run this across a full list on the first attempt.** Sample 10–20 records, report the\nobserved cost and hit-rate, then get the user to approve the full run — quoting the record count\nand the credit estimate. A batch fans out across every record in the source, and the bill scales\nwith it.",
+      "worthKnowing": [
+        "The cheapest verification tier in the priority stack."
+      ]
     },
     {
       "name": "waterfall-enrichment",
       "kind": "one-off",
-      "job": "Cascade one lookup through several vendors in priority order, so a row the first source misses falls through to the next instead of being lost, powered by Cargo.",
+      "job": "Cascade one lookup through several vendors in priority order, so a row the first source misses falls through to the next instead of being lost.",
       "description": "Cascade one lookup through several vendors in priority order, so a row the first source misses falls through to the next instead of being lost, powered by Cargo. Triggers: \"waterfall enrichment\", \"cascade through providers\", \"fallback chain\", \"my single vendor has bad coverage\", \"try another source when the first one misses\", \"improve my match rate\", \"multi-vendor fallback\". Providers: waterfall. Skip when: you want one address for one name and domain — use find-work-email, the cheaper single job; or you hold addresses and only want them checked — use verify-email-list.",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "homepage": "https://github.com/getcargohq/gtm-skills",
       "group": "Get the contact data",
       "install": "npx skills add getcargohq/gtm-skills/waterfall-enrichment",
-      "partOf": []
+      "partOf": [],
+      "personas": [
+        "revops",
+        "gtm-engineering"
+      ],
+      "integrations": [
+        "waterfall"
+      ],
+      "example": {
+        "prompt": "Run the 20 contacts in `event-leads.csv` through the waterfall and verify every email before I import them.",
+        "output": "| full_name | domain | email | provider | verified |\n|---|---|---|---|---|\n| Priya Raman | northwind.example | priya.raman@northwind.example | rung 1 | valid |\n| Tomás Ferreira | fabrikam.example | tferreira@fabrikam.example | rung 3 | valid |\n| Hannah Okafor | globex.example | h.okafor@globex.example | rung 2 | invalid |\n| Wei Zhang | initech.example | | none | |\n\n16 of 20 enriched and 14 verified deliverable, 4 left empty; 41.6 credits (20 × 2 + 16 × 0.1)."
+      },
+      "cost": "| Action | Credits |\n|---|---|\n| `waterfall.verifyEmail` | 0.1 |\n| `waterfall.enrichCompany` | 1 |\n| `waterfall.enrichContact` | 2 |\n\n**Never run this across a full list on the first attempt.** Sample 10–20 records, report the\nobserved cost and hit-rate, then get the user to approve the full run — quoting the record count\nand the credit estimate. A batch fans out across every record in the source, and the bill scales\nwith it.",
+      "worthKnowing": [
+        "**Order the rungs cheapest first.** Verification at 0.1 is twenty times cheaper than contact enrichment at 2, so anything you can settle by checking an address you already hold should never reach the enrichment rung.",
+        "**A waterfall bills the record, not the vendor.** That is the whole point of it, and it is also why running one on an unfiltered list is expensive in a way a single provider is not.",
+        "**Report the hit rate, not just the cost.** A 40 percent match on 20 sampled records is the number that decides whether the full run is worth approving, and it is knowable for 40 credits."
+      ]
+    },
+    {
+      "name": "weekly-planning",
+      "kind": "cookbook",
+      "job": "Every Monday last week's GTM work is ranked against active initiatives, declared infra, and live runs, as one reviewable pull request per initiative — or one workspace pull request when there are none.",
+      "description": "Every Monday last week's GTM work is ranked against active initiatives, declared infra, and live runs, as one reviewable pull request per initiative — or one workspace pull request when there are none. Triggers: \"what should we work on this week\", \"rank our initiatives against what is actually running\", \"weekly GTM plan from the cadence log\", \"recommend next work from infra and runs\", \"the play is deployed but I don't think it ran\". Cargo CDK, defineAgent, harness claudeCode, GitHub, cargo-ai CLI reads, initiatives, cadence. Skip when: you want today recapped and posted to Slack, which is standup; or you want call transcripts scribed into context, which is call-capture.",
+      "version": "0.1.1",
+      "homepage": "https://github.com/getcargohq/gtm-skills/tree/main/weekly-planning",
+      "group": "Make it run forever",
+      "install": "cargo-ai cdk add cookbook/weekly-planning",
+      "partOf": [],
+      "personas": [
+        "sales-leadership",
+        "revops"
+      ],
+      "integrations": [
+        "anthropic",
+        "github"
+      ],
+      "example": {
+        "prompt": "Every Monday morning, check last week's runs against our initiatives and open one pull request per initiative saying what to do next.",
+        "output": "```text\n[cadence] eu-outbound 2026-W41   ->  cadence/plan/2026-W41-eu-outbound.md\n---\ntitle: 2026-W41 EU outbound\ndescription: Blocked. The sourcing play is declared but did not run once this week.\nweek: 2026-W41\ntarget: eu-outbound\n---"
+      },
+      "state": "to-be-approved",
+      "chain": 8,
+      "resources": [
+        "agents",
+        "connectors",
+        "folders"
+      ],
+      "asked": [
+        {
+          "input": "PLANNING_TIMEZONE` (`infra/agents/planner.ts`)",
+          "kind": "value",
+          "how": "**derived**: default `America/Los_Angeles`. Change it only if the team's week is not Pacific. Change it together with `cron`.",
+          "why": "The previous ISO week is computed in this timezone. A timezone the collector does not share with the prompt splits the dump and the plan files across two weeks."
+        }
+      ],
+      "canChange": [
+        {
+          "id": "move-the-hour",
+          "when": "The team reads pull requests at a different time, or you are not on Pacific time",
+          "how": "Change `cron` and `PLANNING_TIMEZONE` together in `infra/agents/planner.ts`. The cron is 15:00 UTC Monday because that is 8am PT in PDT.",
+          "cost": "A Sunday cron recaps an incomplete week. A timezone the collector does not share with the prompt splits the dump and the plan files across two weeks."
+        },
+        {
+          "id": "skip-on-track",
+          "when": "An on-track initiative should not ping the reviewer",
+          "how": "In `infra/agents/planner.prompt.ts`, skip the pull request when The gap is \"on track\"",
+          "cost": "Silence on an on-track week is indistinguishable from a missed run for that initiative. The default still opens the PR, because a written \"keep going\" is the record."
+        },
+        {
+          "id": "git-only",
+          "when": "The sandbox has no Cargo session, or this agent must not reach the workspace at all",
+          "how": "Drop §1b of `infra/agents/planner.prompt.ts",
+          "cost": "\"Deployed is not running\" stops being answerable, which is most of the point: the gap collapses to what git can see. The dump still lands, which is what §1b already falls back to when `cargo-ai whoami` fails."
+        },
+        {
+          "id": "one-pr",
+          "when": "You want one weekly diff even when there are five initiatives",
+          "how": "Collapse step 2 of `infra/agents/planner.prompt.ts` to a single pull request that holds every plan file",
+          "cost": "The reviewer merges the loud initiative and skips the overdue one. The default splits them because that is the gate."
+        }
+      ],
+      "shouldNotChange": [
+        "**The agent does not fetch git; the script does.** (`scripts/collect/week.ts`) A fetch loop an agent re-derives every Monday is a fetch loop that silently changes shape — a window that drifts, a `gh` flag that quietly widens. The raw dump is the one thing here that has to be byte-identical in its rules every week, because everything downstream is diffed against it. Cargo workspace data is the other half of the week, and it is read at recap time by the agent, not by a `cargo-ai` loop bolted into the collector.",
+        "**Zero active initiatives is one workspace pull request. N active is N pull requests, plus one `unplanned` only when work outside them is significant.** (`infra/agents/planner.prompt.ts`) Combining them is how a reviewer merges one bet and skips another. Opening a workspace pull request *and* the initiative ones gives routine unclaimed runs a second home they were not asked to have: they stay in the dump. The `unplanned` pull request is the exception, and its bar is concrete (more credits than any initiative, a play failing one run in five, a customer or revenue event no initiative claims). Drop it and an unplanned play can burn the week's credits without ever reaching a reviewer.",
+        "**The workspace reads are read-only, and they are the CLI.** (`infra/agents/planner.prompt.ts`) §1b names the commands: `whoami`, what is deployed, run counts and failures, usage. No `capabilities` block is wired on the agent, because the read path is already in the sandbox and only the prompt can say \"read, never execute\". `orchestration action execute`, `batch create`, `cdk deploy` and anything that removes are the forbidden half of that list — a planner that can start a batch is a planner that can spend, and a recommendation is not a deploy. If `cargo-ai whoami` fails, every pull request says so and the recap continues from the git dump; it does not invent the numbers.",
+        "**`scripts/weekly-planning/package.json` stays.** (`scripts/package.json`) It is not decoration. The CDK loader imports every `.ts` under the project root except directories carrying a `package.json`; delete it and `cargo-ai cdk plan` imports the collector and runs git/`gh` on every plan.",
+        "**The harness root stays the directory holding the `package.json` that declares `@cargo-ai/cdk`.** (`infra/agents/planner.ts`) That is where `node_modules` is, so it is the only place `npx tsx …/collect/week.ts` resolves — and in the scaffolded layout it is the repository root, which is also where `cadence/` and `initiatives/` live. **Check it, do not assume it:** `cargo-ai cdk check` prints the resolved binding, and a line ending `in infra/` means the harness was rooted where there is no package.json and no node_modules. The collector then cannot run at all, and Monday reports clean and empty. On a CLI old enough to resolve it that way, pin `rootDirectory: \".\"` in the repository block until you upgrade.",
+        "**The agent opens pull requests and never merges them.** (`infra/agents/planner.prompt.ts`) The recommendation is what next week's work is chosen from. Remove the review gate and a hallucinated gap, a play misread as idle, or a stuck item filed against the wrong owner becomes the team's next bet.",
+        "**Every file opens with a verdict, in a founder's words.** (`infra/agents/planner.prompt.ts`) On track, Behind, At risk or Blocked, then why, then at most three recommendations each with an owner and a day. Without the verdict a reviewer has to read the whole file to learn whether the bet is in trouble, and a plan nobody finishes reading is one nobody acts on.",
+        "**Do not invent a number.** (`infra/agents/planner.prompt.ts`) Drop a metrics line rather than carry last week's ARR forward. A made-up delta is worse than no delta, because the plan file is what leadership reads. A CLI read that errors is a note on the PR, not a count you fill in.",
+        "**Never edit `plan/` or `infra/`.** (`infra/agents/planner.prompt.ts`) The planner recommends. A pull request that rewires a play is a deploy wearing a plan file's name."
+      ],
+      "doneWhen": [
+        "`--dry-run` printed the dump for the previous ISO week, and the run without it wrote `cadence/log/raw/planning/<YYYY-Www>.md`; running it twice that Monday overwrote the same file",
+        "`node --import tsx evals/contract.mjs` passes: harness is `claudeCode` bound to an Anthropic connector and a model, no capability is wired on the agent, there is no Slack action, and no tool wraps git or the CLI",
+        "`cargo-ai cdk plan` reports the agent, the GitHub and Anthropic connectors and the folder, and does **not** run git or `gh` while planning",
+        "with **zero** active initiatives, the first scheduled run opened exactly one unmerged pull request titled `[cadence] workspace <YYYY-Www>` whose diff contains the dump and `cadence/plan/<YYYY-Www>.md` with `## Recommendations`",
+        "with **N** active initiatives, it opened exactly N unmerged pull requests, one per slug, each diff containing the dump and exactly one `cadence/plan/<YYYY-Www>-<slug>.md` — never a second initiative in the same diff — plus one `[cadence] unplanned <YYYY-Www>` pull request only when work no initiative claims met the bar in the prompt",
+        "every plan file's `description` and PR body open with the same verdict (On track, Behind, At risk, Blocked, Unplanned, or No active initiatives), and every recommendation names an action and a day",
+        "a re-run the same Monday opened no additional pull request for a target whose `## Recommendations` section was already on disk",
+        "no number in a plan file is absent from the raw dump, a metrics file dated that week, or a `cargo-ai` read the agent actually ran. A CLI read that errors is a note on the PR, not a made-up count"
+      ],
+      "cost": "The collector talks to git and, when `gh` is installed, to GitHub from the harness environment.\nThose calls are not Cargo connector actions.\n\nThe recurring cost is the harness run itself, once a week, billed as LLM tokens through the bound\nAnthropic connector, and it scales with how much the agent reads — the dump, the week's cadence\nfiles, the active initiative files, declared infra, and the read-only `cargo-ai` calls in §1b\n(whoami, what is deployed, run counts, usage). Those reads are API calls, not connector actions, so\nthey bill nothing. There is no per-record fan-out, and the recap never runs a command that spends.",
+      "composesInto": "`standup` (the week's daily logs are evidence this recap reads), `call-capture` (scribed calls dated\nin the week are evidence), `tam-building` and `account-scoring` (a declared play that did not run is\nthe gap this recap is for)."
     },
     {
       "name": "zoominfo-to-cargo",
       "kind": "one-off",
-      "job": "Rebuild a ZoomInfo list on Cargo and measure the coverage you actually lose or gain before the renewal, powered by Cargo.",
+      "job": "Rebuild a ZoomInfo list on Cargo and measure the coverage you actually lose or gain before the renewal.",
       "description": "Rebuild a ZoomInfo list on Cargo and measure the coverage you actually lose or gain before the renewal, powered by Cargo. Triggers: \"ZoomInfo alternative\", \"migrate off ZoomInfo\", \"replace ZoomInfo\", \"our ZoomInfo renewal is coming up\", \"ZoomInfo is too expensive\", \"I have a ZoomInfo export\", \"cheaper than ZoomInfo\", \"Lusha alternative\", \"Cognism alternative\". Providers: waterfall. Skip when: you are porting a Clay table rather than a contact list — use clay-to-cargo; or you have no list yet and simply want contacts sourced — use find-b2b-leads.",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "homepage": "https://github.com/getcargohq/gtm-skills",
       "group": "Coming from another tool",
       "install": "npx skills add getcargohq/gtm-skills/zoominfo-to-cargo",
-      "partOf": []
+      "partOf": [],
+      "personas": [
+        "revops",
+        "sales-leadership"
+      ],
+      "integrations": [
+        "waterfall"
+      ],
+      "example": {
+        "prompt": "Our ZoomInfo renewal is next month — measure what we'd lose on 20 rows from `zi-export.csv`.",
+        "output": "| Measure | ZoomInfo export | Cargo waterfall |\n|---|---|---|\n| Emails present | 20 / 20 | 17 / 20 |\n| Verified deliverable | 13 / 20 | 15 / 20 |\n| Credits for the sample | seat licence | 43.7 |\n\nVerified coverage 13 of 20 from the incumbent against 15 of 20 from the waterfall, for 43.7 credits (20 × 2 to re-derive + 37 × 0.1 to verify both sides)."
+      },
+      "cost": "| Action | Credits |\n|---|---|\n| `waterfall.verifyEmail` | 0.1 |\n| `waterfall.enrichCompany` | 1 |\n| `waterfall.enrichContact` | 2 |\n\nTwenty contact rows re-derived and both sides verified is roughly 20 × (2 + 0.2), around 44\ncredits, inside the free balance a new account starts with.\n\n**Never run this across a full list on the first attempt.** Sample 10–20 records, report the\nobserved cost and hit-rate, then get the user to approve the full run — quoting the record count\nand the credit estimate. A batch fans out across every record in the source, and the bill scales\nwith it.",
+      "worthKnowing": [
+        "**Sample the segment you actually sell into.** Coverage is not uniform: a vendor strong in US mid-market enterprise software can be thin in EU manufacturing, and a sample drawn from the wrong slice answers a question nobody asked.",
+        "**Do not compare against the export's row count.** Compare against its *verified* rows. Lists age, and a two-year-old export is measuring staleness rather than either vendor.",
+        "**The honest answer is sometimes \"keep it\".** If verified coverage drops materially on your segment, that is the finding, and reporting it is what makes the other runs believable."
+      ]
     }
   ]
 }

@@ -1,120 +1,173 @@
-# Configure
+# Configure the pipeline
 
-Reuse the consumer's CRM connector and account extract when they exist. If a
-HubSpot companies model (or the Salesforce Accounts / Attio equivalent) is
-already declared, import it as `crm_accounts` and drop the copy. Two extracts
-of the same object collide at deploy. The play runs on that extract. There is
-no native `accounts` unification in this skill.
+Choose the account path, contact path, or both. Apply only the field contract approved for each
+selected path. Approval for one path does not authorize resources or writes for the other.
 
-Re-read the live provider and CRM actions before editing the template. These are LinkedIn
-output paths, not CRM destinations. They were verified on 2026-08-21. Treat current live
-schemas as authoritative.
+## Shared CRM setup
 
-| Group                | Exact output paths                                                                                                                                                              | Declared type                                                                                                        |
-| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
-| Identity             | `company_id`, `company_name`, `linkedin_url`, `domain`, `website`                                                                                                               | string                                                                                                               |
-| Profile              | `description`, `tagline`, `logo_url`, `email`, `phone`                                                                                                                          | string                                                                                                               |
-| Size                 | `employee_count`, `follower_count`                                                                                                                                              | number                                                                                                               |
-| Classification       | `employee_range`, `specialties`                                                                                                                                                 | string                                                                                                               |
-| Classification       | `industries`                                                                                                                                                                    | array of strings                                                                                                     |
-| Headquarters         | `hq_address_line1`, `hq_address_line2`, `hq_city`, `hq_country`, `hq_full_address`, `hq_postalcode`, `hq_region`                                                                | string                                                                                                               |
-| Other offices        | `locations`                                                                                                                                                                     | array of objects with `city`, `country`, `full_address`, `is_headquarter`, `line1`, `line2`, `region`, and `zipcode` |
-| Affiliates           | `affiliated_companies`                                                                                                                                                          | array of objects with `company_id`, `linkedin_url`, and `name`                                                       |
-| Funding              | `funding_info.crunchbase_url`                                                                                                                                                   | string                                                                                                               |
-| Funding              | `funding_info.last_funding_round_amount`, `last_funding_round_currency`, `last_funding_round_month`, `last_funding_round_type`, `last_funding_round_year`, `num_funding_rounds` | provider-schema-untyped                                                                                              |
-| Founding             | `year_founded`                                                                                                                                                                  | provider-schema-untyped                                                                                              |
-| Domain fallback only | `confident_score`                                                                                                                                                               | string                                                                                                               |
+The checked example uses one HubSpot connector shape:
 
-## Field-selection gate
+- company object: `companies`
+- contact object: `contacts`
+- record ID: `hs_object_id`
+- write action: `updateRecords`
+- blank-only behavior: `skipIfExist: true`
 
-Join the current provider schema above to the live CRM property schema before querying the final
-target population. Derive the candidates first, then present one compact table with these columns:
+For Salesforce or Attio, replace the connector, selected extracts, object names, record IDs, write
+action, and blank-only guard together. Do not leave a mixed CRM graph. Reuse matching existing
+project resources instead of deploying duplicate slugs.
 
-| Column                    | Required evidence                                                                         |
-| ------------------------- | ----------------------------------------------------------------------------------------- |
-| Provider                  | Actual source system from the selected live connector and action, such as `LinkedIn`      |
-| Provider property         | Exact output path, current declared type, and provider routes that return it              |
-| Class                     | `starting_recommendation`, `optional_direct`, `requires_transformation`, or `unsupported` |
-| CRM destination           | Recommended existing or proposed internal name and type, plus its state                   |
-| Current fill              | Filled count and fill rate for the destination                                            |
-| Transformation            | `none` or the exact approved conversion                                                   |
-| Recommendation and reason | Include or exclude, with the compatibility and operational tradeoff                       |
-| Operator decision         | `pending`, `include`, or `exclude`                                                        |
+Confirm that `cargo_last_enriched_at` is a date-time property and
+`cargo_enrichment_status` accepts the values written by each selected play. Create approved missing
+properties in the CRM UI if the connector cannot create property definitions.
 
-The starting recommendation is `company_id`, `company_name`, `domain`, `website`, `linkedin_url`,
-and `employee_count`. LinkedIn `company_id` is a durable matching key. Reuse the most-filled
-compatible CRM property when one exists. If none exists on HubSpot, propose the string property
-`linkedin_company_id` and include its creation in the field-contract approval. Never prepend
-`cargo_` to a provider-derived business property. Reserve that prefix for Cargo-owned operational
-metadata such as enrichment timestamps and statuses. It is a
-recommendation, not implicit approval. Include every other live LinkedIn output in the candidate
-table. Use exactly one row per provider property, even when several properties share the same
-compatibility decision. Each row carries its own type, route availability, destination, fill rate,
-transformation, recommendation, and operator decision, and explicitly identifies the actual
-provider used. Derive that name from the selected live connector and action; do not hard-code
-`LinkedIn` when the adapted workflow uses another provider. Recommend direct mappings when the CRM
-has a semantically equivalent property. Mark a field
-`requires_transformation` when its provider and CRM shapes differ. Mark it `unsupported` when the
-live provider type is absent or no safe destination or transformation exists.
+## Path 1: Configure account enrichment
 
-Show the table and ask the operator to approve the complete field contract. This is the first
-operator stop. Do not calculate the final eligible population, final credit estimate, or edit CDK
-until every candidate has an `include` or `exclude` decision. Record the approved mappings and
-exclusions under `field_selection` in the audit contract from
-[`audit.md`](audit.md). Silence does not approve the starting recommendation.
+### Resources
 
-Edit these together:
+The account path consists only of:
 
-- `infra/connectors/crm.ts`: the CRM connector, bound to the workspace default
-- `infra/models/crm-accounts.ts`: the live account extractor
-- `infra/plays/enrich-accounts.ts`: the write mappings, matching property, fill-blank guard, and
-  the play filter slugs, which must be columns on `crm_accounts`
+- `infra/models/crm-accounts.ts`
+- `infra/tools/account-enrichment.ts`
+- `infra/plays/enrich-accounts.ts`
 
-The checked repository example extracts HubSpot companies (`fetchRecords`,
-`objectType: "companies"`) and writes with `updateRecords` matching
-`hs_object_id` and its native `skipIfExist` mapping flag. Create
-`cargo_last_enriched_at` as a datetime and `cargo_enrichment_status` as a string on the company
-object if they are missing, and include both creations in the field-contract approval. Keep one CRM
-shape across those files. The play filter, workflow
-input, and write matching property must use the same record-id field.
+`crm_accounts` must remain a direct CRM company extract. `account_enrichment` owns provider routing
+and has no CRM access. `enrich_accounts` owns the only company write.
 
-- **Salesforce:** generated Account update matching `Id`. There is no `skipIfExist` — read the
-  Account first and omit any field that is already populated, including numeric zero.
-- **Attio:** generated company-record update matching the record id. Same read-then-omit guard.
-  Do not copy HubSpot's flag onto Attio.
+### Provider routes
 
-The checked HubSpot starting mapping is `company_id` to `linkedin_company_id`, followed by
-`name`, `domain`, `website`, `linkedin_company_page`, and `numberofemployees`, plus the stamps
-`cargo_last_enriched_at` and `cargo_enrichment_status`. Create `linkedin_company_id` as a
-string property only when no compatible LinkedIn company ID property exists and the operator
-approves its creation. Present industry and the other provider outputs at the field-selection gate.
-The provider returns `industries` as an array; most CRMs store a single enum, so inclusion requires
-an approved transformation and destination.
+Preserve these mutually exclusive routes:
 
-Leave `year_founded` and provider-schema-untyped funding fields out until the live action declares
-stable types.
+- LinkedIn company page present: normalize the URL or handle and call `enrichCompany`.
+- LinkedIn page blank and domain present: call `enrichCompanyFromDomain`.
+- Both identifiers blank: stop without a provider call.
 
-The base template is fill-blanks only. HubSpot enforces this per property with
-`skipIfExist: true`. Destination fill-state is not a play filter: populated stale rows remain
-eligible so an approved policy can refresh them. Keep `skipIfExist` for fields approved as
-fill-blanks, and remove it only for fields explicitly approved for refresh after a proposed-change
-preview and an optimistic comparison against a fresh CRM read. Freshness writes only after the
-provider result and CRM update.
+LinkedIn identity is stronger and remains first. Do not move either provider action into the play.
 
-Fetch current pricing with `cargo-ai connection integration get linkedin` immediately before the
-preview. Read the applicable entries under
-`integration.actions.enrichCompany.credits.costs` and
-`integration.actions.enrichCompanyFromDomain.credits.costs`. Record the lookup timestamp, CLI
-version, action slugs, and unit costs in the audit. Keep the LinkedIn action first and the domain
-action as the mutually exclusive fallback.
+### Mappings and filter
 
-## Complete when
+Map only approved outputs from `account_enrichment`. The checked HubSpot starting fields are
+`linkedin_company_id`, `name`, `domain`, `website`, `linkedin_company_page`, and
+`numberofemployees`.
 
-- exactly one CRM account model exists (`crm_accounts` in the example) and the play uses it
-- every destination is an approved live CRM property
-- `cargo-ai cdk types` confirms the selected CRM action names and payloads
-- the operator-approved field contract records every included mapping and excluded candidate
-- selected provider fields and CRM destinations agree in meaning and type, or have an explicit
-  approved transformation
-- the managed segment trigger excludes rows with no identifier but allows populated stale rows;
-  the approved per-field policy decides fill blank versus refresh
+Every business-field mapping is blank-only unless the operator explicitly approved a refresh
+policy. A fresh read must protect populated values, including numeric zero, on CRMs without a
+native blank-only flag. Stamp freshness only after the CRM update.
+
+The `enrich_accounts` filter requires:
+
+- LinkedIn company page or domain present
+- `cargo_last_enriched_at` null or older than the approved window
+
+Do not add a blank-destination condition to the account filter. Populated stale records must remain
+eligible for an explicitly approved refresh policy.
+
+### Account graph review
+
+Confirm the compiled graph has:
+
+- one identifier gate and one mutually exclusive provider branch in `account_enrichment`
+- no CRM connector action in `account_enrichment`
+- one Tool node targeting `account_enrichment` in `enrich_accounts`
+- no direct LinkedIn action in `enrich_accounts`
+- one play-owned CRM update matching the audited company record ID
+- a disabled play with `noConcurrency`
+
+## Path 2: Configure contact enrichment
+
+### Resources
+
+The contact path consists only of:
+
+- `infra/models/crm-contacts.ts`
+- `infra/tools/contact-linkedin-enrichment.ts`
+- `infra/plays/enrich-contacts.ts`
+
+`crm_contacts` must remain a direct CRM contact extract. `contact_linkedin_enrichment` owns the
+LinkedIn profile action and has no CRM access. `enrich_contacts` owns identifier resolution, gating,
+and every contact write.
+
+### Instantiate the Cargo-native tools
+
+In the live workspace, instantiate:
+
+1. Find Email
+2. Find LinkedIn Profile from Email
+
+Inspect each deployed tool. Record its UUID, accepted inputs, output paths, and live unit price.
+Replace these values in `infra/plays/enrich-contacts.ts`:
+
+```ts
+"REPLACE-WITH-FIND-EMAIL-TOOL-UUID";
+"REPLACE-WITH-FIND-LINKEDIN-PROFILE-FROM-EMAIL-TOOL-UUID";
+```
+
+The example expects:
+
+| Tool                             | Inputs                                    | Output         |
+| -------------------------------- | ----------------------------------------- | -------------- |
+| Find Email                       | `linkedin_url`, `first_name`, `last_name` | `email`        |
+| Find LinkedIn Profile from Email | `email`                                   | `linkedin_url` |
+
+If the live schema differs, adapt the call and output access together. Never guess a nested path.
+
+### Configure Contact LinkedIn Enrichment
+
+`contact_linkedin_enrichment` accepts `linkedinUrl`, calls one LinkedIn `enrichProfile` action, and
+returns approved person identity and role fields. Confirm the live output paths for stable person
+ID, canonical profile URL, and current job title.
+
+Add optional outputs only after the operator approves their destination, type, transformation,
+write policy, and cost.
+
+### Preserve the contact gates
+
+`enrich_contacts` must keep these routes:
+
+- LinkedIn and email present: skip both native tools, then call custom enrichment.
+- LinkedIn present and email blank: call Find Email, then custom enrichment.
+- LinkedIn blank and email present: call Find LinkedIn Profile from Email. Stop if unresolved;
+  otherwise call custom enrichment.
+- Both identifiers blank: stop without any tool call.
+
+Use explicit branches. A ternary that selects between tool results can compile both tool nodes
+unconditionally. Inspect the compiled graph, not only the TypeScript source.
+
+Every successful route updates the triggering contact by CRM record ID and fills approved business
+fields only when blank. An unresolved email route must not write or stamp freshness.
+
+### Contact filter
+
+The `enrich_contacts` filter requires:
+
+- email or LinkedIn profile URL present
+- `cargo_last_enriched_at` null or older than the approved window
+- at least one approved contact destination blank
+
+For every blank string destination, include both `isNull` and `isEmpty`. Cargo's filter schema
+intentionally spells the group key `conjonction`.
+
+### Contact graph review
+
+Confirm the compiled graph has:
+
+- one contact play and exactly three tool targets
+- a branch before each native lookup
+- a result branch after Find LinkedIn Profile from Email
+- no custom enrichment call without a LinkedIn URL
+- no direct LinkedIn connector action in the play
+- no CRM connector action in the custom tool
+- no write path for unresolved or identifier-free rows
+- a disabled play with `noConcurrency`
+
+## Validate selected paths
+
+```sh
+npm run typecheck
+node scripts/check-pipelines.mjs
+node --import tsx crm-enrichment/evals/contract.mjs
+cargo-ai cdk plan
+```
+
+Deploy only the selected paths, with every play disabled. Send direct Cargo links for every deployed
+play and custom tool before requesting approval for a paid pilot.

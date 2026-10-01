@@ -1,95 +1,125 @@
 # Acceptance
 
-Walk every line. A checked template without an evidence-backed consumer adaptation is incomplete.
+Walk every line for the path being deployed. If the operator requested both account and contact
+enrichment, both paths must pass independently. Evidence from one path does not approve the other.
 
-## Audit
+## Path 1: Account enrichment
 
-- Before the exact target or cost preview, the agent presents the starting recommendation,
-  direct-compatible optional fields, transformation-required fields, and unsupported fields from
-  the live LinkedIn and CRM schemas.
-- The agent asks for approval of a concrete field-contract table, not whether the operator wants
-  unspecified "more fields". Silence does not approve the starting recommendation.
-- The field-contract table contains exactly one row per exact provider property. No row groups
-  multiple fields or shares ambiguous types, routes, destinations, fill rates, or decisions.
-- Every field-contract row names the actual provider used, derived from the live connector and
-  action. The value matches the adapted workflow instead of being hard-coded from the example.
-- Duplicate-property findings contain only genuine customer-managed semantic duplicates. HubSpot
-  `hs_*`, CRM-managed, system-generated, and generic native properties are excluded; an audit with
-  no qualifying group states `No duplicate properties detected`.
-- Provider `company_id` is in the starting recommendation as the LinkedIn company ID matching key.
-  The agent reuses a compatible CRM property or proposes an exact string property for approval.
-- The audit records every live LinkedIn output as included or excluded, with destination, types,
-  transformation, write policy, and reason where applicable.
-- JSON, Markdown, and chat agree on property candidates, gaps, route counts, and costs.
-- Unit costs come from a current `cargo-ai connection integration get linkedin` response, with the
-  lookup timestamp, CLI version, action slugs, and applicable cost entries recorded.
-- Credit math uses the fetched LinkedIn and domain unit costs.
-- Route counts are mutually exclusive and count eligible CRM accounts on `crm_accounts` after the
-  field contract is approved.
-- Primary destinations have live type and fill-rate evidence.
-- No paid provider call or CRM write occurs during audit.
+### Audit and approval
 
-## Guided handoff
+- [ ] The live CRM company schema, record ID field, blank semantics, and write action were verified.
+- [ ] The live LinkedIn company enrichment schemas were inspected for both the LinkedIn URL and
+      domain routes.
+- [ ] The field-contract table contains one decision row per provider property, including source,
+      output type, CRM destination, transformation, current fill rate, write policy, and operator
+      decision.
+- [ ] Genuine customer-managed duplicate properties were reported separately. CRM system and
+      generated properties were not presented as duplicates.
+- [ ] The operator approved the complete account field contract before CDK adaptation or paid calls.
+- [ ] Eligible account counts are mutually exclusive between the LinkedIn URL and domain routes.
+- [ ] Live unit prices, the lookup timestamp, action slugs, eligible counts, and maximum account
+      spend were recorded before run approval.
+- [ ] The operator approved disabled deployment separately from the paid account pilot.
 
-- Every substantive agent message names the current phase and ends with a `Next step` containing one
-  concrete decision or action, what it unlocks, and what remains blocked.
-- Phase one ends with the audit and enrichment recommendation, then asks for approval of the full
-  field contract and authorization to build and deploy disabled resources.
-- Phase two occurs only after that approval. The agent deploys the tool and the play with the play
-  disabled, sends a working direct Cargo UI link for each, and shows the exact eligible population,
-  route counts, unit costs, and total estimated credits.
-- Phase two ends by asking the operator to review the links and approve the run at the stated maximum
-  cost. No paid enrichment call or enablement occurs before that approval.
-- Phase three reports before-and-after fill rates per approved destination, all processed outcomes,
-  failures, actual credits against estimate, direct Cargo links, and one recommended next step.
-- In-progress messages that need no decision say `No action needed` and identify the next checkpoint.
+### Template and compiled graph
 
-## CDK template
+- [ ] `crm_accounts` is a direct CRM company extract and carries the CRM record ID used by the write.
+- [ ] No native account unification sits between the model and CRM write.
+- [ ] `account_enrichment` accepts company identifiers, normalizes LinkedIn handles, and has no CRM
+      record ID, connector access, or write action.
+- [ ] The compiled tool graph first ends rows with no identifier, then chooses exactly one provider
+      route. LinkedIn URL is attempted before domain fallback.
+- [ ] A LinkedIn handle already beginning with `http` is used as-is; another handle is prefixed with
+      the canonical company profile URL.
+- [ ] `enrich_accounts` starts with one Tool node targeting `account_enrichment`, contains no direct
+      LinkedIn connector action, and owns the only CRM update.
+- [ ] The play write matches the audited CRM record ID (`hs_object_id` in the HubSpot example).
+- [ ] Every approved business field uses a CRM-native blank-only update or an equivalent fresh-read
+      guard that preserves populated values, including numeric zero.
+- [ ] `cargo_last_enriched_at` and `cargo_enrichment_status=succeeded` are written only on the
+      successful CRM write path. Provider and CRM errors remain failed workflow runs.
+- [ ] The play filter requires a company identifier and null-or-stale freshness. It does not require
+      a blank destination, so an explicitly approved refresh policy can re-enrich populated fields.
+- [ ] The play is disabled, uses `noConcurrency`, evaluates daily, and creates runs for records added
+      to its managed segment.
+- [ ] No standalone segment duplicates the play filter.
 
-- The agent installed and read `cargo-cdk` before auditing or adapting the template.
-- `infra/` holds one file per resource: the two connectors, the skill's folders, the CRM account
-  model, the tool, and the play. No file declares a resource that belongs to another.
-- The consumer files contain only the selected CRM connector and action shapes.
-- `account_enrichment` is a workflow-backed Cargo tool that accepts provider identifiers, normalizes
-  them, and returns enriched company data. It has no CRM connector, CRM record id, or CRM write.
-- The compiled `account_enrichment` graph starts with a code-generated Branch that ends rows with no
-  identifier. A second Branch selects one mutually exclusive provider route, and the tool contains
-  no CRM connector node.
-- `enrich_accounts` is the disabled play. Its row workflow starts with exactly one Tool node
-  targeting `account_enrichment`, applies the approved per-field write policy, and owns the only CRM
-  update action.
-- The play does not duplicate the provider connector calls implemented by the tool, and the tool
-  does not duplicate the CRM write implemented by the play.
-- `node --import tsx evals/contract.mjs` passes against the adapted compiled graph.
-- Exactly one CRM account model exists (`crm_accounts` in the example). The play uses it.
-- There is no native `accounts` unification.
-- Freshness and fill-state are columns on `crm_accounts`.
-- The write matches the audited CRM record id (`hs_object_id` in the HubSpot example).
-- The play's managed segment trigger excludes rows with no identifier and allows populated stale
-  rows. Destination fill-state is not an eligibility condition, and the row workflow does not
-  repeat identifier or freshness conditions as branches.
-- The workflow input, result schema, write mappings, and per-field write policies cover exactly the
-  approved field contract.
-- LinkedIn URL is attempted before domain fallback. A handle that is already an `http` URL is used
-  as-is. A row takes at most one paid route.
-- Fill-blanks uses a CRM-native conditional update or a fresh-read guard that preserves populated
-  values, including numeric zero.
-- `cargo_last_enriched_at` and `cargo_enrichment_status: succeeded` write only after a provider
-  result and a CRM update on the `written` path. A failed provider call does not stamp freshness.
-- Provider or CRM connector errors remain failed workflow runs.
-- The play trigger requires an identifier and `cargo_last_enriched_at` null or older than six
-  months. It contains no destination fill-state condition.
-- The disabled play evaluates daily, creates runs only for rows added to its managed segment, and
-  uses `noConcurrency`.
-- No standalone `defineSegment` exists.
-- `cargo-ai cdk types`, `cargo-ai cdk check`, and `cargo-ai cdk plan` pass in the consumer project.
-- The play and tool are deployed disabled only after phase-one approval, and their direct Cargo UI
-  links resolve before the phase-two review request.
+### Validation and rollout
 
-## Repository isolation
+- [ ] `npm run typecheck`, `node scripts/check-pipelines.mjs`, and
+      `node --import tsx crm-enrichment/evals/contract.mjs` pass.
+- [ ] `cargo-ai cdk types`, `cargo-ai cdk check`, and `cargo-ai cdk plan` pass in the consumer project.
+- [ ] The plan shows one account model, one account enrichment tool, and one disabled account play.
+- [ ] The account play and tool have working direct Cargo UI links before paid-run approval.
+- [ ] A one-record write probe passed without changing a populated business value.
+- [ ] The operator approved the exact account population and maximum spend before execution.
+- [ ] The final account report includes eligible, processed, written, skipped, and failed counts;
+      before-and-after fill rates per approved field; actual spend against estimate; and direct
+      Cargo links.
+- [ ] No credential, customer data, or deploy command appears in the committed template.
 
-- This is one root skill. Its supporting Markdown files live under `references/`, and no
-  nested `SKILL.md` exists.
-- No CRM-specific template directories remain.
-- The template contains no credential, deployment command, or customer data.
-- No relative import leaves the skill.
+## Path 2: Contact enrichment
+
+### Audit and approval
+
+- [ ] The live CRM contact schema, record ID field, blank semantics, and write action were verified.
+- [ ] The live LinkedIn profile enrichment schema was inspected.
+- [ ] Cargo-native Find Email and Find LinkedIn Profile from Email were instantiated and their UUIDs,
+      accepted inputs, output paths, and live unit prices were recorded.
+- [ ] The contact field-contract table contains one decision row per provider property, including
+      source, output type, CRM destination, transformation, current fill rate, write policy, and
+      operator decision.
+- [ ] Route counts are mutually exclusive for both identifiers, LinkedIn only, email only, and
+      neither identifier.
+- [ ] The operator approved the complete contact field contract before CDK adaptation or paid calls.
+- [ ] The operator approved disabled deployment separately from the paid contact pilot.
+
+### Template shape and gating
+
+- [ ] `crm_contacts` is a direct CRM contact extract and carries the CRM record ID used by the write.
+- [ ] There is one contact play: `enrich_contacts`.
+- [ ] The play targets exactly three tool resources: Cargo-native Find Email, Cargo-native Find
+      LinkedIn Profile from Email, and custom `contact_linkedin_enrichment`.
+- [ ] `contact_linkedin_enrichment` calls one LinkedIn profile enrichment action and has no CRM
+      record ID, connector access, or write action.
+- [ ] A row with email and LinkedIn skips both native tools and calls custom enrichment.
+- [ ] A LinkedIn-only row calls Find Email, then custom enrichment.
+- [ ] An email-only row calls Find LinkedIn Profile from Email, then custom enrichment only when a
+      profile resolves.
+- [ ] An unresolved email-only row stops without custom enrichment, CRM write, or successful
+      freshness.
+- [ ] A row with neither identifier makes no tool call and no CRM write.
+- [ ] The compiled graph proves these gates. Explicit successful branches may compile multiple call
+      nodes, but every custom call targets the same `contact_linkedin_enrichment` resource.
+- [ ] The play contains no direct LinkedIn connector action.
+- [ ] No customer split, movement verdict, relationship mutation, note creation, or alert connector
+      is present.
+
+### Filters and writes
+
+- [ ] Eligibility requires email or LinkedIn, null-or-stale freshness, and at least one approved
+      blank destination.
+- [ ] Every blank string condition pairs `isNull` with `isEmpty`.
+- [ ] Every successful route updates the triggering contact by CRM record ID.
+- [ ] `email`, `linkedin_person_id`, `linkedin_profile_url`, and `jobtitle` use blank-only writes.
+- [ ] `cargo_last_enriched_at` and `cargo_enrichment_status=succeeded` are written only on successful
+      CRM write paths.
+- [ ] The play never creates, merges, or deletes a contact.
+- [ ] The play is disabled, uses `noConcurrency`, evaluates daily, and creates runs for records added
+      to its managed segment.
+- [ ] No standalone segment duplicates the play filter.
+
+### Validation and rollout
+
+- [ ] `npm run typecheck`, `node scripts/check-pipelines.mjs`, and
+      `node --import tsx crm-enrichment/evals/contract.mjs` pass.
+- [ ] `cargo-ai cdk types`, `cargo-ai cdk check`, and `cargo-ai cdk plan` pass in the consumer project.
+- [ ] The plan shows one contact model, the three intended tool targets, and one disabled contact
+      play.
+- [ ] The contact play and custom tool have working direct Cargo UI links before paid-run approval.
+- [ ] A one-record write probe passed without changing a populated business value.
+- [ ] The operator approved the exact contact population and maximum spend before execution.
+- [ ] The final contact report includes route, processed, written, unresolved, skipped, and failed
+      counts; before-and-after fill rates per approved field; actual spend against estimate; and
+      direct Cargo links.
+- [ ] No credential, customer data, or deploy command appears in the committed template.

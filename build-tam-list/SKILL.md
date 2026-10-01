@@ -1,12 +1,15 @@
 ---
 name: build-tam-list
 description: "Build a total addressable market list of companies filtered by industry, headcount, and geography, powered by Cargo. Triggers: \"build a TAM list\", \"how many companies match our ICP\", \"list every SaaS company in Europe under 200 employees\", \"size our addressable market\", \"find target accounts\", \"list building\", \"build a list of companies\". Providers: salesNavigator. Skip when: you want the people at those companies — use find-b2b-leads or find-stakeholders; or you want companies by tech stack — use find-companies-using-tech."
-version: "1.1.0"
+version: "1.1.1"
 compatibility: Requires @cargo-ai/cli (npm). Sign in or create an account with `cargo-ai login --email` (emailed code, no browser), `--oauth`, or an API token
 homepage: https://github.com/getcargohq/gtm-skills
 metadata:
   author: getcargo
   source: one-off
+  personas:
+    - revops
+    - sales-leadership
   openclaw:
     requires:
       bins:
@@ -77,6 +80,20 @@ A list of companies with name, domain, headcount band, industry, and LinkedIn UR
 Operations are asynchronous. `--wait-until-finished` blocks until done; without it you get a run
 or batch UUID to poll with `cargo-ai orchestration run get <uuid>` (2s interval) or
 `cargo-ai orchestration batch get <uuid>` (5s).
+
+## Example
+
+> Size the market of US software companies with 51–200 employees and give me the first 100.
+
+Illustrative output, fictional records:
+
+| name | domain | headcount | industry | linkedinUrl |
+|---|---|---|---|---|
+| Northwind | northwind.example | 51-200 | Software Development | linkedin.com/company/northwind-example |
+| Tailspin | tailspin.example | 51-200 | Software Development | linkedin.com/company/tailspin-example |
+| Initech | initech.example | 51-200 | Software Development | linkedin.com/company/initech-example |
+
+The first 100 companies for 5 credits (100 × 0.05); nothing is enriched yet, so the market is sized before any per-company spend.
 
 ## What it costs
 

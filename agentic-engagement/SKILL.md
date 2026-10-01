@@ -1,12 +1,15 @@
 ---
 name: agentic-engagement
 description: 'Deploy an agent that holds email conversations with leads: a sending domain, a mailbox, native sendEmail and listEmailEvents on the agent, a native email trigger on reply and unsubscribe, and a heartbeat that checks thread status when nothing inbound happened. Triggers: "handle email conversations with leads", "agentic engagement", "an agent that replies to inbound email", "stand up a conversation agent on a Cargo mailbox", "native email trigger for lead replies", "keep talking to leads over email". Cargo CDK, defineDomain, defineMailbox, defineAgent, agentNativeTrigger, heartbeat, sendEmail, listEmailEvents. Skip when: you want to send one email right now, which is a native sendEmail from the CLI and needs nothing deployed; or you want a play that blasts a list rather than holding a thread.'
-version: "0.1.0"
+version: "0.1.1"
 compatibility: "Requires @cargo-ai/cli with @cargo-ai/cdk 1.0.73 or later, a Cargo workspace, and an authenticated LLM connector."
 homepage: https://github.com/getcargohq/gtm-skills/tree/main/agentic-engagement
 metadata:
   author: getcargo
   source: cookbook
+  personas:
+    - sales-development
+    - gtm-engineering
   openclaw:
     requires:
       bins:
@@ -54,6 +57,30 @@ the agent. Without the heartbeat a quiet thread never gets a status check.
 `sendEmail` use, the agent can pick a different inbox and the trigger wakes the wrong chat. If the
 reply omits `inReplyTo` or passes only the parent Message-ID as `references`, mail clients break
 the thread and the next wake has no conversation to continue.
+
+## Example
+
+> Give our jordan@ mailbox an agent that answers leads who reply to my first emails, and checks quiet threads once for a single follow-up.
+
+Illustrative output, fictional records:
+
+```text
+From:    Priya Raman <priya@northwind.example>
+Status:  replied  (native email trigger wakes the engager's chat)
+Subject: Re: Routing inbound leads at Northwind
+> Interesting. Does this work if our CRM is Salesforce, not HubSpot?
+
+From:        Jordan <jordan@outreach.fabrikam.example>   (the bound mailbox)
+Subject:     Re: Routing inbound leads at Northwind
+In-Reply-To: <msg-2@northwind.example>
+References:  <msg-1@outreach.fabrikam.example> <msg-2@northwind.example>
+> Yes. Salesforce is a native connector, same as HubSpot, so routing writes
+> straight to your lead owner field. Worth 20 minutes next week to see it on
+> your own queue?
+```
+
+One threaded reply per wake, grounded in the workspace context; had Priya unsubscribed instead, the same
+wake would have ended with no send, and a thread left at `sent` gets at most one heartbeat follow-up.
 
 ## Put it in your project
 

@@ -1,12 +1,16 @@
 ---
 name: verify-email-list
 description: "Verify a list of email addresses so you stop sending to bounces, powered by Cargo. Triggers: \"verify these emails\", \"clean my email list\", \"check if these addresses are valid\", \"our bounce rate is too high\", \"validate emails before sending\". Providers: waterfall. Skip when: you do not have the emails yet — use find-work-email first."
-version: "1.0.0"
+version: "1.0.1"
 compatibility: Requires @cargo-ai/cli (npm). Sign in or create an account with `cargo-ai login --email` (emailed code, no browser), `--oauth`, or an API token
 homepage: https://github.com/getcargohq/gtm-skills
 metadata:
   author: getcargo
   source: one-off
+  personas:
+    - marketing
+    - sales-development
+    - revops
   openclaw:
     requires:
       bins:
@@ -73,6 +77,21 @@ A deliverability status per address, so you can drop the risky ones before sendi
 Operations are asynchronous. `--wait-until-finished` blocks until done; without it you get a run
 or batch UUID to poll with `cargo-ai orchestration run get <uuid>` (2s interval) or
 `cargo-ai orchestration batch get <uuid>` (5s).
+
+## Example
+
+> Check the 200 addresses in `q3-newsletter-optins.csv` before tomorrow's send and tell me which to drop.
+
+Illustrative output, fictional records:
+
+| email | status | reason |
+|---|---|---|
+| priya.raman@northwind.example | valid | mailbox exists |
+| sales@fabrikam.example | risky | catch-all domain |
+| j.doe@globex.example | invalid | mailbox does not exist |
+| m.klein@contoso.example | valid | mailbox exists |
+
+171 valid, 18 risky (catch-all), 11 invalid — drop 29 before sending; 20 credits (200 × 0.1).
 
 ## What it costs
 

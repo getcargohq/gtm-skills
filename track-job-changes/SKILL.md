@@ -1,12 +1,15 @@
 ---
 name: track-job-changes
 description: "Detect which of your contacts have changed jobs, and where they went, powered by Cargo. Triggers: \"who changed jobs\", \"track job changes in my CRM\", \"did any of my contacts move companies\", \"alert me when a champion leaves\", \"find people who recently started a new role\", \"job changes\", \"job change signals\". Providers: waterfall. Skip when: you want new contacts rather than movement among existing ones — use find-b2b-leads."
-version: "1.1.0"
+version: "1.1.1"
 compatibility: Requires @cargo-ai/cli (npm). Sign in or create an account with `cargo-ai login --email` (emailed code, no browser), `--oauth`, or an API token
 homepage: https://github.com/getcargohq/gtm-skills
 metadata:
   author: getcargo
   source: one-off
+  personas:
+    - account-executive
+    - sales-development
   openclaw:
     requires:
       bins:
@@ -73,6 +76,21 @@ MOVED / LEFT / NO_CHANGE / UNKNOWN per contact, plus updated details for the mov
 Operations are asynchronous. `--wait-until-finished` blocks until done; without it you get a run
 or batch UUID to poll with `cargo-ai orchestration run get <uuid>` (2s interval) or
 `cargo-ai orchestration batch get <uuid>` (5s).
+
+## Example
+
+> Check whether any of the 30 champions from last year's closed-won deals have changed jobs.
+
+Illustrative output, fictional records:
+
+| professional_email | status | newCompany | newTitle |
+|---|---|---|---|
+| priya.raman@northwind.example | MOVED | Contoso | VP Data Platform |
+| t.ferreira@fabrikam.example | NO_CHANGE | | |
+| hannah.okafor@globex.example | LEFT | | |
+| wei.zhang@initech.example | UNKNOWN | | |
+
+4 MOVED, 2 LEFT, 22 NO_CHANGE, 2 UNKNOWN across 30 contacts; 90 credits (30 × 3).
 
 ## What it costs
 

@@ -60,6 +60,9 @@
         "crm-enrichment",
         "crm-deduplication",
         "call-capture",
+        "standup",
+        "weekly-planning",
+        "ask-cargo",
         "agentic-engagement",
         "company-website"
       ]

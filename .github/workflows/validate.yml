@@ -55,7 +55,7 @@ jobs:
       - name: Check llms.txt is in sync with the skill tree
         run: node scripts/generate-llms-txt.ts --check
 
-      - name: Check catalog.json is in sync with the skill tree
+      - name: Check catalog.json and the README tables are in sync with the skill tree
         run: node scripts/build-catalog.mjs --check
 
       # Prettier covers the example TypeScript and repository files except the

@@ -1,12 +1,15 @@
 ---
 name: enrich-company-data
 description: "Enrich a list of companies with firmographics — industry, size, geography, founding year, and headquarters, powered by Cargo. Triggers: \"enrich these companies\", \"add company size and industry to my list\", \"get firmographics for these domains\", \"enrich a supplied spreadsheet of company domains once\", \"fill in company data\", \"company enrichment\", \"enrich companies\", \"what sector is this business in\", \"how big is this organisation\". Providers: cargo. Skip when: you want funding history — use track-funding-rounds; or tech stack — use find-companies-using-tech."
-version: "1.1.0"
+version: "1.1.1"
 compatibility: Requires @cargo-ai/cli (npm). Sign in or create an account with `cargo-ai login --email` (emailed code, no browser), `--oauth`, or an API token
 homepage: https://github.com/getcargohq/gtm-skills
 metadata:
   author: getcargo
   source: one-off
+  personas:
+    - revops
+    - sales-development
   openclaw:
     requires:
       bins:
@@ -73,6 +76,21 @@ Industry, headcount, geography, founded year, and headquarters per company.
 Operations are asynchronous. `--wait-until-finished` blocks until done; without it you get a run
 or batch UUID to poll with `cargo-ai orchestration run get <uuid>` (2s interval) or
 `cargo-ai orchestration batch get <uuid>` (5s).
+
+## Example
+
+> Add industry, headcount and HQ to the 300 domains in `accounts-export.csv`.
+
+Illustrative output, fictional records:
+
+| domain | industry | headcount | country | foundedYear | headquarters |
+|---|---|---|---|---|---|
+| northwind.example | Logistics software | 240 | US | 2014 | Chicago, IL |
+| fabrikam.example | Industrial IoT | 1,100 | DE | 2009 | Munich |
+| tailspin.example | Travel tech | 85 | UK | 2019 | Manchester |
+| umbrella.example | | | | | |
+
+291 of 300 enriched, 9 left empty rather than guessed; 3 credits (300 × 0.01).
 
 ## What it costs
 

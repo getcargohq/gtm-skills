@@ -502,6 +502,9 @@ async function checkPluginChannel(skillNames: string[]): Promise<void> {
     "twenty-two",
     "twenty-three",
     "twenty-four",
+    "twenty-five",
+    "twenty-six",
+    "twenty-seven",
   ];
   const spelled = WORDS[count];
   for (const [label, manifest] of [
@@ -637,6 +640,65 @@ for (const skill of allSkills) {
   }
 }
 const skills = allSkills.filter((skill) => sourceOf(skill) !== "cookbook");
+
+// `metadata.personas` is who runs the job, and it is a filter on the site, so
+// the vocabulary is closed: a free-text value would become a filter with one
+// skill behind it. Read from the file for the same reason `source` is.
+const PERSONAS = new Set([
+  "sales-development",
+  "account-executive",
+  "revops",
+  "sales-leadership",
+  "marketing",
+  "gtm-engineering",
+]);
+const personasOf = (skill: Skill): string[] => {
+  const head = readFileSync(join(repoRoot, skill.name, "SKILL.md"), "utf8").split(/\n---\n/)[0] ?? "";
+  const block = /^\s+personas:\s*\n((?:\s+- .+\n?)+)/m.exec(head)?.[1] ?? "";
+  return [...block.matchAll(/-\s*([a-z-]+)/g)].map((m) => m[1]);
+};
+
+// `## Example` is what a reader sees before installing: the line they would
+// say, and what comes back. Both kinds carry it. The shape is fixed because
+// build-catalog.mjs lifts it into the catalog and the site renders it as-is.
+// The label is literal so the output can never be mistaken for real records.
+const EXAMPLE_LABEL = "Illustrative output, fictional records:";
+for (const skill of allSkills) {
+  const personas = personasOf(skill);
+  if (personas.length === 0 || personas.length > 3) {
+    fail(skill.name, `metadata.personas needs 1–3 values (got ${personas.length}) — it is who runs this job`);
+  }
+  for (const persona of personas) {
+    if (!PERSONAS.has(persona)) {
+      fail(skill.name, `metadata.personas has \`${persona}\`; allowed: ${[...PERSONAS].join(" | ")}`);
+    }
+  }
+
+  const example = /\n## Example\n([\s\S]*?)(?=\n## |$)/.exec(skill.body)?.[1];
+  if (example === undefined) {
+    fail(skill.name, "missing `## Example` — the prompt a user would type and the output it produces");
+    continue;
+  }
+  // The prompt is read above the label only: an output that shows an email
+  // thread quotes its own lines with `> ` too.
+  const labelAt = example.indexOf(`\n${EXAMPLE_LABEL}\n`);
+  const head = labelAt === -1 ? example : example.slice(0, labelAt);
+  const prompts = head.split("\n").filter((line) => line.startsWith("> "));
+  if (prompts.length !== 1) {
+    fail(skill.name, `\`## Example\` needs exactly one \`> \` prompt line above its output (got ${prompts.length})`);
+  }
+  if (labelAt === -1) {
+    fail(skill.name, `\`## Example\` needs the literal line "${EXAMPLE_LABEL}" before its output`);
+  } else if (!example.slice(labelAt + EXAMPLE_LABEL.length + 2).trim()) {
+    fail(skill.name, "`## Example` has the output label but no output under it");
+  }
+  // An example is shown, never run: an action in it would be counted as a
+  // call by the checks above and priced against nothing. A CLI name inside an
+  // output (a Slack reply saying a check passed) is fine; a shell block is not.
+  if (/```(bash|sh)\b|"integrationSlug"/.test(example)) {
+    fail(skill.name, "`## Example` must not carry a command — it shows the result, the procedure runs it");
+  }
+}
 
 // Two skills claiming the same trigger phrase is the failure mode that degrades
 // routing for the whole set, so it is an error rather than a warning.

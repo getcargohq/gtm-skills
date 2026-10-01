@@ -1,12 +1,16 @@
 ---
 name: call-capture
 description: 'Every call the team records is collected into the cadence layer each morning, scribed into a log entry, and — once a claim repeats — promoted into the context knowledge layer, as one reviewable pull request against your GTM repo. Nine recorders ship; a tenth is one adapter file. Triggers: "our call recordings never make it into the knowledge base", "turn our call transcripts into context", "we relearn the same objection every quarter", "scribe yesterday''s calls into the repo every morning", "replace the GitHub Action that summarizes our meetings", "we record on Granola, not Avoma". Cargo CDK, defineAgent, harnessSlug claudeCode, workspace env var, GitHub, Avoma, Granola, Fathom, Gong, Fireflies, Grain, tl;dv, Modjo, Clari Copilot, cadence, context. Skip when: you want one call summarized right now, which is a read against the recorder''s own API and needs nothing deployed.'
-version: "0.1.0"
+version: "0.1.1"
 compatibility: "Requires @cargo-ai/cli 1.0.89 or later with @cargo-ai/cdk 1.0.67 or later, a Cargo workspace, an authenticated LLM connector, a GTM repository with `context/` and `cadence/` at its root (the shape `cargo-ai cdk init` scaffolds), and an API key for whatever records your calls, stored as a workspace environment variable."
 homepage: https://github.com/getcargohq/gtm-skills/tree/main/call-capture
 metadata:
   author: getcargo
   source: cookbook
+  personas:
+    - sales-leadership
+    - account-executive
+    - revops
   openclaw:
     requires:
       bins:
@@ -59,6 +63,30 @@ Three properties make it safe enough to run unattended:
 - **The repetition bar.** A claim reaches `context/` only on its second independent occurrence. One
   prospect's offhand remark stays in that call's log entry, where it is evidence; it does not become
   something the whole company believes.
+
+## Example
+
+> Every morning, pull yesterday's Gong calls into this repo as log entries and open one pull request with anything worth adding to our context.
+
+Illustrative output, fictional records:
+
+```diff
+[call-capture] scribe 2026-10-06
+Captured 5 · scribed fresh 5 · scribed from backfill 0 · pending 0
+
++ cadence/log/raw/calls/2026-10-05-northwind.md
++ cadence/log/calls/2026-10-05-northwind.md
++   ## Objections
++   - "We already pay for Globex, I can't justify a second tool" (Priya Raman, VP RevOps)
++   ## Actions
++   - [ ] Send the Globex migration one-pager to Priya
++ context/objection/already-have-globex.md
++   Heard on 2 calls: cadence/log/calls/2026-09-22-fabrikam.md,
++   cadence/log/calls/2026-10-05-northwind.md
+```
+
+Five calls became five log entries, and the Globex objection reached `context/` only because a second
+account raised it; a single mention would have stayed in its log entry.
 
 ## Put it in your project
 

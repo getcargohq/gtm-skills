@@ -35,9 +35,27 @@
     "demoWorkspace": null,
     "implementations": []
   },
+  "standup": {
+    "state": "to-be-approved",
+    "chain": 7,
+    "demoWorkspace": null,
+    "implementations": []
+  },
+  "weekly-planning": {
+    "state": "to-be-approved",
+    "chain": 8,
+    "demoWorkspace": null,
+    "implementations": []
+  },
+  "ask-cargo": {
+    "state": "to-be-approved",
+    "chain": 9,
+    "demoWorkspace": null,
+    "implementations": []
+  },
   "company-website": {
     "state": "to-be-approved",
-    "chain": 6,
+    "chain": 10,
     "demoWorkspace": null,
     "implementations": []
   }

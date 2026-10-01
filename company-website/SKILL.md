@@ -6,6 +6,9 @@ compatibility: "Node.js >=22.18, Git, Cargo CLI with @cargo-ai/cdk 1.0.89 or lat
 homepage: https://github.com/getcargohq/gtm-skills/tree/main/company-website
 metadata:
   source: cookbook
+  personas:
+    - marketing
+    - gtm-engineering
 ---
 
 # Company website
@@ -29,6 +32,29 @@ page at its clean URL (the build detects the `<route>/index.html` export) and,
 when selected, on the company's own domain.
 Publication and the domain start disabled. Company facts and design decisions
 belong in the consuming project.
+
+## Example
+
+> Build our company website on Cargo from our brand guide, and serve it on www.fabrikam.example — our DNS is at Cloudflare.
+
+Illustrative output, fictional records:
+
+```text
+PR #12  Company website: home, about, pricing   (reviewed, merged)
+
+release  app:company-website   deployment 3f2a…   promoted
+  build    npm run build → dist/   # Routing: static (pages found as <dir>/index.html)
+  live     https://company-website-1a2b3c4d.app.getcargo.run/pricing  → Pricing page
+
+website.mjs records   (add at Cloudflare, then wait for the TXT to resolve)
+  TXT    _cargo-verify.www   cargo-verify=9c1e…
+  CNAME  _x1.www             _y1.acm-validations.aws
+  CNAME  www                 d123.cloudfront.net
+  apex   fabrikam.example → https://www.fabrikam.example   (provider redirect)
+```
+
+Every page has its own URL and prerendered HTML; `www.fabrikam.example` serves the site once
+its TXT record resolves, and the Cargo hostname stays `noindex`.
 
 ## Put it in your project
 
