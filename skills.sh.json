@@ -58,8 +58,13 @@
         "tam-building",
         "account-scoring",
         "crm-enrichment",
+        "crm-deduplication",
         "call-capture",
+        "standup",
+        "weekly-planning",
+        "ask-cargo",
         "agentic-engagement",
+        "website-building",
         "contact-sourcing"
       ]
     }

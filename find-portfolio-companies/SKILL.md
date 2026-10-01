@@ -1,12 +1,15 @@
 ---
 name: find-portfolio-companies
 description: "Find every portfolio company of an investor or accelerator, then the people inside them, powered by Cargo. Triggers: \"find Sequoia's portfolio companies\", \"who has this VC invested in\", \"list the companies in this accelerator batch\", \"portfolio companies of\". Providers: peopleDataLabs. Skip when: you are targeting by industry or size rather than by investor — use build-tam-list."
-version: "1.0.0"
+version: "1.0.1"
 compatibility: Requires @cargo-ai/cli (npm). Sign in or create an account with `cargo-ai login --email` (emailed code, no browser), `--oauth`, or an API token
 homepage: https://github.com/getcargohq/gtm-skills
 metadata:
   author: getcargo
   source: one-off
+  personas:
+    - account-executive
+    - sales-development
   openclaw:
     requires:
       bins:
@@ -66,16 +69,32 @@ cargo-ai orchestration action execute \
   --action '{"kind":"connector","integrationSlug":"peopleDataLabs","actionSlug":"queryCompanies","config":{}}' \
   --data '{
     "query": "SELECT * FROM company WHERE summary.investors LIKE %Sequoia Capital%",
-    "limit": 200
+    "limit": 20
   }' \
   --wait-until-finished
 ```
 
-The portfolio company list with domains and LinkedIn URLs, ready to enrich.
+The portfolio company list with domains and LinkedIn URLs, ready to enrich. PDL bills every
+returned row, so `limit` is the bill: pull 20, report them, and raise it only once the user approves
+the full portfolio at 3 credits a company.
 
 Operations are asynchronous. `--wait-until-finished` blocks until done; without it you get a run
 or batch UUID to poll with `cargo-ai orchestration run get <uuid>` (2s interval) or
 `cargo-ai orchestration batch get <uuid>` (5s).
+
+## Example
+
+> Pull every portfolio company of Harbor Point Ventures so I can ask the partners for warm intros.
+
+Illustrative output, fictional records:
+
+| name | domain | industry | headcount | linkedinUrl |
+|---|---|---|---|---|
+| Northwind | northwind.example | Logistics software | 240 | linkedin.com/company/northwind-example |
+| Tailspin | tailspin.example | Travel tech | 85 | linkedin.com/company/tailspin-example |
+| Wingtip | | Fintech | 30 | linkedin.com/company/wingtip-example |
+
+20 portfolio companies on the first pull for 60 credits (20 × 3); 2 have no domain on record and are left empty for enrichment, and the full portfolio waits for your go.
 
 ## What it costs
 
@@ -92,7 +111,7 @@ with it.
 
 - Investor membership needs SQL: `summary.investors LIKE %Name%` is not expressible in cargo's filter shape, which is why this uses PDL's SQL query rather than a cheaper structured search.
 - Accelerator batches work the same way — YC and similar are stored in `summary.investors` alongside VCs.
-- One query covers the whole portfolio, so the 3 credits buy the entire list, not 3 per company.
+- PDL bills per returned row: 3 credits a company, so a 140-company portfolio is 420 credits. `limit` caps the bill; an uncapped query is the expensive mistake.
 - One warm investor intro beats fifty cold emails; pull the list, then ask the investor for the intro.
 
 ## Going further

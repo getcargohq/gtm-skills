@@ -1,12 +1,15 @@
 ---
 name: find-linkedin-url
 description: "Resolve a person's LinkedIn profile URL from their name and company, with an identity-validation gate that rejects wrong matches, powered by Cargo. Triggers: \"find the LinkedIn for John Smith at Acme\", \"get LinkedIn URLs for these contacts\", \"what's this person's LinkedIn\", \"add LinkedIn profiles to my list\". Providers: linkedin. Skip when: you already have the LinkedIn URL and want the profile data — use enrich-linkedin-profile."
-version: "1.0.0"
+version: "1.0.1"
 compatibility: Requires @cargo-ai/cli (npm). Sign in or create an account with `cargo-ai login --email` (emailed code, no browser), `--oauth`, or an API token
 homepage: https://github.com/getcargohq/gtm-skills
 metadata:
   author: getcargo
   source: one-off
+  personas:
+    - sales-development
+    - revops
   openclaw:
     requires:
       bins:
@@ -80,6 +83,21 @@ A validated LinkedIn URL per contact, with unresolved rows marked explicitly.
 Operations are asynchronous. `--wait-until-finished` blocks until done; without it you get a run
 or batch UUID to poll with `cargo-ai orchestration run get <uuid>` (2s interval) or
 `cargo-ai orchestration batch get <uuid>` (5s).
+
+## Example
+
+> These 25 customer champions in `champions.csv` have no LinkedIn URL — find the right profile for each.
+
+Illustrative output, fictional records:
+
+| fullName | companyName | linkedinUrl | status |
+|---|---|---|---|
+| Priya Raman | Northwind | linkedin.com/in/priya-raman-example | validated |
+| Tomás Ferreira | Fabrikam | linkedin.com/in/tomas-ferreira-example | validated |
+| Sam Lee | Globex | | rejected: candidate works at Globex Foods |
+| Ana Costa | Initech | | no candidate |
+
+20 of 25 validated, 2 rejected on a company mismatch, 3 with no candidate; 11.75 credits (25 × 0.25 to resolve + 22 × 0.25 to validate).
 
 ## What it costs
 

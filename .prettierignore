@@ -13,6 +13,7 @@ llms.txt
 !account-scoring/**/*.md
 !crm-enrichment/**/*.md
 !contact-sourcing/**/*.md
+!website-building/**/*.md
 !CONTRIBUTING.md
 !.agents/skills/**/*.md
 !.claude/skills/**/*.md

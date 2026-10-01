@@ -1,12 +1,15 @@
 ---
 name: research-account
-description: "Research one company before a meeting and hand back a briefing, powered by Cargo — what it does, what it publicly says is hard right now, and who it names as competition, each line traceable to where it came from. Triggers: \"research this company\", \"brief me on this account\", \"prep me for this meeting\", \"what should I know about them\", \"write me a one-pager on\", \"what are they struggling with\", \"who do they compete with\". Meeting prep, briefing, dossier, talking points. Skip when: you want many companies filtered rather than one understood — use build-tam-list; or you want the people to contact there — use find-stakeholders."
-version: "1.0.0"
+description: "Research one company and its public website before a meeting and hand back a briefing, powered by Cargo — what it does, what it publicly says is hard right now, and who it names as competition, each line traceable to where it came from. Triggers: \"research this company\", \"brief me on this account\", \"prep me for this meeting\", \"what should I know about them\", \"write me a one-pager on\", \"what are they struggling with\", \"who do they compete with\". Meeting prep, briefing, dossier, talking points. Skip when: you want many companies filtered rather than one understood — use build-tam-list; or you want the people to contact there — use find-stakeholders."
+version: "1.0.1"
 compatibility: Requires @cargo-ai/cli (npm). Sign in or create an account with `cargo-ai login --email` (emailed code, no browser), `--oauth`, or an API token
 homepage: https://github.com/getcargohq/gtm-skills
 metadata:
   author: getcargo
   source: one-off
+  personas:
+    - account-executive
+    - sales-development
   openclaw:
     requires:
       bins:
@@ -137,6 +140,29 @@ because the user will repeat it to that company's face.
 
 Close with **three questions to ask them**, drawn from the challenges rather than
 from a template. That is the part a human keeps.
+
+## Example
+
+> I have a discovery call with Fabrikam tomorrow — we sell data-pipeline monitoring. Brief me.
+
+Illustrative output, fictional records:
+
+```text
+Fabrikam (fabrikam.example) — Industrial IoT, ~1,100 staff, Munich    [linkedin]
+What they do: sensor analytics for factory lines, sold to OEMs        [site]
+Priorities, last 12 months:
+  - Moving plant telemetry to a single cloud warehouse                [press, 2026-03]
+  - "Fewer, better dashboards" for plant managers                     [CEO talk, 2026-06]
+Hiring: 6 data engineers, 1 Head of Data Reliability (posted 9 days)  [jobs]
+Likely: pipeline breakage is a live pain — rests on the reliability hire
+Unknown: current monitoring vendor; no public statement
+Ask them:
+  1. What broke the last time a plant's data went missing?
+  2. Who owns the warehouse migration, and when is it done?
+  3. What will the Head of Data Reliability be measured on?
+```
+
+One briefing for 1.175 credits (0.5 + 2 × 0.025 + 0.125 + 0.5): every line sourced, one marked Likely:, one marked unknown.
 
 ## What it costs
 

@@ -55,7 +55,7 @@ jobs:
       - name: Check llms.txt is in sync with the skill tree
         run: node scripts/generate-llms-txt.ts --check
 
-      - name: Check catalog.json is in sync with the skill tree
+      - name: Check catalog.json and the README tables are in sync with the skill tree
         run: node scripts/build-catalog.mjs --check
 
       # Prettier covers the example TypeScript and repository files except the
@@ -99,3 +99,12 @@ jobs:
           path: .cargo-skills
 
       - run: npm run validate:routing
+
+      # Keep nested build dependencies out of catalog/package discovery above.
+      # The public website is its own Next.js package and is excluded from the
+      # resource typecheck, so its actual install and build need a separate gate.
+      - name: Build the website-building starter
+        run: |
+          npm ci --prefix website-building/infra/apps/website
+          npm run check --prefix website-building/infra/apps/website
+          npm run build --prefix website-building/infra/apps/website

@@ -385,6 +385,26 @@ const check = async (name, fn) => {
 };
 
 await check("the selected installation configuration executes", async () => {
+  const planned = await compile({ nodes: resources() });
+  assert.deepEqual(planned.errors, [], "the selected resources must compile");
+  const agent = resources().find(
+    (r) => r.id === "agent:contact_sourcing_qualifier",
+  );
+  if (agent) {
+    assert.equal(
+      agent.spec.languageModelSlug,
+      configuration.qualificationModel,
+    );
+    assert.deepEqual(agent.spec.output.jsonSchema, qualificationSchema);
+    assert.equal(agent.spec.repository, null);
+    assert.equal(agent.spec.maxSteps, 1);
+    assert.equal(
+      resources().find(
+        (r) => r.id === "connector:contact_sourcing_qualification",
+      ).spec.integrationSlug,
+      configuration.qualificationProvider,
+    );
+  }
   const inputs = {
     id: { companyId: "123" },
     url: { linkedinCompanyUrl: company.linkedin_url },
@@ -428,6 +448,7 @@ await check(
       qualificationSchema,
     );
     assert.equal(qualificationAgentSettings.maxSteps, 1);
+    assert.equal(qualificationAgentSettings.repository, null);
     for (const key of ["capabilities", "uses", "mcpClients", "triggers"])
       assert.deepEqual(qualificationAgentSettings[key], []);
     for (const policy of qualificationPolicies.slice(1)) {
@@ -1107,6 +1128,8 @@ await check(
       "Observed",
       "inference",
       "Are these the right people to target?",
+      "Can you confirm this job-title Boolean",
+      "context graph",
     ])
       assert.ok(audit.includes(fragment), fragment);
     for (const fragment of [

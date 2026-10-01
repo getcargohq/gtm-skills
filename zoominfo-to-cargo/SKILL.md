@@ -1,12 +1,15 @@
 ---
 name: zoominfo-to-cargo
 description: "Rebuild a ZoomInfo list on Cargo and measure the coverage you actually lose or gain before the renewal, powered by Cargo. Triggers: \"ZoomInfo alternative\", \"migrate off ZoomInfo\", \"replace ZoomInfo\", \"our ZoomInfo renewal is coming up\", \"ZoomInfo is too expensive\", \"I have a ZoomInfo export\", \"cheaper than ZoomInfo\", \"Lusha alternative\", \"Cognism alternative\". Providers: waterfall. Skip when: you are porting a Clay table rather than a contact list — use clay-to-cargo; or you have no list yet and simply want contacts sourced — use find-b2b-leads."
-version: "1.0.0"
+version: "1.0.1"
 compatibility: Requires @cargo-ai/cli (npm). Sign in or create an account with `cargo-ai login --email` (emailed code, no browser), `--oauth`, or an API token
 homepage: https://github.com/getcargohq/gtm-skills
 metadata:
   author: getcargo
   source: one-off
+  personas:
+    - revops
+    - sales-leadership
   openclaw:
     requires:
       bins:
@@ -112,6 +115,20 @@ credits the second one cost**. Those three decide a renewal. Anything else is a 
 Operations are asynchronous. `--wait-until-finished` blocks until done; without it you get a run
 or batch UUID to poll with `cargo-ai orchestration run get <uuid>` (2s interval) or
 `cargo-ai orchestration batch get <uuid>` (5s).
+
+## Example
+
+> Our ZoomInfo renewal is next month — measure what we'd lose on 20 rows from `zi-export.csv`.
+
+Illustrative output, fictional records:
+
+| Measure | ZoomInfo export | Cargo waterfall |
+|---|---|---|
+| Emails present | 20 / 20 | 17 / 20 |
+| Verified deliverable | 13 / 20 | 15 / 20 |
+| Credits for the sample | seat licence | 43.7 |
+
+Verified coverage 13 of 20 from the incumbent against 15 of 20 from the waterfall, for 43.7 credits (20 × 2 to re-derive + 37 × 0.1 to verify both sides).
 
 ## What it costs
 

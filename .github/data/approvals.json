@@ -1,4 +1,10 @@
 {
+  "crm-deduplication": {
+    "state": "to-be-approved",
+    "chain": 6,
+    "demoWorkspace": null,
+    "implementations": []
+  },
   "crm-enrichment": {
     "state": "to-be-approved",
     "chain": 3,
@@ -29,9 +35,33 @@
     "demoWorkspace": null,
     "implementations": []
   },
+  "standup": {
+    "state": "to-be-approved",
+    "chain": 7,
+    "demoWorkspace": null,
+    "implementations": []
+  },
+  "weekly-planning": {
+    "state": "to-be-approved",
+    "chain": 8,
+    "demoWorkspace": null,
+    "implementations": []
+  },
+  "ask-cargo": {
+    "state": "to-be-approved",
+    "chain": 9,
+    "demoWorkspace": null,
+    "implementations": []
+  },
+  "website-building": {
+    "state": "to-be-approved",
+    "chain": 10,
+    "demoWorkspace": null,
+    "implementations": []
+  },
   "contact-sourcing": {
     "state": "to-be-approved",
-    "chain": 6,
+    "chain": 11,
     "demoWorkspace": null,
     "implementations": []
   }

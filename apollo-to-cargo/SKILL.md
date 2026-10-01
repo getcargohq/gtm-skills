@@ -1,12 +1,15 @@
 ---
 name: apollo-to-cargo
 description: "Rebuild an Apollo list on Cargo and price the two side by side before you move anything, powered by Cargo. Triggers: \"Apollo alternative\", \"migrate off Apollo\", \"move my Apollo list to Cargo\", \"replace Apollo.io\", \"I have an Apollo export\", \"Apollo credits ran out\", \"is Cargo cheaper than Apollo\", \"Apollo coverage is bad in my niche\". Providers: apolloio, waterfall. Skip when: you are porting a Clay table rather than an Apollo list — use clay-to-cargo; or you simply want contacts sourced and have nothing to migrate — use find-b2b-leads."
-version: "1.0.0"
+version: "1.0.1"
 compatibility: Requires @cargo-ai/cli (npm). Sign in or create an account with `cargo-ai login --email` (emailed code, no browser), `--oauth`, or an API token
 homepage: https://github.com/getcargohq/gtm-skills
 metadata:
   author: getcargo
   source: one-off
+  personas:
+    - revops
+    - gtm-engineering
   openclaw:
     requires:
       bins:
@@ -123,6 +126,19 @@ cost is the only number that compares them honestly.
 Operations are asynchronous. `--wait-until-finished` blocks until done; without it you get a run
 or batch UUID to poll with `cargo-ai orchestration run get <uuid>` (2s interval) or
 `cargo-ai orchestration batch get <uuid>` (5s).
+
+## Example
+
+> Before our Apollo renewal, compare it with Cargo on 20 rows from `apollo-q3-export.csv`.
+
+Illustrative output, fictional records:
+
+| Source | Emails found | Verified | Credits | Credits per verified |
+|---|---|---|---|---|
+| Apollo, via Cargo | 15 / 20 | 11 | 21.5 | 1.95 |
+| Cargo waterfall | 18 / 20 | 17 | 41.8 | 2.46 |
+
+63.3 credits for the whole comparison (20 × 1 + 15 × 0.1 on Apollo, 20 × 2 + 18 × 0.1 on the waterfall): the waterfall verified 6 more addresses at a higher cost per address, and the call is the user's.
 
 ## What it costs
 

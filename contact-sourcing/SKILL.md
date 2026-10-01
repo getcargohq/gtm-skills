@@ -2,11 +2,15 @@
 name: contact-sourcing
 description: 'Build a reusable on-demand tool that sources stakeholders at supplied accounts, qualifies their responsibilities, and returns all or up to N ranked by contact fit, with optional enrichment. Triggers: "build a contact sourcing tool", "set up stakeholder sourcing", "rank stakeholders by relevance", "install contact sourcing", "return an enriched shortlist per account". LinkedIn, Sales Navigator, OpenAI, Cargo CDK. Skip when: the user wants people at named accounts once today; use find-stakeholders. Existing profiles needing data use enrich-linkedin-profile; CRM field maintenance uses crm-enrichment.'
 version: "0.1.0"
-compatibility: "Requires the cargo-project skill and a Cargo CDK project. Checked with @cargo-ai/cdk 1.0.68 and zod 4.4.3 from the repository lockfile. No CRM, storage model, or play is required. Adapt in the consumer project before deployment."
+compatibility: "Requires the cargo-project skill and a Cargo CDK project. Checked with @cargo-ai/cdk 1.0.89 and zod 4.4.3 from the repository lockfile. No CRM, storage model, or play is required. Adapt in the consumer project before deployment."
 homepage: https://github.com/getcargohq/gtm-skills/tree/main/contact-sourcing
 metadata:
   author: getcargo
   source: cookbook
+  personas:
+    - gtm-engineering
+    - revops
+    - sales-development
   openclaw:
     requires:
       bins:
@@ -59,6 +63,20 @@ The installer builds only the chosen input and output paths. Seller research
 happens during setup. Each run uses the saved, approved criteria; the tool is a
 predictable workflow containing one structured qualification call per usable
 profile, with no autonomous research agent.
+
+## Example
+
+> Build a tool that finds up to three people responsible for capital-project schedules at each account, starting with bridgeworks.example. I only need their profiles and fit scores.
+
+Illustrative output, fictional records:
+
+| Rank | Person      | Current title            | Fit / 10 | Supporting evidence                                       |
+| ---- | ----------- | ------------------------ | -------- | --------------------------------------------------------- |
+| 1    | Morgan Vale | Project Controls Manager | 9        | Owns schedule-risk reviews across capital projects        |
+| 2    | Alex Rowan  | Senior Planner           | 8        | Maintains construction schedules and evaluates delay risk |
+
+Two qualified people returned from 12 candidates; the maximum is three. Profile
+evidence accompanies each result. No email or phone lookup was requested.
 
 ## Put it in your project
 

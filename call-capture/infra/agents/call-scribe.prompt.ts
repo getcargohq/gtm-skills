@@ -36,7 +36,15 @@ Run the collector, from the repository root:
 
 It pulls every call in a rolling window whose transcript the provider has
 finished processing and writes one raw file per call into
-cadence/log/raw/calls/. Its credential is already in your environment.
+cadence/log/raw/calls/. Which recorder it reads is fixed in the repository you
+just cloned (collect/config.ts), and its credential is already in your
+environment, inherited from the workspace. You configure neither.
+
+If it stops because CALL_RECORDER_API_KEY is missing or the credential is
+rejected, that is a configuration error in the workspace, not something to work
+around: report exactly what it printed and stop. Do not reach for --recorder to
+make a failing run proceed — if this repository records on two recorders, the
+commands above say so explicitly.
 
 Do not fetch calls yourself, and do not edit the script to change what it
 collects. It is deterministic on purpose: a fetch loop an agent re-derives each
@@ -110,7 +118,7 @@ change the strategy or the deployed engine.
 
 ## 4. Open the pull request
 
-One branch, one pull request, titled "[cadence] scribe <today>". Do not merge
+One branch, one pull request, titled "[call-capture] scribe <today>". Do not merge
 it, and do not push to the default branch.
 
 The body states four numbers, because they are what a reviewer checks in ten

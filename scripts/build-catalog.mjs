@@ -7,8 +7,10 @@
 //   https://raw.githubusercontent.com/getcargohq/gtm-skills/main/catalog.json
 // and never clone.
 //
-//   node scripts/build-catalog.mjs           # write catalog.json
-//   node scripts/build-catalog.mjs --check   # CI: fail if stale
+// It also writes the README's skill tables, between the catalog markers.
+//
+//   node scripts/build-catalog.mjs           # write catalog.json + README tables
+//   node scripts/build-catalog.mjs --check   # CI: fail if either is stale
 import {
   readFileSync,
   writeFileSync,
@@ -33,7 +35,7 @@ const groupOf = (name) =>
 // What a cookbook declares, read from the `define*` calls themselves rather
 // than from its directory names. Every cookbook keeps its resources in `infra/`
 // now, so counting top-level folders would answer "infra" for all of them —
-// and a cookbook is free to put everything in one `infra/index.ts` anyway.
+// and a cookbook is free to lay `infra/` out however it likes.
 const RESOURCE_BY_BUILDER = {
   defineAgent: "agents",
   defineAlert: "alerts",
@@ -73,6 +75,54 @@ const resourcesOf = (dir) => {
     }
   }
   return [...declared].sort();
+};
+
+// What a cookbook connects to, read from its `defineConnector` calls. `cargo`
+// is left out: it is the platform the cookbook runs on, not something a
+// reader has to go and authenticate.
+const integrationsOf = (dir) => {
+  const found = new Set();
+  for (const file of tsFilesUnder(dir)) {
+    const source = readFileSync(file, "utf8");
+    for (const m of source.matchAll(/^\s*integration:\s*"([^"]+)"/gm)) {
+      if (m[1] !== "cargo") found.add(m[1]);
+    }
+  }
+  return [...found].sort();
+};
+
+// What a one-off calls, read from its commands rather than from the
+// `Providers:` clause, which is routing prose. These pairs are the ones
+// validate.ts checks against the playbooks. `cargo` is left out here too.
+const calledOf = (body) => [
+  ...new Set(
+    [...body.matchAll(/"integrationSlug":"([A-Za-z0-9]+)"/g)]
+      .map((m) => m[1])
+      .filter((slug) => slug !== "cargo"),
+  ),
+];
+
+// `## Example`: one `> ` line the user says, then, after the literal
+// `Illustrative output` label, the markdown it produces. validate.ts holds
+// every skill to that shape, so a skill without one reads as `null` here only
+// while it is being written.
+const EXAMPLE_LABEL = /^Illustrative output, fictional records:\s*$/m;
+const exampleOf = (text) => {
+  if (text === null) return null;
+  const label = EXAMPLE_LABEL.exec(text);
+  if (!label) return null;
+  // Above the label only: an output quoting an email thread uses `> ` too.
+  const prompt = text
+    .slice(0, label.index)
+    .split("\n")
+    .filter((l) => l.startsWith("> "))
+    .map((l) => l.slice(2).trim())
+    .join(" ");
+  if (!prompt) return null;
+  return {
+    prompt,
+    output: text.slice(label.index + label[0].length).trim(),
+  };
 };
 
 const section = (body, heading) => {
@@ -115,7 +165,13 @@ for (const name of readdirSync(root).sort()) {
   const fm = parseYaml(text.slice(4, end));
   const body = text.slice(end + 4);
   const description = fm.description ?? "";
-  const job = description.split(/\.\s+Triggers:/)[0] + ".";
+  // The job is display copy. "powered by Cargo" is there for routing (the
+  // agent reading the description), and in a table of Cargo skills it is noise.
+  const job =
+    description
+      .split(/\.\s+Triggers:/)[0]
+      .replace(/,? powered by Cargo(?=[\s.,—]|$)/, "")
+      .trim() + ".";
   const isCookbook = fm.metadata?.source === "cookbook";
   const rec = {
     name,
@@ -136,6 +192,11 @@ for (const name of readdirSync(root).sort()) {
     partOf: bullets(section(body, "Part of"))
       .map((b) => b.replace(/`/g, "").split(/[:\s]/)[0])
       .filter(Boolean),
+    personas: fm.metadata?.personas ?? [],
+    integrations: isCookbook
+      ? integrationsOf(join(dir, "infra"))
+      : calledOf(body),
+    example: exampleOf(section(body, "Example")),
   };
   if (isCookbook) {
     const a = approvals[name] ?? {};
@@ -154,22 +215,92 @@ for (const name of readdirSync(root).sort()) {
       cost: section(body, "What it costs"),
       composesInto: section(body, "Composes into"),
     });
+  } else {
+    Object.assign(rec, {
+      cost: section(body, "What it costs"),
+      worthKnowing: bullets(section(body, "Worth knowing")),
+    });
   }
   skills.push(rec);
 }
 
 const catalog = { source: "getcargohq/gtm-skills", skills };
 const rendered = JSON.stringify(catalog, null, 2) + "\n";
+
+// The README's skill tables are the catalog again, for a person: by job, then
+// by role. Generated between markers so a job line, a persona or an example
+// prompt is written once, in SKILL.md, and a new skill cannot be missing from
+// the page everybody lands on.
+const PERSONA_LABELS = {
+  "sales-development": "Sales development",
+  "account-executive": "Account executives",
+  revops: "RevOps",
+  "sales-leadership": "Sales leadership",
+  marketing: "Marketing",
+  "gtm-engineering": "GTM engineering",
+};
+const cell = (text) => text.replace(/\|/g, "\\|").replace(/\n/g, " ");
+const link = (s) => `[\`${s.name}\`](${s.name}/SKILL.md)`;
+const readmeTables = () => {
+  const lines = [];
+  for (const g of groupings) {
+    const members = g.skills
+      .map((n) => skills.find((s) => s.name === n))
+      .filter(Boolean);
+    if (members.length === 0) continue;
+    lines.push(`### ${g.title}`, "", g.description, "");
+    lines.push("| Skill | Does | Try saying |", "| --- | --- | --- |");
+    for (const s of members) {
+      const say = s.example ? `“${cell(s.example.prompt)}”` : "";
+      lines.push(`| ${link(s)} | ${cell(s.job)} | ${say} |`);
+    }
+    lines.push("");
+  }
+  lines.push("### By role", "");
+  for (const [persona, label] of Object.entries(PERSONA_LABELS)) {
+    // Split on the primary persona, so each role reads "yours" before "also
+    // useful" instead of one undifferentiated list.
+    const members = skills.filter((s) => s.personas.includes(persona));
+    const primary = members.filter((s) => s.personas[0] === persona);
+    const also = members.filter((s) => s.personas[0] !== persona);
+    if (members.length === 0) continue;
+    const parts = [];
+    if (primary.length > 0) parts.push(primary.map(link).join(", "));
+    if (also.length > 0) parts.push(`also ${also.map(link).join(", ")}`);
+    lines.push(`- **${label}:** ${parts.join("; ")}`);
+  }
+  return lines.join("\n");
+};
+const START = "<!-- catalog:start — generated by scripts/build-catalog.mjs -->";
+const END = "<!-- catalog:end -->";
+const readmePath = join(root, "README.md");
+const readme = readFileSync(readmePath, "utf8");
+const from = readme.indexOf(START);
+const to = readme.indexOf(END);
+if (from === -1 || to === -1) {
+  console.error(`README.md needs the ${START} … ${END} markers`);
+  process.exit(1);
+}
+const renderedReadme =
+  readme.slice(0, from + START.length) +
+  "\n\n" +
+  readmeTables() +
+  "\n\n" +
+  readme.slice(to);
+
 if (process.argv.includes("--check")) {
   const current = existsSync(out) ? readFileSync(out, "utf8") : "";
-  if (current !== rendered) {
+  if (current !== rendered || readme !== renderedReadme) {
     console.error(
-      "catalog.json is stale. Regenerate with: node scripts/build-catalog.mjs",
+      "catalog.json or the README tables are stale. Regenerate with: node scripts/build-catalog.mjs",
     );
     process.exit(1);
   }
-  console.log(`ok: catalog.json matches (${skills.length} skills)`);
+  console.log(
+    `ok: catalog.json and README tables match (${skills.length} skills)`,
+  );
 } else {
   writeFileSync(out, rendered);
-  console.log(`wrote catalog.json (${skills.length} skills)`);
+  writeFileSync(readmePath, renderedReadme);
+  console.log(`wrote catalog.json and README tables (${skills.length} skills)`);
 }

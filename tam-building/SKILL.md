@@ -1,12 +1,16 @@
 ---
 name: tam-building
 description: 'Stand up your account universe as a deployed pipeline: an AI Ark company search shaped by your ICP, sized for free before it bills, then tiered A / B / C / disqualified by an agent that reads your rubric from the workspace context and web-searches the evidence the sourced row does not carry. Triggers: "our TAM is a stale CSV", "build our account universe", "source companies matching our ICP and rank them", "keep our market list current", "which of these companies are actually worth a rep", "tier the market we just sourced". Cargo CDK, aiArk, countCompanies, fetchCompanies, agent tiering, workspace context, webSearch. Skip when: you want the list once rather than a pipeline that keeps producing it, which is build-tam-list; or the accounts already exist in a CRM or an accounts model and only need judging, which is account-scoring.'
-version: "0.3.0"
-compatibility: "Requires the cargo-cdk skill, a Cargo CDK project, and @cargo-ai/cdk ^1.0.51. AI Ark and the LLM both run on adopted connections, so this example needs no API key and no LinkedIn seat, user, or cookie. The repository example does not deploy or source anything until an agent adapts it in the consumer project."
+version: "0.3.1"
+compatibility: "Requires the cargo-cdk skill, a Cargo CDK project, @cargo-ai/cdk 1.0.58 or later, and authenticated AI Ark and LLM connectors — no API key and no LinkedIn seat, user, or cookie needed. The repository example does not deploy or source anything until an agent adapts it in the consumer project."
 homepage: https://github.com/getcargohq/gtm-skills/tree/main/tam-building
 metadata:
   author: getcargo
   source: cookbook
+  personas:
+    - revops
+    - gtm-engineering
+    - sales-leadership
   openclaw:
     requires:
       bins:
@@ -60,6 +64,22 @@ who wrote the prompt can change.
 up to `limit` and pay for it. And a custom-column write that carries the `custom__` read-side prefix
 reports "Record upserted" and drops the value, so the play runs perfectly over a book with no tiers
 in it.
+
+## Example
+
+> Source every US B2B software company with 100 to 1,000 employees from AI Ark and tier each one against the rubric in our context repo.
+
+Illustrative output, fictional records:
+
+| Company (domain)              | tier         | tier_rationale                                                                                                          | tier_evidence_url                         |
+| ----------------------------- | ------------ | ----------------------------------------------------------------------------------------------------------------------- | ----------------------------------------- |
+| Northwind (northwind.example) | A            | Fits the firmographics and has an open GTM Engineer role. Rubric line: evidence ranked 1.                               | https://northwind.example/careers/gtm-eng |
+| Globex (globex.example)       | B            | Fits the firmographics; its public stack lists a warehouse and a reverse-ETL tool, which the rubric ranks 3.            | https://globex.example/blog/data-stack    |
+| Initech (initech.example)     | C            | Fits size, industry and region, but no visible technical champion or automation practice. The sourced facts settled it. |                                           |
+| Tailspin (tailspin.example)   | disqualified | The sourced domain redirects to its acquirer, so the record is wrong about the company.                                 |                                           |
+
+Every row also gets a `tiered_at` stamp and lands in `tam-tier-a`, `tam-tier-b`, `tam-tier-c` or
+`tam-disqualified`; the run report closes with the tier distribution and one recommended next step.
 
 ## Guide the operator through every phase
 
@@ -255,7 +275,7 @@ per-record basis. Record the CLI version, the lookup time, and the unit price. T
 less.** Start well under the counted pool, watch the rows land and the tiers come back sane, then
 widen.
 
-**Tiering is one agent run per newly sourced company**, billed as LLM tokens through the adopted
+**Tiering is one agent run per newly sourced company**, billed as LLM tokens through the bound
 connector plus whatever web search steps it takes. `maxSteps` is the per-company ceiling and the
 rubric's one-question-one-search rule is what keeps a normal row far below it. Because the play runs
 on `changeKinds: ["added"]`, steady state is only the companies a sourcing run newly added, plus

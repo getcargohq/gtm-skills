@@ -7,6 +7,9 @@ homepage: https://github.com/getcargohq/gtm-skills
 metadata:
   author: getcargo
   source: one-off
+  personas:
+    - account-executive
+    - sales-development
   openclaw:
     requires:
       bins:
@@ -80,6 +83,21 @@ Every matching stakeholder at the account, with title, seniority, and department
 Operations are asynchronous. `--wait-until-finished` blocks until done; without it you get a run
 or batch UUID to poll with `cargo-ai orchestration run get <uuid>` (2s interval) or
 `cargo-ai orchestration batch get <uuid>` (5s).
+
+## Example
+
+> Who's on the buying committee at northwind.example — VP and above in Sales, Marketing, Ops and Finance?
+
+Illustrative output, fictional records:
+
+| fullName | title | seniority | department |
+|---|---|---|---|
+| Priya Raman | Chief Revenue Officer | CXO | Sales |
+| Omar Haddad | VP Marketing | VP | Marketing |
+| Grace Lin | Director of Revenue Operations | Director | Operations |
+| Felix Brandt | VP Finance | VP | Finance |
+
+14 stakeholders returned for 0.7 credits (14 × 0.05); 3 are already in the CRM, so only the other 11 go on to enrichment.
 
 ## What it costs
 

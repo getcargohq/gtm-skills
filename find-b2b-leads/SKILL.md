@@ -1,12 +1,14 @@
 ---
 name: find-b2b-leads
 description: "Find B2B leads by job title, company, and keyword, and return them as a structured list, powered by Cargo. Triggers: \"find 50 VPs of Sales at fintech companies\", \"build me a list of leads\", \"who are the heads of engineering at Series B startups\", \"get me prospects matching this profile\", \"source leads for my outbound\", \"build a b2b lead list\", \"lead sourcing\". Providers: salesNavigator. Skip when: you need companies rather than people — use build-tam-list; or you already have the people and need contact details — use find-work-email."
-version: "1.1.0"
+version: "1.1.1"
 compatibility: Requires @cargo-ai/cli (npm). Sign in or create an account with `cargo-ai login --email` (emailed code, no browser), `--oauth`, or an API token
 homepage: https://github.com/getcargohq/gtm-skills
 metadata:
   author: getcargo
   source: one-off
+  personas:
+    - sales-development
   openclaw:
     requires:
       bins:
@@ -78,6 +80,20 @@ A list of leads with name, title, company, and LinkedIn URL.
 Operations are asynchronous. `--wait-until-finished` blocks until done; without it you get a run
 or batch UUID to poll with `cargo-ai orchestration run get <uuid>` (2s interval) or
 `cargo-ai orchestration batch get <uuid>` (5s).
+
+## Example
+
+> Find 25 VPs of Sales at US software companies and give me their LinkedIn URLs.
+
+Illustrative output, fictional records:
+
+| fullName | title | company | location | linkedinUrl |
+|---|---|---|---|---|
+| Priya Raman | VP of Sales | Northwind | Austin, TX | linkedin.com/in/priya-raman-example |
+| Marcus Hale | VP Sales, North America | Contoso | Denver, CO | linkedin.com/in/marcus-hale-example |
+| Dana Whitfield | Vice President of Sales | Tailspin | Boston, MA | linkedin.com/in/dana-whitfield-example |
+
+One page of 25 leads for 0.5 credits (25 × 0.02); no emails yet — pipe the URLs into `enrich-linkedin-profile` for those.
 
 ## What it costs
 
