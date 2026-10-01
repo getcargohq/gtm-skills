@@ -1510,8 +1510,8 @@
       ],
       "integrations": [],
       "example": {
-        "prompt": "Build our company website on Cargo from our brand guide, and serve it on www.fabrikam.example — our DNS is hosted elsewhere.",
-        "output": "```text\nPR #12  Website: home, about, pricing from the brand guide   (reviewed, merged)\n\napp:website      deployed   Routing: static (pages found as <route>/index.html)\n  live           https://website-1a2b3c4d.app.getcargo.run/pricing/   → Pricing | Fabrikam\n  hostname       www.fabrikam.example   pending  (_cargo-verify not resolved yet)\n\nAdd at the DNS provider (DNS is hosted there, so infra/domains/website.ts was deleted):\n  TXT    _cargo-verify.www   cargo-verify=9c1e…\n  CNAME  _x1.www             _y1.acm-validations.aws\n  CNAME  www                 d123.cloudfront.net\n  apex   fabrikam.example  → https://www.fabrikam.example   (provider redirect)\n```\n\nOnce the TXT resolves, `www.fabrikam.example` serves the reviewed pages with their own canonical\nURLs, and the next change to the site is another pull request."
+        "prompt": "Build our company website on Cargo from our brand guide and serve it on www.fabrikam.example. Our DNS is hosted elsewhere.",
+        "output": "```text\nPR #12  Website: home, about and pricing from the brand guide        merged after review\n\napp:website   deployed   Routing: static\n  https://website-1a2b3c4d.app.getcargo.run/pricing/    Pricing | Fabrikam\n  www.fabrikam.example                                  pending: _cargo-verify not resolved\n\nDNS is hosted elsewhere, so infra/domains/website.ts was deleted. Add at the provider:\n  TXT    _cargo-verify.www   cargo-verify=9c1e4a…\n  CNAME  _3f2a91.www         _7b0c44.acm-validations.aws\n  CNAME  www                 d1x2y3z4.cloudfront.net\n  apex   fabrikam.example  → https://www.fabrikam.example   (provider redirect)\n```\n\nOnce the TXT resolves, `www.fabrikam.example` serves the reviewed pages with their own canonical\nURLs, and the next change to the site is another pull request."
       },
       "state": "to-be-approved",
       "chain": 10,
@@ -1524,63 +1524,63 @@
       "canChange": [
         {
           "id": "external-dns",
-          "when": "The domain's DNS is hosted at another provider (most existing company domains)",
-          "how": "Delete `infra/domains/website.ts`; keep `domains` on the app; add the records at the provider after the first deploy ([domain](references/domain.md))",
-          "cost": "Three records and a redirect to maintain by hand at the provider; Cargo cannot fix them for you."
+          "when": "The domain's DNS is at another provider, as for most existing company domains",
+          "how": "Delete `infra/domains/website.ts`, keep `domains` on the app, add the records at the provider after the first deploy ([domain](references/domain.md))",
+          "cost": "Three records and an apex redirect kept by hand; Cargo cannot correct them."
         },
         {
           "id": "register-domain",
-          "when": "The company wants a new, dedicated website domain bought through Cargo",
-          "how": "Drop `adopt: true` in `infra/domains/website.ts",
-          "cost": "Workspace credits, not refundable. The plan's `+ create domain:…` line is the purchase, approved explicitly. Update the contract's adopt check and record it."
+          "when": "The company wants a new domain for the website, bought through Cargo",
+          "how": "Drop `adopt: true` in `infra/domains/website.ts` and the contract's adopt assertion",
+          "cost": "Workspace credits, not refundable; the plan's `+ create domain:…` line is the purchase."
         },
         {
           "id": "source-recreation",
           "when": "An authorized repository or live site already exists",
-          "how": "Port its pages and assets into the app, keeping attribution ([build and review](references/build-and-review.md))",
-          "cost": "Dependency migration, inherited defects to separate from new ones, and binary assets to adapt for a text-only upload."
+          "how": "Port its pages and assets into the app, keeping attribution ([build and review](references/build-and-review.md#recreate-an-existing-site))",
+          "cost": "Dependency migration, inherited defects to separate from new ones, binary assets to adapt for a text upload."
         },
         {
           "id": "redesign",
-          "when": "The current site no longer fits the company",
-          "how": "Approve new tokens, structure and copy instead of matching the old pixels",
-          "cost": "More design decisions, and a new baseline for every comparison."
+          "when": "The current site does not fit the company it describes",
+          "how": "Approve new tokens, structure and copy instead of matching the old pages",
+          "cost": "More design decisions, and no old page to compare against."
         },
         {
           "id": "more-pages",
           "when": "The brief needs pricing, landing or legal pages",
-          "how": "Add `app/<route>/page.tsx` with `pageMetadata`, and list the route in `app/sitemap.ts",
-          "cost": "Each page is metadata and sitemap to keep current."
+          "how": "app/<route>/page.tsx` with `pageMetadata`, plus the route in `app/sitemap.ts",
+          "cost": "Metadata and sitemap to keep current per page."
         },
         {
           "id": "working-form",
-          "when": "The brief needs a demo or contact form that delivers",
-          "how": "Point the form at an approved destination and test a real submission",
-          "cost": "A backend outside this static app, and its own consent and cost. A form with no destination is reported unfinished."
+          "when": "A demo or contact form has to deliver",
+          "how": "Post it to an approved destination and test a real submission",
+          "cost": "A backend outside this static app, with its own consent and cost."
         }
       ],
       "shouldNotChange": [
-        "**Never adopt a domain Cargo mailboxes send from.** (`infra/domains/website.ts`) `dnsRecords` replaces the whole zone, so the MX, SPF, DKIM and DMARC records those mailboxes need disappear and mail stops. Run `cargo-ai mailboxManagement mailbox list` before any adopt; give the website a dedicated domain, or leave the DNS where it is and delete the domain file.",
-        "**The site is served on `www`, never the apex.** (`infra/apps/website.ts`) The apex cannot CNAME to the app; it forwards to `https://www.<domain>`. The canonical URL in `site.json` is `https://www.<domain>/`, so search engines index one origin, not two.",
-        "**`dnsRecords` includes `website.domainRecords`.** (`infra/domains/website.ts`) Without it the published zone has no `_cargo-verify` TXT and no `www` CNAME, and the hostname never verifies.",
-        "**The app stays a static export.** (`infra/apps/website/next.config.ts`) `output: \"export\"` and `trailingSlash: true`. Without the trailing slash, `/about` serves the home page. Route handlers, middleware and image optimization do not survive the export.",
-        "**Only reviewed content publishes.** (`infra/apps/website/site.json`) `status` stays `draft` (noindex, robots disallow) until the operator approved the pages; no invented customers, numbers, prices or testimonials.",
-        "**The app is a public bundle.** (`infra/apps/website/`) No Cargo token, login, private context or secret in it: app variables are compiled into files anyone can read.",
-        "**The app slug and the domain stay stable.** Renaming `website` or the domain is a destroy plus a new resource, and removing a hostname leaves it attached until someone detaches it in Cargo.",
+        "**Never adopt a domain Cargo mailboxes send from.** (`infra/domains/website.ts`) `dnsRecords` replaces the whole zone, so the MX, SPF, DKIM and DMARC records disappear and mail stops. Give the website a dedicated domain, or leave the DNS where it is and delete the file.",
+        "**The site is served on `www`, never the apex.** (`infra/apps/website.ts`) The apex cannot CNAME to an app; it forwards to `https://www.<domain>`, and `site.json` `canonicalUrl` is `https://www.<domain>/`, so search engines index one origin.",
+        "**`dnsRecords` includes `website.domainRecords`.** (`infra/domains/website.ts`) Without it the zone has no `_cargo-verify` TXT and no `www` CNAME, and the hostname never verifies.",
+        "**The app stays a static export.** (`infra/apps/website/next.config.ts`) `output: \"export\"` and `trailingSlash: true`. Without the trailing slash, `/about` serves the home page.",
+        "**Only reviewed content publishes.** (`infra/apps/website/site.json`) `status` stays `draft` (noindex, robots disallow) until the operator approved the pages. No invented customers, numbers, prices or testimonials.",
+        "**The app is a public bundle.** (`infra/apps/website/`) No Cargo token, login, private context or `.env` in it: everything in the build is readable by anyone, so check `dist/`, not just git.",
+        "**The app slug and the domain stay stable.** Renaming either is a destroy plus a new resource.",
         "**No credentials, deploy commands, or customer data in this repository.**"
       ],
       "doneWhen": [
-        "`node --import tsx evals/contract.mjs` passes: one app in the `website-building-apps` folder, a static export with `trailingSlash`, a `www` hostname, and either no domain or an adopted domain whose `dnsRecords` is the app's `domainRecords` and whose apex forwards to `www`",
-        "`npm ci && npm run build` in the app writes `dist/index.html`, `dist/about/index.html`, `dist/robots.txt` and `dist/sitemap.xml`, each page with its own title and description",
-        "the brief, the design guide and the [QA checklist](references/qa-checklist.md) results are recorded, and the operator reviewed the local preview",
-        "the mailbox check was run and is recorded, or the domain file was deleted",
-        "`cargo-ai cdk plan` shows the folder, the app and the domain (or no domain), adopt not create, and the operator approved it",
-        "the deploy log says `Routing: static`, and the Cargo URL serves `/about/` directly",
-        "`https://www.<domain>/` serves the site with a valid certificate once `_cargo-verify` resolves, the apex redirects to it, and pages carry it as their canonical URL; a pending TXT is reported as pending",
-        "`site.json` is `ready` only for content the operator approved, and the change reached the default branch through a reviewed pull request"
+        "`node --import tsx evals/contract.mjs` passes: one app in the `website-building-apps` folder with a `www` hostname and a static-export build, and either no domain or an adopted domain whose `dnsRecords` holds the app's `domainRecords` and whose apex forwards to `www`",
+        "`npm ci && npm run check && npm run build` in the app writes `dist/index.html`, `dist/about/index.html`, `dist/robots.txt` and `dist/sitemap.xml`, each page with its own title, description and canonical in the initial HTML",
+        "the operator reviewed the local preview: every changed page at 1440 and 390 pixels wide with no horizontal scroll, reachable by keyboard with visible focus, readable in both themes, with no console errors or failed requests",
+        "the mailbox check is recorded, or the domain file was deleted",
+        "`cargo-ai cdk plan` shows the folder, the app and the domain (or no domain) as an adopt, not a create, and the operator approved it",
+        "the deploy log says `Routing: static`, and the Cargo URL serves `/about` and `/about/` directly",
+        "`https://www.<domain>/` serves the site in an anonymous session with a valid certificate, the apex redirects to it, and pages carry it as their canonical URL; a pending TXT is reported as pending",
+        "`site.json` is `ready` only for approved content, and a content change reaches the site through one reviewed pull request whose plan shows the same app with a new content hash"
       ],
-      "cost": "Hosting a static app is a deployment per merge; read the workspace's current hosting usage before\nthe first deploy, and say what you found. Adopting a domain the workspace already owns adds no\ncharge. Registering one (`register-domain`) charges workspace credits once and is **not\nrefundable**: read the current price in the Cargo UI and the credit balance before proposing it,\nand quote both with the plan. A working form adds whatever its backend costs. Your coding agent's\nown usage is the rest; nothing in the workspace runs on a schedule.",
-      "composesInto": "`call-capture` (the customer language it collects is what the pages should say), `account-scoring`\nand `tam-building` (the ICP they write down is who the site speaks to), `agentic-engagement` (the\nsending domain it adopts is never this one; the website keeps its own)."
+      "cost": "Each merge is one deployment of a static app; read the workspace's current hosting usage before\nthe first deploy, and say what you found. Adopting a domain the workspace owns adds no charge.\nRegistering one (`register-domain`) charges workspace credits once and is **not refundable**: read\nthe current price and the credit balance before proposing it, and quote both with the plan. A\nworking form adds whatever its backend costs. Nothing in the workspace runs on a schedule; your\ncoding agent's usage is the rest.",
+      "composesInto": "`call-capture` (the customer language it collects is what the pages should say), `account-scoring`\nand `tam-building` (the ICP they write down is who the site speaks to), `agentic-engagement` (its\nsending domain is never the website's)."
     },
     {
       "name": "weekly-planning",

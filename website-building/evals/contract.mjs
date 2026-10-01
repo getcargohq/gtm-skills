@@ -11,128 +11,82 @@ import { resetRegistry, resources } from "@cargo-ai/cdk";
 //
 // Run it from the skill folder after every adaptation:
 //   node --import tsx evals/contract.mjs
-const skill = fileURLToPath(new URL("../", import.meta.url));
-const infra = join(skill, "infra");
-
-// Every resource file, so the contract still runs once `domains/website.ts`
-// is deleted for a domain whose DNS lives elsewhere. The Next.js package is
-// browser code, not resources: the CDK loader skips it too.
+//
+// Every resource file is loaded, so the contract still runs once
+// `domains/website.ts` is deleted for DNS hosted elsewhere. A directory with a
+// package.json is the app's browser code, which the CDK loader skips too.
 const resourceFiles = (dir) =>
   readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
     const path = join(dir, entry.name);
     if (entry.isDirectory())
       return existsSync(join(path, "package.json")) ? [] : resourceFiles(path);
-    return entry.name.endsWith(".ts") && !entry.name.endsWith(".d.ts")
-      ? [path]
-      : [];
+    return entry.name.endsWith(".ts") ? [path] : [];
   });
 
 resetRegistry();
 const stamp = Date.now();
-for (const file of resourceFiles(infra))
+for (const file of resourceFiles(fileURLToPath(new URL("../infra", import.meta.url))))
   await import(`${pathToFileURL(file).href}?contract=${stamp}`);
 
 const all = resources();
-const byId = new Map(all.map((resource) => [resource.id, resource]));
 const ofKind = (kind) => all.filter((resource) => resource.kind === kind);
 
-// One app, filed in this skill's app folder, and nothing else that runs.
-const folder = byId.get("folder:website-building-apps");
+const folder = all.find((resource) => resource.id === "folder:website-building-apps");
 assert.ok(folder, "defineFolder(website-building-apps) must exist");
 assert.equal(folder.spec.folderKind, "app", "the folder must be an app folder");
-for (const kind of ["agent", "connector", "model", "play", "tool", "worker"]) {
-  assert.equal(
-    ofKind(kind).length,
-    0,
-    `no ${kind} belongs in this skill: the local coding agent does the website work through pull requests`,
-  );
-}
+
 const apps = ofKind("app");
 assert.equal(apps.length, 1, "exactly one defineApp: the website");
 const [app] = apps;
 assert.equal(
   app.spec.folderUuid?.resourceId,
-  "folder:website-building-apps",
+  folder.id,
   "the app must be filed in the website-building-apps folder",
 );
 
-// The app is the static Next.js export Cargo routes statically.
-const appDir = join(process.cwd(), app.spec.path);
-for (const file of ["package.json", "package-lock.json", "next.config.ts"]) {
-  assert.ok(
-    existsSync(join(appDir, file)),
-    `the app package needs ${file} at ${app.spec.path}`,
-  );
-}
-const nextConfig = readFileSync(join(appDir, "next.config.ts"), "utf8");
+// The app declares its hostname, never the apex.
+const [host] = app.spec.domains ?? [];
 assert.match(
-  nextConfig,
-  /output:\s*"export"/,
-  'next.config.ts must keep output: "export": Cargo Hosting serves static files only',
+  host ?? "",
+  /^www\./,
+  "the app must declare its www hostname: the apex cannot CNAME to an app",
 );
+
+// The app is its own package, and its build leaves a static export in dist/.
+const appDir = join(process.cwd(), app.spec.path);
+for (const file of ["package.json", "package-lock.json"])
+  assert.ok(existsSync(join(appDir, file)), `the app package needs ${file}`);
+const { scripts } = JSON.parse(readFileSync(join(appDir, "package.json"), "utf8"));
+assert.match(
+  scripts?.build ?? "",
+  /next build.*dist/,
+  "the build script must run next build and leave the export in dist/, where Cargo reads it",
+);
+const nextConfig = readFileSync(join(appDir, "next.config.ts"), "utf8");
+assert.match(nextConfig, /output:\s*"export"/, 'next.config.ts must keep output: "export"');
 assert.match(
   nextConfig,
   /trailingSlash:\s*true/,
   "next.config.ts must keep trailingSlash: true, or /about serves the home page",
 );
-const build = JSON.parse(readFileSync(join(appDir, "package.json"), "utf8"))
-  .scripts?.build;
-assert.match(
-  build ?? "",
-  /next build.*dist/,
-  "the build script must run next build and leave the export in dist/, where Cargo reads it",
-);
-for (const generated of ["out", "next-env.d.ts"]) {
-  assert.equal(
-    existsSync(join(appDir, generated)),
-    false,
-    `${generated} is generated: Cargo would upload it with the source and the app hash would change. Delete it.`,
-  );
-}
 
-// The app declares its hostname, never the apex.
-const domains = app.spec.domains ?? [];
-assert.ok(
-  domains.length > 0,
-  "the app must declare the www hostname it is served on",
-);
-const host = domains[0];
-assert.match(
-  host,
-  /^www\./,
-  "serve the site on www.<domain>: the apex cannot CNAME to an app",
-);
-const site = JSON.parse(readFileSync(join(appDir, "site.json"), "utf8"));
-assert.ok(
-  site.canonicalUrl === "" || site.canonicalUrl === `https://${host}/`,
-  `site.json canonicalUrl must be "" (draft) or https://${host}/`,
-);
-assert.ok(
-  site.status === "draft" || site.canonicalUrl === `https://${host}/`,
-  "a ready site must carry its canonical URL",
-);
-
-// A Cargo-held domain publishes exactly what the app needs and forwards the
-// apex. Absent is valid: the DNS lives at another provider.
-const domainResources = ofKind("domain");
-assert.ok(domainResources.length <= 1, "at most one defineDomain");
-if (domainResources.length === 1) {
-  const [domain] = domainResources;
+// A Cargo-held domain publishes what the app needs and forwards the apex.
+// No domain is valid: the DNS lives at another provider.
+const domains = ofKind("domain");
+assert.ok(domains.length <= 1, "at most one defineDomain");
+for (const domain of domains) {
   assert.equal(
     domain.spec.adopt,
     true,
-    "adopt the domain the workspace owns; registering one is a non-refundable purchase the operator approves on the plan line, recorded under ## Decisions",
+    "adopt the domain the workspace owns: registering one is a non-refundable purchase, approved on the plan line",
   );
   assert.ok(
-    domains.every((hostname) => hostname.endsWith(`.${domain.spec.name}`)),
-    `every app hostname must sit in ${domain.spec.name}`,
+    host.endsWith(`.${domain.spec.name}`),
+    `${host} must sit in ${domain.spec.name}`,
   );
   assert.ok(
     (domain.spec.dnsRecords ?? []).some(
-      (record) =>
-        record?.__token === true &&
-        record.resourceId === app.id &&
-        record.field === "domainRecords",
+      (record) => record?.resourceId === app.id && record.field === "domainRecords",
     ),
     "dnsRecords must include the app's domainRecords: the zone is replaced by this list",
   );

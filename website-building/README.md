@@ -43,14 +43,15 @@ Adds 2 resource kinds plus the folder they file into.
 | `infra/apps/website/`      | (not a resource) | the Next.js package Cargo builds: pages, `site.json`, tokens     |
 | `infra/domains/website.ts` | `defineDomain`   | the zone and the apex redirect; deleted when DNS lives elsewhere |
 | `infra/folders/index.ts`   | `defineFolder`   | the app folder named after the skill                             |
+| `references/`              | (not a resource) | how to brief, build, capture the design and serve the domain     |
 
 ## Why a static export
 
 Cargo Hosting serves files. A static export gives every page real HTML, its own metadata and a
-URL that works when entered directly, with no server to run. `trailingSlash: true` is what makes
-Cargo's build detect the pages and route them; without it, `/about` serves the home page. What
-needs a server (route handlers, middleware, image optimization, forms that deliver) lives
-somewhere else and is called from the page.
+URL that works when entered directly, with no server to run. `trailingSlash: true` writes each
+page as `<route>/index.html`, which is what Cargo's build detects to route statically; without it,
+`/about` serves the home page. What needs a server (route handlers, middleware, image
+optimization, a form that delivers) lives somewhere else and is called from the page.
 
 ## Why a domain file you might delete
 
