@@ -1880,6 +1880,114 @@
       "composesInto": "`standup` (the week's daily logs are evidence this recap reads), `call-capture` (scribed calls dated\nin the week are evidence), `tam-building` and `account-scoring` (a declared play that did not run is\nthe gap this recap is for)."
     },
     {
+      "name": "win-loss-review",
+      "kind": "cookbook",
+      "job": "Every month the CRM's closed deals are audited and what they say lands in context/ as one pull request: the ICP verified against won versus lost with a disqualifier, dated insights with counts and denominators, objections from recorded lost reasons, and a client file per closed-won account; a five-line Slack digest says what changed. Never edits a persona, nor the ICP after the first pass.",
+      "description": "Every month the CRM's closed deals are audited and what they say lands in context/ as one pull request: the ICP verified against won versus lost with a disqualifier, dated insights with counts and denominators, objections from recorded lost reasons, and a client file per closed-won account; a five-line Slack digest says what changed. Never edits a persona, nor the ICP after the first pass. Triggers: \"verify our ICP against won and lost deals\", \"what do closed-lost deals say about who we should not sell to\", \"keep the context repo current from the CRM every month\", \"our lost reasons should become objections\", \"run a monthly win-loss review\". Cargo CDK, harness claudeCode, HubSpot, Salesforce, Attio, Slack. Skip when: there is no CRM yet and the context should come from the website, which is web-capture; or you want one account researched before a call, which is research-account.",
+      "version": "0.1.0",
+      "homepage": "https://github.com/getcargohq/gtm-skills/tree/main/win-loss-review",
+      "group": "Make it run forever",
+      "install": "cargo-ai cdk add cookbook/win-loss-review",
+      "partOf": [],
+      "personas": [
+        "revops",
+        "sales-leadership",
+        "gtm-engineering"
+      ],
+      "integrations": [
+        "anthropic",
+        "github",
+        "hubspot",
+        "slack"
+      ],
+      "example": {
+        "prompt": "Every month, read what our HubSpot won and lost deals say, verify the ICP, and post the digest to #gtm-context.",
+        "output": "```text\n:bar_chart: *Win-loss review Oct 2026*: 23 deals closed\nWon 9, lost 14 · lost reason on 11 of 14 · contacts on 19 of 23\nLearned: a RevOps title at 6 of 9 won accounts · 8 of 14 losses were under 50 employees · \"no budget this quarter\" on 5 of 11 reasons\nProposed: add \"under 50 employees\" as an ICP disqualifier (8 of 14 losses, 0 of 9 wins), in the PR body\nPR: https://github.com/northwind/gtm/pull/331\n```\n\nThe pull request adds four dated `insight/` files, two `objection/` files and nine `client/` files,\nand modifies nothing under `icp/` or `persona/`; the disqualifier waits for a human."
+      },
+      "state": "to-be-approved",
+      "chain": 13,
+      "resources": [
+        "agents",
+        "connectors",
+        "folders",
+        "models"
+      ],
+      "asked": [
+        {
+          "input": "icp/`, `insight/`, `objection/`, `client/",
+          "kind": "generated",
+          "how": "**derived** from the queries, as the prompt describes; a seeded ICP gets one dated \"Verified against the CRM\" section on the first pass and is never edited after",
+          "why": "The disqualifier is the half of an ICP that protects the team's time, and won versus lost is the only place it comes from with evidence"
+        }
+      ],
+      "canChange": [
+        {
+          "id": "another_crm",
+          "when": "The deals live in Salesforce or Attio",
+          "how": "Change the connector, the three models' config and the queries together, following `references/crm-audit.md",
+          "cost": "Field names vary per org, so the queries are rewritten against the live schema and the first pass is checked by eye"
+        },
+        {
+          "id": "deal_contacts",
+          "when": "Titles at won accounts are too broad, and the team wants the titles on the deals only",
+          "how": "Add `associationObjectTypes: [\"contacts\"]` to `crm-deals.ts`, read the column it creates after the sync, and replace `titles_at_won_accounts` with a query on it",
+          "cost": "One more column to keep in sync with the extractor's naming, and a query to re-check if the extractor changes it"
+        },
+        {
+          "id": "raise_the_verify_line",
+          "when": "Twenty wins is too few to separate won from lost in your market (long cycles, few deals)",
+          "how": "Raise `VERIFY_MIN_WON` in `infra/agents/win-loss-analyst.prompt.ts",
+          "cost": "More months land in hypothesis mode, and the files assert less"
+        },
+        {
+          "id": "wider_window",
+          "when": "Your sales cycle is longer than a year, or last year was not representative",
+          "how": "Raise `WINDOW_DAYS` in the same file",
+          "cost": "Older deals describe an older market, and a two-year window on a company that repositioned last spring verifies the old ICP"
+        },
+        {
+          "id": "quarterly",
+          "when": "Fewer than ten deals close a month and the digest is mostly \"nothing new\"",
+          "how": "Change the cron in `infra/agents/win-loss-analyst.ts` to the first of every third month",
+          "cost": "A lost reason that recurs in month one is written in month three. The append-only rule means nothing is lost, only late"
+        },
+        {
+          "id": "no_digest",
+          "when": "The team reads pull requests and does not want a Slack post",
+          "how": "Delete `infra/connectors/slack.ts`, the `uses` block on the agent and step 8 of the prompt",
+          "cost": "The pull request is the only surface, and a monthly pull request nobody is pinged about is a monthly pull request nobody opens"
+        }
+      ],
+      "shouldNotChange": [
+        "**The CRM is the only source.** (`win-loss-analyst.prompt.ts`) No calls, no postings, no website, no inbox. Each is another cookbook's evidence; wire one in here and a verification gets mixed with a hypothesis nobody can tell apart afterwards.",
+        "**The audit is the queries in the prompt, and nothing else.** (`win-loss-analyst.prompt.ts`) An agent that writes its own SQL each month asks a slightly different question each month, and the months stop being comparable.",
+        "**The models pull all the data; the queries filter.** (`infra/models/`) No filter and no column picking in a model's config: a filter there is a second place the question is asked, invisible to anyone reading the queries, and changing it means a redeploy and a re-extraction instead of an edited query. Every query on deals narrows to closed deals itself, because the model holds open deals whose close date is a forecast. The contract checks both.",
+        "**No query selects an amount.** (`win-loss-analyst.prompt.ts`) The deals carry amounts in storage; nothing reads them, so none reaches `context/`, which is read by every agent, including the ones that talk to prospects. The contract fails if a query mentions one.",
+        "**The shared models stay identical to the other CRM cookbooks'.** (`infra/models/crm-accounts.ts`, `crm-contacts.ts`) That is what lets one copy serve all three; a different config is a slug collision at deploy.",
+        "**The one-PR write path.** (`infra/agents/win-loss-analyst.ts`) The agent never writes the workspace context directly and has no `context` capability: the repository is the source and `cargo-ai cdk deploy` syncs it.",
+        "**Personas are never edited, and the ICP only on the first pass, append-only.** (`win-loss-analyst.prompt.ts`) A monthly agent quietly rewriting them is how a knowledge base drifts without anyone deciding it should.",
+        "**The hygiene findings are stated, never worked around.** (`win-loss-analyst.prompt.ts`) A fill rate under half means no objections from the CRM this month, said out loud.",
+        "**Every count carries its denominator.** (`win-loss-analyst.prompt.ts`) \"6 of 9 wins\", never \"67%\".",
+        "**The channel is locked on the `postMessage` use.** (`infra/agents/win-loss-analyst.ts`) A digest about lost deals in a customer shared channel is the one failure nobody can undo."
+      ],
+      "doneWhen": [
+        "the models synced, and the `pipelines` query returned non-zero won and lost counts",
+        "`cargo-ai cdk check` prints the agent bound to the repository root, and `cargo-ai cdk plan` reports one agent, the models, the bound connectors and two folders",
+        "the first pass opened one pull request whose body opens with the two hygiene findings with denominators, then the mode and the won count that set it",
+        "`outputs/<date>-win-loss-review/README.md` holds every query's result, with no amount and no email",
+        "`icp/` carries a disqualifier derived from won versus lost, as a new file or as one dated section appended to the seeded one",
+        "`insight/` holds dated files in the three buckets with counts and denominators, and every title at a won account is mapped to a persona or listed as undetected",
+        "with the fill rate under half, no `objection/` file exists and the body says why; at or above it, every objection cites two or more deals by id",
+        "every `client/` file carries `reference_permission: unknown` and no amount",
+        "nothing under `persona/` changed, and any proposed change is in the pull request body with deal ids",
+        "the Slack digest is five lines, its numbers match the run record, and the last line is the pull request link",
+        "a monthly run with new deals opened a pull request that adds files and modifies none under `icp/` or `persona/`; with none it opened no pull request and the digest said so",
+        "after merging and `cargo-ai cdk deploy`, the verified ICP section is readable from the workspace context repository and an agent with the `context` capability quotes it back with its tag"
+      ],
+      "cost": "CRM extraction bills no credits, and neither do the SQL queries. The recurring cost is one harness\nrun a month, scaling with how many deals closed since the previous one, plus the first pass over the\nwhole window. Confirm the extraction price for the workspace's CRM with\n`cargo-ai connection integration get hubspot` before the first deploy.",
+      "composesInto": "`web-capture` (this verifies the ICP it seeds from the website and proposes the corrections),\n`account-scoring` (reads the verified `icp/`, disqualifier included), `crm-enrichment` (shares\n`crm_accounts` and `crm_contacts`, and the association rate this reports is what a contact\nenrichment raises), and any agent with the `context` capability."
+    },
+    {
       "name": "zoominfo-to-cargo",
       "kind": "one-off",
       "job": "Rebuild a ZoomInfo list on Cargo and measure the coverage you actually lose or gain before the renewal.",

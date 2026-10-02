@@ -67,6 +67,16 @@ is the resource's identity in `cargo.state.json`, so renaming one after a
 deploy creates a new resource and orphans the old one: get it right before
 the first deploy.
 
+A model that extracts a system you hold (a CRM, a warehouse) pulls all the
+data. Never filter or pick columns in its `config`: extract every record and
+every column, and narrow in the SQL or the play filter that reads it. A
+filter in the config is a second place the question is asked, invisible to
+anyone reading the queries, and changing it means a redeploy and a
+re-extraction instead of an edited query. A paid search source is the
+exception, because there the search is the data source rather than a filter
+on it: `aiArk.fetchCompanies` or a Sales Navigator search bills per returned
+record, so its query in `config` is what decides what you buy.
+
 ## 2. Description (the only text before load)
 
 Four parts, in order:
