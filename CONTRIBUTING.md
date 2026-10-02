@@ -101,7 +101,9 @@ agent reading one SKILL.md sees both directions. Never edit it by hand: change
 `suggestedNext` on the other pipeline and regenerate; `--check` fails when it is stale. The list is not a
 precondition and not a build order: the skill must still install and work on its
 own, the agent placing it never installs a listed pipeline unasked, and two
-pipelines may feed each other. Empty is fine.
+pipelines may feed each other. Empty is fine. A suggestion only points forward:
+to a later stage in `skills.sh.json`, or to a later pipeline in the same stage,
+and `check-pipelines` fails on one that points back.
 
 `## Composes into` is the prose for that list: it says why each listed pipeline
 comes next, and it names no other pipeline in this repo. One-off skills and

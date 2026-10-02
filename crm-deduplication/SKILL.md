@@ -12,8 +12,7 @@ metadata:
     - gtm-engineering
   suggestedBefore:
     - crm-enrichment
-  suggestedNext:
-    - account-scoring
+  suggestedNext: []
   openclaw:
     requires:
       bins:
@@ -322,4 +321,4 @@ Enabling either recurring schedule is a separate final approval after that path'
 
 ## Composes into
 
-- `account-scoring` after duplicate account records have been consolidated into authoritative survivors
+Nothing in particular comes after it: the survivors are the records anything reading the CRM sees.

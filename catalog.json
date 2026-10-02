@@ -52,10 +52,10 @@
     },
     {
       "title": "Context",
-      "description": "Deployed pipelines that keep context/ current: your website and the news, every recorded call, and won and lost deals.",
+      "description": "Deployed pipelines that keep context/ current: every recorded call, your website and the news, and won and lost deals.",
       "skills": [
-        "web-capture",
         "call-capture",
+        "web-capture",
         "win-loss-review"
       ]
     },
@@ -196,8 +196,6 @@
       "composesInto": "`agentic-engagement` (the engager should be talking to accounts this already ranked). Not built\nyet: `routing-engine` (territories and capacity over the scored book), `rep-cockpit`, `ai-sdr`.",
       "suggestedBefore": [
         "call-capture",
-        "crm-deduplication",
-        "new-hire-detection",
         "tam-building",
         "web-capture",
         "win-loss-review"
@@ -308,14 +306,12 @@
         "an unanswered first send is still a live chat: the heartbeat is declared, and the agent treats that wake as a status check, not a sequence"
       ],
       "cost": "A mailbox is a **monthly, recurring** charge for as long as it exists. Immediately before the\nplan, run `cargo-ai mailboxManagement pricing get` and read `monthlyCredits` for the chosen type.\nSay that number out loud as a per-month cost, not a one-off. `destroy` is the only way it stops.\n\nIf the plan also shows `+ create domain:…`, that registration is a separate, non-refundable\ncharge. Adopting an existing domain does not.\n\nEach delivery is a `sendEmail` native action. Run `cargo-ai connection native-integration\nget` (or `orchestration action list sendEmail`) for the current per-send cost. The engager\nadds one LLM turn per wake, including heartbeats. The per-thread cap is the cost control:\none send per wake, at most one unanswered follow-up, and a stop when the lead closes.\n\nA mailbox that never starts warm-up stays at the floor of five real sends a day. Starting\nwarm-up is what moves the ramp; it takes forty-five days to finish. Check\n`mailbox get-send-allowance` before promising volume.",
-      "composesInto": "`call-capture` (a conversation that becomes a meeting is a call worth scribing).",
+      "composesInto": "Nothing in particular comes after it: a conversation that becomes a meeting is recorded and\nscribed like any other call.",
       "suggestedBefore": [
         "account-scoring",
         "new-hire-detection"
       ],
-      "suggestedNext": [
-        "call-capture"
-      ]
+      "suggestedNext": []
     },
     {
       "name": "apollo-to-cargo",
@@ -437,10 +433,7 @@
       ],
       "cost": "Every turn is a harness run: a sandbox, a clone of the repository, and LLM tokens billed through the\nbound Anthropic connector. A turn that only answers a question costs tokens and nothing else. The\nread-only `cargo-ai` calls are API calls, not connector actions, and bill nothing.\n\nWhat spends is what someone approves with a go: the connector actions, batches and agent handoffs in\n§3 of the prompt. The agent reads each price live (`cargo-ai connection integration get <slug>`) and\nsays the total before it asks for the go, so the proposal is the cost line. Nothing runs on a\nschedule.",
       "composesInto": "Nothing in particular comes after it: it is the on-demand layer over whatever else is deployed, so\nit gets more useful with every pipeline that writes logs, calls or scores it can read.",
-      "suggestedBefore": [
-        "standup",
-        "weekly-planning"
-      ],
+      "suggestedBefore": [],
       "suggestedNext": []
     },
     {
@@ -576,14 +569,13 @@
         "after merging and `cargo-ai cdk deploy`, the changed `context/` file is readable from the workspace context repository, and an agent with the `context` capability quotes it back"
       ],
       "cost": "There are no connector actions in this skill, so it consumes no per-record credits: the collector\ntalks to your recorder directly from the harness environment, under whatever API limits your\nrecording plan already gives you. Those limits differ enough between recorders to be worth checking\nonce — a daily three-day window is nothing against Grain's per-minute allowance and is real against\nFireflies' Free tier of a few dozen requests a **day**, and `references/recorder-apis.md` records\neach. The collector paces itself and backs off on a 429 regardless, so the failure is a slow run\nrather than a half-captured one.\n\nThe recurring cost is the harness run itself, once a day, and it scales with how much the agent\nreads — which is the raw captures it scribes. **The per-run cap is the cost control as well as the\nreview control.** A lower cap spreads the same backlog over more days at the same daily cost rather\nthan paying for it all at once, and the pending remainder in the pull request body is how you watch\nwhether it is keeping up.",
-      "composesInto": "`account-scoring` and any agent with the `context` capability (they read the ICP and objection files\nthis keeps current), `standup` (yesterday's scribed calls are evidence the recap reads), `website-building` (the pages\nspeak in the customer language and the objections the calls surface),\n`monitor-buying-signals` (the signals this promotes are what a feed then watches for).",
-      "suggestedBefore": [
-        "agentic-engagement"
-      ],
+      "composesInto": "`account-scoring` and any agent with the `context` capability (they read the ICP and objection files\nthis keeps current), `standup` (yesterday's scribed calls are evidence the recap reads),\n`website-building` (the pages speak in the customer language and the objections the calls surface),\n`web-capture` (it adds the website, competitors and news to the context the calls started),\n`monitor-buying-signals` (the signals this promotes are what a feed then watches for).",
+      "suggestedBefore": [],
       "suggestedNext": [
         "account-scoring",
         "standup",
-        "website-building"
+        "website-building",
+        "web-capture"
       ]
     },
     {
@@ -795,13 +787,11 @@
         "the merge is the final CRM write, and every contact survivor and absorbed ID is verified in the CRM"
       ],
       "cost": "Immediately before each selected path's preview, run\n`cargo-ai connection integration get <crm>` and, when review is enabled,\n`cargo-ai connection integration get slack`. Record the CLI version, lookup time, action slugs, and\ncurrent cost metadata. The repository does not hard-code pipeline action prices.\n\n### Path 1: Account cost\n\nPrice the account search, automatic or approved company merge, and Human Review actions against the\nexact account population. Approval authorizes only the company clusters shown for that pilot.\n\n### Path 2: Contact cost\n\nPrice both contact searches, automatic or approved contact merge, and enabled Human Review actions\nagainst the exact contact population. Approval authorizes only the person clusters shown for that\npilot.\n\nEnabling either recurring schedule is a separate final approval after that path's pilot passes.",
-      "composesInto": "- `account-scoring` after duplicate account records have been consolidated into authoritative survivors",
+      "composesInto": "Nothing in particular comes after it: the survivors are the records anything reading the CRM sees.",
       "suggestedBefore": [
         "crm-enrichment"
       ],
-      "suggestedNext": [
-        "account-scoring"
-      ]
+      "suggestedNext": []
     },
     {
       "name": "crm-enrichment",
@@ -1370,12 +1360,11 @@
         "after opening up, the next sync created runs only for people new since the previous one"
       ],
       "cost": "Fetch live prices before every estimate: `cargo-ai connection integration get salesNavigator`,\n`linkedin`, and the LLM connector's model. Quote the lookup time with the estimate.\n\n**Extraction is the main spend, and it repeats.** `fetchLeadSearch` bills per extracted lead, and\nit is not incremental: every sync extracts the whole search again, including the people already in\nthe model. \"Changed jobs\" spans roughly the last 90 days, so a sync every two weeks re-pays for most\nof the previous sync to find the ones who are new. One sync costs the counted search (capped at\n`limit` per URL) times the per-lead price; a month costs that times the number of syncs.\n\n**Qualifying is per new person, and only new people.** Each run pays one company enrichment, and\neach company with a domain adds one qualifier call. The Slack post carries no per-call price of its\nown. The CRM variations add their own lookups and, on `crm_routing`, an email lookup per person.\n\n**Counting is cheap and comes first.** One `searchPersonMetrics` call per candidate URL tells you\nwhat a sync will extract before anything is extracted.",
-      "composesInto": "`find-work-email` or `enrich-linkedin-profile` for the people the team decides to contact,\n`account-scoring` for a standing score on the companies it surfaces, and `agentic-engagement` to\nhold the conversation once a person reads the post and the team writes first.\n`track-job-changes` is the sibling for people already in your CRM.",
+      "composesInto": "`find-work-email` or `enrich-linkedin-profile` for the people the team decides to contact, and\n`agentic-engagement` to hold the conversation once a person reads the post and the team writes\nfirst.\n`track-job-changes` is the sibling for people already in your CRM.",
       "suggestedBefore": [
         "web-capture"
       ],
       "suggestedNext": [
-        "account-scoring",
         "agentic-engagement"
       ]
     },
@@ -1539,13 +1528,12 @@
         "no number in the digest is absent from the raw dump, a metrics file dated that day, or a `cargo-ai` read the agent actually ran. A CLI read that errors is a note on the PR, not a made-up count"
       ],
       "cost": "The collector talks to git and, when `gh` is installed, to GitHub from the harness environment.\nThose calls are not Cargo connector actions.\n\nThe Slack post is `slack.postMessage` on the bound connector. Immediately before the plan, run\n`cargo-ai orchestration action list postMessage --kind connector --integration-slug slack` and\nread the current cost. Say that number out loud as a per-post cost; the run posts once.\n\nThe recurring cost is the harness run itself, once a day, billed as LLM tokens through the bound\nAnthropic connector, and it scales with how much the agent reads — the dump, the day's cadence\nfiles, a short window of git history, and the read-only `cargo-ai` calls in §1b (whoami, run\ncounts, usage, what is deployed). Those reads are API calls, not connector actions, so they bill\nnothing. There is no per-record fan-out, and the recap never runs a command that spends.",
-      "composesInto": "`weekly-planning` (the week's logs are what it ranks against infra and runs), `ask-cargo` (it\nanswers \"what happened this week\" from the logs this writes).",
+      "composesInto": "`weekly-planning` (the week's logs are what it ranks against infra and runs).",
       "suggestedBefore": [
         "call-capture"
       ],
       "suggestedNext": [
-        "weekly-planning",
-        "ask-cargo"
+        "weekly-planning"
       ]
     },
     {
@@ -1868,7 +1856,9 @@
       ],
       "cost": "Fetch live prices before every estimate: `cargo-ai connection integration get parallel`, plus the\nLLM connector's model. Quote the lookup time with the estimate.\n\nEach run bills two reads: one `parallel.extract` over every listed URL, the company's and the\ncompetitors' (billed per URL, a 404 included), and one `parallel.createTask` on the `lite`\nprocessor, the cheapest rung of its price ladder. Plus the harness run, which scales with how much\nchanged.",
       "composesInto": "`tam-building` and `account-scoring` (they read the ICP this writes down: one to source the market,\nthe other to score the book), `new-hire-detection` (it qualifies the company each new hire joined\nagainst that ICP), `website-building` (the positioning this captures is what the pages say),\n`win-loss-review` (verifies the ICP this seeds against won and lost deals, and proposes the\ncorrections), and any agent with the `context` capability.",
-      "suggestedBefore": [],
+      "suggestedBefore": [
+        "call-capture"
+      ],
       "suggestedNext": [
         "tam-building",
         "account-scoring",
@@ -2056,13 +2046,11 @@
         "no number in a plan file is absent from the raw dump, a metrics file dated that week, or a `cargo-ai` read the agent actually ran. A CLI read that errors is a note on the PR, not a made-up count"
       ],
       "cost": "The collector talks to git and, when `gh` is installed, to GitHub from the harness environment.\nThose calls are not Cargo connector actions.\n\nThe recurring cost is the harness run itself, once a week, billed as LLM tokens through the bound\nAnthropic connector, and it scales with how much the agent reads — the dump, the week's cadence\nfiles, the active initiative files, declared infra, and the read-only `cargo-ai` calls in §1b\n(whoami, what is deployed, run counts, usage). Those reads are API calls, not connector actions, so\nthey bill nothing. There is no per-record fan-out, and the recap never runs a command that spends.",
-      "composesInto": "`ask-cargo` (it answers \"what happened this week\" from the plan this writes).",
+      "composesInto": "Nothing in particular comes after it: the plan it opens is the next week's work.",
       "suggestedBefore": [
         "standup"
       ],
-      "suggestedNext": [
-        "ask-cargo"
-      ]
+      "suggestedNext": []
     },
     {
       "name": "win-loss-review",

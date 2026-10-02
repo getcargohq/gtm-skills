@@ -13,8 +13,6 @@ metadata:
     - gtm-engineering
   suggestedBefore:
     - call-capture
-    - crm-deduplication
-    - new-hire-detection
     - tam-building
     - web-capture
     - win-loss-review

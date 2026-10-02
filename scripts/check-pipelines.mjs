@@ -411,6 +411,35 @@ for (const [name, list] of Object.entries(suggestedNextOf)) {
     );
 }
 
+// A suggestion only points forward: to a later stage, or to a later pipeline
+// in the same stage. Stages are the skills.sh.json groupings, in the order it
+// declares them, and so are the pipelines within one. A pipeline suggesting
+// one from an earlier stage reads as "set up the basics after this", which is
+// the wrong way round, and the CRM stage, last, never feeds back into the
+// core.
+const stagePosition = (() => {
+  const positions = {};
+  const { groupings } = JSON.parse(
+    readFileSync(join(root, "skills.sh.json"), "utf8"),
+  );
+  groupings.forEach((g, stage) =>
+    g.skills.forEach((skill, index) => {
+      positions[skill] = { stage: g.title, order: stage * 1000 + index };
+    }),
+  );
+  return positions;
+})();
+for (const [name, list] of Object.entries(suggestedNextOf)) {
+  const from = stagePosition[name];
+  for (const target of list) {
+    const to = stagePosition[target];
+    if (from && to && to.order <= from.order)
+      errors.push(
+        `${name}/SKILL.md suggests \`${target}\` next, but ${to.stage === from.stage ? `it comes earlier in ${to.stage}` : `${to.stage} comes before ${from.stage}`}: a suggestion only points forward`,
+      );
+  }
+}
+
 // approvals.json must not name a folder that is not an engine
 for (const name of Object.keys(approvals)) {
   if (!exampleFolders.includes(name))

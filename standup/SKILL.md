@@ -14,7 +14,6 @@ metadata:
     - call-capture
   suggestedNext:
     - weekly-planning
-    - ask-cargo
   openclaw:
     requires:
       bins:
@@ -280,5 +279,4 @@ nothing. There is no per-record fan-out, and the recap never runs a command that
 
 ## Composes into
 
-`weekly-planning` (the week's logs are what it ranks against infra and runs), `ask-cargo` (it
-answers "what happened this week" from the logs this writes).
+`weekly-planning` (the week's logs are what it ranks against infra and runs).

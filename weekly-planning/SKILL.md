@@ -12,8 +12,7 @@ metadata:
     - revops
   suggestedBefore:
     - standup
-  suggestedNext:
-    - ask-cargo
+  suggestedNext: []
   openclaw:
     requires:
       bins:
@@ -258,4 +257,4 @@ they bill nothing. There is no per-record fan-out, and the recap never runs a co
 
 ## Composes into
 
-`ask-cargo` (it answers "what happened this week" from the plan this writes).
+Nothing in particular comes after it: the plan it opens is the next week's work.

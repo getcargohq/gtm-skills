@@ -11,9 +11,7 @@ metadata:
     - revops
     - sales-leadership
     - gtm-engineering
-  suggestedBefore:
-    - standup
-    - weekly-planning
+  suggestedBefore: []
   suggestedNext: []
   openclaw:
     requires:

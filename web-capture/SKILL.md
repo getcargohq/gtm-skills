@@ -11,7 +11,8 @@ metadata:
     - gtm-engineering
     - revops
     - marketing
-  suggestedBefore: []
+  suggestedBefore:
+    - call-capture
   suggestedNext:
     - tam-building
     - account-scoring

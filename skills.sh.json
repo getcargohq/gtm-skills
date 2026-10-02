@@ -53,10 +53,10 @@
     },
     {
       "title": "Context",
-      "description": "Deployed pipelines that keep context/ current: your website and the news, every recorded call, and won and lost deals.",
+      "description": "Deployed pipelines that keep context/ current: every recorded call, your website and the news, and won and lost deals.",
       "skills": [
-        "web-capture",
         "call-capture",
+        "web-capture",
         "win-loss-review"
       ]
     },

@@ -88,12 +88,12 @@ Rank a list against your profile, then understand the one account before you wal
 
 ### Context
 
-Deployed pipelines that keep context/ current: your website and the news, every recorded call, and won and lost deals.
+Deployed pipelines that keep context/ current: every recorded call, your website and the news, and won and lost deals.
 
 | Skill | Does | Try saying |
 | --- | --- | --- |
-| [`web-capture`](web-capture/SKILL.md) | Each Monday the company's own website, its competitors' pages and recent news about both land in context/ as one pull request: the first run seeds positioning, offerings, an inferred ICP with a disqualifier, competitors, clients and proof; every run after adds a dated note of what changed (pricing, a launch, funding, a customer) and never edits an existing file. | “Every Monday, read our website, our competitors' pricing and changelog pages, and the news about all of us, and keep context/ current.” |
 | [`call-capture`](call-capture/SKILL.md) | Every call the team records is collected into the cadence layer each morning, scribed into a log entry, and — once a claim repeats — promoted into the context knowledge layer, as one reviewable pull request against your GTM repo. Nine recorders ship; a tenth is one adapter file. | “Every morning, pull yesterday's Gong calls into this repo as log entries and open one pull request with anything worth adding to our context.” |
+| [`web-capture`](web-capture/SKILL.md) | Each Monday the company's own website, its competitors' pages and recent news about both land in context/ as one pull request: the first run seeds positioning, offerings, an inferred ICP with a disqualifier, competitors, clients and proof; every run after adds a dated note of what changed (pricing, a launch, funding, a customer) and never edits an existing file. | “Every Monday, read our website, our competitors' pricing and changelog pages, and the news about all of us, and keep context/ current.” |
 | [`win-loss-review`](win-loss-review/SKILL.md) | Every month the CRM's closed deals are audited and what they say lands in context/ as one pull request: the ICP verified against won versus lost with a disqualifier, dated insights with counts and denominators, objections from recorded lost reasons, and a client file per closed-won account; a five-line Slack digest says what changed. Never edits a persona, nor the ICP after the first pass. | “Every month, read what our HubSpot won and lost deals say, verify the ICP, and post the digest to #gtm-context.” |
 
 ### Fundamentals

@@ -13,8 +13,7 @@ metadata:
   suggestedBefore:
     - account-scoring
     - new-hire-detection
-  suggestedNext:
-    - call-capture
+  suggestedNext: []
   openclaw:
     requires:
       bins:
@@ -207,4 +206,5 @@ warm-up is what moves the ramp; it takes forty-five days to finish. Check
 
 ## Composes into
 
-`call-capture` (a conversation that becomes a meeting is a call worth scribing).
+Nothing in particular comes after it: a conversation that becomes a meeting is recorded and
+scribed like any other call.

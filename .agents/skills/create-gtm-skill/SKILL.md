@@ -177,7 +177,8 @@ Frontmatter: `metadata.suggestedNext`, the pipelines this one sets up well (a
 recommendation, not a build order; `[]` is fine). `suggestedBefore` above it is
 generated: run `node scripts/build-catalog.mjs`, never edit it by hand.
 `## Composes into` says why each listed pipeline comes next and names no other
-pipeline in this repo.
+pipeline in this repo. Suggest forward only: a later stage, or a later pipeline
+in the same stage.
 
 ### Both kinds: personas and the example
 
