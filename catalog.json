@@ -1,5 +1,51 @@
 {
   "source": "getcargohq/gtm-skills",
+  "groups": [
+    {
+      "title": "Coming from another tool",
+      "description": "Rebuild what you already have: mapped column by column, priced before it runs, kept as code."
+    },
+    {
+      "title": "Find the accounts and the people",
+      "description": "Sourcing: who exists, who fits, and who sits on the buying committee."
+    },
+    {
+      "title": "Get the contact data",
+      "description": "Resolve identity, enrich it, and make sure the address is deliverable before you send."
+    },
+    {
+      "title": "Watch for the moment to reach out",
+      "description": "Buying signals: someone moved, someone raised, someone started hiring for the thing you sell."
+    },
+    {
+      "title": "Decide who is worth the time",
+      "description": "Rank a list against your profile, then understand the one account before you walk into the call."
+    },
+    {
+      "title": "Context",
+      "description": "Deployed pipelines that keep what you know current: your website and the market's news, every recorded call, and, once you have a CRM, what won and lost deals say."
+    },
+    {
+      "title": "Fundamentals",
+      "description": "Deployed pipelines that build the base: the account universe from your ICP, a standing score on every account, and, for an early-stage company, the website itself."
+    },
+    {
+      "title": "Signals",
+      "description": "Deployed pipelines that watch the market for the moment to reach out. Any combination stacks on the same account."
+    },
+    {
+      "title": "Engagement",
+      "description": "Deployed pipelines that hold the conversation with the accounts worth it."
+    },
+    {
+      "title": "Operations",
+      "description": "Deployed pipelines that run the team: the daily recap, the weekly plan, and one agent everyone can ask."
+    },
+    {
+      "title": "Connect your CRM",
+      "description": "Deployed pipelines for when a CRM is already in place: keep its records filled and duplicate-free so the engine and the CRM agree."
+    }
+  ],
   "skills": [
     {
       "name": "account-scoring",
