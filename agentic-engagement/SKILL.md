@@ -12,7 +12,6 @@ metadata:
     - gtm-engineering
   worksBestAfter:
     - account-scoring
-    - crm-enrichment
     - new-hire-detection
   nextSteps:
     - call-capture

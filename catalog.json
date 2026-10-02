@@ -257,7 +257,6 @@
       "composesInto": "`call-capture` (a conversation that becomes a meeting is a call worth scribing).",
       "worksBestAfter": [
         "account-scoring",
-        "crm-enrichment",
         "new-hire-detection"
       ],
       "nextSteps": [
@@ -523,13 +522,14 @@
         "after merging and `cargo-ai cdk deploy`, the changed `context/` file is readable from the workspace context repository, and an agent with the `context` capability quotes it back"
       ],
       "cost": "There are no connector actions in this skill, so it consumes no per-record credits: the collector\ntalks to your recorder directly from the harness environment, under whatever API limits your\nrecording plan already gives you. Those limits differ enough between recorders to be worth checking\nonce — a daily three-day window is nothing against Grain's per-minute allowance and is real against\nFireflies' Free tier of a few dozen requests a **day**, and `references/recorder-apis.md` records\neach. The collector paces itself and backs off on a 429 regardless, so the failure is a slow run\nrather than a half-captured one.\n\nThe recurring cost is the harness run itself, once a day, and it scales with how much the agent\nreads — which is the raw captures it scribes. **The per-run cap is the cost control as well as the\nreview control.** A lower cap spreads the same backlog over more days at the same daily cost rather\nthan paying for it all at once, and the pending remainder in the pull request body is how you watch\nwhether it is keeping up.",
-      "composesInto": "`account-scoring` and any agent with the `context` capability (they read the ICP and objection files\nthis keeps current), `standup` (yesterday's scribed calls are evidence the recap reads),\n`monitor-buying-signals` (the signals this promotes are what a feed then watches for).",
+      "composesInto": "`account-scoring` and any agent with the `context` capability (they read the ICP and objection files\nthis keeps current), `standup` (yesterday's scribed calls are evidence the recap reads), `website-building` (the pages\nspeak in the customer language and the objections the calls surface),\n`monitor-buying-signals` (the signals this promotes are what a feed then watches for).",
       "worksBestAfter": [
         "agentic-engagement"
       ],
       "nextSteps": [
         "account-scoring",
-        "standup"
+        "standup",
+        "website-building"
       ]
     },
     {
@@ -929,11 +929,10 @@
         "The contact report includes route, processed, written, unresolved, skipped, failed, fill-rate, spend, and direct-link evidence."
       ],
       "cost": "Fetch live prices from the workspace before every preview. Cost only the selected paths. A failed\nCRM write can cause provider calls to be billed again on retry, so probe write capability before a\nbatch.\n\n### Path 1: Account cost\n\nQuote both LinkedIn company actions. Multiply the mutually exclusive LinkedIn URL and domain\nfallback populations by their respective live unit prices. Rows with neither identifier make no\npaid call.\n\n### Path 2: Contact cost\n\nQuote both Cargo-native tools and the LinkedIn profile enrichment action. Per contact, the maximum\npaid chain is:\n\n- LinkedIn only: Find Email plus Contact LinkedIn Enrichment.\n- Email only: Find LinkedIn Profile from Email plus Contact LinkedIn Enrichment when resolution\n  succeeds.\n- Both identifiers: Contact LinkedIn Enrichment only.\n- Neither identifier: no paid call.\n\nShow mutually exclusive route counts and maximum spend before requesting approval for either path.",
-      "composesInto": "`crm-deduplication` after account enrichment, `agentic-engagement` (a thread is better when the\nrecord it is about is already filled), `find-stakeholders` for coverage gaps, `segment-accounts`\nfor activation, and `track-job-changes` as a separate one-time movement check.",
+      "composesInto": "`crm-deduplication` after account enrichment, `find-stakeholders` for coverage gaps, `segment-accounts`\nfor activation, and `track-job-changes` as a separate one-time movement check.",
       "worksBestAfter": [],
       "nextSteps": [
-        "crm-deduplication",
-        "agentic-engagement"
+        "crm-deduplication"
       ]
     },
     {
@@ -1912,7 +1911,9 @@
       "cost": "Each merge is one deployment of a static app; read the workspace's current hosting usage before\nthe first deploy, and say what you found. Adopting a domain the workspace owns adds no charge.\nRegistering one (`register-domain`) charges workspace credits once and is **not refundable**: read\nthe current price and the credit balance before proposing it, and quote both with the plan. A\nworking form adds whatever its backend costs. Nothing in the workspace runs on a schedule; your\ncoding agent's usage is the rest.",
       "composesInto": "Nothing in particular comes after it. It reads the positioning and customer language in\n`context/`, so the pages get better as that context does.",
       "worksBestAfter": [
-        "web-capture"
+        "call-capture",
+        "web-capture",
+        "win-loss-review"
       ],
       "nextSteps": []
     },
@@ -2115,12 +2116,13 @@
         "after merging and `cargo-ai cdk deploy`, the verified ICP section is readable from the workspace context repository and an agent with the `context` capability quotes it back with its tag"
       ],
       "cost": "CRM extraction bills no credits, and neither do the SQL queries. The recurring cost is one harness\nrun a month, scaling with how many deals closed since the previous one, plus the first pass over the\nwhole window. Confirm the extraction price for the workspace's CRM with\n`cargo-ai connection integration get hubspot` before the first deploy.",
-      "composesInto": "`account-scoring` (reads the verified `icp/`, disqualifier included), and any agent with the\n`context` capability.",
+      "composesInto": "`account-scoring` (reads the verified `icp/`, disqualifier included), `website-building` (the\nclient files and proof from closed-won deals are what the pages may cite), and any agent with the\n`context` capability.",
       "worksBestAfter": [
         "web-capture"
       ],
       "nextSteps": [
-        "account-scoring"
+        "account-scoring",
+        "website-building"
       ]
     },
     {

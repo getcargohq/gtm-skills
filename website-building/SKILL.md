@@ -11,7 +11,9 @@ metadata:
     - marketing
     - gtm-engineering
   worksBestAfter:
+    - call-capture
     - web-capture
+    - win-loss-review
   nextSteps: []
   openclaw:
     requires:

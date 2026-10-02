@@ -16,6 +16,7 @@ metadata:
   nextSteps:
     - account-scoring
     - standup
+    - website-building
   openclaw:
     requires:
       bins:
@@ -341,5 +342,6 @@ whether it is keeping up.
 ## Composes into
 
 `account-scoring` and any agent with the `context` capability (they read the ICP and objection files
-this keeps current), `standup` (yesterday's scribed calls are evidence the recap reads),
+this keeps current), `standup` (yesterday's scribed calls are evidence the recap reads), `website-building` (the pages
+speak in the customer language and the objections the calls surface),
 `monitor-buying-signals` (the signals this promotes are what a feed then watches for).

@@ -15,6 +15,7 @@ metadata:
     - web-capture
   nextSteps:
     - account-scoring
+    - website-building
   openclaw:
     requires:
       bins:
@@ -256,5 +257,6 @@ whole window. Confirm the extraction price for the workspace's CRM with
 
 ## Composes into
 
-`account-scoring` (reads the verified `icp/`, disqualifier included), and any agent with the
+`account-scoring` (reads the verified `icp/`, disqualifier included), `website-building` (the
+client files and proof from closed-won deals are what the pages may cite), and any agent with the
 `context` capability.
