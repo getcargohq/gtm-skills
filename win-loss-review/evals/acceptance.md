@@ -9,8 +9,8 @@ as passed.
 - `node --import tsx evals/contract.mjs` passes, run from the skill folder.
 - The project holds exactly one `crm` connector and one each of `crm_accounts` and `crm_contacts`;
   copies this cookbook brought were dropped where another cookbook already declares them.
-- The lost-reason property in `infra/models/crm-deals.ts` and `LOST_REASON_COLUMN` in the prompt
-  are the same, and exist on the portal's deals.
+- `LOST_REASON_COLUMN` in the prompt names the portal's lost-reason property, and no model's config
+  filters or picks columns.
 - The Slack channel id is an id, not a name, and not a customer shared channel.
 - `cargo-ai cdk check` prints `agent:win_loss_analyst` bound to `<repo>#<branch>` at the repository
   root, and `cargo-ai cdk plan` shows the agent, the models, the bound connectors and two folders.
@@ -18,7 +18,8 @@ as passed.
 ## After the models sync
 
 - The `pipelines` query, run by hand, returns non-zero won and lost counts.
-- `crm_deals` has no amount column.
+- `crm_deals` holds open deals too, and the `pipelines` counts match the closed deals the team
+  knows about: the queries, not the model, narrow to closed.
 
 ## The first pass
 

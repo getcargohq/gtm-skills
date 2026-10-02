@@ -14,10 +14,10 @@
  * resources and does no I/O.
  */
 
-// PLACEHOLDER: the deal column that carries the lost reason. Keep it equal to
-// the property picked in ../models/crm-deals.ts. A fill rate of 0 of N with
-// lost deals in the window is the cue to find the real property, not a fact
-// about the team.
+// PLACEHOLDER: the deal column that carries the lost reason. HubSpot's
+// standard one is `closed_lost_reason`; many portals record it on a custom
+// property instead. A fill rate of 0 of N with lost deals in the window is the
+// cue to find the real property, not a fact about the team.
 export const LOST_REASON_COLUMN = "closed_lost_reason";
 
 // How far back the audit looks, in days. Twelve months by default: a shorter
@@ -38,7 +38,11 @@ const CONTACTS = "crm.crm_contacts";
 
 const WON = "d.hs_is_closed_won = 'true'";
 const LOST = "d.hs_is_closed_lost = 'true'";
-const IN_WINDOW = "d.closedate >= '<window start>'";
+// The models hold every deal, open ones included, and an open deal's
+// closedate is its expected close date: every query narrows to closed deals
+// here, never in the model's config.
+const CLOSED = `(${WON} OR ${LOST})`;
+const IN_WINDOW = `${CLOSED} AND d.closedate >= '<window start>'`;
 const OUTCOME_COUNTS = `SUM(CASE WHEN ${WON} THEN 1 ELSE 0 END) AS won, SUM(CASE WHEN ${LOST} THEN 1 ELSE 0 END) AS lost`;
 const ACCOUNT_JOIN = `LEFT JOIN ${ACCOUNTS} a ON a.hs_object_id = d.hs_primary_associated_company`;
 
@@ -51,7 +55,7 @@ export const QUERIES: Record<string, string> = {
   by_size: `SELECT CASE WHEN a.numberofemployees IS NULL THEN 'unknown' WHEN a.numberofemployees < 50 THEN '1-49' WHEN a.numberofemployees < 200 THEN '50-199' WHEN a.numberofemployees < 1000 THEN '200-999' ELSE '1000+' END AS size, ${OUTCOME_COUNTS} FROM ${DEALS} d ${ACCOUNT_JOIN} WHERE ${IN_WINDOW} GROUP BY 1 ORDER BY 1`,
   by_country: `SELECT a.country, ${OUTCOME_COUNTS} FROM ${DEALS} d ${ACCOUNT_JOIN} WHERE ${IN_WINDOW} GROUP BY a.country ORDER BY won DESC`,
   titles_at_won_accounts: `SELECT c.jobtitle AS title, COUNT(DISTINCT c.associatedcompanyid) AS won_accounts FROM ${CONTACTS} c WHERE c.jobtitle IS NOT NULL AND c.associatedcompanyid IN (SELECT d.hs_primary_associated_company FROM ${DEALS} d WHERE ${WON} AND ${IN_WINDOW}) GROUP BY c.jobtitle ORDER BY won_accounts DESC LIMIT 100`,
-  deals_since: `SELECT d.hs_object_id AS deal_id, d.dealname, CASE WHEN ${WON} THEN 'won' ELSE 'lost' END AS outcome, d.closedate, d.pipeline, d.${LOST_REASON_COLUMN} AS lost_reason, a.hs_object_id AS account_id, a.name AS account, a.domain, a.industry, a.numberofemployees, a.country FROM ${DEALS} d ${ACCOUNT_JOIN} WHERE d.closedate >= '<since>' ORDER BY d.closedate DESC`,
+  deals_since: `SELECT d.hs_object_id AS deal_id, d.dealname, CASE WHEN ${WON} THEN 'won' ELSE 'lost' END AS outcome, d.closedate, d.pipeline, d.${LOST_REASON_COLUMN} AS lost_reason, a.hs_object_id AS account_id, a.name AS account, a.domain, a.industry, a.numberofemployees, a.country FROM ${DEALS} d ${ACCOUNT_JOIN} WHERE ${CLOSED} AND d.closedate >= '<since>' ORDER BY d.closedate DESC`,
 };
 
 const queryList = Object.entries(QUERIES)
@@ -80,8 +84,9 @@ Repository conventions win over anything in this prompt.
 
 ## 1. The audit (do not improvise this step)
 
-The CRM is extracted by the platform into three models: ${DEALS} (closed
-deals), ${ACCOUNTS} and ${CONTACTS}. You read them with the queries below and
+The CRM is extracted by the platform into three models, whole: ${DEALS},
+${ACCOUNTS} and ${CONTACTS}. They hold every record and every column; the
+queries narrow to closed deals and to the window. You read them with the queries below and
 nothing else: no CRM action, no other SQL. The same queries every month are
 what make this month comparable to the last.
 
@@ -156,8 +161,8 @@ industry.
   (deals_since).
 - client/: one file per closed-won account not yet in client/ (deals_since),
   with the industry, size and geography the record holds, the close date,
-  and reference_permission: unknown. No amounts: the deals model does not
-  carry them, and you never look them up.
+  and reference_permission: unknown. No amounts: no query selects one, and you
+  never look them up.
 
 ## 5. A monthly run appends, never edits
 

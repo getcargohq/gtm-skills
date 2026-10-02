@@ -5,11 +5,11 @@
  * Three parts. The registry checks the compiled resources for the boundaries
  * CDK schema validation cannot express: one harness agent on a monthly cron
  * with the Slack channel locked, the CRM models it reads, and no connector
- * for a system this cookbook must not read. The models check that closed
- * deals are extracted without an amount, and that the shared CRM models are
- * declared exactly as the other CRM cookbooks declare them. The audit checks
- * the SQL in the prompt: read-only, over the three models, no amount, no
- * email.
+ * for a system this cookbook must not read. The models check that every
+ * model pulls all the data, with no filter in its config, and that the
+ * shared CRM models are declared exactly as the other CRM cookbooks declare
+ * them. The audit checks the SQL in the prompt: read-only, over the three
+ * models, narrowed to closed deals, no amount, no email.
  *
  * Run it from the skill folder after every adaptation:
  *   node --import tsx evals/contract.mjs
@@ -54,20 +54,23 @@ check("there is no collector script: the platform extracts, the prompt queries",
   assert.ok(!existsSync(new URL("../scripts", import.meta.url)), "scripts/ came back: the audit lives in the prompt's SQL");
 });
 
-check("closed deals are extracted with the audit's properties and never an amount", async () => {
-  const { LOST_REASON_COLUMN } = await import("../infra/agents/win-loss-analyst.prompt.ts");
-  const deals = byId.get("model:crm_deals");
-  assert.equal(deals.spec.extractorSlug, "fetchRecords");
-  const { config } = deals.spec;
-  assert.equal(config.objectType, "deals");
-  assert.match(JSON.stringify(config.filter), /"propertyName":"hs_is_closed"/, "only closed deals are extracted");
-  assert.equal(config.columnSelectionMode, "pick", "pick, so nothing the audit does not read is extracted");
-  const picked = [config.selectedPropertiesNames].flat();
-  for (const name of ["closedate", "hs_is_closed_won", "hs_is_closed_lost", "pipeline", "num_associated_contacts", "hs_primary_associated_company", LOST_REASON_COLUMN]) {
-    assert.ok(picked.includes(name), `${name} is read by the audit and must be picked`);
+check("every model pulls all the data: no filter and no column picking in the config", () => {
+  for (const id of ["model:crm_deals", "model:crm_accounts", "model:crm_contacts"]) {
+    const { config } = byId.get(id).spec;
+    assert.equal(config.filter, undefined, `${id} filters in its config: pull everything and narrow in the SQL`);
+    assert.equal(config.columnSelectionMode, "all", `${id} picks columns: pull everything and select in the SQL`);
   }
-  for (const name of picked) {
-    assert.ok(!/amount|revenue|value/i.test(name), `${name} is money: context/ is read by agents that talk to prospects`);
+  assert.equal(byId.get("model:crm_deals").spec.config.objectType, "deals");
+});
+
+check("every query on deals narrows to closed deals itself", async () => {
+  const { QUERIES } = await import("../infra/agents/win-loss-analyst.prompt.ts");
+  for (const [name, sql] of Object.entries(QUERIES)) {
+    if (!sql.includes("crm.crm_deals")) continue;
+    assert.ok(
+      sql.includes("(d.hs_is_closed_won = 'true' OR d.hs_is_closed_lost = 'true')"),
+      `${name} reads deals without the closed condition: the model holds open deals, whose closedate is a forecast`,
+    );
   }
 });
 

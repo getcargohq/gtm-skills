@@ -6,16 +6,17 @@ what each model holds, how the queries read it, and how to move to another CRM.
 
 ## The models
 
-| Model          | Extractor                     | What it holds                                                                                                                                                                                               |
-| -------------- | ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `crm_deals`    | `fetchRecords` on `deals`     | Closed deals only (`hs_is_closed` is true), with the picked properties: name, pipeline, stage, type, close date, the won and lost flags, the contact count, the primary company, the lost reason. No amount |
-| `crm_accounts` | `fetchRecords` on `companies` | Every company, all columns. Declared as crm-enrichment and crm-deduplication declare it                                                                                                                     |
-| `crm_contacts` | `fetchRecords` on `contacts`  | Every contact, all columns. Declared as crm-enrichment and crm-deduplication declare it. The audit reads titles and company ids only                                                                        |
+| Model          | Extractor                     | What it holds                                                                                                                        |
+| -------------- | ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `crm_deals`    | `fetchRecords` on `deals`     | Every deal, open and closed, all columns. The queries narrow to closed deals (won or lost) and never select an amount                |
+| `crm_accounts` | `fetchRecords` on `companies` | Every company, all columns. Declared as crm-enrichment and crm-deduplication declare it                                              |
+| `crm_contacts` | `fetchRecords` on `contacts`  | Every contact, all columns. Declared as crm-enrichment and crm-deduplication declare it. The audit reads titles and company ids only |
 
 Columns are named after the HubSpot properties. In SQL a model is `<dataset>.<model>`, and a
 connector-backed model's dataset is its connector's slug, so the queries read `crm.crm_deals`,
-`crm.crm_accounts` and `crm.crm_contacts`. Extraction bills no credits; `crm_deals` syncs daily
-and the shared two hourly, as the other CRM cookbooks sync them.
+`crm.crm_accounts` and `crm.crm_contacts`. Extraction bills no credits, and all three sync
+hourly, as the other CRM cookbooks sync theirs. No model filters in its config: pull everything,
+narrow in the query.
 
 ## The queries
 
@@ -41,7 +42,7 @@ the window start on the first pass. The agent substitutes those two and nothing 
 - Fewer than `VERIFY_MIN_WON` wins in the window means hypothesis mode: every finding carries its
   denominator and `confidence: hypothesis`.
 - A lost-reason fill rate of 0 with lost deals in the window is almost always a custom property, not
-  a team that never records reasons. Find it and set it in `crm-deals.ts` and `LOST_REASON_COLUMN`.
+  a team that never records reasons. Find it and set `LOST_REASON_COLUMN`.
 - An association rate well under the closed count means titles are a sample, and the persona
   reconciliation says so with the denominator.
 - Titles are read at the won accounts, through `crm_contacts.associatedcompanyid`: everyone at the

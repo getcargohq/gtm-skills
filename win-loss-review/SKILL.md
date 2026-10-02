@@ -48,9 +48,10 @@ Then it opens one pull request and posts a five-line digest to Slack. A human me
 other Cargo agent reads before it acts.
 
 The CRM is its only source, and it reaches it through models. Three `defineModel`s extract it into
-Cargo storage: `crm_deals` (closed deals only, the properties the audit reads and never an amount),
-`crm_accounts` and `crm_contacts`. The last two are declared exactly as crm-enrichment and
-crm-deduplication declare them, so a project running those keeps one copy of its CRM. Extraction
+Cargo storage, whole: every deal, company and contact, every column, with no filter in their
+config. The queries do the narrowing (closed deals, the window, the columns each one needs), and
+none of them selects an amount. `crm_deals` is new; `crm_accounts` and `crm_contacts` are declared
+exactly as crm-enrichment and crm-deduplication declare them, so a project running those keeps one copy of its CRM. Extraction
 bills no credits. The audit is a fixed set of SQL queries in the agent's prompt, run with
 `cargo-ai storage query execute`: counts by pipeline, the lost reasons, contacts on deals, won
 versus lost by industry, size and country, titles at won accounts, and the deals since the last
@@ -116,8 +117,8 @@ is enough.
    nothing to `.env.example`:** nothing here holds a credential.
 3. **Fit the deals model to the CRM.** Read the live deal schema
    (`cargo-ai connection connector autocomplete` on the CRM connector, or the CRM's settings). If the
-   lost reason is a custom property, set it in `infra/models/crm-deals.ts` and as
-   `LOST_REASON_COLUMN` in `infra/agents/win-loss-analyst.prompt.ts`. A CRM other than HubSpot
+   lost reason is a custom property, set it as `LOST_REASON_COLUMN` in
+   `infra/agents/win-loss-analyst.prompt.ts`; the model already extracts every property. A CRM other than HubSpot
    changes the connector, the models' config and the queries together, following
    [`references/crm-audit.md`](references/crm-audit.md).
 4. **Adapt.** Work the sections below in order: _What should not change_ is what you argue back
@@ -148,17 +149,17 @@ is enough.
 _asked_ genuinely live in the operator's head; the agent runs on a cron, so it asks in the pull
 request body, never in a chat.
 
-| Input                                                       | Kind      | How it is answered                                                                                                                                                                           | Why it matters                                                                                                                                                                                         |
-| ----------------------------------------------------------- | --------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| CRM connection (`infra/connectors/crm.ts`)                  | value     | **derived**: `cargo-ai connection connector list` shows the authorized CRM. **asked** only when the workspace holds two                                                                      | The models read one CRM; the wrong one is a clean audit of the wrong deals                                                                                                                             |
-| pipelines                                                   | value     | **derived** by the `pipelines` query: every pipeline is read and listed with its counts. **asked** in the first pull request only when there is more than one: which are the sales pipelines | Partner, renewal and support pipelines close deals too, and they are not the same evidence                                                                                                             |
-| CRM hygiene findings                                        | value     | **derived** by the `lost_reasons` and `contacts_on_deals` queries and **stated**, never asked and never worked around                                                                        | The first decides whether objections can come from the CRM at all. The second says how many closed deals are blind for stakeholder mapping, so every title count is read against the right denominator |
-| lost-reason property (`crm-deals.ts`, `LOST_REASON_COLUMN`) | value     | **derived**: HubSpot's standard `closed_lost_reason` ships. A fill rate of 0 of N with lost deals in the window is the cue to find the custom property and set it in both places             | Most portals record the reason on a custom property. Left wrong, the audit reports a team that never records reasons, and writes no objections, forever                                                |
-| mode                                                        | value     | **derived**: `verify` at `VERIFY_MIN_WON` (20) or more won deals in the window, else `hypothesis`. Never asked                                                                               | The line is a number so nobody argues it per run                                                                                                                                                       |
-| `icp/`, `insight/`, `objection/`, `client/`                 | generated | **derived** from the queries, as the prompt describes; a seeded ICP gets one dated "Verified against the CRM" section on the first pass and is never edited after                            | The disqualifier is the half of an ICP that protects the team's time, and won versus lost is the only place it comes from with evidence                                                                |
-| Slack channel (`infra/agents/win-loss-analyst.ts`)          | value     | **asked**: the channel the digest lands in, locked on the `postMessage` use. An id (`C…`), not a name                                                                                        | Locked so the agent cannot pick a customer shared channel; a digest about lost deals is internal                                                                                                       |
-| repository binding (`infra/agents/win-loss-analyst.ts`)     | value     | **derived**: leave `repository` unset and `plan` fills it from the git origin of the checkout. `cargo-ai cdk check` prints what it resolved: confirm the repository root                     | This is the working tree the harness clones and the only place its output can land                                                                                                                     |
-| LLM connector and model (`infra/connectors/anthropic.ts`)   | value     | **derived**: `cargo-ai connection connector list` shows whether an Anthropic connector is authorized; the agent's `languageModel` is a placeholder to set                                    | A harness does not bring its own model; this is what the monthly run is billed and metered against                                                                                                     |
+| Input                                                     | Kind      | How it is answered                                                                                                                                                                           | Why it matters                                                                                                                                                                                         |
+| --------------------------------------------------------- | --------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| CRM connection (`infra/connectors/crm.ts`)                | value     | **derived**: `cargo-ai connection connector list` shows the authorized CRM. **asked** only when the workspace holds two                                                                      | The models read one CRM; the wrong one is a clean audit of the wrong deals                                                                                                                             |
+| pipelines                                                 | value     | **derived** by the `pipelines` query: every pipeline is read and listed with its counts. **asked** in the first pull request only when there is more than one: which are the sales pipelines | Partner, renewal and support pipelines close deals too, and they are not the same evidence                                                                                                             |
+| CRM hygiene findings                                      | value     | **derived** by the `lost_reasons` and `contacts_on_deals` queries and **stated**, never asked and never worked around                                                                        | The first decides whether objections can come from the CRM at all. The second says how many closed deals are blind for stakeholder mapping, so every title count is read against the right denominator |
+| lost-reason property (`LOST_REASON_COLUMN`)               | value     | **derived**: HubSpot's standard `closed_lost_reason` ships. A fill rate of 0 of N with lost deals in the window is the cue to find the custom property and set it                            | Most portals record the reason on a custom property. Left wrong, the audit reports a team that never records reasons, and writes no objections, forever                                                |
+| mode                                                      | value     | **derived**: `verify` at `VERIFY_MIN_WON` (20) or more won deals in the window, else `hypothesis`. Never asked                                                                               | The line is a number so nobody argues it per run                                                                                                                                                       |
+| `icp/`, `insight/`, `objection/`, `client/`               | generated | **derived** from the queries, as the prompt describes; a seeded ICP gets one dated "Verified against the CRM" section on the first pass and is never edited after                            | The disqualifier is the half of an ICP that protects the team's time, and won versus lost is the only place it comes from with evidence                                                                |
+| Slack channel (`infra/agents/win-loss-analyst.ts`)        | value     | **asked**: the channel the digest lands in, locked on the `postMessage` use. An id (`C…`), not a name                                                                                        | Locked so the agent cannot pick a customer shared channel; a digest about lost deals is internal                                                                                                       |
+| repository binding (`infra/agents/win-loss-analyst.ts`)   | value     | **derived**: leave `repository` unset and `plan` fills it from the git origin of the checkout. `cargo-ai cdk check` prints what it resolved: confirm the repository root                     | This is the working tree the harness clones and the only place its output can land                                                                                                                     |
+| LLM connector and model (`infra/connectors/anthropic.ts`) | value     | **derived**: `cargo-ai connection connector list` shows whether an Anthropic connector is authorized; the agent's `languageModel` is a placeholder to set                                    | A harness does not bring its own model; this is what the monthly run is billed and metered against                                                                                                     |
 
 Checked before moving on, not after the deploy:
 
@@ -193,9 +194,14 @@ it if you still want it, and records why under `## Decisions` in your copy of th
 - **The audit is the queries in the prompt, and nothing else.** (`win-loss-analyst.prompt.ts`) An
   agent that writes its own SQL each month asks a slightly different question each month, and the
   months stop being comparable.
-- **The deals model never extracts an amount.** (`infra/models/crm-deals.ts`) What is not extracted
-  cannot leak into `context/`, which is read by every agent, including the ones that talk to
-  prospects. The contract fails if a money property is picked.
+- **The models pull all the data; the queries filter.** (`infra/models/`) No filter and no column
+  picking in a model's config: a filter there is a second place the question is asked, invisible to
+  anyone reading the queries, and changing it means a redeploy and a re-extraction instead of an
+  edited query. Every query on deals narrows to closed deals itself, because the model holds open
+  deals whose close date is a forecast. The contract checks both.
+- **No query selects an amount.** (`win-loss-analyst.prompt.ts`) The deals carry amounts in storage;
+  nothing reads them, so none reaches `context/`, which is read by every agent, including the ones
+  that talk to prospects. The contract fails if a query mentions one.
 - **The shared models stay identical to the other CRM cookbooks'.** (`infra/models/crm-accounts.ts`,
   `crm-contacts.ts`) That is what lets one copy serve all three; a different config is a slug
   collision at deploy.
