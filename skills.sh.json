@@ -53,7 +53,7 @@
     },
     {
       "title": "Context",
-      "description": "Deployed pipelines that keep what you know current: your website and the market's news, every recorded call, and, once you have a CRM, what won and lost deals say.",
+      "description": "Deployed pipelines that keep context/ current: your website and the news, every recorded call, and won and lost deals.",
       "skills": [
         "web-capture",
         "call-capture",
@@ -62,7 +62,7 @@
     },
     {
       "title": "Fundamentals",
-      "description": "Deployed pipelines that build the base: the account universe from your ICP, a standing score on every account, and, for an early-stage company, the website itself.",
+      "description": "Deployed pipelines that build the base: the account universe, a standing score on every account, and the website.",
       "skills": [
         "tam-building",
         "account-scoring",
@@ -71,14 +71,14 @@
     },
     {
       "title": "Signals",
-      "description": "Deployed pipelines that watch the market for the moment to reach out. Any combination stacks on the same account.",
+      "description": "Deployed pipelines that watch the market for the moment to reach out: who just took a role you sell to.",
       "skills": [
         "new-hire-detection"
       ]
     },
     {
       "title": "Engagement",
-      "description": "Deployed pipelines that hold the conversation with the accounts worth it.",
+      "description": "Deployed pipelines that hold the conversation: an agent answering every lead who replies.",
       "skills": [
         "agentic-engagement"
       ]
@@ -94,7 +94,7 @@
     },
     {
       "title": "CRM",
-      "description": "Deployed pipelines for when a CRM is already in place: keep its records filled and duplicate-free so the engine and the CRM agree.",
+      "description": "Deployed pipelines that keep an existing CRM in step with the engine: records filled and duplicate-free.",
       "skills": [
         "crm-enrichment",
         "crm-deduplication"

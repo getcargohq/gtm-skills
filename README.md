@@ -88,7 +88,7 @@ Rank a list against your profile, then understand the one account before you wal
 
 ### Context
 
-Deployed pipelines that keep what you know current: your website and the market's news, every recorded call, and, once you have a CRM, what won and lost deals say.
+Deployed pipelines that keep context/ current: your website and the news, every recorded call, and won and lost deals.
 
 | Skill | Does | Try saying |
 | --- | --- | --- |
@@ -98,7 +98,7 @@ Deployed pipelines that keep what you know current: your website and the market'
 
 ### Fundamentals
 
-Deployed pipelines that build the base: the account universe from your ICP, a standing score on every account, and, for an early-stage company, the website itself.
+Deployed pipelines that build the base: the account universe, a standing score on every account, and the website.
 
 | Skill | Does | Try saying |
 | --- | --- | --- |
@@ -108,7 +108,7 @@ Deployed pipelines that build the base: the account universe from your ICP, a st
 
 ### Signals
 
-Deployed pipelines that watch the market for the moment to reach out. Any combination stacks on the same account.
+Deployed pipelines that watch the market for the moment to reach out: who just took a role you sell to.
 
 | Skill | Does | Try saying |
 | --- | --- | --- |
@@ -116,7 +116,7 @@ Deployed pipelines that watch the market for the moment to reach out. Any combin
 
 ### Engagement
 
-Deployed pipelines that hold the conversation with the accounts worth it.
+Deployed pipelines that hold the conversation: an agent answering every lead who replies.
 
 | Skill | Does | Try saying |
 | --- | --- | --- |
@@ -134,7 +134,7 @@ Deployed pipelines that run the team: the daily recap, the weekly plan, and one 
 
 ### CRM
 
-Deployed pipelines for when a CRM is already in place: keep its records filled and duplicate-free so the engine and the CRM agree.
+Deployed pipelines that keep an existing CRM in step with the engine: records filled and duplicate-free.
 
 | Skill | Does | Try saying |
 | --- | --- | --- |
