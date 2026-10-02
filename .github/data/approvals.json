@@ -65,7 +65,7 @@
     "demoWorkspace": null,
     "implementations": []
   },
-  "context-seeding": {
+  "web-capture": {
     "state": "to-be-approved",
     "chain": 12,
     "demoWorkspace": null,

@@ -1,6 +1,6 @@
 import { defineConnector } from "@cargo-ai/cdk";
 
-// The model the seeding agent runs on.
+// The model the web scribe runs on.
 //
 // A harness agent does not bring its own model: it runs inside the sandbox
 // with `ANTHROPIC_BASE_URL` pointed at Cargo's proxy and a minted session

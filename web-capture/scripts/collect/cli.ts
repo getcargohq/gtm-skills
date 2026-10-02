@@ -1,5 +1,5 @@
 /**
- * The one way the collectors reach Cargo: its own CLI, which the harness
+ * The one way the collector reaches Cargo: its own CLI, which the harness
  * checkout already has, signed in to the workspace the agent belongs to.
  *
  * `cargo-ai` if it is on PATH, otherwise `npx --yes @cargo-ai/cli`. Every
@@ -13,8 +13,8 @@ import { execFileSync, spawnSync } from "node:child_process";
 export class CliError extends Error {}
 
 /**
- * Something about the run's configuration is wrong: no Cargo session, no
- * TheirStack connection, an unknown flag. Separate from every other error so an entry
+ * Something about the run's configuration is wrong: no Cargo session, a
+ * placeholder domain, an unknown flag. Separate from every other error so an entry
  * point can print it as a message and exit 1.
  */
 export class ConfigError extends Error {}
@@ -94,25 +94,6 @@ export function whoami(): { uuid: string; name: string } {
   return { uuid: workspace.uuid, name: workspace.name };
 }
 
-export type Connector = {
-  uuid: string;
-  slug: string;
-  name: string;
-  integrationSlug: string;
-  isDefault: boolean;
-  useCredits: boolean;
-};
-
-/** Every connector the workspace holds. */
-export function connectors(): Connector[] {
-  const answer = cargo<{ connectors?: Connector[] }>([
-    "connection",
-    "connector",
-    "list",
-  ]);
-  return answer.connectors ?? [];
-}
-
 /**
  * Execute one connector action and return its output. `--wait-until-finished`
  * polls the run to a terminal status; the output of a single-node run is
@@ -131,8 +112,8 @@ export function execute<T = unknown>(
     "action",
     "execute",
     "--wait-until-finished",
-    // The CLI polls every five seconds by default; a pull is a handful of
-    // short calls, so that default would be most of the run time.
+    // The CLI polls every five seconds by default; a run is one or two short
+    // calls, so that default would be most of the run time.
     "--polling-interval",
     "1000",
     "--action",
@@ -152,17 +133,11 @@ export function execute<T = unknown>(
   return answer.runContext?.action as T;
 }
 
-export const sleep = (ms: number): Promise<void> =>
-  new Promise((done) => setTimeout(done, ms));
-
-/** Space out reads: a burst of calls is a 429 storm. */
-export const PACE_MS = Number(process.env["CONTEXT_BUILDING_PACE_MS"] ?? "300");
-
 /**
  * Every argument an entry point accepts, checked before anything runs. A flag
  * it does not know is a stop rather than something to ignore: `--dryrun` was a
- * real run, and `--persona x` without the `=` ran every pull, both while
- * looking exactly like the run that was asked for.
+ * real run, and `--domain x` without the `=` read the configured domain,
+ * both while looking exactly like the run that was asked for.
  */
 export function checkFlags(argv: readonly string[], allowed: string[]): void {
   const unknown = argv.filter(

@@ -11,13 +11,8 @@ import { defineFolder } from "@cargo-ai/cdk";
 // repo. It is also what makes removing a cookbook a bounded operation rather
 // than a hunt.
 //
-// Folders are per-kind. Only the agent folder is declared, because only the
-// agent deploys by default: the persona job models are opt-in (see
-// ../models/persona-jobs.ts), and a folder nothing is filed into is a resource
-// that deploys, shows up in the workspace and rots. Add
-// `defineFolder("context_seeding_models", { kind: "model", name: "Context
-// building" })` here the day the first standing model is declared.
-export const agentsFolder = defineFolder("context_seeding_agents", {
+// Folders are per-kind, and this cookbook deploys one agent, so one folder.
+export const agentsFolder = defineFolder("web_capture_agents", {
   kind: "agent",
-  name: "Context seeding",
+  name: "Web capture",
 });

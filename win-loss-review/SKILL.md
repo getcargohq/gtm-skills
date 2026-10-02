@@ -1,6 +1,6 @@
 ---
 name: win-loss-review
-description: 'Every month the CRM''s closed deals are audited and what they say lands in context/ as one pull request: the ICP verified against won versus lost with a disqualifier, dated insights with counts and denominators, objections from recorded lost reasons, and a client file per closed-won account; a five-line Slack digest says what changed. Never edits a persona, nor the ICP after the first pass. Triggers: "verify our ICP against won and lost deals", "what do closed-lost deals say about who we should not sell to", "keep the context repo current from the CRM every month", "our lost reasons should become objections", "run a monthly win-loss review". Cargo CDK, harness claudeCode, HubSpot, Salesforce, Attio, Slack. Skip when: the context repo is empty and there is no CRM yet, which is context-seeding; or you want one account researched before a call, which is research-account.'
+description: 'Every month the CRM''s closed deals are audited and what they say lands in context/ as one pull request: the ICP verified against won versus lost with a disqualifier, dated insights with counts and denominators, objections from recorded lost reasons, and a client file per closed-won account; a five-line Slack digest says what changed. Never edits a persona, nor the ICP after the first pass. Triggers: "verify our ICP against won and lost deals", "what do closed-lost deals say about who we should not sell to", "keep the context repo current from the CRM every month", "our lost reasons should become objections", "run a monthly win-loss review". Cargo CDK, harness claudeCode, HubSpot, Salesforce, Attio, Slack. Skip when: there is no CRM yet and the context should come from the website, which is web-capture; or you want one account researched before a call, which is research-account.'
 version: "0.1.0"
 compatibility: "Requires @cargo-ai/cli 1.0.89 or later with @cargo-ai/cdk 1.0.67 or later, a Cargo workspace, an authenticated Anthropic connector (the harness runs against Cargo's proxy), an authorized GitHub connector, an authorized Slack connector, an authorized CRM connection (HubSpot in the checked example; Salesforce and Attio adapt one file), and a GTM repository with `context/` and `cadence/` at its root (the shape `cargo-ai cdk init` scaffolds). Nothing here needs a credential in .env, and nothing here reads calls, postings or the website."
 homepage: https://github.com/getcargohq/gtm-skills/tree/main/win-loss-review
@@ -257,7 +257,7 @@ deals closed since the previous one, plus the first pass over the whole window.
 
 ## Composes into
 
-`context-seeding` (this verifies the ICP and personas it seeded and proposes the corrections),
+`web-capture` (this verifies the ICP it seeds from the website and proposes the corrections),
 `account-scoring` (reads the verified `icp/`, disqualifier included), `crm-enrichment` (the
 association rate this reports is what a contact enrichment raises), and any agent with the
 `context` capability.

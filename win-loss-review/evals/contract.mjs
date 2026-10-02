@@ -159,7 +159,7 @@ check("the prompt carries the contract's fixed points and names no other cookboo
     "Exactly five lines", "slack.postMessage",
     "workspace context repository directly",
   ]) assert.ok(winLossAnalystPrompt.toLowerCase().includes(line.toLowerCase()), `prompt lost: ${line}`);
-  for (const word of ["call-capture", "context-seeding", "theirstack", "cadence/log/calls", "job posting"]) {
+  for (const word of ["call-capture", "web-capture", "theirstack", "cadence/log/calls", "job posting"]) {
     assert.ok(!winLossAnalystPrompt.toLowerCase().includes(word), `prompt mentions ${word}: this cookbook reads the CRM and nothing else`);
   }
 });
