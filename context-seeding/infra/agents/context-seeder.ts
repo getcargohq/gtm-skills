@@ -1,6 +1,6 @@
 import { defineAgent } from "@cargo-ai/cdk";
 
-import { contextSeedingPrompt } from "./context-seeding.prompt";
+import { contextSeederPrompt } from "./context-seeder.prompt";
 import { anthropic } from "../connectors/anthropic";
 import { agentsFolder } from "../folders";
 
@@ -52,7 +52,7 @@ import { agentsFolder } from "../folders";
 // those reads to read-only. The one thing it must never do is write the
 // workspace context directly (`cargo-ai context runtime write`): a `context`
 // capability here would be a second write path that skips the pull request.
-export const contextSeeding = defineAgent("context-seeding", {
+export const contextSeeder = defineAgent("context_seeder", {
   name: "Context seeding",
   description:
     "Seeds context/ from the company's public surface and job postings, every claim tagged, as one pull request. Run once by hand or at setup.",
@@ -60,6 +60,6 @@ export const contextSeeding = defineAgent("context-seeding", {
   harness: "claudeCode",
   connector: anthropic,
   languageModel: "claude-sonnet-5", // PLACEHOLDER — your model of choice
-  systemPrompt: contextSeedingPrompt,
+  systemPrompt: contextSeederPrompt,
   folder: agentsFolder,
 });

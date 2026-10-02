@@ -37,20 +37,20 @@ one pull request, re-runnable when the site changes.
 
 Adds 5 resources plus a script bundle.
 
-| File                                     | Resource                         | Role                                                                     |
-| ---------------------------------------- | -------------------------------- | ------------------------------------------------------------------------ |
-| `infra/agents/context-seeding.ts`        | `defineAgent` (claudeCode)       | the seeding agent: model, folder, no trigger, no env                     |
-| `infra/agents/context-seeding.prompt.ts` | (not a resource)                 | its contract: the steps, the two stops and the setup mode, the tags      |
-| `infra/agents/gtm-profile-method.ts`     | (not a resource)                 | the ported GTM profile method, appended to the prompt                    |
-| `infra/connectors/anthropic.ts`          | `defineConnector` (`anthropic`)  | the model the harness runs on, billed and metered                        |
-| `infra/connectors/git.ts`                | `defineConnector` (`github`)     | the clone, branch, push and PR path, resolved by binding                 |
-| `infra/connectors/theirstack.ts`         | `defineConnector` (`theirStack`) | the posting source, bound; own key or Cargo credits                      |
-| `infra/folders/index.ts`                 | `defineFolder`                   | the workspace folder the agent is filed in                               |
-| `infra/models/persona-jobs.ts`           | (registers nothing by default)   | the builder for a standing model per persona, opt-in after the run       |
-| `scripts/collect/jobs.ts`                | (not a resource)                 | the persona pull entrypoint                                              |
-| `scripts/collect/personas.ts`            | (not a resource)                 | the pull spec: titles, exclusions, band, limit, per persona              |
-| `scripts/collect/budget.ts`              | (not a resource)                 | the credit rule                                                          |
-| `scripts/collect/cli.ts`                 | (not a resource)                 | the one way the script reaches Cargo: its CLI, signed in                 |
+| File                                    | Resource                         | Role                                                                |
+| --------------------------------------- | -------------------------------- | ------------------------------------------------------------------- |
+| `infra/agents/context-seeder.ts`        | `defineAgent` (claudeCode)       | the seeding agent: model, folder, no trigger, no env                |
+| `infra/agents/context-seeder.prompt.ts` | (not a resource)                 | its contract: the steps, the two stops and the setup mode, the tags |
+| `infra/agents/gtm-profile-method.ts`    | (not a resource)                 | the ported GTM profile method, appended to the prompt               |
+| `infra/connectors/anthropic.ts`         | `defineConnector` (`anthropic`)  | the model the harness runs on, billed and metered                   |
+| `infra/connectors/git.ts`               | `defineConnector` (`github`)     | the clone, branch, push and PR path, resolved by binding            |
+| `infra/connectors/theirstack.ts`        | `defineConnector` (`theirStack`) | the posting source, bound; own key or Cargo credits                 |
+| `infra/folders/index.ts`                | `defineFolder`                   | the workspace folder the agent is filed in                          |
+| `infra/models/persona-jobs.ts`          | (registers nothing by default)   | the builder for a standing model per persona, opt-in after the run  |
+| `scripts/collect/jobs.ts`               | (not a resource)                 | the persona pull entrypoint                                         |
+| `scripts/collect/personas.ts`           | (not a resource)                 | the pull spec: titles, exclusions, band, limit, per persona         |
+| `scripts/collect/budget.ts`             | (not a resource)                 | the credit rule                                                     |
+| `scripts/collect/cli.ts`                | (not a resource)                 | the one way the script reaches Cargo: its CLI, signed in            |
 
 ## The two halves, and where they land
 

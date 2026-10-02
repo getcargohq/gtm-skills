@@ -487,8 +487,8 @@
     {
       "name": "context-seeding",
       "kind": "cookbook",
-      "job": "Seed the knowledge layer at context/ from the company's public surface alone: positioning, value proposition and offerings, an inferred ICP with a disqualifier, three to five personas from job postings with title detection lists, jobs to be done, competitors and the status quo, clients and proof from the case studies, and signal candidates, every sentence tagged receipted, inferred or unknown, as one pull request. Runs once by hand, or at workspace setup with no questions asked.",
-      "description": "Seed the knowledge layer at context/ from the company's public surface alone: positioning, value proposition and offerings, an inferred ICP with a disqualifier, three to five personas from job postings with title detection lists, jobs to be done, competitors and the status quo, clients and proof from the case studies, and signal candidates, every sentence tagged receipted, inferred or unknown, as one pull request. Runs once by hand, or at workspace setup with no questions asked. Triggers: \"our context repo is empty\", \"seed the context from our website\", \"set up the workspace context from acme.com\", \"write a first ICP and personas from our public pages\", \"derive our personas from job postings\", \"we have no CRM yet, start the knowledge base from what is public\". Cargo CDK, defineAgent, harness claudeCode, TheirStack, GitHub, cargo-ai CLI reads, context. Skip when: you want one ICP or persona file written by hand right now, which is cargo-context's job with nothing deployed; or you want the ICP verified against won and lost deals, which is crm-context.",
+      "job": "Seed the knowledge layer at context/ from the company's public surface alone: positioning and offerings, an inferred ICP with a disqualifier, three to five personas from job ads with title detection lists, jobs to be done, competitors and the status quo, clients and proof from case studies, and signal candidates, every sentence tagged receipted, inferred or unknown, as one pull request. Runs once, by hand or at workspace setup.",
+      "description": "Seed the knowledge layer at context/ from the company's public surface alone: positioning and offerings, an inferred ICP with a disqualifier, three to five personas from job ads with title detection lists, jobs to be done, competitors and the status quo, clients and proof from case studies, and signal candidates, every sentence tagged receipted, inferred or unknown, as one pull request. Runs once, by hand or at workspace setup. Triggers: \"our context repo is empty\", \"seed the context from our website\", \"set up the workspace context from our domain\", \"write a first ICP and personas from our public pages\", \"derive our personas from job ads\", \"we have no CRM yet\". Cargo CDK, harness claudeCode, GitHub. Skip when: one ICP or persona file written by hand now, which is cargo-context; or the ICP verified against won and lost deals, which is win-loss-review.",
       "version": "0.1.0",
       "homepage": "https://github.com/getcargohq/gtm-skills/tree/main/context-seeding",
       "group": "Make it run forever",
@@ -546,35 +546,35 @@
         {
           "id": "no-persona-pull",
           "when": "No TheirStack connection and no appetite for one",
-          "how": "Delete `infra/connectors/theirstack.ts` and step 5's pull from `context-seeding.prompt.ts`; the personas are written from the careers pages",
+          "how": "Delete `infra/connectors/theirstack.ts` and step 5's pull from `context-seeder.prompt.ts`; the personas are written from the careers pages",
           "cost": "Pains, KPIs and responsibility language come from postings, not from titles. The persona files carry `[I]` where the postings would have put `[R]`, and the messaging built on them is weaker for it"
         },
         {
           "id": "deeper-crawl",
           "when": "You want objections and alternatives from what buyers say in public, not only what the site says",
-          "how": "Add review sites and communities to step 2's crawl list in `context-seeding.prompt.ts`, landing in `objection/` and `alternative/",
+          "how": "Add review sites and communities to step 2's crawl list in `context-seeder.prompt.ts`, landing in `objection/` and `alternative/",
           "cost": "Public complaints are one source, often one reviewer. Everything from them stays `hypothesis`, and the objection files will read as authoritative to an agent that does not check the tag"
         },
         {
           "id": "two-stops-into-one",
           "when": "The operator is not available twice and accepts the drafted personas as they are",
-          "how": "Merge step 6's questions into step 4 in `context-seeding.prompt.ts",
+          "how": "Merge step 6's questions into step 4 in `context-seeder.prompt.ts",
           "cost": "The persona merge/split question is answered before the postings were read, so it is answered about candidates, not drafts. Expect one round of corrections on the pull request instead"
         }
       ],
       "shouldNotChange": [
-        "**The public surface is the only source.** (`context-seeding.prompt.ts`) No CRM, no calls, no inbox, no Slack, and no mention of them to the agent. Each is another cookbook's evidence; wire one in here and this agent stops being the thing that runs at setup with nothing connected, and starts mixing a hypothesis with a verification nobody can tell apart afterwards.",
-        "**The one-PR write path.** (`infra/agents/context-seeding.ts`) The agent never writes the workspace context directly and has no `context` capability: the repository is the source and `cargo-ai cdk deploy` syncs it. Give it `cargo-ai context runtime write` and the knowledge layer has two sources of truth; the next deploy overwrites whichever one a human did not see.",
+        "**The public surface is the only source.** (`context-seeder.prompt.ts`) No CRM, no calls, no inbox, no Slack, and no mention of them to the agent. Each is another cookbook's evidence; wire one in here and this agent stops being the thing that runs at setup with nothing connected, and starts mixing a hypothesis with a verification nobody can tell apart afterwards.",
+        "**The one-PR write path.** (`infra/agents/context-seeder.ts`) The agent never writes the workspace context directly and has no `context` capability: the repository is the source and `cargo-ai cdk deploy` syncs it. Give it `cargo-ai context runtime write` and the knowledge layer has two sources of truth; the next deploy overwrites whichever one a human did not see.",
         "**The agent does not pull; the script does.** (`scripts/collect/jobs.ts`) A fetch loop an agent re-derives is a fetch loop that silently changes shape, and the pull is the one spend in this run. The budget is read and computed, never estimated, and `--over-budget` is the operator's word.",
         "**Size is filtered at pull time through `companyFields`, never after.** (`scripts/collect/personas.ts`, `infra/models/persona-jobs.ts`) Billing is per returned posting. Filter after the pull and every row outside the band was paid for and thrown away.",
-        "**Derive before you ask, and the three-line confirmation stays three lines.** (`context-seeding.prompt.ts`) More than about four questions at one stop means a lookup was skipped. In setup mode the questions move to the pull request; they never disappear.",
-        "**Personas ship with detection lists or are not done.** (`context-seeding.prompt.ts`) A persona file without a title include and exclude list cannot be used by any classifier, scorer or router.",
-        "**Persona files are product-free except one final derived section.** (`context-seeding.prompt.ts`) Everything above \"How we land\" describes the job, not what is sold to it.",
-        "**Everything is a hypothesis, and the tags say so.** (`context-seeding.prompt.ts`) `[R]` only for what a page states, with the URL; `confidence: hypothesis` everywhere; missing evidence is never contradicting evidence. Drop the tags and the cookbook that later verifies against the CRM cannot tell what it is correcting.",
-        "**Idempotent: seeded domains are skipped, and the skip list is printed first.** (`context-seeding.prompt.ts`) A domain with two or more entries is left alone entirely. Drop the rule and a re-run overwrites the ICP a human refined.",
+        "**Derive before you ask, and the three-line confirmation stays three lines.** (`context-seeder.prompt.ts`) More than about four questions at one stop means a lookup was skipped. In setup mode the questions move to the pull request; they never disappear.",
+        "**Personas ship with detection lists or are not done.** (`context-seeder.prompt.ts`) A persona file without a title include and exclude list cannot be used by any classifier, scorer or router.",
+        "**Persona files are product-free except one final derived section.** (`context-seeder.prompt.ts`) Everything above \"How we land\" describes the job, not what is sold to it.",
+        "**Everything is a hypothesis, and the tags say so.** (`context-seeder.prompt.ts`) `[R]` only for what a page states, with the URL; `confidence: hypothesis` everywhere; missing evidence is never contradicting evidence. Drop the tags and the cookbook that later verifies against the CRM cannot tell what it is correcting.",
+        "**Idempotent: seeded domains are skipped, and the skip list is printed first.** (`context-seeder.prompt.ts`) A domain with two or more entries is left alone entirely. Drop the rule and a re-run overwrites the ICP a human refined.",
         "**No persona model deploys by default.** (`infra/models/persona-jobs.ts`) A model runs at creation and bills `limit` postings before anyone confirmed the persona.",
         "**`scripts/context-seeding/package.json` stays.** (`scripts/package.json`) The CDK loader imports every `.ts` under the project root except directories carrying one; delete it and `cargo-ai cdk plan` calls TheirStack on every plan.",
-        "**The harness root stays the repository root.** (`infra/agents/context-seeding.ts`) That is where `node_modules` is, so it is the only place `npx tsx …/collect/jobs.ts` resolves. `cargo-ai cdk check` prints the resolved binding; a line ending `in infra/` means the collector cannot run."
+        "**The harness root stays the repository root.** (`infra/agents/context-seeder.ts`) That is where `node_modules` is, so it is the only place `npx tsx …/collect/jobs.ts` resolves. `cargo-ai cdk check` prints the resolved binding; a line ending `in infra/` means the collector cannot run."
       ],
       "doneWhen": [
         "`npx tsx scripts/context-seeding/collect/jobs.ts --dry-run` printed a per-persona limit and the reason, read from the workspace, and nothing in this folder states a credit amount",
@@ -589,7 +589,7 @@
         "after merging and `cargo-ai cdk deploy`, a seeded `context/` file is readable from the workspace context repository and an agent with the `context` capability quotes it back with its tag"
       ],
       "cost": "The crawl is the harness's own fetches. The persona pull is the one deliberate spend and it is per\nreturned posting: `scripts/context-seeding/collect/jobs.ts` reads the price and the balance at run\ntime and prints what each pull will cost before it runs, and a TheirStack connection carrying its\nown key bills TheirStack's plan rather than Cargo credits. Three to five personas at the default\nper-persona limit is the whole run. The recurring cost is nothing: it runs once, and again by hand\nwhen the site changes.",
-      "composesInto": "`crm-context` (verifies the seeded ICP and personas against won and lost deals, and proposes the\ncorrections), `account-scoring` (reads the `icp/` this writes, disqualifier included),\n`monitor-buying-signals` and `tam-building` (the `signal/` candidates and the ICP band), and any\nagent with the `context` capability."
+      "composesInto": "`win-loss-review` (verifies the seeded ICP and personas against won and lost deals, and proposes the\ncorrections), `account-scoring` (reads the `icp/` this writes, disqualifier included),\n`monitor-buying-signals` and `tam-building` (the `signal/` candidates and the ICP band), and any\nagent with the `context` capability."
     },
     {
       "name": "crm-deduplication",

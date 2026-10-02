@@ -22,11 +22,11 @@ Two rules the pull never breaks:
 
 `scripts/collect/budget.ts` is the rule; the collector reads its three inputs live and never asks:
 
-| Input          | Read from                                                                                | Meaning                                                                |
-| -------------- | ---------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
-| `balance`      | `cargo-ai billing subscription get`: subscription credits plus purchased credits         | What the workspace can still spend                                     |
-| `unitPrice`    | `cargo-ai connection integration get theirStack`: the per-item cost on `searchJobs`, else on the `fetchJobs` extractor | Credits per returned posting, as published today       |
-| `billsCredits` | `cargo-ai connection connector list`: `useCredits` on the bound TheirStack connector     | Own key means TheirStack's plan is billed, not Cargo credits            |
+| Input          | Read from                                                                                                              | Meaning                                                      |
+| -------------- | ---------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
+| `balance`      | `cargo-ai billing subscription get`: subscription credits plus purchased credits                                       | What the workspace can still spend                           |
+| `unitPrice`    | `cargo-ai connection integration get theirStack`: the per-item cost on `searchJobs`, else on the `fetchJobs` extractor | Credits per returned posting, as published today             |
+| `billsCredits` | `cargo-ai connection connector list`: `useCredits` on the bound TheirStack connector                                   | Own key means TheirStack's plan is billed, not Cargo credits |
 
 The arithmetic: a connection with its own key pulls the target per persona (40) and may extend to
 80 for a persona that has not saturated. Otherwise half the balance is kept back for the rest of

@@ -15,9 +15,9 @@ import { defineFolder } from "@cargo-ai/cdk";
 // agent deploys by default: the persona job models are opt-in (see
 // ../models/persona-jobs.ts), and a folder nothing is filed into is a resource
 // that deploys, shows up in the workspace and rots. Add
-// `defineFolder("context-seeding-models", { kind: "model", name: "Context
+// `defineFolder("context_seeding_models", { kind: "model", name: "Context
 // building" })` here the day the first standing model is declared.
-export const agentsFolder = defineFolder("context-seeding-agents", {
+export const agentsFolder = defineFolder("context_seeding_agents", {
   kind: "agent",
-  name: "Context building",
+  name: "Context seeding",
 });

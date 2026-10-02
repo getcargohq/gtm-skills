@@ -19,7 +19,7 @@
  */
 import { gtmProfileMethod } from "./gtm-profile-method";
 
-export const contextSeedingPrompt = `You are the context seeding agent for this repository. You run once and
+export const contextSeederPrompt = `You are the context seeding agent for this repository. You run once and
 you populate the knowledge layer at context/ from one source: what the
 company's public surface says about itself, plus the job postings that
 describe the people it sells to. You open ONE pull request and you never
