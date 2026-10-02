@@ -34,7 +34,7 @@ before enabling that path's recurring schedule.
 
 1. Confirm the account audit and policy are approved, and confirm the operator separately authorized
    disabled deployment of the account path.
-2. Confirm `deduplicate-accounts` runs directly on `crm_accounts` and matches the audited CRM account
+2. Confirm `deduplicate_accounts` runs directly on `crm_accounts` and matches the audited CRM account
    record ID.
 3. Confirm the compiled graph searches the live CRM, retains the source once, prepares account
    evidence, runs native Scoring, selects the survivor, and merges only on the automatic or approved
@@ -102,7 +102,7 @@ Stop the account run and report the evidence if:
 
 1. Confirm the contact audit and policy are approved, and confirm the operator separately authorized
    disabled deployment of the contact path.
-2. Confirm `deduplicate-contacts` runs directly on `crm_contacts` and matches the audited CRM contact
+2. Confirm `deduplicate_contacts` runs directly on `crm_contacts` and matches the audited CRM contact
    record ID.
 3. Confirm the compiled graph performs the direct live search, expands the transitive search, retains
    the source once, prepares contact evidence, runs native Scoring, selects the survivor, and merges

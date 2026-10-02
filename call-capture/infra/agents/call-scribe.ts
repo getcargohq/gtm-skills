@@ -22,7 +22,7 @@ import { agentsFolder } from "../folders";
 // resource now holds the schedule, the repository binding and the
 // instructions, declared in the same project as everything else the workspace
 // runs.
-export const callScribe = defineAgent("call-scribe", {
+export const callScribe = defineAgent("call_scribe", {
   name: "Call scribe",
   description:
     "Collects yesterday's call recordings into the cadence layer, scribes them, and opens one reviewable pull request.",

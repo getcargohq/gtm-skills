@@ -54,7 +54,7 @@ Illustrative output, fictional records:
 | Tailspin (tailspin.example)   | 18          | C          | Consumer mobile game studio. B2C is an ICP disqualifier, which caps the score at 20.                           |
 
 Each record also gets `cargo_last_updated_at`, so the Monday sweep skips it for three months; after the next
-model refresh Northwind lands in `tier-a-accounts` and Tailspin in `tier-c-accounts`.
+model refresh Northwind lands in `tier_a_accounts` and Tailspin in `tier_c_accounts`.
 
 ## Put it in your project
 

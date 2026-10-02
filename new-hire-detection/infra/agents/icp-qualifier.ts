@@ -30,7 +30,7 @@ import { agentsFolder } from "../folders";
 // No writable model, no CRM and no Slack in reach. The agent hands back a
 // verdict and the play acts on it: the gate is a branch in the workflow, never
 // a choice the agent makes by writing or posting.
-export const icpQualifier = defineAgent("new-hire-icp-qualifier", {
+export const icpQualifier = defineAgent("new_hire_icp_qualifier", {
   color: "blue",
   connector: anthropic,
   languageModel: "claude-sonnet-4-5", // PLACEHOLDER — your model of choice

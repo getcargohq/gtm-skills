@@ -61,8 +61,8 @@ assert.equal(
   "the model must not carry a schedule: the cadence is added when opening up, and deleting a live one does not clear it",
 );
 
-const play = byId.get("play:route-new-hires");
-assert.ok(play, "play:route-new-hires must exist");
+const play = byId.get("play:route_new_hires");
+assert.ok(play, "play:route_new_hires must exist");
 assert.equal(play.spec.isEnabled, false, "the play must ship disabled");
 assert.equal(play.spec.runCreationRule, "noConcurrency");
 assert.deepEqual(
@@ -120,7 +120,7 @@ const agent = findOne(
   (node) => node.kind === "agent",
   "exactly one agent: the qualifier",
 );
-assert.equal(agent.agentUuid?.resourceId, "agent:new-hire-icp-qualifier");
+assert.equal(agent.agentUuid?.resourceId, "agent:new_hire_icp_qualifier");
 assert.equal(
   guardElse?.uuid,
   agent.uuid,

@@ -24,8 +24,8 @@ flowchart LR
 | Resource             | Kind        | Purpose                                                |
 | -------------------- | ----------- | ------------------------------------------------------ |
 | `crm_accounts`       | Model       | Direct CRM company extract                             |
-| `account-enrichment` | Custom tool | Select one company enrichment route without CRM access |
-| `enrich-accounts`    | Play        | Fill approved company blanks and stamp freshness       |
+| `account_enrichment` | Custom tool | Select one company enrichment route without CRM access |
+| `enrich_accounts`    | Play        | Fill approved company blanks and stamp freshness       |
 
 The starting HubSpot mapping covers `linkedin_company_id`, `name`, `domain`, `website`,
 `linkedin_company_page`, and `numberofemployees`. Every business-field write is blank-only. The
@@ -59,8 +59,8 @@ flowchart LR
 | `crm_contacts`                   | Model             | Direct CRM contact extract                                    |
 | Find Email                       | Cargo-native tool | Resolve an email for a known LinkedIn profile                 |
 | Find LinkedIn Profile from Email | Cargo-native tool | Resolve a LinkedIn profile for a known email                  |
-| `contact-linkedin-enrichment`    | Custom tool       | Enrich a known LinkedIn profile without CRM access            |
-| `enrich-contacts`                | Play              | Gate the three contact tools and fill approved contact blanks |
+| `contact_linkedin_enrichment`    | Custom tool       | Enrich a known LinkedIn profile without CRM access            |
+| `enrich_contacts`                | Play              | Gate the three contact tools and fill approved contact blanks |
 
 ### Contact route behavior
 
@@ -72,7 +72,7 @@ flowchart LR
 | Neither            | None                             | No                         | No                         |
 
 Explicit branches compile the custom tool into three mutually exclusive call nodes. They all target
-the same `contact-linkedin-enrichment` resource. Successful writes fill only blank `email`,
+the same `contact_linkedin_enrichment` resource. Successful writes fill only blank `email`,
 `linkedin_person_id`, `linkedin_profile_url`, and `jobtitle` values, then stamp
 `cargo_last_enriched_at` and `cargo_enrichment_status=succeeded`.
 

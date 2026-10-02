@@ -38,7 +38,7 @@ The account path consists of:
 It also reads `infra/scripts/common/`, which both paths share. Adapt matching and survivor policy in
 `infra/scripts/accounts/policy.ts`; the rest of `accounts/` is machinery that reads it.
 
-`crm_accounts` must remain a direct CRM company extract. `deduplicate-accounts` owns the live
+`crm_accounts` must remain a direct CRM company extract. `deduplicate_accounts` owns the live
 company search, evidence score, Human Review, and every company merge.
 
 ### Account search and score
@@ -124,7 +124,7 @@ The contact path consists of:
 It also reads `infra/scripts/common/`, which both paths share. Adapt generic-email and survivor
 policy in `infra/scripts/contacts/policy.ts`; the rest of `contacts/` is machinery that reads it.
 
-`crm_contacts` must remain a direct CRM contact extract. `deduplicate-contacts` owns both live
+`crm_contacts` must remain a direct CRM contact extract. `deduplicate_contacts` owns both live
 contact searches, evidence score, optional Human Review, and every contact merge.
 
 ### Contact search and score

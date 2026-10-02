@@ -266,7 +266,7 @@ const taskToContact = "HUBSPOT_DEFINED:204";
 // they moved, and that record is updated onto the new account instead of a
 // second contact being created. Ends at the CRM write: nothing is sent.
 const routeNewHire = defineWorkflow(
-  "route-new-hire",
+  "route_new_hire",
   {
     // The `fetchLeadSearch` columns this workflow reads. Confirm them against
     // the live model after the first sync (`cargo-ai storage column list`).
@@ -660,7 +660,7 @@ const routeNewHire = defineWorkflow(
 // Ships disabled. Enabling is the last yes after the pilot of ten, not an
 // input. Enable, then execute once: `changeKinds: ["added"]` does not
 // backfill rows that landed while the play was off.
-export const routeNewHires = definePlay("route-new-hires", {
+export const routeNewHires = definePlay("route_new_hires", {
   description:
     "Routes each person who just took a target role into the CRM by what the CRM already holds: qualify and create, alert the deal owner, have the CSM welcome them at a customer, or add them to a known account.",
   folder: playsFolder,

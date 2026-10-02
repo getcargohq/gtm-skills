@@ -8,7 +8,7 @@ import { toolsFolder } from "../folders/crm-enrichment";
 // There is no CRM connector here on purpose: a tool that writes to a CRM is a
 // tool nobody can reuse, and the write policy belongs to the play that owns it.
 const enrichCompanyData = defineWorkflow(
-  "account-enrichment-workflow",
+  "account_enrichment_workflow",
   {
     input: z.object({
       linkedinUrlOrHandle: z.string().optional(),
@@ -65,7 +65,7 @@ const enrichCompanyData = defineWorkflow(
   },
 );
 
-export const accountEnrichment = defineTool("account-enrichment", {
+export const accountEnrichment = defineTool("account_enrichment", {
   folder: toolsFolder,
   workflow: enrichCompanyData,
   name: "Account enrichment",

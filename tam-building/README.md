@@ -27,10 +27,10 @@ then have an agent tier every company in it against a rubric your team owns.
 flowchart TD
     count["aiArk.countCompanies<br/>free, same filters, run at design time"]
     model["tam_companies<br/>aiArk.fetchCompanies · the ICP filter · limit"]
-    trigger["tier-companies trigger<br/>never tiered, or stamp older than six months"]
-    agent["tam-tier-analyst<br/>rubric from context · webSearch for one doubt"]
+    trigger["tier_companies trigger<br/>never tiered, or stamp older than six months"]
+    agent["tam_tier_analyst<br/>rubric from context · webSearch for one doubt"]
     write["tier · rationale · evidence · tiered_at<br/>written back onto the row"]
-    segments["tam-tier-a · tam-tier-b · tam-tier-c · tam-disqualified"]
+    segments["tam_tier_a · tam_tier_b · tam_tier_c · tam_disqualified"]
 
     count -.->|"shapes"| model
     model --> trigger --> agent --> write --> segments
@@ -63,8 +63,8 @@ flowchart TD
    play is still disabled so you can confirm column names. Enable it and run it
    once: `changeKinds: ["added"]` will not backfill rows that landed while it
    was off. After that, each new sync is enrolled on the next tick.
-6. **Work the segments.** `tam-tier-a` is the rep queue, `tam-tier-b` is the
-   sequence, `tam-tier-c` is in-market but not in-motion, `tam-disqualified` is
+6. **Work the segments.** `tam_tier_a` is the rep queue, `tam_tier_b` is the
+   sequence, `tam_tier_c` is in-market but not in-motion, `tam_disqualified` is
    the suppression list with a written reason attached to every row in it.
 
 Adds a model, an agent, a play, four segments, and the folders they file into.
@@ -90,7 +90,7 @@ there.
 
 ## Why the agent cannot write
 
-`tam-tier-analyst` carries no model in `uses`. It hands back
+`tam_tier_analyst` carries no model in `uses`. It hands back
 `{tier, rationale, evidence_url}` and the play persists it. Give the agent a
 writable model and an untiered row could be a failed run, a silent skip, or a
 judgment it chose not to record, with no way to tell which. The play's write is

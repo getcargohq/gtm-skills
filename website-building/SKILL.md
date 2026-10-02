@@ -170,7 +170,7 @@ it if you still want it, and records why under `## Decisions` in your copy of th
 
 ## Done when
 
-- `node --import tsx evals/contract.mjs` passes: one app in the `website-building-apps` folder
+- `node --import tsx evals/contract.mjs` passes: one app in the `website_building_apps` folder
   with a `www` hostname and a static-export build, and either no domain or an adopted domain whose
   `dnsRecords` holds the app's `domainRecords` and whose apex forwards to `www`
 - `npm ci && npm run check && npm run build` in the app writes `dist/index.html`,

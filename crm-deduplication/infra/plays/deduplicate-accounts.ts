@@ -22,7 +22,7 @@ const reviewTimeoutMilliseconds = 24 * 60 * 60 * 1000;
 
 // One CRM account row in, one terminal outcome out.
 const deduplicateCrmAccount = defineWorkflow(
-  "deduplicate-crm-account",
+  "deduplicate_crm_account",
   {
     input: z.object({
       hs_object_id: z.string(),
@@ -171,7 +171,7 @@ ${evidence.evidenceSummary}`,
 // Disabled, serial, and capped at 15 rows. This play merges CRM records, so the
 // pilot stays small enough for a human to verify every survivor by hand, and
 // only an approved pilot lifts any of the three.
-export const deduplicateAccounts = definePlay("deduplicate-accounts", {
+export const deduplicateAccounts = definePlay("deduplicate_accounts", {
   folder: playsFolder,
   model: crmAccounts,
   workflow: deduplicateCrmAccount,

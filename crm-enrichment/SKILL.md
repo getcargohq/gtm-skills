@@ -35,8 +35,8 @@ authorize the other.
 
 ### Path 1: Account enrichment
 
-`enrich-accounts` keeps approved company identity and firmographic fields filled. It calls
-`account-enrichment`, selects the LinkedIn company route or domain fallback, and writes approved
+`enrich_accounts` keeps approved company identity and firmographic fields filled. It calls
+`account_enrichment`, selects the LinkedIn company route or domain fallback, and writes approved
 blanks to the triggering CRM account. A row takes only one provider route.
 
 The starting HubSpot destinations are `linkedin_company_id`, `name`, `domain`, `website`,
@@ -44,7 +44,7 @@ The starting HubSpot destinations are `linkedin_company_id`, `name`, `domain`, `
 
 ### Path 2: Contact enrichment
 
-`enrich-contacts` is one play calling three gated tool resources:
+`enrich_contacts` is one play calling three gated tool resources:
 
 1. Cargo-native **Find Email** runs only when LinkedIn is present and email is blank.
 2. Cargo-native **Find LinkedIn Profile from Email** runs only when email is present and LinkedIn
@@ -123,7 +123,7 @@ and [`references/run.md`](references/run.md). Walk the matching path in
 ### Account path setup
 
 Verify the live CRM company schema and both LinkedIn company actions. Approve the account field
-contract before adapting `crm_accounts`, `account-enrichment`, or `enrich-accounts`.
+contract before adapting `crm_accounts`, `account_enrichment`, or `enrich_accounts`.
 
 ### Contact path setup
 
@@ -194,7 +194,7 @@ selected path's field contract, target population, cadence, or spend.
 | `contact_fields`        | The approved person contract differs from the starting fields | Change custom tool outputs, contact mappings, blank filters, and transformations together | Every added field expands schema and write review          |
 | `contact_eligibility`   | Only a governed contact subset should be enriched             | Intersect the contact play filter with approved lifecycle, tier, or ownership conditions  | Narrower scope reduces coverage and paid calls             |
 | `native_tool_contracts` | The deployed native tools expose different schemas            | Update each `toolRef`, call payload, and result access from the verified live schema      | A guessed path can create paid calls with no usable result |
-| `profile_provider`      | The workspace uses an equivalent approved profile action      | Replace the provider call inside `contact-linkedin-enrichment` and remap its output       | Coverage, fields, and unit price change                    |
+| `profile_provider`      | The workspace uses an equivalent approved profile action      | Replace the provider call inside `contact_linkedin_enrichment` and remap its output       | Coverage, fields, and unit price change                    |
 
 Keep every optional provider field as its own decision row. State the live unit price and expected
 fill rate before recommending a paid route.
@@ -220,14 +220,14 @@ fill rate before recommending a paid route.
 
 - **LinkedIn first, domain fallback.** One account takes exactly one provider route. Rows without
   either identifier make no paid call.
-- **One account tool and one account play.** `account-enrichment` owns provider routing;
-  `enrich-accounts` owns the only company write.
+- **One account tool and one account play.** `account_enrichment` owns provider routing;
+  `enrich_accounts` owns the only company write.
 - **Account eligibility does not require a blank destination.** Populated stale records remain
   eligible for an explicitly approved refresh policy.
 
 ### Path 2: Contact invariants
 
-- **One contact play and three tool resources.** Keep contact orchestration in `enrich-contacts` and
+- **One contact play and three tool resources.** Keep contact orchestration in `enrich_contacts` and
   use only Find Email, Find LinkedIn Profile from Email, and Contact LinkedIn Enrichment.
 - **Real branch gating.** Find Email runs only for LinkedIn-only rows. Find LinkedIn Profile from
   Email runs only for email-only rows. Contact LinkedIn Enrichment runs only with a LinkedIn URL.

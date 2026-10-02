@@ -18,7 +18,7 @@ const byId = new Map(resources().map((resource) => [resource.id, resource]));
 assert.ok(byId.get("connector:github"), "defineConnector(github) must exist");
 assert.ok(byId.get("connector:slack"), "defineConnector(slack) must exist");
 
-const agent = byId.get("agent:ask-cargo");
+const agent = byId.get("agent:ask_cargo");
 assert.ok(agent, "defineAgent(ask-cargo) must exist");
 assert.equal(
   agent.spec.harnessSlug,

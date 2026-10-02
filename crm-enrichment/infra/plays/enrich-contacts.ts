@@ -21,7 +21,7 @@ const findLinkedinProfileFromEmail = toolRef<{ linkedin_url?: string }>(
 );
 
 const enrichCrmContact = defineWorkflow(
-  "enrich-crm-contact",
+  "enrich_crm_contact",
   {
     input: z.object({
       hs_object_id: z.string(),
@@ -210,7 +210,7 @@ const enrichCrmContact = defineWorkflow(
 
 // Blank HubSpot strings surface as either NULL or empty in the Cargo extract.
 // Every string blank test below pairs isNull with isEmpty.
-export const enrichContacts = definePlay("enrich-contacts", {
+export const enrichContacts = definePlay("enrich_contacts", {
   folder: playsFolder,
   model: crmContacts,
   workflow: enrichCrmContact,

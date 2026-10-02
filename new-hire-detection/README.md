@@ -21,8 +21,8 @@ flowchart TD
 | Resource                                            | Kind       | Purpose                                                   |
 | --------------------------------------------------- | ---------- | --------------------------------------------------------- |
 | `new_hires`                                         | Model      | The Sales Navigator job-change search, one row per person |
-| `new-hire-icp-qualifier`                            | Agent      | Judges the company against `context/icp.md`               |
-| `route-new-hires`                                   | Play       | Qualifies each added person and posts the ones that fit   |
+| `new_hire_icp_qualifier`                            | Agent      | Judges the company against `context/icp.md`               |
+| `route_new_hires`                                   | Play       | Qualifies each added person and posts the ones that fit   |
 | `linkedin`, `sales_navigator`, `anthropic`, `slack` | Connectors | Bound to the workspace defaults; nothing is created       |
 
 ## Placeholders (edit before deploy)

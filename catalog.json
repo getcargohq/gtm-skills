@@ -22,7 +22,7 @@
       ],
       "example": {
         "prompt": "Score every HubSpot company against the ICP in our context repo and put the tier and the reason on the record, re-checking weekly.",
-        "output": "| Company (domain)              | cargo_score | cargo_tier | cargo_rationale                                                                                                |\n| ----------------------------- | ----------- | ---------- | -------------------------------------------------------------------------------------------------------------- |\n| Northwind (northwind.example) | 86          | A          | 420-person B2B SaaS in the US running HubSpot and Snowflake. Matches the ICP on segment, size band and stack.  |\n| Fabrikam (fabrikam.example)   | 58          | B          | Right industry and region, but 60 employees sits below the ICP's 100–2,000 size band. No disqualifier applies. |\n| Tailspin (tailspin.example)   | 18          | C          | Consumer mobile game studio. B2C is an ICP disqualifier, which caps the score at 20.                           |\n\nEach record also gets `cargo_last_updated_at`, so the Monday sweep skips it for three months; after the next\nmodel refresh Northwind lands in `tier-a-accounts` and Tailspin in `tier-c-accounts`."
+        "output": "| Company (domain)              | cargo_score | cargo_tier | cargo_rationale                                                                                                |\n| ----------------------------- | ----------- | ---------- | -------------------------------------------------------------------------------------------------------------- |\n| Northwind (northwind.example) | 86          | A          | 420-person B2B SaaS in the US running HubSpot and Snowflake. Matches the ICP on segment, size band and stack.  |\n| Fabrikam (fabrikam.example)   | 58          | B          | Right industry and region, but 60 employees sits below the ICP's 100–2,000 size band. No disqualifier applies. |\n| Tailspin (tailspin.example)   | 18          | C          | Consumer mobile game studio. B2C is an ICP disqualifier, which caps the score at 20.                           |\n\nEach record also gets `cargo_last_updated_at`, so the Monday sweep skips it for three months; after the next\nmodel refresh Northwind lands in `tier_a_accounts` and Tailspin in `tier_c_accounts`."
       },
       "state": "to-be-approved",
       "chain": 1,
@@ -650,12 +650,12 @@
         "`node --import tsx evals/contract.mjs`, `cargo-ai cdk types`, `cargo-ai cdk check`, and `cargo-ai cdk plan` pass after adaptation",
         "every selected play is disabled, `noConcurrency`, and limited to 15 CRM rows before its pilot",
         "the account audit reconciles company identifier coverage, mutually exclusive classes, conflicts, survivor evidence, and proposed merge IDs to the source total",
-        "`deduplicate-accounts` runs directly on `crm_accounts` and searches companies live",
+        "`deduplicate_accounts` runs directly on `crm_accounts` and searches companies live",
         "its graph contains preparation, native Scoring, the guarded Branch, native Human Review, and CRM merges only on automatic or approved paths",
         "automatic merge requires exact shared LinkedIn company ID and every account conflict guard",
         "every account survivor and absorbed company ID is verified in the CRM",
         "the contact audit reconciles source totals, person identifier coverage, unique candidate clusters, conflicts, survivor evidence, and proposed merge IDs, and reports overlapping matched classes separately",
-        "`deduplicate-contacts` runs directly on `crm_contacts` and performs both direct and transitive live searches",
+        "`deduplicate_contacts` runs directly on `crm_contacts` and performs both direct and transitive live searches",
         "its graph contains preparation, native Scoring, the guarded Branch, optional native Human Review, and CRM merges only on automatic or approved paths",
         "automatic merge requires one approved high-confidence class plus every global contact guard",
         "the merge is the final CRM write, and every contact survivor and absorbed ID is verified in the CRM"
@@ -808,7 +808,7 @@
         {
           "id": "profile_provider",
           "when": "The workspace uses an equivalent approved profile action",
-          "how": "Replace the provider call inside `contact-linkedin-enrichment` and remap its output",
+          "how": "Replace the provider call inside `contact_linkedin_enrichment` and remap its output",
           "cost": "Coverage, fields, and unit price change"
         }
       ],
@@ -819,9 +819,9 @@
         "**Freshness follows a write.** Stamp `cargo_last_enriched_at` and `cargo_enrichment_status=succeeded` only on successful CRM write paths.",
         "**Selected plays deploy disabled and use `noConcurrency`.** Removing either expands an unapproved pilot.",
         "**LinkedIn first, domain fallback.** One account takes exactly one provider route. Rows without either identifier make no paid call.",
-        "**One account tool and one account play.** `account-enrichment` owns provider routing; `enrich-accounts` owns the only company write.",
+        "**One account tool and one account play.** `account_enrichment` owns provider routing; `enrich_accounts` owns the only company write.",
         "**Account eligibility does not require a blank destination.** Populated stale records remain eligible for an explicitly approved refresh policy.",
-        "**One contact play and three tool resources.** Keep contact orchestration in `enrich-contacts` and use only Find Email, Find LinkedIn Profile from Email, and Contact LinkedIn Enrichment.",
+        "**One contact play and three tool resources.** Keep contact orchestration in `enrich_contacts` and use only Find Email, Find LinkedIn Profile from Email, and Contact LinkedIn Enrichment.",
         "**Real branch gating.** Find Email runs only for LinkedIn-only rows. Find LinkedIn Profile from Email runs only for email-only rows. Contact LinkedIn Enrichment runs only with a LinkedIn URL.",
         "**No unresolved write.** When email cannot resolve to LinkedIn, stop without custom enrichment, CRM write, or successful freshness.",
         "**Null-safe blank filters.** Pair `isNull` and `isEmpty` for every contact string destination.",
@@ -1410,7 +1410,7 @@
       ],
       "example": {
         "prompt": "Source every US B2B software company with 100 to 1,000 employees from AI Ark and tier each one against the rubric in our context repo.",
-        "output": "| Company (domain)              | tier         | tier_rationale                                                                                                          | tier_evidence_url                         |\n| ----------------------------- | ------------ | ----------------------------------------------------------------------------------------------------------------------- | ----------------------------------------- |\n| Northwind (northwind.example) | A            | Fits the firmographics and has an open GTM Engineer role. Rubric line: evidence ranked 1.                               | https://northwind.example/careers/gtm-eng |\n| Globex (globex.example)       | B            | Fits the firmographics; its public stack lists a warehouse and a reverse-ETL tool, which the rubric ranks 3.            | https://globex.example/blog/data-stack    |\n| Initech (initech.example)     | C            | Fits size, industry and region, but no visible technical champion or automation practice. The sourced facts settled it. |                                           |\n| Tailspin (tailspin.example)   | disqualified | The sourced domain redirects to its acquirer, so the record is wrong about the company.                                 |                                           |\n\nEvery row also gets a `tiered_at` stamp and lands in `tam-tier-a`, `tam-tier-b`, `tam-tier-c` or\n`tam-disqualified`; the run report closes with the tier distribution and one recommended next step."
+        "output": "| Company (domain)              | tier         | tier_rationale                                                                                                          | tier_evidence_url                         |\n| ----------------------------- | ------------ | ----------------------------------------------------------------------------------------------------------------------- | ----------------------------------------- |\n| Northwind (northwind.example) | A            | Fits the firmographics and has an open GTM Engineer role. Rubric line: evidence ranked 1.                               | https://northwind.example/careers/gtm-eng |\n| Globex (globex.example)       | B            | Fits the firmographics; its public stack lists a warehouse and a reverse-ETL tool, which the rubric ranks 3.            | https://globex.example/blog/data-stack    |\n| Initech (initech.example)     | C            | Fits size, industry and region, but no visible technical champion or automation practice. The sourced facts settled it. |                                           |\n| Tailspin (tailspin.example)   | disqualified | The sourced domain redirects to its acquirer, so the record is wrong about the company.                                 |                                           |\n\nEvery row also gets a `tiered_at` stamp and lands in `tam_tier_a`, `tam_tier_b`, `tam_tier_c` or\n`tam_disqualified`; the run report closes with the tier distribution and one recommended next step."
       },
       "state": "to-be-approved",
       "chain": 2,
@@ -1508,7 +1508,7 @@
         "the sync landed rows, the row count is at or under `limit`, and the extractor's real column names match the workflow input",
         "every row carries a tier the rubric defines, a rationale naming the deciding lines, and a `tiered_at` stamp",
         "no row carries a stamp with an empty tier, and no row carries a tier with an empty stamp",
-        "the tier segments (`tam-tier-a`, `tam-tier-b`, `tam-tier-c`, `tam-disqualified`) resolve, and their counts sum to the tiered row count",
+        "the tier segments (`tam_tier_a`, `tam_tier_b`, `tam_tier_c`, `tam_disqualified`) resolve, and their counts sum to the tiered row count",
         "the agent's evaluator pass rate is at or above its threshold, and a failing sample reads as a genuinely hard company rather than a missing rubric",
         "editing `tiering-rubric.md` in the context repo changes the next tier with no deploy",
         "`node --import tsx evals/contract.mjs` passes against the adapted resources"
@@ -1702,7 +1702,7 @@
         "**No credentials, deploy commands, or customer data in this repository.**"
       ],
       "doneWhen": [
-        "`node --import tsx evals/contract.mjs` passes: one app in the `website-building-apps` folder with a `www` hostname and a static-export build, and either no domain or an adopted domain whose `dnsRecords` holds the app's `domainRecords` and whose apex forwards to `www`",
+        "`node --import tsx evals/contract.mjs` passes: one app in the `website_building_apps` folder with a `www` hostname and a static-export build, and either no domain or an adopted domain whose `dnsRecords` holds the app's `domainRecords` and whose apex forwards to `www`",
         "`npm ci && npm run check && npm run build` in the app writes `dist/index.html`, `dist/about/index.html`, `dist/robots.txt` and `dist/sitemap.xml`, each page with its own title, description and canonical in the initial HTML",
         "the operator reviewed the local preview: every changed page at 1440 and 390 pixels wide with no horizontal scroll, reachable by keyboard with visible focus, readable in both themes, with no console errors or failed requests",
         "the plan's DNS diff is recorded and every `~` or `-` in it was approved, or the domain file was deleted",

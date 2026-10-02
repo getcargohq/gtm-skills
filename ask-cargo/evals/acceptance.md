@@ -7,7 +7,7 @@ Walk every line. A checked template without an evidence-backed consumer adaptati
 - `node --import tsx evals/contract.mjs` passes against the adapted graph: harness is `claudeCode`
   on an Anthropic connector, exactly one Slack trigger on `allChannels`, nothing on `uses`, no
   capability.
-- `cargo-ai cdk check` prints `agent:ask-cargo bound to <your repo>#<branch>` with no trailing
+- `cargo-ai cdk check` prints `agent:ask_cargo bound to <your repo>#<branch>` with no trailing
   subdirectory, and the GitHub grant can push a branch to that repository.
 - `cargo-ai connection connector list` shows authorized Slack, GitHub and Anthropic connectors, and
   `languageModel` names a model the Anthropic one can reach.

@@ -78,8 +78,8 @@ Illustrative output, fictional records:
 | Initech (initech.example)     | C            | Fits size, industry and region, but no visible technical champion or automation practice. The sourced facts settled it. |                                           |
 | Tailspin (tailspin.example)   | disqualified | The sourced domain redirects to its acquirer, so the record is wrong about the company.                                 |                                           |
 
-Every row also gets a `tiered_at` stamp and lands in `tam-tier-a`, `tam-tier-b`, `tam-tier-c` or
-`tam-disqualified`; the run report closes with the tier distribution and one recommended next step.
+Every row also gets a `tiered_at` stamp and lands in `tam_tier_a`, `tam_tier_b`, `tam_tier_c` or
+`tam_disqualified`; the run report closes with the tier distribution and one recommended next step.
 
 ## Guide the operator through every phase
 
@@ -254,7 +254,7 @@ it if you still want it, and records why under `## Decisions` in your copy of th
 - every row carries a tier the rubric defines, a rationale naming the deciding lines, and a
   `tiered_at` stamp
 - no row carries a stamp with an empty tier, and no row carries a tier with an empty stamp
-- the tier segments (`tam-tier-a`, `tam-tier-b`, `tam-tier-c`, `tam-disqualified`) resolve, and
+- the tier segments (`tam_tier_a`, `tam_tier_b`, `tam_tier_c`, `tam_disqualified`) resolve, and
   their counts sum to the tiered row count
 - the agent's evaluator pass rate is at or above its threshold, and a failing sample reads as a
   genuinely hard company rather than a missing rubric

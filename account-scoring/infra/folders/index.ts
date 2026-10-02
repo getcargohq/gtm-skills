@@ -7,12 +7,12 @@ import { defineFolder } from "@cargo-ai/cdk";
 // also what makes removing a skill bounded rather than a hunt.
 //
 // Folders are per-kind, which is why there are two rather than one.
-export const modelsFolder = defineFolder("account-scoring-models", {
+export const modelsFolder = defineFolder("account_scoring_models", {
   kind: "model",
   name: "Account scoring",
 });
 
-export const agentsFolder = defineFolder("account-scoring-agents", {
+export const agentsFolder = defineFolder("account_scoring_agents", {
   kind: "agent",
   name: "Account scoring",
 });

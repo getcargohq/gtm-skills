@@ -9,12 +9,12 @@ import { defineFolder } from "@cargo-ai/cdk";
 // Folders are per-kind, which is why there are two: this skill deploys a
 // mailbox and an agent, and each kind is filed separately. Domains
 // have no folder kind.
-export const mailboxesFolder = defineFolder("agentic-engagement-mailboxes", {
+export const mailboxesFolder = defineFolder("agentic_engagement_mailboxes", {
   kind: "mailbox",
   name: "Agentic engagement",
 });
 
-export const agentsFolder = defineFolder("agentic-engagement-agents", {
+export const agentsFolder = defineFolder("agentic_engagement_agents", {
   kind: "agent",
   name: "Agentic engagement",
 });

@@ -82,7 +82,7 @@ for (const slug of ["tier", "tier_rationale", "tier_evidence_url", "tiered_at"])
 // ---------------------------------------------------------------------------
 // The agent judges. It cannot write, and it cannot read a rubric it was not given.
 // ---------------------------------------------------------------------------
-const agentSpec = get("agent:tam-tier-analyst").spec;
+const agentSpec = get("agent:tam_tier_analyst").spec;
 
 const capabilitySlugs = new Set(
   (agentSpec.capabilities ?? []).map((capability) => capability.slug),
@@ -136,7 +136,7 @@ assert.ok(
 // ---------------------------------------------------------------------------
 // The play orchestrates and owns the only write.
 // ---------------------------------------------------------------------------
-const playResource = get("play:tier-companies");
+const playResource = get("play:tier_companies");
 const playNodes = playResource.spec.nodes;
 assert.ok(Array.isArray(playNodes), "the play must have workflow nodes");
 
@@ -149,7 +149,7 @@ const agentCall = findOne(
   playNodes,
   (node) =>
     node.kind === "agent" &&
-    node.agentUuid?.resourceId === "agent:tam-tier-analyst",
+    node.agentUuid?.resourceId === "agent:tam_tier_analyst",
   "the play must contain exactly one tiering agent node: one judgment per company",
 );
 assert.equal(

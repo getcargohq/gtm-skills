@@ -10,7 +10,7 @@ import { defineFolder } from "@cargo-ai/cdk";
 // looking; a shared folder makes it an archaeology exercise across the repo.
 // It is also what makes removing a cookbook a bounded operation rather than a
 // hunt.
-export const agentsFolder = defineFolder("weekly-planning-agents", {
+export const agentsFolder = defineFolder("weekly_planning_agents", {
   kind: "agent",
   name: "Weekly planning",
 });

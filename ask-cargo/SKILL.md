@@ -129,7 +129,7 @@ this is enough.
 
 Checked before moving on, not after the deploy:
 
-- `cargo-ai cdk check` prints `agent:ask-cargo bound to <your repo>#<branch>` with no trailing
+- `cargo-ai cdk check` prints `agent:ask_cargo bound to <your repo>#<branch>` with no trailing
   subdirectory
 - every channel the bot is in is internal, or is listed on another agent that owns it, and no other
   agent's trigger is also `allChannels`

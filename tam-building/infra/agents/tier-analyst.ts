@@ -34,7 +34,7 @@ import { agentsFolder } from "../folders";
 // No writable model in `uses`, and none should be added. The agent hands back a
 // judgment and the play persists it. An agent that can write decides its own
 // routing, and then a null tier is indistinguishable from a bad judgment.
-export const tierAnalyst = defineAgent("tam-tier-analyst", {
+export const tierAnalyst = defineAgent("tam_tier_analyst", {
   color: "green",
   connector: anthropic,
   languageModel: "claude-sonnet-4-5", // PLACEHOLDER — your model of choice

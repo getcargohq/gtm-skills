@@ -25,7 +25,7 @@ const slackChannelId = "PLACEHOLDER_SLACK_CHANNEL_ID";
 // read-only "already in the CRM" line is `crm_lookup`; both are in
 // references/crm-adaptation.md in the skill.
 const routeNewHire = defineWorkflow(
-  "route-new-hire",
+  "route_new_hire",
   {
     // The `fetchLeadSearch` columns this workflow reads. Confirm them against
     // the live model after the first sync (`cargo-ai storage column list`).
@@ -104,7 +104,7 @@ const routeNewHire = defineWorkflow(
 // Ships disabled. Enabling is the last yes after the pilot of ten, not an
 // input. Enable, then execute once: `changeKinds: ["added"]` does not
 // backfill rows that landed while the play was off.
-export const routeNewHires = definePlay("route-new-hires", {
+export const routeNewHires = definePlay("route_new_hires", {
   description:
     "Posts each person who just took a target role at a company that fits the ICP to Slack, with the qualifier's verdict and the links.",
   folder: playsFolder,
