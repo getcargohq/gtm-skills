@@ -214,6 +214,8 @@ for (const name of readdirSync(root).sort()) {
       doneWhen: bullets(section(body, "Done when")),
       cost: section(body, "What it costs"),
       composesInto: section(body, "Composes into"),
+      worksBestAfter: fm.metadata?.worksBestAfter ?? [],
+      nextSteps: fm.metadata?.nextSteps ?? [],
     });
   } else {
     Object.assign(rec, {

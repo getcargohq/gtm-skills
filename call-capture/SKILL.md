@@ -11,6 +11,10 @@ metadata:
     - sales-leadership
     - account-executive
     - revops
+  worksBestAfter: []
+  nextSteps:
+    - account-scoring
+    - standup
   openclaw:
     requires:
       bins:

@@ -10,6 +10,10 @@ metadata:
   personas:
     - sales-leadership
     - revops
+  worksBestAfter:
+    - call-capture
+  nextSteps:
+    - weekly-planning
   openclaw:
     requires:
       bins:
