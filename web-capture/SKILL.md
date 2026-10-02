@@ -11,6 +11,10 @@ metadata:
     - gtm-engineering
     - revops
     - marketing
+  worksBestAfter: []
+  nextSteps:
+    - tam-building
+    - account-scoring
   openclaw:
     requires:
       bins:

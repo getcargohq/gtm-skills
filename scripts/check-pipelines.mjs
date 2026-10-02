@@ -143,6 +143,8 @@ const isExampleFolder = (name) => {
 };
 
 const exampleFolders = readdirSync(root).filter(isExampleFolder).sort();
+const RECOMMENDATION_KEYS = ["worksBestAfter", "nextSteps"];
+const recommendations = {};
 const allSkillFolders = readdirSync(root).filter(
   (d) =>
     !d.startsWith(".") &&
@@ -236,6 +238,31 @@ for (const name of exampleFolders) {
       `${name}/SKILL.md carries a "## Requires" section: pipeline skills are self-contained, and what the project already has is reconciled by the agent, not declared here`,
     );
   }
+
+  // Recommendations, not requirements: `worksBestAfter` names pipelines that
+  // make this one better when they already run, `nextSteps` the pipelines this
+  // one sets up well. Neither is a precondition, so the skill still installs and
+  // works alone; the lists only have to name real pipelines and agree.
+  for (const key of RECOMMENDATION_KEYS) {
+    const list = fm.metadata?.[key];
+    if (!Array.isArray(list)) {
+      errors.push(
+        `${name}/SKILL.md needs metadata.${key} as a list (empty is fine): it is how a reader finds what to set up around this pipeline`,
+      );
+      continue;
+    }
+    recommendations[name] ??= {};
+    recommendations[name][key] = list;
+    if (new Set(list).size !== list.length)
+      errors.push(`${name}/SKILL.md metadata.${key} names a pipeline twice`);
+    if (list.includes(name))
+      errors.push(`${name}/SKILL.md metadata.${key} names the skill itself`);
+  }
+  const { worksBestAfter = [], nextSteps = [] } = recommendations[name] ?? {};
+  for (const both of worksBestAfter.filter((n) => nextSteps.includes(n)))
+    errors.push(
+      `${name}/SKILL.md lists \`${both}\` both before and after it: pick the side the work actually runs on`,
+    );
 
   const nestedSkillFiles = [];
   const findNestedSkills = (dir) => {
@@ -359,6 +386,24 @@ for (const name of exampleFolders) {
     errors.push(
       `${name}/SKILL.md still carries the to-be-approved banner but approvals.json says approved`,
     );
+}
+
+// Recommendations name real pipelines and do not contradict each other: two
+// pipelines cannot each be the one that works best after the other.
+for (const [name, lists] of Object.entries(recommendations)) {
+  for (const [key, list] of Object.entries(lists)) {
+    for (const target of list) {
+      if (!exampleFolders.includes(target))
+        errors.push(
+          `${name}/SKILL.md metadata.${key} names \`${target}\`, which is not a pipeline skill here`,
+        );
+      const back = recommendations[target]?.[key] ?? [];
+      if (back.includes(name) && name < target)
+        errors.push(
+          `${name} and ${target} each list the other in metadata.${key}: one of them has to come first`,
+        );
+    }
+  }
 }
 
 // approvals.json must not name a folder that is not an engine

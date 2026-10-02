@@ -10,6 +10,10 @@ metadata:
   personas:
     - revops
     - gtm-engineering
+  worksBestAfter:
+    - tam-building
+  nextSteps:
+    - crm-deduplication
   openclaw:
     requires:
       bins:

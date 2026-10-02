@@ -11,6 +11,10 @@ metadata:
     - revops
     - gtm-engineering
     - sales-leadership
+  worksBestAfter:
+    - web-capture
+  nextSteps:
+    - crm-enrichment
   openclaw:
     requires:
       bins:

@@ -10,6 +10,11 @@ metadata:
   personas:
     - sales-development
     - gtm-engineering
+  worksBestAfter:
+    - account-scoring
+    - crm-enrichment
+  nextSteps:
+    - call-capture
   openclaw:
     requires:
       bins:

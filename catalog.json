@@ -93,7 +93,14 @@
         "after the next model refresh the account appears in the matching tier segment"
       ],
       "cost": "One LLM call plus up to two Cargo database calls (`matchBusiness`,\n`enrichBusinessFirmographics`) per account, on arrival and again on the weekly sweep of accounts\nlast scored three or more months ago. It scales with accounts in the model times re-scores, so a\nTAM built by `tam-building` scores at that size. Score a sample before the book.",
-      "composesInto": "`routing-engine` (territories and capacity over the scored book), `rep-cockpit`, `ai-sdr`."
+      "composesInto": "`routing-engine` (territories and capacity over the scored book), `rep-cockpit`, `ai-sdr`.",
+      "worksBestAfter": [
+        "web-capture",
+        "crm-deduplication"
+      ],
+      "nextSteps": [
+        "agentic-engagement"
+      ]
     },
     {
       "name": "agentic-engagement",
@@ -197,7 +204,14 @@
         "an unanswered first send is still a live chat: the heartbeat is declared, and the agent treats that wake as a status check, not a sequence"
       ],
       "cost": "A mailbox is a **monthly, recurring** charge for as long as it exists. Immediately before the\nplan, run `cargo-ai mailboxManagement pricing get` and read `monthlyCredits` for the chosen type.\nSay that number out loud as a per-month cost, not a one-off. `destroy` is the only way it stops.\n\nIf the plan also shows `+ create domain:…`, that registration is a separate, non-refundable\ncharge. Adopting an existing domain does not.\n\nEach delivery is a `sendEmail` native action. Run `cargo-ai connection native-integration\nget` (or `orchestration action list sendEmail`) for the current per-send cost. The engager\nadds one LLM turn per wake, including heartbeats. The per-thread cap is the cost control:\none send per wake, at most one unanswered follow-up, and a stop when the lead closes.\n\nA mailbox that never starts warm-up stays at the floor of five real sends a day. Starting\nwarm-up is what moves the ramp; it takes forty-five days to finish. Check\n`mailbox get-send-allowance` before promising volume.",
-      "composesInto": "`account-scoring` (the engager should be talking to accounts the scorer already ranked),\n`call-capture` (a conversation that becomes a meeting is a call worth scribing),\n`crm-enrichment` (the record the thread is about should already be filled)."
+      "composesInto": "`account-scoring` (the engager should be talking to accounts the scorer already ranked),\n`call-capture` (a conversation that becomes a meeting is a call worth scribing),\n`crm-enrichment` (the record the thread is about should already be filled).",
+      "worksBestAfter": [
+        "account-scoring",
+        "crm-enrichment"
+      ],
+      "nextSteps": [
+        "call-capture"
+      ]
     },
     {
       "name": "apollo-to-cargo",
@@ -318,7 +332,12 @@
         "a mention in a channel another agent lists got that agent's reply, not this one's"
       ],
       "cost": "Every turn is a harness run: a sandbox, a clone of the repository, and LLM tokens billed through the\nbound Anthropic connector. A turn that only answers a question costs tokens and nothing else. The\nread-only `cargo-ai` calls are API calls, not connector actions, and bill nothing.\n\nWhat spends is what someone approves with a go: the connector actions, batches and agent handoffs in\n§3 of the prompt. The agent reads each price live (`cargo-ai connection integration get <slug>`) and\nsays the total before it asks for the go, so the proposal is the cost line. Nothing runs on a\nschedule.",
-      "composesInto": "`standup` and `weekly-planning` (it can run either on demand, and answers \"what happened this week\"\nfrom the logs they write), `account-scoring` and `crm-enrichment` (it hands them one-account\nrequests instead of scoring or enriching by hand), `call-capture` (the call entries are context it\nanswers from), `agentic-engagement` (it can report what a thread did, never send on its behalf)."
+      "composesInto": "`standup` and `weekly-planning` (it can run either on demand, and answers \"what happened this week\"\nfrom the logs they write), `account-scoring` and `crm-enrichment` (it hands them one-account\nrequests instead of scoring or enriching by hand), `call-capture` (the call entries are context it\nanswers from), `agentic-engagement` (it can report what a thread did, never send on its behalf).",
+      "worksBestAfter": [
+        "standup",
+        "weekly-planning"
+      ],
+      "nextSteps": []
     },
     {
       "name": "build-tam-list",
@@ -453,7 +472,12 @@
         "after merging and `cargo-ai cdk deploy`, the changed `context/` file is readable from the workspace context repository, and an agent with the `context` capability quotes it back"
       ],
       "cost": "There are no connector actions in this skill, so it consumes no per-record credits: the collector\ntalks to your recorder directly from the harness environment, under whatever API limits your\nrecording plan already gives you. Those limits differ enough between recorders to be worth checking\nonce — a daily three-day window is nothing against Grain's per-minute allowance and is real against\nFireflies' Free tier of a few dozen requests a **day**, and `references/recorder-apis.md` records\neach. The collector paces itself and backs off on a 429 regardless, so the failure is a slow run\nrather than a half-captured one.\n\nThe recurring cost is the harness run itself, once a day, and it scales with how much the agent\nreads — which is the raw captures it scribes. **The per-run cap is the cost control as well as the\nreview control.** A lower cap spreads the same backlog over more days at the same daily cost rather\nthan paying for it all at once, and the pending remainder in the pull request body is how you watch\nwhether it is keeping up.",
-      "composesInto": "`account-scoring` and any agent with the `context` capability (they read the ICP and objection files\nthis keeps current), `crm-enrichment` (the account files this writes name the record the enrichment\nfills), `monitor-buying-signals` (the signals this promotes are what a feed then watches for)."
+      "composesInto": "`account-scoring` and any agent with the `context` capability (they read the ICP and objection files\nthis keeps current), `crm-enrichment` (the account files this writes name the record the enrichment\nfills), `monitor-buying-signals` (the signals this promotes are what a feed then watches for).",
+      "worksBestAfter": [],
+      "nextSteps": [
+        "account-scoring",
+        "standup"
+      ]
     },
     {
       "name": "clay-to-cargo",
@@ -664,7 +688,13 @@
         "the merge is the final CRM write, and every contact survivor and absorbed ID is verified in the CRM"
       ],
       "cost": "Immediately before each selected path's preview, run\n`cargo-ai connection integration get <crm>` and, when review is enabled,\n`cargo-ai connection integration get slack`. Record the CLI version, lookup time, action slugs, and\ncurrent cost metadata. The repository does not hard-code pipeline action prices.\n\n### Path 1: Account cost\n\nPrice the account search, automatic or approved company merge, and Human Review actions against the\nexact account population. Approval authorizes only the company clusters shown for that pilot.\n\n### Path 2: Contact cost\n\nPrice both contact searches, automatic or approved contact merge, and enabled Human Review actions\nagainst the exact contact population. Approval authorizes only the person clusters shown for that\npilot.\n\nEnabling either recurring schedule is a separate final approval after that path's pilot passes.",
-      "composesInto": "- `crm-enrichment` when either object path lacks reliable matching-key coverage\n- `account-scoring` after duplicate account records have been consolidated into authoritative survivors"
+      "composesInto": "- `crm-enrichment` when either object path lacks reliable matching-key coverage\n- `account-scoring` after duplicate account records have been consolidated into authoritative survivors",
+      "worksBestAfter": [
+        "crm-enrichment"
+      ],
+      "nextSteps": [
+        "account-scoring"
+      ]
     },
     {
       "name": "crm-enrichment",
@@ -846,7 +876,13 @@
         "The contact report includes route, processed, written, unresolved, skipped, failed, fill-rate, spend, and direct-link evidence."
       ],
       "cost": "Fetch live prices from the workspace before every preview. Cost only the selected paths. A failed\nCRM write can cause provider calls to be billed again on retry, so probe write capability before a\nbatch.\n\n### Path 1: Account cost\n\nQuote both LinkedIn company actions. Multiply the mutually exclusive LinkedIn URL and domain\nfallback populations by their respective live unit prices. Rows with neither identifier make no\npaid call.\n\n### Path 2: Contact cost\n\nQuote both Cargo-native tools and the LinkedIn profile enrichment action. Per contact, the maximum\npaid chain is:\n\n- LinkedIn only: Find Email plus Contact LinkedIn Enrichment.\n- Email only: Find LinkedIn Profile from Email plus Contact LinkedIn Enrichment when resolution\n  succeeds.\n- Both identifiers: Contact LinkedIn Enrichment only.\n- Neither identifier: no paid call.\n\nShow mutually exclusive route counts and maximum spend before requesting approval for either path.",
-      "composesInto": "`crm-deduplication` after account enrichment, `find-stakeholders` for coverage gaps,\n`segment-accounts` for activation, and `track-job-changes` as a separate one-time movement check."
+      "composesInto": "`crm-deduplication` after account enrichment, `find-stakeholders` for coverage gaps,\n`segment-accounts` for activation, and `track-job-changes` as a separate one-time movement check.",
+      "worksBestAfter": [
+        "tam-building"
+      ],
+      "nextSteps": [
+        "crm-deduplication"
+      ]
     },
     {
       "name": "enrich-company-data",
@@ -1229,7 +1265,14 @@
         "after opening up, the next sync created runs only for people new since the previous one"
       ],
       "cost": "Fetch live prices before every estimate: `cargo-ai connection integration get salesNavigator`,\n`linkedin`, and the LLM connector's model. Quote the lookup time with the estimate.\n\n**Extraction is the main spend, and it repeats.** `fetchLeadSearch` bills per extracted lead, and\nit is not incremental: every sync extracts the whole search again, including the people already in\nthe model. \"Changed jobs\" spans roughly the last 90 days, so a sync every two weeks re-pays for most\nof the previous sync to find the ones who are new. One sync costs the counted search (capped at\n`limit` per URL) times the per-lead price; a month costs that times the number of syncs.\n\n**Qualifying is per new person, and only new people.** Each run pays one company enrichment, and\neach company with a domain adds one qualifier call. The Slack post carries no per-call price of its\nown. The CRM variations add their own lookups and, on `crm_routing`, an email lookup per person.\n\n**Counting is cheap and comes first.** One `searchPersonMetrics` call per candidate URL tells you\nwhat a sync will extract before anything is extracted.",
-      "composesInto": "`find-work-email` or `enrich-linkedin-profile` for the people the team decides to contact,\n`account-scoring` for a standing score on the companies it surfaces, and the team's own sequencer\nafter a person reads the post. With `crm_routing`, `crm-enrichment` fills the records it creates.\n`track-job-changes` is the sibling for people already in your CRM."
+      "composesInto": "`find-work-email` or `enrich-linkedin-profile` for the people the team decides to contact,\n`account-scoring` for a standing score on the companies it surfaces, and the team's own sequencer\nafter a person reads the post. With `crm_routing`, `crm-enrichment` fills the records it creates.\n`track-job-changes` is the sibling for people already in your CRM.",
+      "worksBestAfter": [
+        "web-capture"
+      ],
+      "nextSteps": [
+        "account-scoring",
+        "crm-enrichment"
+      ]
     },
     {
       "name": "research-account",
@@ -1391,7 +1434,13 @@
         "no number in the digest is absent from the raw dump, a metrics file dated that day, or a `cargo-ai` read the agent actually ran. A CLI read that errors is a note on the PR, not a made-up count"
       ],
       "cost": "The collector talks to git and, when `gh` is installed, to GitHub from the harness environment.\nThose calls are not Cargo connector actions.\n\nThe Slack post is `slack.postMessage` on the bound connector. Immediately before the plan, run\n`cargo-ai orchestration action list postMessage --kind connector --integration-slug slack` and\nread the current cost. Say that number out loud as a per-post cost; the run posts once.\n\nThe recurring cost is the harness run itself, once a day, billed as LLM tokens through the bound\nAnthropic connector, and it scales with how much the agent reads — the dump, the day's cadence\nfiles, a short window of git history, and the read-only `cargo-ai` calls in §1b (whoami, run\ncounts, usage, what is deployed). Those reads are API calls, not connector actions, so they bill\nnothing. There is no per-record fan-out, and the recap never runs a command that spends.",
-      "composesInto": "`call-capture` (yesterday's scribed calls are evidence this recap reads), `agentic-engagement`\n(a thread that closed today is something that moved), `tam-building` and `account-scoring` (a\ntiered book is a number the digest can name only when the metrics file actually moved),\n`weekly-planning` (the week's logs are what it ranks against infra and runs)."
+      "composesInto": "`call-capture` (yesterday's scribed calls are evidence this recap reads), `agentic-engagement`\n(a thread that closed today is something that moved), `tam-building` and `account-scoring` (a\ntiered book is a number the digest can name only when the metrics file actually moved),\n`weekly-planning` (the week's logs are what it ranks against infra and runs).",
+      "worksBestAfter": [
+        "call-capture"
+      ],
+      "nextSteps": [
+        "weekly-planning"
+      ]
     },
     {
       "name": "tam-building",
@@ -1518,7 +1567,13 @@
         "`node --import tsx evals/contract.mjs` passes against the adapted resources"
       ],
       "cost": "Read this before pointing the skill at a market-sized filter.\n\n**Counting is free**, and it is the cheapest insurance in this skill: `aiArk.countCompanies` takes\nthe same filter groups as the search and returns the pool size without billing. Run it for every\ncandidate filter, every time you widen one.\n\n**Sourcing is the spend, and it is per returned record, not per call.** Immediately before every\npreview, run `cargo-ai connection integration get aiArk` and read the current entry under\n`integration.actions.searchCompanies.credits.costs`; the `fetchCompanies` extractor bills on the same\nper-record basis. Record the CLI version, the lookup time, and the unit price. The estimate is\n`limit * unit price`, which is why `limit` is the only control that matters: **to spend less, source\nless.** Start well under the counted pool, watch the rows land and the tiers come back sane, then\nwiden.\n\n**Tiering is one agent run per newly sourced company**, billed as LLM tokens through the bound\nconnector plus whatever web search steps it takes. `maxSteps` is the per-company ceiling and the\nrubric's one-question-one-search rule is what keeps a normal row far below it. Because the play runs\non `changeKinds: [\"added\"]`, steady state is only the companies a sourcing run newly added, plus\nwhatever comes back when its six-month stamp expires. A tick that follows no sourcing run is a no-op.\n\nThe model deliberately carries **no schedule**, because a cron re-runs the same search and re-bills\nevery returned record, including the rows already sitting in the model. Sourcing is a deliberate\nspend; the tiering play is the part that stands. See `refresh-cadence` above for what a recurring\nsource really costs.",
-      "composesInto": "`contact-sourcing` (the buyers at every tier A account), `crm-enrichment` (fill the records these\naccounts become), `signal-based-tam` (watch the universe you just built). `account-scoring` is the\nsibling for a book that already exists, not the next step after this skill has already tiered the\nrow."
+      "composesInto": "`contact-sourcing` (the buyers at every tier A account), `crm-enrichment` (fill the records these\naccounts become), `signal-based-tam` (watch the universe you just built). `account-scoring` is the\nsibling for a book that already exists, not the next step after this skill has already tiered the\nrow.",
+      "worksBestAfter": [
+        "web-capture"
+      ],
+      "nextSteps": [
+        "crm-enrichment"
+      ]
     },
     {
       "name": "track-funding-rounds",
@@ -1706,7 +1761,12 @@
         "after merging and `cargo-ai cdk deploy`, a seeded file is readable from the workspace context repository and an agent with the `context` capability quotes it back with its tag"
       ],
       "cost": "Fetch live prices before every estimate: `cargo-ai connection integration get parallel`, plus the\nLLM connector's model. Quote the lookup time with the estimate.\n\nEach run bills two reads: one `parallel.extract` over every listed URL, the company's and the\ncompetitors' (billed per URL, a 404 included), and one `parallel.createTask` on the `lite`\nprocessor, the cheapest rung of its price ladder. Plus the harness run, which scales with how much\nchanged.",
-      "composesInto": "`win-loss-review` (verifies the ICP this seeds against won and lost deals, and proposes the\ncorrections), `call-capture` (adds what buyers say on calls), `account-scoring` (reads the ICP),\nand any agent with the `context` capability."
+      "composesInto": "`win-loss-review` (verifies the ICP this seeds against won and lost deals, and proposes the\ncorrections), `call-capture` (adds what buyers say on calls), `account-scoring` (reads the ICP),\nand any agent with the `context` capability.",
+      "worksBestAfter": [],
+      "nextSteps": [
+        "tam-building",
+        "account-scoring"
+      ]
     },
     {
       "name": "website-building",
@@ -1794,7 +1854,11 @@
         "`site.json` is `ready` only for approved content, and a content change reaches the site through one reviewed pull request whose plan shows the same app with a new content hash"
       ],
       "cost": "Each merge is one deployment of a static app; read the workspace's current hosting usage before\nthe first deploy, and say what you found. Adopting a domain the workspace owns adds no charge.\nRegistering one (`register-domain`) charges workspace credits once and is **not refundable**: read\nthe current price and the credit balance before proposing it, and quote both with the plan. A\nworking form adds whatever its backend costs. Nothing in the workspace runs on a schedule; your\ncoding agent's usage is the rest.",
-      "composesInto": "`call-capture` (the customer language it collects is what the pages should say), `account-scoring`\nand `tam-building` (the ICP they write down is who the site speaks to), `agentic-engagement` (when\nits sending domain carries the site, both sets of records go on its one `defineDomain`)."
+      "composesInto": "`call-capture` (the customer language it collects is what the pages should say), `account-scoring`\nand `tam-building` (the ICP they write down is who the site speaks to), `agentic-engagement` (when\nits sending domain carries the site, both sets of records go on its one `defineDomain`).",
+      "worksBestAfter": [
+        "web-capture"
+      ],
+      "nextSteps": []
     },
     {
       "name": "weekly-planning",
@@ -1881,7 +1945,13 @@
         "no number in a plan file is absent from the raw dump, a metrics file dated that week, or a `cargo-ai` read the agent actually ran. A CLI read that errors is a note on the PR, not a made-up count"
       ],
       "cost": "The collector talks to git and, when `gh` is installed, to GitHub from the harness environment.\nThose calls are not Cargo connector actions.\n\nThe recurring cost is the harness run itself, once a week, billed as LLM tokens through the bound\nAnthropic connector, and it scales with how much the agent reads — the dump, the week's cadence\nfiles, the active initiative files, declared infra, and the read-only `cargo-ai` calls in §1b\n(whoami, what is deployed, run counts, usage). Those reads are API calls, not connector actions, so\nthey bill nothing. There is no per-record fan-out, and the recap never runs a command that spends.",
-      "composesInto": "`standup` (the week's daily logs are evidence this recap reads), `call-capture` (scribed calls dated\nin the week are evidence), `tam-building` and `account-scoring` (a declared play that did not run is\nthe gap this recap is for)."
+      "composesInto": "`standup` (the week's daily logs are evidence this recap reads), `call-capture` (scribed calls dated\nin the week are evidence), `tam-building` and `account-scoring` (a declared play that did not run is\nthe gap this recap is for).",
+      "worksBestAfter": [
+        "standup"
+      ],
+      "nextSteps": [
+        "ask-cargo"
+      ]
     },
     {
       "name": "win-loss-review",
