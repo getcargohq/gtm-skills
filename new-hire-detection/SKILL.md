@@ -15,7 +15,7 @@ metadata:
     - web-capture
   nextSteps:
     - account-scoring
-    - crm-enrichment
+    - agentic-engagement
   openclaw:
     requires:
       bins:
@@ -230,6 +230,6 @@ what a sync will extract before anything is extracted.
 ## Composes into
 
 `find-work-email` or `enrich-linkedin-profile` for the people the team decides to contact,
-`account-scoring` for a standing score on the companies it surfaces, and the team's own sequencer
-after a person reads the post. With `crm_routing`, `crm-enrichment` fills the records it creates.
+`account-scoring` for a standing score on the companies it surfaces, and `agentic-engagement` to
+hold the conversation once a person reads the post and the team writes first.
 `track-job-changes` is the sibling for people already in your CRM.

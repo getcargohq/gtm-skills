@@ -52,22 +52,52 @@
       ]
     },
     {
-      "title": "Make it run forever",
-      "description": "The same jobs as a deployed pipeline: each skill carries a worked CDK example your agent adapts into your project and deploys.",
+      "title": "Context",
+      "description": "Deployed pipelines that keep what you know current: your website and the market's news, every recorded call, and, once you have a CRM, what won and lost deals say.",
+      "skills": [
+        "web-capture",
+        "call-capture",
+        "win-loss-review"
+      ]
+    },
+    {
+      "title": "Fundamentals",
+      "description": "Deployed pipelines that build the base: the account universe from your ICP, a standing score on every account, and, for an early-stage company, the website itself.",
       "skills": [
         "tam-building",
         "account-scoring",
-        "crm-enrichment",
-        "crm-deduplication",
-        "call-capture",
+        "website-building"
+      ]
+    },
+    {
+      "title": "Signals",
+      "description": "Deployed pipelines that watch the market for the moment to reach out. Any combination stacks on the same account.",
+      "skills": [
+        "new-hire-detection"
+      ]
+    },
+    {
+      "title": "Engagement",
+      "description": "Deployed pipelines that hold the conversation with the accounts worth it.",
+      "skills": [
+        "agentic-engagement"
+      ]
+    },
+    {
+      "title": "Operations",
+      "description": "Deployed pipelines that run the team: the daily recap, the weekly plan, and one agent everyone can ask.",
+      "skills": [
         "standup",
         "weekly-planning",
-        "ask-cargo",
-        "agentic-engagement",
-        "website-building",
-        "new-hire-detection",
-        "web-capture",
-        "win-loss-review"
+        "ask-cargo"
+      ]
+    },
+    {
+      "title": "Connect your CRM",
+      "description": "Deployed pipelines for when a CRM is already in place: keep its records filled and duplicate-free so the engine and the CRM agree.",
+      "skills": [
+        "crm-enrichment",
+        "crm-deduplication"
       ]
     }
   ]

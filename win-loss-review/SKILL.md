@@ -11,6 +11,10 @@ metadata:
     - revops
     - sales-leadership
     - gtm-engineering
+  worksBestAfter:
+    - web-capture
+  nextSteps:
+    - account-scoring
   openclaw:
     requires:
       bins:
@@ -252,7 +256,5 @@ whole window. Confirm the extraction price for the workspace's CRM with
 
 ## Composes into
 
-`web-capture` (this verifies the ICP it seeds from the website and proposes the corrections),
-`account-scoring` (reads the verified `icp/`, disqualifier included), `crm-enrichment` (shares
-`crm_accounts` and `crm_contacts`, and the association rate this reports is what a contact
-enrichment raises), and any agent with the `context` capability.
+`account-scoring` (reads the verified `icp/`, disqualifier included), and any agent with the
+`context` capability.

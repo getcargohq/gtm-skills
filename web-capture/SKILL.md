@@ -17,6 +17,7 @@ metadata:
     - account-scoring
     - new-hire-detection
     - website-building
+    - win-loss-review
   openclaw:
     requires:
       bins:

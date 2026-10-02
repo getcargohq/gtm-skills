@@ -15,7 +15,9 @@ metadata:
     - call-capture
     - crm-deduplication
     - new-hire-detection
+    - tam-building
     - web-capture
+    - win-loss-review
   nextSteps:
     - agentic-engagement
   openclaw:

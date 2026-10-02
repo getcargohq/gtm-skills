@@ -13,6 +13,7 @@ metadata:
   worksBestAfter:
     - account-scoring
     - crm-enrichment
+    - new-hire-detection
   nextSteps:
     - call-capture
   openclaw:

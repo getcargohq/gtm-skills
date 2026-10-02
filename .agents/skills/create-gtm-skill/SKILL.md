@@ -168,8 +168,9 @@ fill-blank guard). No parallel branches.
 CDK workflow bodies must compile. These fail `cargo-cdk check` / `plan`:
 `undefined`/`void`, comma / SequenceExpression, `Date#getTime()`.
 
-Register: `skills.sh.json` ("Make it run forever"), `hooks/skill-loads.sh`,
-root README pipeline table, `.github/data/approvals.json` with
+Register: `skills.sh.json` (its stage grouping: Context, Fundamentals, Signals,
+Engagement, Operations, or Connect your CRM), `hooks/skill-loads.sh`, root
+README pipeline table, `.github/data/approvals.json` with
 `state: to-be-approved` and empty evidence.
 
 Frontmatter: `metadata.nextSteps`, the pipelines this one sets up well (a

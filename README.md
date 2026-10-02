@@ -86,25 +86,60 @@ Rank a list against your profile, then understand the one account before you wal
 | [`score-leads`](score-leads/SKILL.md) | Score a list of companies against your ideal customer profile and rank them — every row gets a number, the reason behind it, and a tier, so the bottom of the list can be dropped before anyone spends time on it. | “Score the 20 companies in `webinar-accounts.csv` against our ICP: 50–500 employees, B2B software, US or UK, competitors out.” |
 | [`research-account`](research-account/SKILL.md) | Research one company and its public website before a meeting and hand back a briefing — what it does, what it publicly says is hard right now, and who it names as competition, each line traceable to where it came from. | “I have a discovery call with Fabrikam tomorrow — we sell data-pipeline monitoring. Brief me.” |
 
-### Make it run forever
+### Context
 
-The same jobs as a deployed pipeline: each skill carries a worked CDK example your agent adapts into your project and deploys.
+Deployed pipelines that keep what you know current: your website and the market's news, every recorded call, and, once you have a CRM, what won and lost deals say.
+
+| Skill | Does | Try saying |
+| --- | --- | --- |
+| [`web-capture`](web-capture/SKILL.md) | Each Monday the company's own website, its competitors' pages and recent news about both land in context/ as one pull request: the first run seeds positioning, offerings, an inferred ICP with a disqualifier, competitors, clients and proof; every run after adds a dated note of what changed (pricing, a launch, funding, a customer) and never edits an existing file. | “Every Monday, read our website, our competitors' pricing and changelog pages, and the news about all of us, and keep context/ current.” |
+| [`call-capture`](call-capture/SKILL.md) | Every call the team records is collected into the cadence layer each morning, scribed into a log entry, and — once a claim repeats — promoted into the context knowledge layer, as one reviewable pull request against your GTM repo. Nine recorders ship; a tenth is one adapter file. | “Every morning, pull yesterday's Gong calls into this repo as log entries and open one pull request with anything worth adding to our context.” |
+| [`win-loss-review`](win-loss-review/SKILL.md) | Every month the CRM's closed deals are audited and what they say lands in context/ as one pull request: the ICP verified against won versus lost with a disqualifier, dated insights with counts and denominators, objections from recorded lost reasons, and a client file per closed-won account; a five-line Slack digest says what changed. Never edits a persona, nor the ICP after the first pass. | “Every month, read what our HubSpot won and lost deals say, verify the ICP, and post the digest to #gtm-context.” |
+
+### Fundamentals
+
+Deployed pipelines that build the base: the account universe from your ICP, a standing score on every account, and, for an early-stage company, the website itself.
 
 | Skill | Does | Try saying |
 | --- | --- | --- |
 | [`tam-building`](tam-building/SKILL.md) | Stand up your account universe as a deployed pipeline: an AI Ark company search shaped by your ICP, sized for free before it bills, then tiered A / B / C / disqualified by an agent that reads your rubric from the workspace context and web-searches the evidence the sourced row does not carry. | “Source every US B2B software company with 100 to 1,000 employees from AI Ark and tier each one against the rubric in our context repo.” |
 | [`account-scoring`](account-scoring/SKILL.md) | Keep every account scored and tiered against your written ICP by a deployed agent that re-scores as accounts arrive and as the ICP changes, writing the rationale back to the CRM. | “Score every HubSpot company against the ICP in our context repo and put the tier and the reason on the record, re-checking weekly.” |
-| [`crm-enrichment`](crm-enrichment/SKILL.md) | Keep CRM accounts and contacts filled and refresh them when they go stale. The contact pipeline uses one enrichment play with three gated tools: Cargo-native Find Email, Cargo-native Find LinkedIn Profile from Email, and custom Contact LinkedIn Enrichment. | “Keep our HubSpot contacts filled: find the missing email or LinkedIn profile, then fill job title, but never overwrite a value a rep already entered.” |
-| [`crm-deduplication`](crm-deduplication/SKILL.md) | Keep CRM accounts and contacts duplicate-free: audit company and person identity, run recurring deduplication plays directly on CRM models, merge safe exact matches, and route uncertain clusters to manual review. | “Merge duplicate HubSpot companies automatically only when the LinkedIn company ID matches, and send everything else to #crm-hygiene for a human to approve.” |
-| [`call-capture`](call-capture/SKILL.md) | Every call the team records is collected into the cadence layer each morning, scribed into a log entry, and — once a claim repeats — promoted into the context knowledge layer, as one reviewable pull request against your GTM repo. Nine recorders ship; a tenth is one adapter file. | “Every morning, pull yesterday's Gong calls into this repo as log entries and open one pull request with anything worth adding to our context.” |
+| [`website-building`](website-building/SKILL.md) | Build the company website on Cargo and serve it on your own domain: a statically exported Next.js app, one defineApp with its www hostname, and a defineDomain that publishes the records and forwards the apex, changed only through reviewed pull requests. | “Build our company website on Cargo from our brand guide and serve it on www.fabrikam.example. Our DNS is hosted elsewhere.” |
+
+### Signals
+
+Deployed pipelines that watch the market for the moment to reach out. Any combination stacks on the same account.
+
+| Skill | Does | Try saying |
+| --- | --- | --- |
+| [`new-hire-detection`](new-hire-detection/SKILL.md) | Watch your whole market for people who just took a role you sell to, qualify the company each one joined against your ICP, and post the ones that fit to Slack with the verdict and the links. A deployed pipeline on a Sales Navigator job-change search; checking or writing the CRM is an optional variation. | “Every time a new VP Sales or head of RevOps starts at a US software company with 51 to 500 people, post it in #new-hires.” |
+
+### Engagement
+
+Deployed pipelines that hold the conversation with the accounts worth it.
+
+| Skill | Does | Try saying |
+| --- | --- | --- |
+| [`agentic-engagement`](agentic-engagement/SKILL.md) | Deploy an agent that holds email conversations with leads: a sending domain, a mailbox, native sendEmail and listEmailEvents on the agent, a native email trigger on reply and unsubscribe, and a heartbeat that checks thread status when nothing inbound happened. | “Give our jordan@ mailbox an agent that answers leads who reply to my first emails, and checks quiet threads once for a single follow-up.” |
+
+### Operations
+
+Deployed pipelines that run the team: the daily recap, the weekly plan, and one agent everyone can ask.
+
+| Skill | Does | Try saying |
+| --- | --- | --- |
 | [`standup`](standup/SKILL.md) | Every evening the GTM day is recapped into the cadence log and a digest is posted to Slack, as one reviewable pull request against your GTM repo. | “Every weekday at 6pm, recap what moved on our GTM initiatives into the repo and post the digest to #gtm-daily.” |
 | [`weekly-planning`](weekly-planning/SKILL.md) | Every Monday last week's GTM work is ranked against active initiatives, declared infra, and live runs, as one reviewable pull request per initiative — or one workspace pull request when there are none. | “Every Monday morning, check last week's runs against our initiatives and open one pull request per initiative saying what to do next.” |
 | [`ask-cargo`](ask-cargo/SKILL.md) | One agent the whole team @mentions in Slack, sitting on top of your GTM repo and workspace: it answers from context, cadence and live runs, turns change requests into pull requests, and hands work to the other deployed agents only after a go in the thread. | “Put one agent in our #gtm Slack channel that answers from this repo, opens a pull request for any edit, and runs nothing until someone says go.” |
-| [`agentic-engagement`](agentic-engagement/SKILL.md) | Deploy an agent that holds email conversations with leads: a sending domain, a mailbox, native sendEmail and listEmailEvents on the agent, a native email trigger on reply and unsubscribe, and a heartbeat that checks thread status when nothing inbound happened. | “Give our jordan@ mailbox an agent that answers leads who reply to my first emails, and checks quiet threads once for a single follow-up.” |
-| [`website-building`](website-building/SKILL.md) | Build the company website on Cargo and serve it on your own domain: a statically exported Next.js app, one defineApp with its www hostname, and a defineDomain that publishes the records and forwards the apex, changed only through reviewed pull requests. | “Build our company website on Cargo from our brand guide and serve it on www.fabrikam.example. Our DNS is hosted elsewhere.” |
-| [`new-hire-detection`](new-hire-detection/SKILL.md) | Watch your whole market for people who just took a role you sell to, qualify the company each one joined against your ICP, and post the ones that fit to Slack with the verdict and the links. A deployed pipeline on a Sales Navigator job-change search; checking or writing the CRM is an optional variation. | “Every time a new VP Sales or head of RevOps starts at a US software company with 51 to 500 people, post it in #new-hires.” |
-| [`web-capture`](web-capture/SKILL.md) | Each Monday the company's own website, its competitors' pages and recent news about both land in context/ as one pull request: the first run seeds positioning, offerings, an inferred ICP with a disqualifier, competitors, clients and proof; every run after adds a dated note of what changed (pricing, a launch, funding, a customer) and never edits an existing file. | “Every Monday, read our website, our competitors' pricing and changelog pages, and the news about all of us, and keep context/ current.” |
-| [`win-loss-review`](win-loss-review/SKILL.md) | Every month the CRM's closed deals are audited and what they say lands in context/ as one pull request: the ICP verified against won versus lost with a disqualifier, dated insights with counts and denominators, objections from recorded lost reasons, and a client file per closed-won account; a five-line Slack digest says what changed. Never edits a persona, nor the ICP after the first pass. | “Every month, read what our HubSpot won and lost deals say, verify the ICP, and post the digest to #gtm-context.” |
+
+### Connect your CRM
+
+Deployed pipelines for when a CRM is already in place: keep its records filled and duplicate-free so the engine and the CRM agree.
+
+| Skill | Does | Try saying |
+| --- | --- | --- |
+| [`crm-enrichment`](crm-enrichment/SKILL.md) | Keep CRM accounts and contacts filled and refresh them when they go stale. The contact pipeline uses one enrichment play with three gated tools: Cargo-native Find Email, Cargo-native Find LinkedIn Profile from Email, and custom Contact LinkedIn Enrichment. | “Keep our HubSpot contacts filled: find the missing email or LinkedIn profile, then fill job title, but never overwrite a value a rep already entered.” |
+| [`crm-deduplication`](crm-deduplication/SKILL.md) | Keep CRM accounts and contacts duplicate-free: audit company and person identity, run recurring deduplication plays directly on CRM models, merge safe exact matches, and route uncertain clusters to manual review. | “Merge duplicate HubSpot companies automatically only when the LinkedIn company ID matches, and send everything else to #crm-hygiene for a human to approve.” |
 
 ### By role
 

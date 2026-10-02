@@ -14,7 +14,7 @@ metadata:
   worksBestAfter:
     - web-capture
   nextSteps:
-    - crm-enrichment
+    - account-scoring
   openclaw:
     requires:
       bins:
@@ -294,5 +294,6 @@ source really costs.
 
 ## Composes into
 
-`crm-enrichment` (fill the records these accounts become), `contact-sourcing` (the buyers at every
-tier A account), `signal-based-tam` (watch the universe you just built).
+`account-scoring` (keep the universe you just tiered scored as accounts arrive and as the ICP
+changes), `contact-sourcing` (the buyers at every tier A account), `signal-based-tam` (watch the
+universe you just built).
