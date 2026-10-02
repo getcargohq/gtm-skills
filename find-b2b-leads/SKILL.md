@@ -1,7 +1,7 @@
 ---
 name: find-b2b-leads
 description: "Find B2B leads by job title, company, and keyword, and return them as a structured list, powered by Cargo. Triggers: \"find 50 VPs of Sales at fintech companies\", \"build me a list of leads\", \"who are the heads of engineering at Series B startups\", \"get me prospects matching this profile\", \"source leads for my outbound\", \"build a b2b lead list\", \"lead sourcing\". Providers: salesNavigator. Skip when: you need companies rather than people — use build-tam-list; or you already have the people and need contact details — use find-work-email."
-version: "1.1.2"
+version: "1.2.0"
 compatibility: Requires @cargo-ai/cli (npm). Sign in or create an account with `cargo-ai login --email` (emailed code, no browser), `--oauth`, or an API token
 homepage: https://github.com/getcargohq/gtm-skills
 metadata:
@@ -108,7 +108,8 @@ with it.
 
 ## Worth knowing
 
-- The default for LinkedIn-native people sourcing (title, function, seniority, geo), but not the cheapest: `aiArk.searchPeople` (0.05) undercuts it when its filters fit.
+- The default for LinkedIn-native people sourcing (title, function, seniority, geo), but not the cheapest. `FullEnrich.searchPeople` is **free** (0 credits) with plain-string filters — `jobRole.title_or`, `jobRole.seniority_or`, `personLocation`, `skills`, `tenure`, and the employer's `industry` / `headcount` / `companyInfo.domain_or` — up to 2,000 per run; `FullEnrich.fetchPeople`, also free, pulls up to 10,000 into a Cargo model as contacts. `aiArk.searchPeople` (0.05) is the cheapest paid option.
+- `FullEnrich.lookupPerson` (free) resolves one person from a LinkedIn URL, or from a full name plus company domain.
 - Pages come back in blocks of 25; ask for a `limit` in multiples of 25.
 - Sourcing returns profiles, not emails. Pipe the LinkedIn URLs into `enrich-linkedin-profile` for verified emails.
 
