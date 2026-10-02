@@ -169,7 +169,7 @@ CDK workflow bodies must compile. These fail `cargo-cdk check` / `plan`:
 `undefined`/`void`, comma / SequenceExpression, `Date#getTime()`.
 
 Register: `skills.sh.json` (its stage grouping: Context, Fundamentals, Signals,
-Engagement, Operations, or Connect your CRM), `hooks/skill-loads.sh`, root
+Engagement, Operations, or CRM), `hooks/skill-loads.sh`, root
 README pipeline table, `.github/data/approvals.json` with
 `state: to-be-approved` and empty evidence.
 

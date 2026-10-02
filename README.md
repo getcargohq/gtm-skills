@@ -132,7 +132,7 @@ Deployed pipelines that run the team: the daily recap, the weekly plan, and one 
 | [`weekly-planning`](weekly-planning/SKILL.md) | Every Monday last week's GTM work is ranked against active initiatives, declared infra, and live runs, as one reviewable pull request per initiative — or one workspace pull request when there are none. | “Every Monday morning, check last week's runs against our initiatives and open one pull request per initiative saying what to do next.” |
 | [`ask-cargo`](ask-cargo/SKILL.md) | One agent the whole team @mentions in Slack, sitting on top of your GTM repo and workspace: it answers from context, cadence and live runs, turns change requests into pull requests, and hands work to the other deployed agents only after a go in the thread. | “Put one agent in our #gtm Slack channel that answers from this repo, opens a pull request for any edit, and runs nothing until someone says go.” |
 
-### Connect your CRM
+### CRM
 
 Deployed pipelines for when a CRM is already in place: keep its records filled and duplicate-free so the engine and the CRM agree.
 

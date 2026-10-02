@@ -93,7 +93,7 @@
       ]
     },
     {
-      "title": "Connect your CRM",
+      "title": "CRM",
       "description": "Deployed pipelines for when a CRM is already in place: keep its records filled and duplicate-free so the engine and the CRM agree.",
       "skills": [
         "crm-enrichment",

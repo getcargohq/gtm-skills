@@ -142,7 +142,7 @@ itself, and that the prose and the list name the same pipelines.
    - `## Done when`: the acceptance test, one checkable line each.
    - `## What it costs`, `## Composes into`.
 4. Register it: `skills.sh.json` (its stage grouping: Context, Fundamentals,
-   Signals, Engagement, Operations, or Connect your CRM),
+   Signals, Engagement, Operations, or CRM),
    `hooks/skill-loads.sh`, the README, and an entry in
    `.github/data/approvals.json` (`state: to-be-approved`, empty evidence).
 5. At least two routing cases in `evals/routing.jsonl`: one that should reach
