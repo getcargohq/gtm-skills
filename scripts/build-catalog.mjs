@@ -214,8 +214,8 @@ for (const name of readdirSync(root).sort()) {
       doneWhen: bullets(section(body, "Done when")),
       cost: section(body, "What it costs"),
       composesInto: section(body, "Composes into"),
-      worksBestAfter: [],
-      nextSteps: fm.metadata?.nextSteps ?? [],
+      suggestedBefore: [],
+      suggestedNext: fm.metadata?.suggestedNext ?? [],
     });
   } else {
     Object.assign(rec, {
@@ -226,28 +226,29 @@ for (const name of readdirSync(root).sort()) {
   skills.push(rec);
 }
 
-// A pipeline only writes what it sets up (`nextSteps`). What works best before
-// it is the same relation read backwards, so it is derived here and written
-// back into each pipeline's frontmatter, just above `nextSteps`: an agent
-// reading one SKILL.md sees both directions, and the two never disagree.
+// A pipeline only writes what it sets up (`suggestedNext`). What is suggested
+// before it (`suggestedBefore`) is the same relation read backwards, so it is
+// derived here and written back into each pipeline's frontmatter, just above
+// `suggestedNext`: an agent reading one SKILL.md sees both directions, and the
+// two never disagree.
 for (const s of skills)
-  for (const next of s.nextSteps ?? [])
-    skills.find((t) => t.name === next)?.worksBestAfter?.push(s.name);
-const WORKS_BEST_AFTER =
-  /  worksBestAfter:(?: \[\]\n|\n(?:    - .*\n)+)(?=  nextSteps:)/;
+  for (const next of s.suggestedNext ?? [])
+    skills.find((t) => t.name === next)?.suggestedBefore?.push(s.name);
+const SUGGESTED_BEFORE =
+  /  suggestedBefore:(?: \[\]\n|\n(?:    - .*\n)+)(?=  suggestedNext:)/;
 const skillFiles = skills
-  .filter((s) => s.worksBestAfter)
+  .filter((s) => s.suggestedBefore)
   .map((s) => {
     const path = join(root, s.name, "SKILL.md");
     const current = readFileSync(path, "utf8");
-    const after = [...s.worksBestAfter].sort();
+    const after = [...s.suggestedBefore].sort();
     const block = after.length
-      ? `  worksBestAfter:\n${after.map((n) => `    - ${n}\n`).join("")}`
-      : "  worksBestAfter: []\n";
-    const rendered = WORKS_BEST_AFTER.test(current)
-      ? current.replace(WORKS_BEST_AFTER, block)
-      : current.replace(/^  nextSteps:/m, `${block}  nextSteps:`);
-    s.worksBestAfter = after;
+      ? `  suggestedBefore:\n${after.map((n) => `    - ${n}\n`).join("")}`
+      : "  suggestedBefore: []\n";
+    const rendered = SUGGESTED_BEFORE.test(current)
+      ? current.replace(SUGGESTED_BEFORE, block)
+      : current.replace(/^  suggestedNext:/m, `${block}  suggestedNext:`);
+    s.suggestedBefore = after;
     return { name: s.name, path, current, rendered };
   });
 
@@ -327,7 +328,7 @@ if (process.argv.includes("--check")) {
   const staleSkills = skillFiles.filter((f) => f.current !== f.rendered);
   if (current !== rendered || readme !== renderedReadme || staleSkills.length) {
     console.error(
-      `catalog.json, the README tables or metadata.worksBestAfter in ${staleSkills.map((f) => `${f.name}/SKILL.md`).join(", ") || "no SKILL.md"} are stale. Regenerate with: node scripts/build-catalog.mjs`,
+      `catalog.json, the README tables or metadata.suggestedBefore in ${staleSkills.map((f) => `${f.name}/SKILL.md`).join(", ") || "no SKILL.md"} are stale. Regenerate with: node scripts/build-catalog.mjs`,
     );
     process.exit(1);
   }

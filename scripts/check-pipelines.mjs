@@ -143,7 +143,7 @@ const isExampleFolder = (name) => {
 };
 
 const exampleFolders = readdirSync(root).filter(isExampleFolder).sort();
-const nextStepsOf = {};
+const suggestedNextOf = {};
 const composesIntoOf = {};
 const allSkillFolders = readdirSync(root).filter(
   (d) =>
@@ -239,22 +239,26 @@ for (const name of exampleFolders) {
     );
   }
 
-  // Recommendations, not requirements: `nextSteps` names the pipelines this one
-  // sets up well. It is not a precondition and not a build order, so the skill
+  // Recommendations, not requirements: `suggestedNext` names the pipelines this
+  // one sets up well. It is not a precondition and not a build order, so the skill
   // still installs and works alone, and two pipelines may feed each other. The
-  // reverse view, `worksBestAfter`, is generated into the frontmatter by
+  // reverse view, `suggestedBefore`, is generated into the frontmatter by
   // build-catalog.mjs, and its --check fails when it is stale.
-  const nextSteps = fm.metadata?.nextSteps;
-  if (!Array.isArray(nextSteps)) {
+  const suggestedNext = fm.metadata?.suggestedNext;
+  if (!Array.isArray(suggestedNext)) {
     errors.push(
-      `${name}/SKILL.md needs metadata.nextSteps as a list (empty is fine): it is how a reader finds what to set up after this pipeline`,
+      `${name}/SKILL.md needs metadata.suggestedNext as a list (empty is fine): it is how a reader finds what to set up after this pipeline`,
     );
   } else {
-    nextStepsOf[name] = nextSteps;
-    if (new Set(nextSteps).size !== nextSteps.length)
-      errors.push(`${name}/SKILL.md metadata.nextSteps names a pipeline twice`);
-    if (nextSteps.includes(name))
-      errors.push(`${name}/SKILL.md metadata.nextSteps names the skill itself`);
+    suggestedNextOf[name] = suggestedNext;
+    if (new Set(suggestedNext).size !== suggestedNext.length)
+      errors.push(
+        `${name}/SKILL.md metadata.suggestedNext names a pipeline twice`,
+      );
+    if (suggestedNext.includes(name))
+      errors.push(
+        `${name}/SKILL.md metadata.suggestedNext names the skill itself`,
+      );
   }
   composesIntoOf[name] =
     body.match(/\n## Composes into\n([\s\S]*?)(?=\n## |$)/)?.[1] ?? "";
@@ -383,14 +387,14 @@ for (const name of exampleFolders) {
     );
 }
 
-// nextSteps names real pipelines, and `## Composes into` is its prose: it
+// suggestedNext names real pipelines, and `## Composes into` is its prose: it
 // explains every listed pipeline and names no other pipeline here. One-off
 // skills and pipelines that do not exist yet may still appear in the prose.
-for (const [name, list] of Object.entries(nextStepsOf)) {
+for (const [name, list] of Object.entries(suggestedNextOf)) {
   for (const target of list)
     if (!exampleFolders.includes(target))
       errors.push(
-        `${name}/SKILL.md metadata.nextSteps names \`${target}\`, which is not a pipeline skill here`,
+        `${name}/SKILL.md metadata.suggestedNext names \`${target}\`, which is not a pipeline skill here`,
       );
   const named = new Set(
     [...(composesIntoOf[name] ?? "").matchAll(/`([a-z0-9-]+)`/g)]
@@ -399,11 +403,11 @@ for (const [name, list] of Object.entries(nextStepsOf)) {
   );
   for (const target of list.filter((n) => !named.has(n)))
     errors.push(
-      `${name}/SKILL.md lists \`${target}\` in metadata.nextSteps but "## Composes into" never says why`,
+      `${name}/SKILL.md lists \`${target}\` in metadata.suggestedNext but "## Composes into" never says why`,
     );
   for (const other of [...named].filter((n) => !list.includes(n)))
     errors.push(
-      `${name}/SKILL.md "## Composes into" names \`${other}\`, which is not in metadata.nextSteps: add it there or drop it from the prose`,
+      `${name}/SKILL.md "## Composes into" names \`${other}\`, which is not in metadata.suggestedNext: add it there or drop it from the prose`,
     );
 }
 

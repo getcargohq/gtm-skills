@@ -11,14 +11,14 @@ metadata:
     - revops
     - sales-leadership
     - gtm-engineering
-  worksBestAfter:
+  suggestedBefore:
     - call-capture
     - crm-deduplication
     - new-hire-detection
     - tam-building
     - web-capture
     - win-loss-review
-  nextSteps:
+  suggestedNext:
     - agentic-engagement
   openclaw:
     requires:

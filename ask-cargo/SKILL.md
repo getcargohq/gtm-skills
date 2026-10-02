@@ -11,10 +11,10 @@ metadata:
     - revops
     - sales-leadership
     - gtm-engineering
-  worksBestAfter:
+  suggestedBefore:
     - standup
     - weekly-planning
-  nextSteps: []
+  suggestedNext: []
   openclaw:
     requires:
       bins:

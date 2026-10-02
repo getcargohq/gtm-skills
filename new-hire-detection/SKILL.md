@@ -11,9 +11,9 @@ metadata:
     - revops
     - sales-development
     - gtm-engineering
-  worksBestAfter:
+  suggestedBefore:
     - web-capture
-  nextSteps:
+  suggestedNext:
     - account-scoring
     - agentic-engagement
   openclaw:

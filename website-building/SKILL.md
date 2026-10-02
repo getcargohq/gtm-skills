@@ -10,11 +10,11 @@ metadata:
   personas:
     - marketing
     - gtm-engineering
-  worksBestAfter:
+  suggestedBefore:
     - call-capture
     - web-capture
     - win-loss-review
-  nextSteps: []
+  suggestedNext: []
   openclaw:
     requires:
       bins:

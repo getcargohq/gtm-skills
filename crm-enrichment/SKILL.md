@@ -10,8 +10,8 @@ metadata:
   personas:
     - revops
     - gtm-engineering
-  worksBestAfter: []
-  nextSteps:
+  suggestedBefore: []
+  suggestedNext:
     - crm-deduplication
   openclaw:
     requires:

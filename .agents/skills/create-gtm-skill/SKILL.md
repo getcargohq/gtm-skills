@@ -173,8 +173,8 @@ Engagement, Operations, or Connect your CRM), `hooks/skill-loads.sh`, root
 README pipeline table, `.github/data/approvals.json` with
 `state: to-be-approved` and empty evidence.
 
-Frontmatter: `metadata.nextSteps`, the pipelines this one sets up well (a
-recommendation, not a build order; `[]` is fine). `worksBestAfter` above it is
+Frontmatter: `metadata.suggestedNext`, the pipelines this one sets up well (a
+recommendation, not a build order; `[]` is fine). `suggestedBefore` above it is
 generated: run `node scripts/build-catalog.mjs`, never edit it by hand.
 `## Composes into` says why each listed pipeline comes next and names no other
 pipeline in this repo.

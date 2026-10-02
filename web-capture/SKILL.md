@@ -11,8 +11,8 @@ metadata:
     - gtm-engineering
     - revops
     - marketing
-  worksBestAfter: []
-  nextSteps:
+  suggestedBefore: []
+  suggestedNext:
     - tam-building
     - account-scoring
     - new-hire-detection
