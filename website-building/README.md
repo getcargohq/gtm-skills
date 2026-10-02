@@ -63,9 +63,9 @@ DNS at a provider, so for them the file goes and the three records are added by 
 
 ## Placeholders (edit before deploy)
 
-1. **Hostname** — `infra/apps/website.ts`: `domains`, always the `www` host.
-2. **Domain** — `infra/domains/website.ts`: the name and the redirect, or delete the file.
-3. **Content** — `infra/apps/website/site.json`: approved company facts, `canonicalUrl` set to
+1. **Hostname**: `infra/apps/website.ts`: `domains`, always the `www` host.
+2. **Domain**: `infra/domains/website.ts`: the name and the redirect, or delete the file.
+3. **Content**: `infra/apps/website/site.json`: approved company facts, `canonicalUrl` set to
    `https://www.<domain>/`, `status: "ready"` only after review.
 
 ## What it does not do

@@ -30,11 +30,11 @@ const path = relative(
   .join("/");
 
 export const website = defineApp("website", {
-  name: "Website", // PLACEHOLDER — the company's name for it
+  name: "Website", // PLACEHOLDER: the company's name for it
   description: "The public company website, built from reviewed source.",
   path,
   folder: appsFolder,
-  // PLACEHOLDER — the hostname the site is served on. Always a subdomain
+  // PLACEHOLDER: the hostname the site is served on. Always a subdomain
   // (`www.`): the apex cannot CNAME to an app, so `../domains/website.ts`
   // forwards it here. Declaring a hostname attaches it on deploy, but nothing is
   // served on it until its `_cargo-verify` TXT record resolves. Removing a
