@@ -254,6 +254,4 @@ they bill nothing. There is no per-record fan-out, and the recap never runs a co
 
 ## Composes into
 
-`standup` (the week's daily logs are evidence this recap reads), `call-capture` (scribed calls dated
-in the week are evidence), `tam-building` and `account-scoring` (a declared play that did not run is
-the gap this recap is for).
+Nothing in particular comes after it: the plan it opens is the next week's work.

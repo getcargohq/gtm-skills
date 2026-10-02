@@ -202,6 +202,5 @@ warm-up is what moves the ramp; it takes forty-five days to finish. Check
 
 ## Composes into
 
-`account-scoring` (the engager should be talking to accounts the scorer already ranked),
-`call-capture` (a conversation that becomes a meeting is a call worth scribing),
-`crm-enrichment` (the record the thread is about should already be filled).
+Nothing in particular comes after it: a conversation that becomes a meeting is recorded and
+scribed like any other call.

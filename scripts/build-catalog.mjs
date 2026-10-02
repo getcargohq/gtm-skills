@@ -224,7 +224,17 @@ for (const name of readdirSync(root).sort()) {
   skills.push(rec);
 }
 
-const catalog = { source: "getcargohq/gtm-skills", skills };
+// The groups in the order skills.sh.json declares them, with their one-line
+// description and their skills in declared order. For the pipelines that order
+// is the recommendation: the stages run from context to the CRM, and an agent
+// suggests the earliest pipelines not yet set up. Listed here so a page can
+// show it without reading a second file from this repository.
+const groups = groupings.map(({ title, description, skills: members }) => ({
+  title,
+  description,
+  skills: members,
+}));
+const catalog = { source: "getcargohq/gtm-skills", groups, skills };
 const rendered = JSON.stringify(catalog, null, 2) + "\n";
 
 // The README's skill tables are the catalog again, for a person: by job, then

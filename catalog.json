@@ -1,5 +1,105 @@
 {
   "source": "getcargohq/gtm-skills",
+  "groups": [
+    {
+      "title": "Coming from another tool",
+      "description": "Rebuild what you already have: mapped column by column, priced before it runs, kept as code.",
+      "skills": [
+        "clay-to-cargo",
+        "apollo-to-cargo",
+        "zoominfo-to-cargo"
+      ]
+    },
+    {
+      "title": "Find the accounts and the people",
+      "description": "Sourcing: who exists, who fits, and who sits on the buying committee.",
+      "skills": [
+        "find-b2b-leads",
+        "build-tam-list",
+        "find-stakeholders",
+        "find-portfolio-companies"
+      ]
+    },
+    {
+      "title": "Get the contact data",
+      "description": "Resolve identity, enrich it, and make sure the address is deliverable before you send.",
+      "skills": [
+        "find-linkedin-url",
+        "enrich-linkedin-profile",
+        "find-work-email",
+        "verify-email-list",
+        "enrich-company-data",
+        "waterfall-enrichment"
+      ]
+    },
+    {
+      "title": "Watch for the moment to reach out",
+      "description": "Buying signals: someone moved, someone raised, someone started hiring for the thing you sell.",
+      "skills": [
+        "track-job-changes",
+        "track-funding-rounds",
+        "find-companies-using-tech",
+        "monitor-buying-signals"
+      ]
+    },
+    {
+      "title": "Decide who is worth the time",
+      "description": "Rank a list against your profile, then understand the one account before you walk into the call.",
+      "skills": [
+        "score-leads",
+        "research-account"
+      ]
+    },
+    {
+      "title": "Context",
+      "description": "Deployed pipelines that keep context/ current: every recorded call, your website and the news, and won and lost deals.",
+      "skills": [
+        "call-capture",
+        "web-capture",
+        "win-loss-review"
+      ]
+    },
+    {
+      "title": "Fundamentals",
+      "description": "Deployed pipelines that build the base: the account universe, a standing score on every account, and the website.",
+      "skills": [
+        "tam-building",
+        "account-scoring",
+        "website-building"
+      ]
+    },
+    {
+      "title": "Signals",
+      "description": "Deployed pipelines that watch the market for the moment to reach out: who just took a role you sell to.",
+      "skills": [
+        "new-hire-detection"
+      ]
+    },
+    {
+      "title": "Engagement",
+      "description": "Deployed pipelines that hold the conversation: an agent answering every lead who replies.",
+      "skills": [
+        "agentic-engagement"
+      ]
+    },
+    {
+      "title": "Operations",
+      "description": "Deployed pipelines that run the team: the daily recap, the weekly plan, and one agent everyone can ask.",
+      "skills": [
+        "standup",
+        "weekly-planning",
+        "ask-cargo"
+      ]
+    },
+    {
+      "title": "CRM",
+      "description": "Deployed pipelines that keep an existing CRM in step with the engine: records filled and duplicate-free.",
+      "skills": [
+        "crm-enrichment",
+        "crm-deduplication"
+      ]
+    }
+  ],
   "skills": [
     {
       "name": "account-scoring",
@@ -8,7 +108,7 @@
       "description": "Keep every account scored and tiered against your written ICP by a deployed agent that re-scores as accounts arrive and as the ICP changes, writing the rationale back to the CRM. Triggers: \"keep our accounts scored as they arrive\", \"re-score everything when the ICP changes\", \"which accounts should the team work first\", \"our scoring is a spreadsheet nobody trusts\", \"why is this account tier A\", \"stand up account tiering\". Cargo CDK, defineAgent, cargo_score, cargo_tier, HubSpot, Salesforce, Attio. Skip when: someone hands you a list and wants it qualified once, which is cargo-gtm's job, not a deployed scorer's.",
       "version": "0.2.1",
       "homepage": "https://github.com/getcargohq/gtm-skills/tree/main/account-scoring",
-      "group": "Make it run forever",
+      "group": "Fundamentals",
       "install": "cargo-ai cdk add cookbook/account-scoring",
       "partOf": [],
       "personas": [
@@ -93,7 +193,7 @@
         "after the next model refresh the account appears in the matching tier segment"
       ],
       "cost": "One LLM call plus up to two Cargo database calls (`matchBusiness`,\n`enrichBusinessFirmographics`) per account, on arrival and again on the weekly sweep of accounts\nlast scored three or more months ago. It scales with accounts in the model times re-scores, so a\nTAM built by `tam-building` scores at that size. Score a sample before the book.",
-      "composesInto": "`routing-engine` (territories and capacity over the scored book), `rep-cockpit`, `ai-sdr`."
+      "composesInto": "`agentic-engagement` (the engager should be talking to accounts this already ranked). Not built\nyet: `routing-engine` (territories and capacity over the scored book), `rep-cockpit`, `ai-sdr`."
     },
     {
       "name": "agentic-engagement",
@@ -102,7 +202,7 @@
       "description": "Deploy an agent that holds email conversations with leads: a sending domain, a mailbox, native sendEmail and listEmailEvents on the agent, a native email trigger on reply and unsubscribe, and a heartbeat that checks thread status when nothing inbound happened. Triggers: \"handle email conversations with leads\", \"agentic engagement\", \"an agent that replies to inbound email\", \"stand up a conversation agent on a Cargo mailbox\", \"native email trigger for lead replies\", \"keep talking to leads over email\". Cargo CDK, defineDomain, defineMailbox, defineAgent, agentNativeTrigger, heartbeat, sendEmail, listEmailEvents. Skip when: you want to send one email right now, which is a native sendEmail from the CLI and needs nothing deployed; or you want a play that blasts a list rather than holding a thread.",
       "version": "0.1.1",
       "homepage": "https://github.com/getcargohq/gtm-skills/tree/main/agentic-engagement",
-      "group": "Make it run forever",
+      "group": "Engagement",
       "install": "cargo-ai cdk add cookbook/agentic-engagement",
       "partOf": [],
       "personas": [
@@ -197,7 +297,7 @@
         "an unanswered first send is still a live chat: the heartbeat is declared, and the agent treats that wake as a status check, not a sequence"
       ],
       "cost": "A mailbox is a **monthly, recurring** charge for as long as it exists. Immediately before the\nplan, run `cargo-ai mailboxManagement pricing get` and read `monthlyCredits` for the chosen type.\nSay that number out loud as a per-month cost, not a one-off. `destroy` is the only way it stops.\n\nIf the plan also shows `+ create domain:…`, that registration is a separate, non-refundable\ncharge. Adopting an existing domain does not.\n\nEach delivery is a `sendEmail` native action. Run `cargo-ai connection native-integration\nget` (or `orchestration action list sendEmail`) for the current per-send cost. The engager\nadds one LLM turn per wake, including heartbeats. The per-thread cap is the cost control:\none send per wake, at most one unanswered follow-up, and a stop when the lead closes.\n\nA mailbox that never starts warm-up stays at the floor of five real sends a day. Starting\nwarm-up is what moves the ramp; it takes forty-five days to finish. Check\n`mailbox get-send-allowance` before promising volume.",
-      "composesInto": "`account-scoring` (the engager should be talking to accounts the scorer already ranked),\n`call-capture` (a conversation that becomes a meeting is a call worth scribing),\n`crm-enrichment` (the record the thread is about should already be filled)."
+      "composesInto": "Nothing in particular comes after it: a conversation that becomes a meeting is recorded and\nscribed like any other call."
     },
     {
       "name": "apollo-to-cargo",
@@ -235,7 +335,7 @@
       "description": "One agent the whole team @mentions in Slack, sitting on top of your GTM repo and workspace: it answers from context, cadence and live runs, turns change requests into pull requests, and hands work to the other deployed agents only after a go in the thread. Triggers: \"let the team ask our GTM agent from slack\", \"one agent on top of all the others\", \"a slack bot that knows our repo\", \"ask cargo from slack\", \"multiplayer GTM agent in slack\", \"orchestrator agent for our GTM stack\", \"let anyone open a PR from slack\". Cargo CDK, defineAgent, harness claudeCode, Slack connector trigger, GitHub, cargo-ai CLI, ai message create. Skip when: you want the day recapped and posted to Slack on a schedule, which is standup; or you want an answer in this chat right now with nothing deployed.",
       "version": "0.1.1",
       "homepage": "https://github.com/getcargohq/gtm-skills/tree/main/ask-cargo",
-      "group": "Make it run forever",
+      "group": "Operations",
       "install": "cargo-ai cdk add cookbook/ask-cargo",
       "partOf": [],
       "personas": [
@@ -318,7 +418,7 @@
         "a mention in a channel another agent lists got that agent's reply, not this one's"
       ],
       "cost": "Every turn is a harness run: a sandbox, a clone of the repository, and LLM tokens billed through the\nbound Anthropic connector. A turn that only answers a question costs tokens and nothing else. The\nread-only `cargo-ai` calls are API calls, not connector actions, and bill nothing.\n\nWhat spends is what someone approves with a go: the connector actions, batches and agent handoffs in\n§3 of the prompt. The agent reads each price live (`cargo-ai connection integration get <slug>`) and\nsays the total before it asks for the go, so the proposal is the cost line. Nothing runs on a\nschedule.",
-      "composesInto": "`standup` and `weekly-planning` (it can run either on demand, and answers \"what happened this week\"\nfrom the logs they write), `account-scoring` and `crm-enrichment` (it hands them one-account\nrequests instead of scoring or enriching by hand), `call-capture` (the call entries are context it\nanswers from), `agentic-engagement` (it can report what a thread did, never send on its behalf)."
+      "composesInto": "Nothing in particular comes after it: it is the on-demand layer over whatever else is deployed, so\nit gets more useful with every pipeline that writes logs, calls or scores it can read."
     },
     {
       "name": "build-tam-list",
@@ -357,7 +457,7 @@
       "description": "Every call the team records is collected into the cadence layer each morning, scribed into a log entry, and — once a claim repeats — promoted into the context knowledge layer, as one reviewable pull request against your GTM repo. Nine recorders ship; a tenth is one adapter file. Triggers: \"our call recordings never make it into the knowledge base\", \"turn our call transcripts into context\", \"we relearn the same objection every quarter\", \"scribe yesterday's calls into the repo every morning\", \"replace the GitHub Action that summarizes our meetings\", \"we record on Granola, not Avoma\". Cargo CDK, defineAgent, harnessSlug claudeCode, workspace env var, GitHub, Avoma, Granola, Fathom, Gong, Fireflies, Grain, tl;dv, Modjo, Clari Copilot, cadence, context. Skip when: you want one call summarized right now, which is a read against the recorder's own API and needs nothing deployed.",
       "version": "0.1.1",
       "homepage": "https://github.com/getcargohq/gtm-skills/tree/main/call-capture",
-      "group": "Make it run forever",
+      "group": "Context",
       "install": "cargo-ai cdk add cookbook/call-capture",
       "partOf": [],
       "personas": [
@@ -453,7 +553,7 @@
         "after merging and `cargo-ai cdk deploy`, the changed `context/` file is readable from the workspace context repository, and an agent with the `context` capability quotes it back"
       ],
       "cost": "There are no connector actions in this skill, so it consumes no per-record credits: the collector\ntalks to your recorder directly from the harness environment, under whatever API limits your\nrecording plan already gives you. Those limits differ enough between recorders to be worth checking\nonce — a daily three-day window is nothing against Grain's per-minute allowance and is real against\nFireflies' Free tier of a few dozen requests a **day**, and `references/recorder-apis.md` records\neach. The collector paces itself and backs off on a 429 regardless, so the failure is a slow run\nrather than a half-captured one.\n\nThe recurring cost is the harness run itself, once a day, and it scales with how much the agent\nreads — which is the raw captures it scribes. **The per-run cap is the cost control as well as the\nreview control.** A lower cap spreads the same backlog over more days at the same daily cost rather\nthan paying for it all at once, and the pending remainder in the pull request body is how you watch\nwhether it is keeping up.",
-      "composesInto": "`account-scoring` and any agent with the `context` capability (they read the ICP and objection files\nthis keeps current), `crm-enrichment` (the account files this writes name the record the enrichment\nfills), `monitor-buying-signals` (the signals this promotes are what a feed then watches for)."
+      "composesInto": "`account-scoring` and any agent with the `context` capability (they read the ICP and objection files\nthis keeps current), `standup` (yesterday's scribed calls are evidence the recap reads),\n`website-building` (the pages speak in the customer language and the objections the calls surface),\n`web-capture` (it adds the website, competitors and news to the context the calls started),\n`monitor-buying-signals` (the signals this promotes are what a feed then watches for)."
     },
     {
       "name": "clay-to-cargo",
@@ -494,7 +594,7 @@
       "description": "Keep CRM accounts and contacts duplicate-free: audit company and person identity, run recurring deduplication plays directly on CRM models, merge safe exact matches, and route uncertain clusters to manual review. Triggers: \"deduplicate our CRM accounts\", \"deduplicate CRM contacts\", \"our CRM has duplicate people\", \"merge duplicate contacts in HubSpot\", \"we keep creating duplicate account records\", \"merge duplicate companies in HubSpot\", \"set up recurring CRM deduplication\", \"review ambiguous duplicates\". HubSpot, Salesforce, Attio, Slack, LinkedIn profiles, phone numbers, Cargo CDK, findRecords, Scoring, Human Review, mergeRecords. Skip when: the request is to add or refresh CRM data rather than merge duplicate records; use crm-enrichment.",
       "version": "0.1.1",
       "homepage": "https://github.com/getcargohq/gtm-skills/tree/main/crm-deduplication",
-      "group": "Make it run forever",
+      "group": "CRM",
       "install": "cargo-ai cdk add cookbook/crm-deduplication",
       "partOf": [],
       "personas": [
@@ -664,7 +764,7 @@
         "the merge is the final CRM write, and every contact survivor and absorbed ID is verified in the CRM"
       ],
       "cost": "Immediately before each selected path's preview, run\n`cargo-ai connection integration get <crm>` and, when review is enabled,\n`cargo-ai connection integration get slack`. Record the CLI version, lookup time, action slugs, and\ncurrent cost metadata. The repository does not hard-code pipeline action prices.\n\n### Path 1: Account cost\n\nPrice the account search, automatic or approved company merge, and Human Review actions against the\nexact account population. Approval authorizes only the company clusters shown for that pilot.\n\n### Path 2: Contact cost\n\nPrice both contact searches, automatic or approved contact merge, and enabled Human Review actions\nagainst the exact contact population. Approval authorizes only the person clusters shown for that\npilot.\n\nEnabling either recurring schedule is a separate final approval after that path's pilot passes.",
-      "composesInto": "- `crm-enrichment` when either object path lacks reliable matching-key coverage\n- `account-scoring` after duplicate account records have been consolidated into authoritative survivors"
+      "composesInto": "Nothing in particular comes after it: the survivors are the records anything reading the CRM sees."
     },
     {
       "name": "crm-enrichment",
@@ -673,7 +773,7 @@
       "description": "Keep CRM accounts and contacts filled and refresh them when they go stale. The contact pipeline uses one enrichment play with three gated tools: Cargo-native Find Email, Cargo-native Find LinkedIn Profile from Email, and custom Contact LinkedIn Enrichment. Triggers: \"keep our CRM accounts filled\", \"keep our CRM contacts filled\", \"nobody refreshes the company records\", \"nobody refreshes the contact records\", \"enrich my CRM\", \"refresh stale firmographics\", \"every new CRM company\", \"every new CRM contact\", \"contacts are missing emails, LinkedIn URLs, or titles\". HubSpot, Salesforce, Attio, Cargo CDK. Skip when: the records are not in a CRM. A supplied company list is enrich-company-data, a supplied LinkedIn URL list is enrich-linkedin-profile, and a one-time email lookup is find-work-email.",
       "version": "0.7.1",
       "homepage": "https://github.com/getcargohq/gtm-skills/tree/main/crm-enrichment",
-      "group": "Make it run forever",
+      "group": "CRM",
       "install": "cargo-ai cdk add cookbook/crm-enrichment",
       "partOf": [],
       "personas": [
@@ -846,7 +946,7 @@
         "The contact report includes route, processed, written, unresolved, skipped, failed, fill-rate, spend, and direct-link evidence."
       ],
       "cost": "Fetch live prices from the workspace before every preview. Cost only the selected paths. A failed\nCRM write can cause provider calls to be billed again on retry, so probe write capability before a\nbatch.\n\n### Path 1: Account cost\n\nQuote both LinkedIn company actions. Multiply the mutually exclusive LinkedIn URL and domain\nfallback populations by their respective live unit prices. Rows with neither identifier make no\npaid call.\n\n### Path 2: Contact cost\n\nQuote both Cargo-native tools and the LinkedIn profile enrichment action. Per contact, the maximum\npaid chain is:\n\n- LinkedIn only: Find Email plus Contact LinkedIn Enrichment.\n- Email only: Find LinkedIn Profile from Email plus Contact LinkedIn Enrichment when resolution\n  succeeds.\n- Both identifiers: Contact LinkedIn Enrichment only.\n- Neither identifier: no paid call.\n\nShow mutually exclusive route counts and maximum spend before requesting approval for either path.",
-      "composesInto": "`crm-deduplication` after account enrichment, `find-stakeholders` for coverage gaps,\n`segment-accounts` for activation, and `track-job-changes` as a separate one-time movement check."
+      "composesInto": "`crm-deduplication` after account enrichment, `find-stakeholders` for coverage gaps, `segment-accounts`\nfor activation, and `track-job-changes` as a separate one-time movement check."
     },
     {
       "name": "enrich-company-data",
@@ -1106,7 +1206,7 @@
       "description": "Watch your whole market for people who just took a role you sell to, qualify the company each one joined against your ICP, and post the ones that fit to Slack with the verdict and the links. A deployed pipeline on a Sales Navigator job-change search; checking or writing the CRM is an optional variation. Triggers: \"watch our market for new hires\", \"put new VPs of Sales in our market into HubSpot\", \"post in Slack when a new VP Sales joins a company in our ICP\", \"a decision-maker just joined a company in our market\", \"new KDM detection\", \"route new hires into the CRM\", \"tell the deal owner when a new decision-maker lands mid-deal\", \"run our new-hire play on a schedule\". Cargo CDK, Sales Navigator, Slack, HubSpot, Salesforce, Attio. Skip when: your own CRM contacts may have moved jobs, which is track-job-changes; or you want a list of people once, which is find-b2b-leads.",
       "version": "0.1.0",
       "homepage": "https://github.com/getcargohq/gtm-skills/tree/main/new-hire-detection",
-      "group": "Make it run forever",
+      "group": "Signals",
       "install": "cargo-ai cdk add cookbook/new-hire-detection",
       "partOf": [],
       "personas": [
@@ -1229,7 +1329,7 @@
         "after opening up, the next sync created runs only for people new since the previous one"
       ],
       "cost": "Fetch live prices before every estimate: `cargo-ai connection integration get salesNavigator`,\n`linkedin`, and the LLM connector's model. Quote the lookup time with the estimate.\n\n**Extraction is the main spend, and it repeats.** `fetchLeadSearch` bills per extracted lead, and\nit is not incremental: every sync extracts the whole search again, including the people already in\nthe model. \"Changed jobs\" spans roughly the last 90 days, so a sync every two weeks re-pays for most\nof the previous sync to find the ones who are new. One sync costs the counted search (capped at\n`limit` per URL) times the per-lead price; a month costs that times the number of syncs.\n\n**Qualifying is per new person, and only new people.** Each run pays one company enrichment, and\neach company with a domain adds one qualifier call. The Slack post carries no per-call price of its\nown. The CRM variations add their own lookups and, on `crm_routing`, an email lookup per person.\n\n**Counting is cheap and comes first.** One `searchPersonMetrics` call per candidate URL tells you\nwhat a sync will extract before anything is extracted.",
-      "composesInto": "`find-work-email` or `enrich-linkedin-profile` for the people the team decides to contact,\n`account-scoring` for a standing score on the companies it surfaces, and the team's own sequencer\nafter a person reads the post. With `crm_routing`, `crm-enrichment` fills the records it creates.\n`track-job-changes` is the sibling for people already in your CRM."
+      "composesInto": "`find-work-email` or `enrich-linkedin-profile` for the people the team decides to contact, and\n`agentic-engagement` to hold the conversation once a person reads the post and the team writes\nfirst.\n`track-job-changes` is the sibling for people already in your CRM."
     },
     {
       "name": "research-account",
@@ -1299,7 +1399,7 @@
       "description": "Every evening the GTM day is recapped into the cadence log and a digest is posted to Slack, as one reviewable pull request against your GTM repo. Triggers: \"post the daily standup to slack\", \"end of day report in slack\", \"what happened today posted to slack\", \"keep a cadence log of each day\", \"replace the GitHub Action that posts our standup\", \"evening recap of the GTM day\". Cargo CDK, defineAgent, harness claudeCode, GitHub, Slack, slack.postMessage, cargo-ai CLI reads, cadence. Skip when: you want one recap of today in this chat with nothing deployed; or you want call transcripts scribed into context, which is call-capture.",
       "version": "0.1.1",
       "homepage": "https://github.com/getcargohq/gtm-skills/tree/main/standup",
-      "group": "Make it run forever",
+      "group": "Operations",
       "install": "cargo-ai cdk add cookbook/standup",
       "partOf": [],
       "personas": [
@@ -1391,7 +1491,7 @@
         "no number in the digest is absent from the raw dump, a metrics file dated that day, or a `cargo-ai` read the agent actually ran. A CLI read that errors is a note on the PR, not a made-up count"
       ],
       "cost": "The collector talks to git and, when `gh` is installed, to GitHub from the harness environment.\nThose calls are not Cargo connector actions.\n\nThe Slack post is `slack.postMessage` on the bound connector. Immediately before the plan, run\n`cargo-ai orchestration action list postMessage --kind connector --integration-slug slack` and\nread the current cost. Say that number out loud as a per-post cost; the run posts once.\n\nThe recurring cost is the harness run itself, once a day, billed as LLM tokens through the bound\nAnthropic connector, and it scales with how much the agent reads — the dump, the day's cadence\nfiles, a short window of git history, and the read-only `cargo-ai` calls in §1b (whoami, run\ncounts, usage, what is deployed). Those reads are API calls, not connector actions, so they bill\nnothing. There is no per-record fan-out, and the recap never runs a command that spends.",
-      "composesInto": "`call-capture` (yesterday's scribed calls are evidence this recap reads), `agentic-engagement`\n(a thread that closed today is something that moved), `tam-building` and `account-scoring` (a\ntiered book is a number the digest can name only when the metrics file actually moved),\n`weekly-planning` (the week's logs are what it ranks against infra and runs)."
+      "composesInto": "`weekly-planning` (the week's logs are what it ranks against infra and runs)."
     },
     {
       "name": "tam-building",
@@ -1400,7 +1500,7 @@
       "description": "Stand up your account universe as a deployed pipeline: an AI Ark company search shaped by your ICP, sized for free before it bills, then tiered A / B / C / disqualified by an agent that reads your rubric from the workspace context and web-searches the evidence the sourced row does not carry. Triggers: \"our TAM is a stale CSV\", \"build our account universe\", \"source companies matching our ICP and rank them\", \"keep our market list current\", \"which of these companies are actually worth a rep\", \"tier the market we just sourced\". Cargo CDK, aiArk, countCompanies, fetchCompanies, agent tiering, workspace context, webSearch. Skip when: you want the list once rather than a pipeline that keeps producing it, which is build-tam-list; or the accounts already exist in a CRM or an accounts model and only need judging, which is account-scoring.",
       "version": "0.3.1",
       "homepage": "https://github.com/getcargohq/gtm-skills/tree/main/tam-building",
-      "group": "Make it run forever",
+      "group": "Fundamentals",
       "install": "cargo-ai cdk add cookbook/tam-building",
       "partOf": [],
       "personas": [
@@ -1518,7 +1618,7 @@
         "`node --import tsx evals/contract.mjs` passes against the adapted resources"
       ],
       "cost": "Read this before pointing the skill at a market-sized filter.\n\n**Counting is free**, and it is the cheapest insurance in this skill: `aiArk.countCompanies` takes\nthe same filter groups as the search and returns the pool size without billing. Run it for every\ncandidate filter, every time you widen one.\n\n**Sourcing is the spend, and it is per returned record, not per call.** Immediately before every\npreview, run `cargo-ai connection integration get aiArk` and read the current entry under\n`integration.actions.searchCompanies.credits.costs`; the `fetchCompanies` extractor bills on the same\nper-record basis. Record the CLI version, the lookup time, and the unit price. The estimate is\n`limit * unit price`, which is why `limit` is the only control that matters: **to spend less, source\nless.** Start well under the counted pool, watch the rows land and the tiers come back sane, then\nwiden.\n\n**Tiering is one agent run per newly sourced company**, billed as LLM tokens through the bound\nconnector plus whatever web search steps it takes. `maxSteps` is the per-company ceiling and the\nrubric's one-question-one-search rule is what keeps a normal row far below it. Because the play runs\non `changeKinds: [\"added\"]`, steady state is only the companies a sourcing run newly added, plus\nwhatever comes back when its six-month stamp expires. A tick that follows no sourcing run is a no-op.\n\nThe model deliberately carries **no schedule**, because a cron re-runs the same search and re-bills\nevery returned record, including the rows already sitting in the model. Sourcing is a deliberate\nspend; the tiering play is the part that stands. See `refresh-cadence` above for what a recurring\nsource really costs.",
-      "composesInto": "`contact-sourcing` (the buyers at every tier A account), `crm-enrichment` (fill the records these\naccounts become), `signal-based-tam` (watch the universe you just built). `account-scoring` is the\nsibling for a book that already exists, not the next step after this skill has already tiered the\nrow."
+      "composesInto": "`account-scoring` (keep the universe you just tiered scored as accounts arrive and as the ICP\nchanges), `contact-sourcing` (the buyers at every tier A account), `signal-based-tam` (watch the\nuniverse you just built)."
     },
     {
       "name": "track-funding-rounds",
@@ -1637,7 +1737,7 @@
       "description": "Each Monday the company's own website, its competitors' pages and recent news about both land in context/ as one pull request: the first run seeds positioning, offerings, an inferred ICP with a disqualifier, competitors, clients and proof; every run after adds a dated note of what changed (pricing, a launch, funding, a customer) and never edits an existing file. Triggers: \"keep our context current from our website\", \"watch competitor pricing pages\", \"add our company news to the knowledge base\", \"our context repo is empty, seed it from our website\", \"set up the workspace context from our domain\". Cargo CDK, harness claudeCode, parallel, GitHub. Skip when: news about target accounts, which is monitor-buying-signals; one company researched before a call, which is research-account; or the ICP verified against won and lost deals, which is win-loss-review.",
       "version": "0.1.0",
       "homepage": "https://github.com/getcargohq/gtm-skills/tree/main/web-capture",
-      "group": "Make it run forever",
+      "group": "Context",
       "install": "cargo-ai cdk add cookbook/web-capture",
       "partOf": [],
       "personas": [
@@ -1706,7 +1806,7 @@
         "after merging and `cargo-ai cdk deploy`, a seeded file is readable from the workspace context repository and an agent with the `context` capability quotes it back with its tag"
       ],
       "cost": "Fetch live prices before every estimate: `cargo-ai connection integration get parallel`, plus the\nLLM connector's model. Quote the lookup time with the estimate.\n\nEach run bills two reads: one `parallel.extract` over every listed URL, the company's and the\ncompetitors' (billed per URL, a 404 included), and one `parallel.createTask` on the `lite`\nprocessor, the cheapest rung of its price ladder. Plus the harness run, which scales with how much\nchanged.",
-      "composesInto": "`win-loss-review` (verifies the ICP this seeds against won and lost deals, and proposes the\ncorrections), `call-capture` (adds what buyers say on calls), `account-scoring` (reads the ICP),\nand any agent with the `context` capability."
+      "composesInto": "`tam-building` and `account-scoring` (they read the ICP this writes down: one to source the market,\nthe other to score the book), `new-hire-detection` (it qualifies the company each new hire joined\nagainst that ICP), `website-building` (the positioning this captures is what the pages say),\n`win-loss-review` (verifies the ICP this seeds against won and lost deals, and proposes the\ncorrections), and any agent with the `context` capability."
     },
     {
       "name": "website-building",
@@ -1715,7 +1815,7 @@
       "description": "Build the company website on Cargo and serve it on your own domain: a statically exported Next.js app, one defineApp with its www hostname, and a defineDomain that publishes the records and forwards the apex, changed only through reviewed pull requests. Triggers: \"build our company website\", \"recreate our website on Cargo\", \"host our marketing site on Cargo\", \"put our website on our own domain\", \"capture our design system for the website\", \"keep our website updated through pull requests\". Cargo CDK, defineApp, defineDomain, domainRecords, Next.js, Tailwind, shadcn/ui. Skip when: you are researching another company's website, which is research-account; or you want a generic hosted app, dashboard or webhook, which is cargo-hosting in the Cargo skill pack.",
       "version": "0.1.0",
       "homepage": "https://github.com/getcargohq/gtm-skills/tree/main/website-building",
-      "group": "Make it run forever",
+      "group": "Fundamentals",
       "install": "cargo-ai cdk add cookbook/website-building",
       "partOf": [],
       "personas": [
@@ -1794,7 +1894,7 @@
         "`site.json` is `ready` only for approved content, and a content change reaches the site through one reviewed pull request whose plan shows the same app with a new content hash"
       ],
       "cost": "Each merge is one deployment of a static app; read the workspace's current hosting usage before\nthe first deploy, and say what you found. Adopting a domain the workspace owns adds no charge.\nRegistering one (`register-domain`) charges workspace credits once and is **not refundable**: read\nthe current price and the credit balance before proposing it, and quote both with the plan. A\nworking form adds whatever its backend costs. Nothing in the workspace runs on a schedule; your\ncoding agent's usage is the rest.",
-      "composesInto": "`call-capture` (the customer language it collects is what the pages should say), `account-scoring`\nand `tam-building` (the ICP they write down is who the site speaks to), `agentic-engagement` (when\nits sending domain carries the site, both sets of records go on its one `defineDomain`)."
+      "composesInto": "Nothing in particular comes after it. It reads the positioning and customer language in\n`context/`, so the pages get better as that context does."
     },
     {
       "name": "weekly-planning",
@@ -1803,7 +1903,7 @@
       "description": "Every Monday last week's GTM work is ranked against active initiatives, declared infra, and live runs, as one reviewable pull request per initiative — or one workspace pull request when there are none. Triggers: \"what should we work on this week\", \"rank our initiatives against what is actually running\", \"weekly GTM plan from the cadence log\", \"recommend next work from infra and runs\", \"the play is deployed but I don't think it ran\". Cargo CDK, defineAgent, harness claudeCode, GitHub, cargo-ai CLI reads, initiatives, cadence. Skip when: you want today recapped and posted to Slack, which is standup; or you want call transcripts scribed into context, which is call-capture.",
       "version": "0.1.1",
       "homepage": "https://github.com/getcargohq/gtm-skills/tree/main/weekly-planning",
-      "group": "Make it run forever",
+      "group": "Operations",
       "install": "cargo-ai cdk add cookbook/weekly-planning",
       "partOf": [],
       "personas": [
@@ -1881,7 +1981,7 @@
         "no number in a plan file is absent from the raw dump, a metrics file dated that week, or a `cargo-ai` read the agent actually ran. A CLI read that errors is a note on the PR, not a made-up count"
       ],
       "cost": "The collector talks to git and, when `gh` is installed, to GitHub from the harness environment.\nThose calls are not Cargo connector actions.\n\nThe recurring cost is the harness run itself, once a week, billed as LLM tokens through the bound\nAnthropic connector, and it scales with how much the agent reads — the dump, the week's cadence\nfiles, the active initiative files, declared infra, and the read-only `cargo-ai` calls in §1b\n(whoami, what is deployed, run counts, usage). Those reads are API calls, not connector actions, so\nthey bill nothing. There is no per-record fan-out, and the recap never runs a command that spends.",
-      "composesInto": "`standup` (the week's daily logs are evidence this recap reads), `call-capture` (scribed calls dated\nin the week are evidence), `tam-building` and `account-scoring` (a declared play that did not run is\nthe gap this recap is for)."
+      "composesInto": "Nothing in particular comes after it: the plan it opens is the next week's work."
     },
     {
       "name": "win-loss-review",
@@ -1890,7 +1990,7 @@
       "description": "Every month the CRM's closed deals are audited and what they say lands in context/ as one pull request: the ICP verified against won versus lost with a disqualifier, dated insights with counts and denominators, objections from recorded lost reasons, and a client file per closed-won account; a five-line Slack digest says what changed. Never edits a persona, nor the ICP after the first pass. Triggers: \"verify our ICP against won and lost deals\", \"what do closed-lost deals say about who we should not sell to\", \"keep the context repo current from the CRM every month\", \"our lost reasons should become objections\", \"run a monthly win-loss review\". Cargo CDK, harness claudeCode, HubSpot, Salesforce, Attio, Slack. Skip when: there is no CRM yet and the context should come from the website, which is web-capture; or you want one account researched before a call, which is research-account.",
       "version": "0.1.0",
       "homepage": "https://github.com/getcargohq/gtm-skills/tree/main/win-loss-review",
-      "group": "Make it run forever",
+      "group": "Context",
       "install": "cargo-ai cdk add cookbook/win-loss-review",
       "partOf": [],
       "personas": [
@@ -1989,7 +2089,7 @@
         "after merging and `cargo-ai cdk deploy`, the verified ICP section is readable from the workspace context repository and an agent with the `context` capability quotes it back with its tag"
       ],
       "cost": "CRM extraction bills no credits, and neither do the SQL queries. The recurring cost is one harness\nrun a month, scaling with how many deals closed since the previous one, plus the first pass over the\nwhole window. Confirm the extraction price for the workspace's CRM with\n`cargo-ai connection integration get hubspot` before the first deploy.",
-      "composesInto": "`web-capture` (this verifies the ICP it seeds from the website and proposes the corrections),\n`account-scoring` (reads the verified `icp/`, disqualifier included), `crm-enrichment` (shares\n`crm_accounts` and `crm_contacts`, and the association rate this reports is what a contact\nenrichment raises), and any agent with the `context` capability."
+      "composesInto": "`account-scoring` (reads the verified `icp/`, disqualifier included), `website-building` (the\nclient files and proof from closed-won deals are what the pages may cite), and any agent with the\n`context` capability."
     },
     {
       "name": "zoominfo-to-cargo",

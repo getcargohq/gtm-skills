@@ -336,5 +336,7 @@ whether it is keeping up.
 ## Composes into
 
 `account-scoring` and any agent with the `context` capability (they read the ICP and objection files
-this keeps current), `crm-enrichment` (the account files this writes name the record the enrichment
-fills), `monitor-buying-signals` (the signals this promotes are what a feed then watches for).
+this keeps current), `standup` (yesterday's scribed calls are evidence the recap reads),
+`website-building` (the pages speak in the customer language and the objections the calls surface),
+`web-capture` (it adds the website, competitors and news to the context the calls started),
+`monitor-buying-signals` (the signals this promotes are what a feed then watches for).

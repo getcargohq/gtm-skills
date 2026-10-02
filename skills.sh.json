@@ -52,22 +52,52 @@
       ]
     },
     {
-      "title": "Make it run forever",
-      "description": "The same jobs as a deployed pipeline: each skill carries a worked CDK example your agent adapts into your project and deploys.",
+      "title": "Context",
+      "description": "Deployed pipelines that keep context/ current: every recorded call, your website and the news, and won and lost deals.",
+      "skills": [
+        "call-capture",
+        "web-capture",
+        "win-loss-review"
+      ]
+    },
+    {
+      "title": "Fundamentals",
+      "description": "Deployed pipelines that build the base: the account universe, a standing score on every account, and the website.",
       "skills": [
         "tam-building",
         "account-scoring",
-        "crm-enrichment",
-        "crm-deduplication",
-        "call-capture",
+        "website-building"
+      ]
+    },
+    {
+      "title": "Signals",
+      "description": "Deployed pipelines that watch the market for the moment to reach out: who just took a role you sell to.",
+      "skills": [
+        "new-hire-detection"
+      ]
+    },
+    {
+      "title": "Engagement",
+      "description": "Deployed pipelines that hold the conversation: an agent answering every lead who replies.",
+      "skills": [
+        "agentic-engagement"
+      ]
+    },
+    {
+      "title": "Operations",
+      "description": "Deployed pipelines that run the team: the daily recap, the weekly plan, and one agent everyone can ask.",
+      "skills": [
         "standup",
         "weekly-planning",
-        "ask-cargo",
-        "agentic-engagement",
-        "website-building",
-        "new-hire-detection",
-        "web-capture",
-        "win-loss-review"
+        "ask-cargo"
+      ]
+    },
+    {
+      "title": "CRM",
+      "description": "Deployed pipelines that keep an existing CRM in step with the engine: records filled and duplicate-free.",
+      "skills": [
+        "crm-enrichment",
+        "crm-deduplication"
       ]
     }
   ]

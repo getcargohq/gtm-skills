@@ -168,7 +168,8 @@ fill-blank guard). No parallel branches.
 CDK workflow bodies must compile. These fail `cargo-cdk check` / `plan`:
 `undefined`/`void`, comma / SequenceExpression, `Date#getTime()`.
 
-Register: `skills.sh.json` ("Make it run forever"), `hooks/skill-loads.sh`,
+Register: `skills.sh.json` (its stage, at its place in the order: the order is
+what an agent suggests next), `hooks/skill-loads.sh`,
 root README pipeline table, `.github/data/approvals.json` with
 `state: to-be-approved` and empty evidence.
 

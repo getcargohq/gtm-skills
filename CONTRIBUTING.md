@@ -88,6 +88,13 @@ say, an `accounts` model, and that is fine: the agent placing the second one
 sees the first and rewires to it. Isolation is what lets a customer install
 exactly one skill and get exactly one working thing.
 
+What to set up next is not a graph either. The pipelines are grouped by stage
+in `skills.sh.json` — Context, Fundamentals, Signals, Engagement, Operations,
+CRM — and that order, stages and the pipelines within one, is the
+recommendation: whatever someone started with, the agent suggests the earliest
+pipelines they have not set up yet. Place a new pipeline where it belongs in
+that order.
+
 1. `<name>/` with the resource code (`models/`, `plays/`, `agents/`, or `infra/`) and a
    `README.md` that explains why the design is the way it is. Every value that
    must be edited before deploy carries a `PLACEHOLDER` comment.
@@ -120,7 +127,7 @@ exactly one skill and get exactly one working thing.
      agent argues back with; an operator who still wants it gets it, recorded.
    - `## Done when`: the acceptance test, one checkable line each.
    - `## What it costs`, `## Composes into`.
-4. Register it: `skills.sh.json` (the "Make it run forever" grouping),
+4. Register it: `skills.sh.json` (its stage, at its place in the order),
    `hooks/skill-loads.sh`, the README, and an entry in
    `.github/data/approvals.json` (`state: to-be-approved`, empty evidence).
 5. At least two routing cases in `evals/routing.jsonl`: one that should reach

@@ -198,6 +198,5 @@ coding agent's usage is the rest.
 
 ## Composes into
 
-`call-capture` (the customer language it collects is what the pages should say), `account-scoring`
-and `tam-building` (the ICP they write down is who the site speaks to), `agentic-engagement` (when
-its sending domain carries the site, both sets of records go on its one `defineDomain`).
+Nothing in particular comes after it. It reads the positioning and customer language in
+`context/`, so the pages get better as that context does.
