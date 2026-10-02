@@ -109,8 +109,8 @@ this is enough.
    about (say what breaks, then do it if they still want it); _What you can change_ is what you
    offer unprompted; _What you will be asked_ is the floor, and you derive before you ask. Record
    what you changed and why under a `## Decisions` section in your copy of this file.
-6. **Plan, then stop.** `node --import tsx evals/contract.mjs && npm run check && cargo-ai cdk plan`,
-   show the diff, and deploy only on an explicit yes: `cargo-ai cdk deploy`. Never
+6. **Plan, then stop.** `node --import tsx evals/contract.mjs` from this skill's folder, then
+   `npm run check && cargo-ai cdk plan` from the project root, show the diff, and deploy only on an explicit yes: `cargo-ai cdk deploy`. Never
    `cdk init --force` into a non-empty directory.
 7. **Verify.** Walk _Done when_ line by line and report each with evidence. Read out loud the
    channels the bot is in before you call this done: a customer shared channel among them is the
@@ -129,7 +129,7 @@ this is enough.
 
 Checked before moving on, not after the deploy:
 
-- `cargo-ai cdk check` prints `agent:ask-cargo bound to <your repo>#<branch>` with no trailing
+- `cargo-ai cdk check` prints `agent:ask_cargo bound to <your repo>#<branch>` with no trailing
   subdirectory
 - every channel the bot is in is internal, or is listed on another agent that owns it, and no other
   agent's trigger is also `allChannels`

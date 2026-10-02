@@ -118,7 +118,8 @@ is enough.
    scripts/weekly-planning/collect/week.ts --dry-run` first: it prints the dump and writes nothing.
    Then drop `--dry-run`. If it does not produce a raw file locally it will not produce one on a
    schedule, and that is far cheaper to find out now. Then
-   `node --import tsx evals/contract.mjs && npm run check && cargo-ai cdk plan`, show the diff, and
+   `node --import tsx evals/contract.mjs` from this skill's folder, then
+   `npm run check && cargo-ai cdk plan` from the project root, show the diff, and
    deploy only on an explicit yes: `cargo-ai cdk deploy`. Never `cdk init --force` into a non-empty
    directory.
 5. **Verify.** Walk _Done when_ line by line and report each with evidence. Deployed cleanly and
@@ -140,7 +141,7 @@ _asked_ genuinely live in the operator's head.
 Checked before moving on, not after the deploy:
 
 - the collector was run by hand once and wrote a real raw file
-- `cargo-ai cdk check` prints `agent:weekly-planning bound to <your repo>#<branch>` with no trailing
+- `cargo-ai cdk check` prints `agent:weekly_planning bound to <your repo>#<branch>` with no trailing
   subdirectory — the repo is the one holding `cadence/`, and the GitHub grant can push to it. A
   trailing `in infra/` is the failure to catch here: it roots the harness where there is no
   node_modules, so the collector cannot run

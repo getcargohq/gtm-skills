@@ -8,17 +8,17 @@ import { defineFolder } from "@cargo-ai/cdk";
 //
 // Folders are per-kind, which is why there are three: this skill deploys a
 // model, a tool and a play, and each kind is filed separately.
-export const modelsFolder = defineFolder("crm-enrichment-models", {
+export const modelsFolder = defineFolder("crm_enrichment_models", {
   kind: "model",
   name: "CRM enrichment",
 });
 
-export const toolsFolder = defineFolder("crm-enrichment-tools", {
+export const toolsFolder = defineFolder("crm_enrichment_tools", {
   kind: "tool",
   name: "CRM enrichment",
 });
 
-export const playsFolder = defineFolder("crm-enrichment-plays", {
+export const playsFolder = defineFolder("crm_enrichment_plays", {
   kind: "play",
   name: "CRM enrichment",
 });

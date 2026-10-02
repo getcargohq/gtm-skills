@@ -237,10 +237,10 @@ fill rate before recommending a paid route.
 - **No contact creation or movement tracking.** Update only the triggering contact. Do not create,
   merge, move, or alert on contacts in this path.
 
-Run the compiled graph contract after every adaptation:
+Run the compiled graph contract from this skill's folder after every adaptation:
 
 ```sh
-node --import tsx crm-enrichment/evals/contract.mjs
+node --import tsx evals/contract.mjs
 ```
 
 ## Done when

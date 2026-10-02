@@ -30,12 +30,12 @@ sourcing run at that stated maximum.
 
 ## The boundary between the agent and the play
 
-`tam-tier-analyst` is the judgment. It reads `icp.md` and `tiering-rubric.md`
+`tam_tier_analyst` is the judgment. It reads `icp.md` and `tiering-rubric.md`
 through the read-only `context` capability, judges on the sourced firmographics,
 and uses `webSearch` only to settle a doubt that would change the tier. It
 returns `{tier, rationale, evidence_url}` and carries **no model in `uses`**.
 
-`tier-companies` is the orchestration and the only write. One agent node, then
+`tier_companies` is the orchestration and the only write. One agent node, then
 one `modelCustomColumn` node writing `tier`, `tier_rationale`,
 `tier_evidence_url` and `tiered_at` back onto the row that triggered the run.
 
@@ -70,7 +70,7 @@ an undefined.
 
 ## Verification
 
-1. `node --import tsx evals/contract.mjs` after adapting the resources.
+1. `node --import tsx evals/contract.mjs` from this skill's folder, after adapting the resources.
 2. `cargo-ai cdk types`, then `cargo-ai cdk check`, then `cargo-ai cdk plan`.
    Inspect every resource and action payload.
 3. Confirm the plan shows the model with **no schedule**, the play with
@@ -102,7 +102,7 @@ End with one recommended `Next step`:
 - a large disqualified share means narrowing the filter, where narrowing is free,
   then re-counting
 - a small one with rows to spare means widening `limit` and re-syncing
-- a healthy distribution means moving to contact sourcing on `tam-tier-a`
+- a healthy distribution means moving to contact sourcing on `tam_tier_a`
 
 Do not end the report with an open-ended offer to help.
 
@@ -113,8 +113,8 @@ Do not end the report with an open-ended offer to help.
 - the operator approved the filter, the budget and the rubric, and then approved
   the run at a stated maximum
 - every landed row carries a tier, a rationale, and a stamp
-- the tier segments resolve (`tam-tier-a`, `tam-tier-b`, `tam-tier-c`,
-  `tam-disqualified`) and their counts reconcile with the tiered row count
+- the tier segments resolve (`tam_tier_a`, `tam_tier_b`, `tam_tier_c`,
+  `tam_disqualified`) and their counts reconcile with the tiered row count
 - the report includes the tier distribution, the evaluator pass rate, the actual
   variance against estimate, and one recommended next step
 - no credential, customer data, or deploy command was written into the copied

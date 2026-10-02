@@ -14,7 +14,7 @@ Walk every line. A checked template without an evidence-backed consumer adaptati
 - `scripts/weekly-planning/package.json` exists in the project, and
   `cargo-ai cdk plan` did not run git or `gh` while planning. If it did, that
   file is missing and the loader is importing the collector.
-- `cargo-ai cdk check` prints `agent:weekly-planning bound to <your repo>#<branch>`
+- `cargo-ai cdk check` prints `agent:weekly_planning bound to <your repo>#<branch>`
   with no trailing subdirectory. The repo is the one holding `cadence/`, and
   the GitHub grant can push to it. A trailing `in infra/` means the harness was
   rooted where there is no node_modules, so the collector cannot run.

@@ -132,7 +132,7 @@ _asked_ genuinely live in the operator's head.
 Checked before moving on, not after the deploy:
 
 - `sendingDomain`: the declaration matches a domain the workspace owns, or the plan's `+ create domain:…` line was approved as a new registration
-- `dnsRecords` is omitted unless the operator explicitly wants this file to own the whole zone
+- `dnsRecords` is omitted unless the operator wants this file to manage records on the domain
 - `mailboxIdentity`: first name, last name and username are a real identity, and the username is a valid local part
 - `mailboxCharge`: the plan's `+ create mailbox:…` line was approved against a live `pricing get`
 - `node --import tsx evals/contract.mjs` passes against the adapted graph
@@ -145,7 +145,7 @@ default.
 
 | Variation | When it is right | How | What it costs |
 | --------- | ---------------- | --- | ------------- |
-| `register-domain` | The workspace does not yet own a sending domain | Drop `adopt: true` on `defineDomain`. Do not add `dnsRecords` unless you mean to replace the whole zone (`infra/domains/outreach.ts`) | Registration charges workspace credits and is not refundable. The deploy waits until the domain is `active` before creating the mailbox. |
+| `register-domain` | The workspace does not yet own a sending domain | Drop `adopt: true` on `defineDomain`. Leave `dnsRecords` off: the registrar writes the mail records (`infra/domains/outreach.ts`) | Registration charges workspace credits and is not refundable. The deploy waits until the domain is `active` before creating the mailbox. |
 | `mailbox-type` | Shared or private SMTP fits better than Google | Change `type` on `defineMailbox` (`infra/mailboxes/rep.ts`). `outlook` is not in the union: Graph delivery has not shipped. | Type is create-only. Changing it later is a new inbox and a reset ramp. Live `pricing get` for the new flavour. |
 | `adopt-mailbox` | The inbox already exists in the workspace | Set `adopt: true` on `defineMailbox` at the existing `username@domain` (`infra/mailboxes/rep.ts`) | Adopting never falls back to creating. The wrong address fails deploy instead of minting a second inbox. |
 | `first-touch-play` | New leads should get a first email without a human starting the chat | Add a play that calls the engager with a prompt naming the lead, then let this trigger own every reply. Keep the play's send path as a call to the agent, not a second `sendEmail`. | A play that sends without going through the agent starts threads the native trigger will never wake, because the trigger keys off chats *this agent* has emailed. |
@@ -159,7 +159,7 @@ it if you still want it, and records why under `## Decisions` in your copy of th
 - **`sendEmail` is a native action on the agent. `mailboxUuid` is locked in `config`.** (`infra/agents/engager.ts`) Wrapping it in a tool is ceremony. Leaving the mailbox as a field the agent fills sends from an inbox the trigger is not watching, and the run looks successful. `listEmailEvents` stays on the same agent so a heartbeat can read status instead of inferring it from chat history.
 - **A reply carries `inReplyTo` and the full `references` chain, oldest first.** (`infra/agents/engager.prompt.ts`) Passing only the parent Message-ID is how mail clients split the conversation. The next wake then has no thread to continue.
 - **Domain, username and type on the mailbox are create-only.** (`infra/mailboxes/rep.ts`) Editing them in place is not an update. It is destroy plus a new inbox, back at five real sends a day, with a new address the lead does not know.
-- **`dnsRecords` is omitted unless this file is meant to own the zone.** (`infra/domains/outreach.ts`) Declaring it replaces every live record, including the ones the registrar wrote at purchase.
+- **`dnsRecords` holds only the records this file should manage.** (`infra/domains/outreach.ts`) From `@cargo-ai/cdk` 1.0.92 it is merged into the live zone, so the MX, SPF, DKIM and DMARC records the registrar wrote stay, and dropping a declared record deletes it on the next deploy. Earlier versions replace every live record, mail included.
 - **The From name is a real person.** (`infra/mailboxes/rep.ts`) A fabricated sender is a refusal, not a configuration question.
 - **No credentials, deploy commands, or customer data in this repository.**
 

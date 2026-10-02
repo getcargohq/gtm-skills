@@ -53,15 +53,27 @@
     "demoWorkspace": null,
     "implementations": []
   },
-  "context-seeding": {
+  "website-building": {
     "state": "to-be-approved",
     "chain": 10,
     "demoWorkspace": null,
     "implementations": []
   },
-  "win-loss-review": {
+  "new-hire-detection": {
     "state": "to-be-approved",
     "chain": 11,
+    "demoWorkspace": null,
+    "implementations": []
+  },
+  "context-seeding": {
+    "state": "to-be-approved",
+    "chain": 12,
+    "demoWorkspace": null,
+    "implementations": []
+  },
+  "win-loss-review": {
+    "state": "to-be-approved",
+    "chain": 13,
     "demoWorkspace": null,
     "implementations": []
   }

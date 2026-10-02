@@ -27,10 +27,10 @@ then have an agent tier every company in it against a rubric your team owns.
 flowchart TD
     count["aiArk.countCompanies<br/>free, same filters, run at design time"]
     model["tam_companies<br/>aiArk.fetchCompanies · the ICP filter · limit"]
-    trigger["tier-companies trigger<br/>never tiered, or stamp older than six months"]
-    agent["tam-tier-analyst<br/>rubric from context · webSearch for one doubt"]
+    trigger["tier_companies trigger<br/>never tiered, or stamp older than six months"]
+    agent["tam_tier_analyst<br/>rubric from context · webSearch for one doubt"]
     write["tier · rationale · evidence · tiered_at<br/>written back onto the row"]
-    segments["tam-tier-a · tam-tier-b · tam-tier-c · tam-disqualified"]
+    segments["tam_tier_a · tam_tier_b · tam_tier_c · tam_disqualified"]
 
     count -.->|"shapes"| model
     model --> trigger --> agent --> write --> segments
@@ -38,7 +38,7 @@ flowchart TD
 
 1. **Write the ICP down** in the project's `context/icp.md`, and what A / B / C /
    disqualified mean in `context/tiering-rubric.md`. Copy the examples from
-   `infra/context/`. Both live in the workspace context repo, so they are
+   this skill's `context/`. Both live in the workspace context repo, so they are
    versioned and editable without a deploy. This skill declares no
    `defineContext`: that singleton belongs to the project.
 2. **Translate the ICP into filter groups** in
@@ -63,8 +63,8 @@ flowchart TD
    play is still disabled so you can confirm column names. Enable it and run it
    once: `changeKinds: ["added"]` will not backfill rows that landed while it
    was off. After that, each new sync is enrolled on the next tick.
-6. **Work the segments.** `tam-tier-a` is the rep queue, `tam-tier-b` is the
-   sequence, `tam-tier-c` is in-market but not in-motion, `tam-disqualified` is
+6. **Work the segments.** `tam_tier_a` is the rep queue, `tam_tier_b` is the
+   sequence, `tam_tier_c` is in-market but not in-motion, `tam_disqualified` is
    the suppression list with a written reason attached to every row in it.
 
 Adds a model, an agent, a play, four segments, and the folders they file into.
@@ -78,19 +78,19 @@ Adds a model, an agent, a play, four segments, and the folders they file into.
 | `infra/agents/tier-analyst.ts`  | `defineAgent`     | one judgment per company, from the rubric plus web evidence  |
 | `infra/plays/tier-companies.ts` | `definePlay`      | one agent call per row, and the only write                   |
 | `infra/segments/tiers.ts`       | `defineSegment`   | the A / B / C / disqualified slices downstream work takes    |
-| `infra/context/*.md`            | (not a resource)  | example ICP and rubric to copy into the project's `context/` |
+| this skill's `context/*.md`     | (not a resource)  | example ICP and rubric to copy into the project's `context/` |
 
 ## Why the rubric is not in the prompt
 
 Put it in the system prompt and three things stop being true: changing what tier
 A means becomes a deploy, the reason for the change stops being reviewable, and
 the rep who reads the tier can no longer read the file the agent read. In the project's `context/tiering-rubric.md` it is a
-commit, with a diff and a history. `infra/context/` is the example to copy
+commit, with a diff and a history. This skill's `context/` is the example to copy
 there.
 
 ## Why the agent cannot write
 
-`tam-tier-analyst` carries no model in `uses`. It hands back
+`tam_tier_analyst` carries no model in `uses`. It hands back
 `{tier, rationale, evidence_url}` and the play persists it. Give the agent a
 writable model and an untiered row could be a failed run, a silent skip, or a
 judgment it chose not to record, with no way to tell which. The play's write is
@@ -99,8 +99,8 @@ the judgment.
 
 ## Placeholders (edit before deploy)
 
-1. **The ICP and the rubric** — copy `infra/context/icp.md` and
-   `infra/context/tiering-rubric.md` into the project's `context/`. The example
+1. **The ICP and the rubric** — copy this skill's `context/icp.md` and
+   `context/tiering-rubric.md` into the project's `context/`. The example
    is a technical B2B software ICP; nothing in it is yours.
 2. **The filter groups** in `infra/models/tam-companies.ts` `config`. Nested
    groups, `_or` to include and `_not` to exclude, enum values from

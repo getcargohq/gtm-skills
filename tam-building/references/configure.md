@@ -9,7 +9,7 @@ Reuse what the project already declares. An AI Ark connector, an LLM connector,
 and TAM-building folders: two resources with one slug collide at deploy. This
 skill declares no `defineContext`: that resource is a **per-workspace
 singleton** owned by the project (a scaffolded repo points it at the root
-`context/`). Copy `infra/context/*.md` into that directory. The agent's
+`context/`). Copy this skill's `context/*.md` into that directory. The agent's
 `context` capability reads whatever the workspace context holds, wherever it
 was declared.
 
@@ -24,7 +24,7 @@ Read it before asking for it. The workspace context repository is where an ICP
 already lives if the company has written one down, and the whole point of this
 skill's rubric design is that both files are readable by the operator and by the
 agent. Ask only when nothing is written anywhere, and then write the answer into the
-project's `context/icp.md` rather than into a prompt. `infra/context/icp.md` is
+project's `context/icp.md` rather than into a prompt. This skill's `context/icp.md` is
 the example to copy there.
 
 Two files, and they do different jobs:
@@ -126,7 +126,7 @@ In `infra/models/tam-companies.ts`:
 - `additionalColumns`: keep `tier`, `tier_rationale`, `tier_evidence_url` and
   `tiered_at`; add to them only if the play writes them on the same node
 
-In the project's `context/` (copy from `infra/context/`):
+In the project's `context/` (copy from this skill's `context/`):
 
 - `icp.md` and `tiering-rubric.md`, in the operator's own language
 

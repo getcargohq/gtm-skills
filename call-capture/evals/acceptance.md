@@ -30,7 +30,7 @@ Walk every line. A checked template without an evidence-backed consumer adaptati
   the collector.
 - Exactly one `defineContext` exists in the project, resolving to the `context/` directory at the
   repository root.
-- `cargo-ai cdk check` prints `agent:call-scribe bound to <repo>#<branch>` with no trailing
+- `cargo-ai cdk check` prints `agent:call_scribe bound to <repo>#<branch>` with no trailing
   subdirectory. The repo is the one holding `context/` and `cadence/`, and the grant can push to it.
   A trailing `in infra/` means the harness was rooted at the CDK project rather than at the
   package.json that declares `@cargo-ai/cdk`: that directory has no node_modules, so `npx tsx`

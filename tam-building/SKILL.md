@@ -53,7 +53,7 @@ takes.
 
 **The rubric is a markdown file, not a prompt.** `context/icp.md` and
 `context/tiering-rubric.md` live in the workspace context repo (the project's
-root `context/` in a scaffolded project). The copies under `infra/context/` are
+root `context/` in a scaffolded project). The copies under this skill's `context/` are
 the example to put there. Changing what tier A means is a reviewed commit that
 takes effect on the next run, with no deploy and a git history of why. That is
 the difference between a scoring model your team owns and one only the person
@@ -78,8 +78,8 @@ Illustrative output, fictional records:
 | Initech (initech.example)     | C            | Fits size, industry and region, but no visible technical champion or automation practice. The sourced facts settled it. |                                           |
 | Tailspin (tailspin.example)   | disqualified | The sourced domain redirects to its acquirer, so the record is wrong about the company.                                 |                                           |
 
-Every row also gets a `tiered_at` stamp and lands in `tam-tier-a`, `tam-tier-b`, `tam-tier-c` or
-`tam-disqualified`; the run report closes with the tier distribution and one recommended next step.
+Every row also gets a `tiered_at` stamp and lands in `tam_tier_a`, `tam_tier_b`, `tam_tier_c` or
+`tam_disqualified`; the run report closes with the tier distribution and one recommended next step.
 
 ## Guide the operator through every phase
 
@@ -101,7 +101,8 @@ help.
    rubric, and to authorize deploying the resources with the play disabled. Nothing bills in this
    phase.
 2. **Build disabled.** Adapt, check, plan, and deploy with `isEnabled: false`. Run
-   `node --import tsx evals/contract.mjs` against the adapted resources before the plan is reviewed.
+   `node --import tsx evals/contract.mjs` from this skill's folder against the adapted resources
+   before the plan is reviewed.
    Send a direct Cargo UI link for the model, the agent, and the play. Show the counted pool, the
    `limit` that will actually be sourced, the current per-record sourcing price fetched live, and
    the per-company tiering cost. End by asking the operator to approve the first sourcing run at
@@ -141,7 +142,7 @@ sizing or template work if the skill cannot be installed or read.
    project already has (an AI Ark or LLM connector, a TAM-building folder), rewire the imports to
    the existing one and drop the copy. Two resources with one slug is a collision at deploy. This
    skill declares no `defineContext`: that resource is a per-workspace singleton owned by the
-   project (a scaffolded repo points it at the root `context/`). Copy `infra/context/*.md` into that
+   project (a scaffolded repo points it at the root `context/`). Copy this skill's `context/*.md` into that
    directory. If the project has an `accounts` model every other skill reads, see
    `promote-to-shared-accounts` below. This folder needs nothing in `.env`; append nothing and never
    overwrite it.
@@ -155,8 +156,9 @@ sizing or template work if the skill cannot be installed or read.
    is what you offer unprompted (nobody asks for a variant they do not know exists); _What you will
    be asked_ is the floor, and you derive before you ask. If you are asking more than about four
    questions you have skipped lookups. Record what you changed and why under a `## Decisions`
-   section in your copy of this file. Then run `node --import tsx evals/contract.mjs`, followed by
-   `cargo-ai cdk types && cargo-ai cdk check && cargo-ai cdk plan`. Show the diff and deploy with the
+   section in your copy of this file. Then run `node --import tsx evals/contract.mjs` from this skill's
+   folder, followed by `cargo-ai cdk types && cargo-ai cdk check && cargo-ai cdk plan` from the
+   project root. Show the diff and deploy with the
    play disabled. Never run `cargo-ai cdk init --force` in a non-empty directory.
 5. **Hand off for cost approval.** Resolve the workspace and resource UUIDs, send the Cargo UI links
    from [`references/run.md`](references/run.md), and show the counted pool, the `limit`, the live
@@ -219,7 +221,7 @@ it if you still want it, and records why under `## Decisions` in your copy of th
   the whole database up to `limit`. A guessed enum member matches nothing and returns an empty sync
   that looks like a broken connector.
 - **The rubric lives in the workspace context, not in the system prompt and not in code.**
-  (`context/tiering-rubric.md` in the project's knowledge layer; `infra/context/` is the example
+  (`context/tiering-rubric.md` in the project's knowledge layer; this skill's `context/` is the example
   to copy there.) Put it in the prompt and changing what tier A means becomes a deploy, the reason
   for the change stops being reviewable, and the rep reading the tier can no longer read the same
   file the agent read.
@@ -252,7 +254,7 @@ it if you still want it, and records why under `## Decisions` in your copy of th
 - every row carries a tier the rubric defines, a rationale naming the deciding lines, and a
   `tiered_at` stamp
 - no row carries a stamp with an empty tier, and no row carries a tier with an empty stamp
-- the tier segments (`tam-tier-a`, `tam-tier-b`, `tam-tier-c`, `tam-disqualified`) resolve, and
+- the tier segments (`tam_tier_a`, `tam_tier_b`, `tam_tier_c`, `tam_disqualified`) resolve, and
   their counts sum to the tiered row count
 - the agent's evaluator pass rate is at or above its threshold, and a failing sample reads as a
   genuinely hard company rather than a missing rubric

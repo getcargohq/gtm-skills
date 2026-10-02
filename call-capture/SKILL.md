@@ -196,7 +196,7 @@ Checked before moving on, not after the deploy:
 - `cargo-ai workspaceManagement envVar list` shows a `CALL_RECORDER_API_KEY` entry, marked secret —
   that listing is the deployed credential, and a value only ever exported in a shell is not one
 - the collector was run by hand once and wrote real raw files
-- `cargo-ai cdk check` prints `agent:call-scribe bound to <your repo>#<branch>` with no trailing
+- `cargo-ai cdk check` prints `agent:call_scribe bound to <your repo>#<branch>` with no trailing
   subdirectory — the repo is the one holding `context/` and `cadence/`, and the GitHub grant can
   push to it. A trailing `in infra/` is the failure to catch here: it roots the harness where there
   is no node_modules, so the collector cannot run
