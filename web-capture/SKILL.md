@@ -11,14 +11,6 @@ metadata:
     - gtm-engineering
     - revops
     - marketing
-  suggestedBefore:
-    - call-capture
-  suggestedNext:
-    - tam-building
-    - account-scoring
-    - new-hire-detection
-    - website-building
-    - win-loss-review
   openclaw:
     requires:
       bins:

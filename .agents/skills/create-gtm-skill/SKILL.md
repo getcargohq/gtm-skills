@@ -168,17 +168,10 @@ fill-blank guard). No parallel branches.
 CDK workflow bodies must compile. These fail `cargo-cdk check` / `plan`:
 `undefined`/`void`, comma / SequenceExpression, `Date#getTime()`.
 
-Register: `skills.sh.json` (its stage grouping: Context, Fundamentals, Signals,
-Engagement, Operations, or CRM), `hooks/skill-loads.sh`, root
-README pipeline table, `.github/data/approvals.json` with
+Register: `skills.sh.json` (its stage, at its place in the order: the order is
+what an agent suggests next), `hooks/skill-loads.sh`,
+root README pipeline table, `.github/data/approvals.json` with
 `state: to-be-approved` and empty evidence.
-
-Frontmatter: `metadata.suggestedNext`, the pipelines this one sets up well (a
-recommendation, not a build order; `[]` is fine). `suggestedBefore` above it is
-generated: run `node scripts/build-catalog.mjs`, never edit it by hand.
-`## Composes into` says why each listed pipeline comes next and names no other
-pipeline in this repo. Suggest forward only: a later stage, or a later pipeline
-in the same stage.
 
 ### Both kinds: personas and the example
 

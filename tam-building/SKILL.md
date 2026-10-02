@@ -11,10 +11,6 @@ metadata:
     - revops
     - gtm-engineering
     - sales-leadership
-  suggestedBefore:
-    - web-capture
-  suggestedNext:
-    - account-scoring
   openclaw:
     requires:
       bins:

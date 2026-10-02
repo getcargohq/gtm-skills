@@ -10,9 +10,6 @@ metadata:
   personas:
     - sales-leadership
     - revops
-  suggestedBefore:
-    - standup
-  suggestedNext: []
   openclaw:
     requires:
       bins:

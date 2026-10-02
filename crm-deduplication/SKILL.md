@@ -10,9 +10,6 @@ metadata:
   personas:
     - revops
     - gtm-engineering
-  suggestedBefore:
-    - crm-enrichment
-  suggestedNext: []
   openclaw:
     requires:
       bins:

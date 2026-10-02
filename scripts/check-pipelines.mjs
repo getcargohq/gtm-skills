@@ -143,8 +143,6 @@ const isExampleFolder = (name) => {
 };
 
 const exampleFolders = readdirSync(root).filter(isExampleFolder).sort();
-const suggestedNextOf = {};
-const composesIntoOf = {};
 const allSkillFolders = readdirSync(root).filter(
   (d) =>
     !d.startsWith(".") &&
@@ -238,30 +236,6 @@ for (const name of exampleFolders) {
       `${name}/SKILL.md carries a "## Requires" section: pipeline skills are self-contained, and what the project already has is reconciled by the agent, not declared here`,
     );
   }
-
-  // Recommendations, not requirements: `suggestedNext` names the pipelines this
-  // one sets up well. It is not a precondition and not a build order, so the skill
-  // still installs and works alone, and two pipelines may feed each other. The
-  // reverse view, `suggestedBefore`, is generated into the frontmatter by
-  // build-catalog.mjs, and its --check fails when it is stale.
-  const suggestedNext = fm.metadata?.suggestedNext;
-  if (!Array.isArray(suggestedNext)) {
-    errors.push(
-      `${name}/SKILL.md needs metadata.suggestedNext as a list (empty is fine): it is how a reader finds what to set up after this pipeline`,
-    );
-  } else {
-    suggestedNextOf[name] = suggestedNext;
-    if (new Set(suggestedNext).size !== suggestedNext.length)
-      errors.push(
-        `${name}/SKILL.md metadata.suggestedNext names a pipeline twice`,
-      );
-    if (suggestedNext.includes(name))
-      errors.push(
-        `${name}/SKILL.md metadata.suggestedNext names the skill itself`,
-      );
-  }
-  composesIntoOf[name] =
-    body.match(/\n## Composes into\n([\s\S]*?)(?=\n## |$)/)?.[1] ?? "";
 
   const nestedSkillFiles = [];
   const findNestedSkills = (dir) => {
@@ -385,59 +359,6 @@ for (const name of exampleFolders) {
     errors.push(
       `${name}/SKILL.md still carries the to-be-approved banner but approvals.json says approved`,
     );
-}
-
-// suggestedNext names real pipelines, and `## Composes into` is its prose: it
-// explains every listed pipeline and names no other pipeline here. One-off
-// skills and pipelines that do not exist yet may still appear in the prose.
-for (const [name, list] of Object.entries(suggestedNextOf)) {
-  for (const target of list)
-    if (!exampleFolders.includes(target))
-      errors.push(
-        `${name}/SKILL.md metadata.suggestedNext names \`${target}\`, which is not a pipeline skill here`,
-      );
-  const named = new Set(
-    [...(composesIntoOf[name] ?? "").matchAll(/`([a-z0-9-]+)`/g)]
-      .map((m) => m[1])
-      .filter((n) => exampleFolders.includes(n) && n !== name),
-  );
-  for (const target of list.filter((n) => !named.has(n)))
-    errors.push(
-      `${name}/SKILL.md lists \`${target}\` in metadata.suggestedNext but "## Composes into" never says why`,
-    );
-  for (const other of [...named].filter((n) => !list.includes(n)))
-    errors.push(
-      `${name}/SKILL.md "## Composes into" names \`${other}\`, which is not in metadata.suggestedNext: add it there or drop it from the prose`,
-    );
-}
-
-// A suggestion only points forward: to a later stage, or to a later pipeline
-// in the same stage. Stages are the skills.sh.json groupings, in the order it
-// declares them, and so are the pipelines within one. A pipeline suggesting
-// one from an earlier stage reads as "set up the basics after this", which is
-// the wrong way round, and the CRM stage, last, never feeds back into the
-// core.
-const stagePosition = (() => {
-  const positions = {};
-  const { groupings } = JSON.parse(
-    readFileSync(join(root, "skills.sh.json"), "utf8"),
-  );
-  groupings.forEach((g, stage) =>
-    g.skills.forEach((skill, index) => {
-      positions[skill] = { stage: g.title, order: stage * 1000 + index };
-    }),
-  );
-  return positions;
-})();
-for (const [name, list] of Object.entries(suggestedNextOf)) {
-  const from = stagePosition[name];
-  for (const target of list) {
-    const to = stagePosition[target];
-    if (from && to && to.order <= from.order)
-      errors.push(
-        `${name}/SKILL.md suggests \`${target}\` next, but ${to.stage === from.stage ? `it comes earlier in ${to.stage}` : `${to.stage} comes before ${from.stage}`}: a suggestion only points forward`,
-      );
-  }
 }
 
 // approvals.json must not name a folder that is not an engine

@@ -11,12 +11,6 @@ metadata:
     - sales-leadership
     - account-executive
     - revops
-  suggestedBefore: []
-  suggestedNext:
-    - account-scoring
-    - standup
-    - website-building
-    - web-capture
   openclaw:
     requires:
       bins:

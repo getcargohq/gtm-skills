@@ -214,8 +214,6 @@ for (const name of readdirSync(root).sort()) {
       doneWhen: bullets(section(body, "Done when")),
       cost: section(body, "What it costs"),
       composesInto: section(body, "Composes into"),
-      suggestedBefore: [],
-      suggestedNext: fm.metadata?.suggestedNext ?? [],
     });
   } else {
     Object.assign(rec, {
@@ -226,36 +224,11 @@ for (const name of readdirSync(root).sort()) {
   skills.push(rec);
 }
 
-// A pipeline only writes what it sets up (`suggestedNext`). What is suggested
-// before it (`suggestedBefore`) is the same relation read backwards, so it is
-// derived here and written back into each pipeline's frontmatter, just above
-// `suggestedNext`: an agent reading one SKILL.md sees both directions, and the
-// two never disagree.
-for (const s of skills)
-  for (const next of s.suggestedNext ?? [])
-    skills.find((t) => t.name === next)?.suggestedBefore?.push(s.name);
-const SUGGESTED_BEFORE =
-  /  suggestedBefore:(?: \[\]\n|\n(?:    - .*\n)+)(?=  suggestedNext:)/;
-const skillFiles = skills
-  .filter((s) => s.suggestedBefore)
-  .map((s) => {
-    const path = join(root, s.name, "SKILL.md");
-    const current = readFileSync(path, "utf8");
-    const after = [...s.suggestedBefore].sort();
-    const block = after.length
-      ? `  suggestedBefore:\n${after.map((n) => `    - ${n}\n`).join("")}`
-      : "  suggestedBefore: []\n";
-    const rendered = SUGGESTED_BEFORE.test(current)
-      ? current.replace(SUGGESTED_BEFORE, block)
-      : current.replace(/^  suggestedNext:/m, `${block}  suggestedNext:`);
-    s.suggestedBefore = after;
-    return { name: s.name, path, current, rendered };
-  });
-
 // The groups in the order skills.sh.json declares them, with their one-line
-// description and their skills in declared order, so a page can list the
-// pipeline stages, and the pipelines within one, without reading a second
-// file from this repository.
+// description and their skills in declared order. For the pipelines that order
+// is the recommendation: the stages run from context to the CRM, and an agent
+// suggests the earliest pipelines not yet set up. Listed here so a page can
+// show it without reading a second file from this repository.
 const groups = groupings.map(({ title, description, skills: members }) => ({
   title,
   description,
@@ -327,10 +300,9 @@ const renderedReadme =
 
 if (process.argv.includes("--check")) {
   const current = existsSync(out) ? readFileSync(out, "utf8") : "";
-  const staleSkills = skillFiles.filter((f) => f.current !== f.rendered);
-  if (current !== rendered || readme !== renderedReadme || staleSkills.length) {
+  if (current !== rendered || readme !== renderedReadme) {
     console.error(
-      `catalog.json, the README tables or metadata.suggestedBefore in ${staleSkills.map((f) => `${f.name}/SKILL.md`).join(", ") || "no SKILL.md"} are stale. Regenerate with: node scripts/build-catalog.mjs`,
+      "catalog.json or the README tables are stale. Regenerate with: node scripts/build-catalog.mjs",
     );
     process.exit(1);
   }
@@ -340,7 +312,5 @@ if (process.argv.includes("--check")) {
 } else {
   writeFileSync(out, rendered);
   writeFileSync(readmePath, renderedReadme);
-  for (const f of skillFiles)
-    if (f.current !== f.rendered) writeFileSync(f.path, f.rendered);
   console.log(`wrote catalog.json and README tables (${skills.length} skills)`);
 }

@@ -11,13 +11,6 @@ metadata:
     - revops
     - sales-leadership
     - gtm-engineering
-  suggestedBefore:
-    - call-capture
-    - tam-building
-    - web-capture
-    - win-loss-review
-  suggestedNext:
-    - agentic-engagement
   openclaw:
     requires:
       bins:

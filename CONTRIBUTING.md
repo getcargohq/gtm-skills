@@ -88,28 +88,12 @@ say, an `accounts` model, and that is fine: the agent placing the second one
 sees the first and rewires to it. Isolation is what lets a customer install
 exactly one skill and get exactly one working thing.
 
-**Recommendations, not requirements.** Every pipeline skill carries one list in
-its frontmatter `metadata`, so a reader (and the site, through `catalog.json`)
-can see what it sets up without a requires graph:
-
-- `suggestedNext`: pipelines this one sets up well. `crm-deduplication` lists
-  `account-scoring` because scoring is worth more on consolidated records.
-
-The reverse view, `metadata.suggestedBefore`, is generated into the same
-frontmatter by `build-catalog.mjs` from every other pipeline's `suggestedNext`, so an
-agent reading one SKILL.md sees both directions. Never edit it by hand: change
-`suggestedNext` on the other pipeline and regenerate; `--check` fails when it is stale. The list is not a
-precondition and not a build order: the skill must still install and work on its
-own, the agent placing it never installs a listed pipeline unasked, and two
-pipelines may feed each other. Empty is fine. A suggestion only points forward:
-to a later stage in `skills.sh.json`, or to a later pipeline in the same stage,
-and `check-pipelines` fails on one that points back.
-
-`## Composes into` is the prose for that list: it says why each listed pipeline
-comes next, and it names no other pipeline in this repo. One-off skills and
-pipelines that do not exist yet may still appear there. `check-pipelines.mjs`
-checks that every name is a pipeline skill here, that a pipeline does not list
-itself, and that the prose and the list name the same pipelines.
+What to set up next is not a graph either. The pipelines are grouped by stage
+in `skills.sh.json` — Context, Fundamentals, Signals, Engagement, Operations,
+CRM — and that order, stages and the pipelines within one, is the
+recommendation: whatever someone started with, the agent suggests the earliest
+pipelines they have not set up yet. Place a new pipeline where it belongs in
+that order.
 
 1. `<name>/` with the resource code (`models/`, `plays/`, `agents/`, or `infra/`) and a
    `README.md` that explains why the design is the way it is. Every value that
@@ -143,8 +127,7 @@ itself, and that the prose and the list name the same pipelines.
      agent argues back with; an operator who still wants it gets it, recorded.
    - `## Done when`: the acceptance test, one checkable line each.
    - `## What it costs`, `## Composes into`.
-4. Register it: `skills.sh.json` (its stage grouping: Context, Fundamentals,
-   Signals, Engagement, Operations, or CRM),
+4. Register it: `skills.sh.json` (its stage, at its place in the order),
    `hooks/skill-loads.sh`, the README, and an entry in
    `.github/data/approvals.json` (`state: to-be-approved`, empty evidence).
 5. At least two routing cases in `evals/routing.jsonl`: one that should reach
