@@ -253,11 +253,13 @@ const skillFiles = skills
   });
 
 // The groups in the order skills.sh.json declares them, with their one-line
-// description, so a page can list the pipeline stages in order without
-// reading a second file from this repository.
-const groups = groupings.map(({ title, description }) => ({
+// description and their skills in declared order, so a page can list the
+// pipeline stages, and the pipelines within one, without reading a second
+// file from this repository.
+const groups = groupings.map(({ title, description, skills: members }) => ({
   title,
   description,
+  skills: members,
 }));
 const catalog = { source: "getcargohq/gtm-skills", groups, skills };
 const rendered = JSON.stringify(catalog, null, 2) + "\n";
