@@ -1,4 +1,4 @@
-# CRM context
+# Win-loss review
 
 Turn what the CRM knows about who buys and who does not into things a repository can hold: an
 audit snapshot, an ICP verified against won versus lost, dated insights with denominators,
@@ -52,8 +52,8 @@ Adds 4 resources plus a script bundle.
 ## The two halves, and where they land
 
 ```
-crm-context/infra/     ->  infra/crm-context/      what is declared and deployed
-crm-context/scripts/   ->  scripts/crm-context/    what the agent runs
+win-loss-review/infra/     ->  infra/win-loss-review/      what is declared and deployed
+win-loss-review/scripts/   ->  scripts/win-loss-review/    what the agent runs
 ```
 
 Those are the layers `cargo-ai cdk init` already scaffolds, and `scripts/package.json` is what

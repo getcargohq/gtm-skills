@@ -1,7 +1,7 @@
 /**
  * Audit the CRM into the cadence layer.
  *
- * The deterministic half of CRM context, and the step that decides the
+ * The deterministic half of the win-loss review, and the step that decides the
  * mode. It reads every deal closed in the window, the accounts behind them
  * and the contacts on the won ones, and writes one JSON snapshot under
  * `cadence/log/raw/crm/`: pipelines, won and lost counts, the lost-reason
@@ -13,9 +13,9 @@
  *
  * Run from the repo root:
  *
- *   npx tsx scripts/crm-context/collect/crm.ts --dry-run
- *   npx tsx scripts/crm-context/collect/crm.ts
- *   npx tsx scripts/crm-context/collect/crm.ts --crm=hubspot
+ *   npx tsx scripts/win-loss-review/collect/crm.ts --dry-run
+ *   npx tsx scripts/win-loss-review/collect/crm.ts
+ *   npx tsx scripts/win-loss-review/collect/crm.ts --crm=hubspot
  *
  * `--dry-run` reads the deals and prints the counts and the mode without
  * fetching companies or contacts and without writing. `--crm=<slug>`

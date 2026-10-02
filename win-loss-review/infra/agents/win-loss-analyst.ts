@@ -5,7 +5,7 @@ import { anthropic } from "../connectors/anthropic";
 import { slack } from "../connectors/slack";
 import { agentsFolder } from "../folders";
 
-// The CRM context agent: a Claude Code harness agent on a monthly cron, and
+// The win-loss review agent: a Claude Code harness agent on a monthly cron, and
 // run by hand once for the first pass.
 //
 // `harness: "claudeCode"` swaps the LLM loop for the coding runtime, and that
@@ -38,7 +38,7 @@ import { agentsFolder } from "../folders";
 // from.
 //
 // No `env` either. The CRM choice, the pipelines, the window, the lost-reason
-// property and the verify line are in scripts/crm-context/collect/config.ts,
+// property and the verify line are in scripts/win-loss-review/collect/config.ts,
 // where the compiler checks the slug and the harness picks up an edit on its
 // next clone. The CRM is reached through `cargo-ai`, which the sandbox is
 // signed in to, so there is no credential anywhere in this cookbook.
@@ -78,7 +78,7 @@ export const winLossAnalyst = defineAgent("win_loss_analyst", {
       // caught up by the next one rather than lost. The first pass is run by
       // hand: same agent, same prompt, no previous snapshot to diff against.
       cron: "0 6 1 * *",
-      text: "Run the monthly CRM context. Follow your system prompt exactly: run the audit, append to context/, open one pull request, post the five-line digest.",
+      text: "Run the monthly win-loss review. Follow your system prompt exactly: run the audit, append to context/, open one pull request, post the five-line digest.",
     },
   ],
   systemPrompt: winLossAnalystPrompt,

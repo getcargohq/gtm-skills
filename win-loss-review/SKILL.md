@@ -1,9 +1,9 @@
 ---
-name: crm-context
-description: 'Every month the CRM''s closed deals are audited and what they say lands in context/ as one pull request: the ICP verified against won versus lost with a disqualifier, dated insights with counts and denominators, objections from recorded lost reasons, and a client file per closed-won account; a five-line Slack digest says what changed. Never edits a persona, nor the ICP after the first pass. Triggers: "verify our ICP against won and lost deals", "what do closed-lost deals say about who we should not sell to", "keep the context repo current from the CRM every month", "our lost reasons should become objections", "audit the CRM before we trust the ICP". Cargo CDK, harness claudeCode, HubSpot, Salesforce, Attio, Slack. Skip when: the context repo is empty and there is no CRM yet, which is context-seeding; or you want one account researched before a call, which is research-account.'
+name: win-loss-review
+description: 'Every month the CRM''s closed deals are audited and what they say lands in context/ as one pull request: the ICP verified against won versus lost with a disqualifier, dated insights with counts and denominators, objections from recorded lost reasons, and a client file per closed-won account; a five-line Slack digest says what changed. Never edits a persona, nor the ICP after the first pass. Triggers: "verify our ICP against won and lost deals", "what do closed-lost deals say about who we should not sell to", "keep the context repo current from the CRM every month", "our lost reasons should become objections", "run a monthly win-loss review". Cargo CDK, harness claudeCode, HubSpot, Salesforce, Attio, Slack. Skip when: the context repo is empty and there is no CRM yet, which is context-seeding; or you want one account researched before a call, which is research-account.'
 version: "0.1.0"
 compatibility: "Requires @cargo-ai/cli 1.0.89 or later with @cargo-ai/cdk 1.0.67 or later, a Cargo workspace, an authenticated Anthropic connector (the harness runs against Cargo's proxy), an authorized GitHub connector, an authorized Slack connector, an authorized CRM connection (HubSpot in the checked example; Salesforce and Attio adapt one file), and a GTM repository with `context/` and `cadence/` at its root (the shape `cargo-ai cdk init` scaffolds). Nothing here needs a credential in .env, and nothing here reads calls, postings or the website."
-homepage: https://github.com/getcargohq/gtm-skills/tree/main/crm-context
+homepage: https://github.com/getcargohq/gtm-skills/tree/main/win-loss-review
 metadata:
   author: getcargo
   source: cookbook
@@ -23,7 +23,7 @@ metadata:
     homepage: https://github.com/getcargohq/gtm-skills
 ---
 
-# CRM context
+# Win-loss review
 
 **State: to-be-approved.** Deploy-verified against a live workspace: not yet. Treat `Done when`
 below as the acceptance test and review `cargo-ai cdk plan` before deploying. Make no outcome claim
@@ -83,7 +83,7 @@ Three properties make it safe enough to run unattended:
 Illustrative output, fictional records:
 
 ```text
-:bar_chart: *CRM context Oct 2026*: 23 deals closed
+:bar_chart: *Win-loss review Oct 2026*: 23 deals closed
 Won 9, lost 14 · lost reason on 11 of 14 · contacts on 19 of 23
 Learned: 6 of 9 wins had a RevOps title on the deal · 8 of 14 losses were under 50 employees · "no budget this quarter" on 5 of 11 reasons
 Proposed: add "under 50 employees" as an ICP disqualifier (8 of 14 losses, 0 of 9 wins), in the PR body
@@ -101,9 +101,9 @@ adapting. If the `cargo-cdk` skill is in your session it carries the long form o
 is enough.
 
 1. **Install it: the CLI does the copy.** From inside the CDK project,
-   `cargo-ai cdk add cookbook/crm-context` writes the resources to `infra/crm-context/`, the
-   collector to `scripts/crm-context/`, and this procedure to `.claude/skills/crm-context/`. No project yet?
-   `cargo-ai cdk init <dir> --cookbook crm-context && cd <dir> && npm install` does both; this
+   `cargo-ai cdk add cookbook/win-loss-review` writes the resources to `infra/win-loss-review/`, the
+   collector to `scripts/win-loss-review/`, and this procedure to `.claude/skills/win-loss-review/`. No project yet?
+   `cargo-ai cdk init <dir> --cookbook win-loss-review && cd <dir> && npm install` does both; this
    folder never ships a shell. **If you are reading this from the project's `.claude/skills/`, the
    install already happened: start at step 2.** On a CLI too old to have `add`, copy this folder
    in as a sibling of what is there by hand; everything below is unchanged.
@@ -116,10 +116,10 @@ is enough.
    `defineContext` is a per-workspace singleton, which is why this folder ships none. **Append
    nothing to `.env.example`:** nothing here holds a credential.
 3. **Run the audit by hand once.** From the repository root,
-   `npx tsx scripts/crm-context/collect/crm.ts --dry-run` prints the closed, won and lost counts in
+   `npx tsx scripts/win-loss-review/collect/crm.ts --dry-run` prints the closed, won and lost counts in
    the window, the pipelines it found and the mode. Read it: a `hypothesis` on a workspace you
    know has the deals means the wrong CRM connection was picked or the window is wrong, and more
-   than one pipeline means `PIPELINES` in `scripts/crm-context/collect/config.ts` wants pinning.
+   than one pipeline means `PIPELINES` in `scripts/win-loss-review/collect/config.ts` wants pinning.
    Then drop `--dry-run` and confirm `cadence/log/raw/crm/<today>.json` carries real deal names.
    Set `LOST_REASON_PROPERTY` in the same file when the fill rate reads 0 of N: that is a custom
    property, not a team that never records reasons.
@@ -135,7 +135,7 @@ is enough.
    folder, and no model. Deploy only on an explicit yes: `cargo-ai cdk deploy`. Never
    `cdk init --force` into a non-empty directory.
 6. **Run the first pass by hand.** From the workspace UI or with
-   `cargo-ai ai message create --agent-uuid <uuid> --parts '[{"type":"text","text":"Run the CRM context first pass. Follow your system prompt exactly and open one pull request."}]'`.
+   `cargo-ai ai message create --agent-uuid <uuid> --parts '[{"type":"text","text":"Run the win-loss review first pass. Follow your system prompt exactly and open one pull request."}]'`.
    It states the hygiene findings and the mode, reads the whole window, and opens the pull request.
    The cron takes it from there.
 7. **Verify.** Walk _Done when_ line by line and report each with evidence. Deployed cleanly and
@@ -181,7 +181,7 @@ default.
 | Variation               | When it is right                                                                         | How                                                                                                                                                                          | What it costs                                                                                                                                                                       |
 | ----------------------- | ---------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `another-crm`           | The deals live in Salesforce or Attio                                                    | Write `scripts/collect/crms/<slug>.ts` satisfying `Crm` and register it in `crms/index.ts`; set `CRM` in `config.ts`. `references/crm-audit.md` names the objects and fields | Written from API docs until it has run against a live workspace, and the audit says so on every run. Check `--dry-run` reports real counts before trusting a snapshot               |
-| `raise-the-verify-line` | Twenty wins is too few to separate won from lost in your market (long cycles, few deals) | Raise `VERIFY_MIN_WON` in `scripts/crm-context/collect/config.ts`                                                                                                            | More months land in hypothesis mode, and the ICP section stays tagged with denominators until the CRM catches up. The operator approves more and the files assert less              |
+| `raise-the-verify-line` | Twenty wins is too few to separate won from lost in your market (long cycles, few deals) | Raise `VERIFY_MIN_WON` in `scripts/win-loss-review/collect/config.ts`                                                                                                        | More months land in hypothesis mode, and the ICP section stays tagged with denominators until the CRM catches up. The operator approves more and the files assert less              |
 | `wider-window`          | Your sales cycle is longer than a year, or last year was not representative              | Raise `WINDOW_DAYS` in the same file                                                                                                                                         | Older deals describe an older market. The insight dates say so, but the ICP section does not, and a two-year window on a company that repositioned last spring verifies the old ICP |
 | `quarterly`             | Fewer than ten deals close a month and the digest is mostly "nothing new"                | Change the cron in `infra/agents/win-loss-analyst.ts` to the first of every third month                                                                                      | A lost reason that recurs in month one is written in month three. The append-only rule means nothing is lost, only late                                                             |
 | `no-digest`             | The team reads pull requests and does not want a Slack post                              | Delete `infra/connectors/slack.ts`, the `uses` block on the agent and step 8 of the prompt                                                                                   | The pull request is the only surface, and a monthly pull request nobody is pinged about is a monthly pull request nobody opens                                                      |
@@ -216,7 +216,7 @@ it if you still want it, and records why under `## Decisions` in your copy of th
   is read by every agent, including the ones that talk to prospects.
 - **The channel is locked on the `postMessage` use.** (`infra/agents/win-loss-analyst.ts`) A digest
   about lost deals in a customer shared channel is the one failure nobody can undo.
-- **`scripts/crm-context/package.json` stays.** (`scripts/package.json`) The CDK loader imports
+- **`scripts/win-loss-review/package.json` stays.** (`scripts/package.json`) The CDK loader imports
   every `.ts` under the project root except directories carrying one; delete it and
   `cargo-ai cdk plan` runs the audit against the live CRM on every plan.
 - **The harness root stays the repository root.** (`infra/agents/win-loss-analyst.ts`) That is where
@@ -226,7 +226,7 @@ it if you still want it, and records why under `## Decisions` in your copy of th
 
 ## Done when
 
-- `npx tsx scripts/crm-context/collect/crm.ts --dry-run` printed real counts and the mode, and the
+- `npx tsx scripts/win-loss-review/collect/crm.ts --dry-run` printed real counts and the mode, and the
   run without it wrote `cadence/log/raw/crm/<today>.json` with real deal names, a lost-reason fill
   rate, an association rate and titles on won deals, with no email or amount in the file
 - `cargo-ai cdk check` prints the agent bound to the repository root, and `cargo-ai cdk plan`

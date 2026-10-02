@@ -14,7 +14,7 @@ import { defineFolder } from "@cargo-ai/cdk";
 // Folders are per-kind, and this cookbook deploys one agent, so one folder.
 // A folder nothing is filed into is a resource that deploys, shows up in the
 // workspace and rots.
-export const agentsFolder = defineFolder("crm_context_agents", {
+export const agentsFolder = defineFolder("win_loss_review_agents", {
   kind: "agent",
-  name: "CRM context",
+  name: "Win-loss review",
 });

@@ -64,7 +64,7 @@ check("exactly one agent deploys, a harness on a monthly cron with the channel l
   assert.equal((agent.spec.capabilities ?? []).length, 0, "a context capability would be a write path that skips the pull request");
   assert.equal((agent.spec.tools ?? []).length, 0, "slack.postMessage is an action on the agent, not a wrapped tool");
   const env = agent.spec.repository?.env ?? [];
-  assert.equal((Array.isArray(env) ? env : Object.keys(env)).length, 0, "no env: choices live in scripts/crm-context/collect/config.ts and there is no credential");
+  assert.equal((Array.isArray(env) ? env : Object.keys(env)).length, 0, "no env: choices live in scripts/win-loss-review/collect/config.ts and there is no credential");
   const crons = (agent.spec.triggers ?? []).filter((t) => t.type === "cron");
   assert.equal(crons.length, 1, "exactly one cron trigger");
   assert.match(crons[0].cron, /^\S+ \S+ \d+ \* \*$/, "the cron is monthly: a day-of-month, every month");
@@ -152,7 +152,7 @@ check("an argument the audit does not know stops the run", async () => {
 check("the prompt carries the contract's fixed points and names no other cookbook's source", async () => {
   const { winLossAnalystPrompt } = await import(`../infra/agents/win-loss-analyst.prompt.ts?contract=${stamp}`);
   for (const line of [
-    "scripts/crm-context/collect/crm.ts",
+    "scripts/win-loss-review/collect/crm.ts",
     "Lost reason filled on", "Contacts on <n> of <closed> closed deals",
     "[R:", "[I:", "[TR:",
     "Never edit a file under persona/", "never edit icp/ after the first pass",

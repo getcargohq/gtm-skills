@@ -1,6 +1,6 @@
 import { defineConnector } from "@cargo-ai/cdk";
 
-// The model the CRM context agent runs on.
+// The model the win-loss review agent runs on.
 //
 // A harness agent does not bring its own model: it runs inside the sandbox
 // with `ANTHROPIC_BASE_URL` pointed at Cargo's proxy and a minted session

@@ -11,7 +11,7 @@ llms.txt
 !tam-building/**/*.md
 !account-scoring/**/*.md
 !crm-enrichment/**/*.md
-!crm-context/**/*.md
+!win-loss-review/**/*.md
 !context-seeding/**/*.md
 !CONTRIBUTING.md
 !.agents/skills/**/*.md
