@@ -138,5 +138,5 @@
 {"prompt": "Verify our ICP against won and lost deals", "expect": "crm-context"}
 {"prompt": "Keep the context repo current from the CRM every month", "expect": "crm-context", "why": "The standing tell: every month, from the CRM, appended, digested to Slack."}
 {"prompt": "Our lost reasons should become objections in the knowledge base", "expect": "crm-context"}
-{"prompt": "Score this list of accounts against our ICP", "expect": "score-leads", "why": "Applying the ICP to a list is scoring; crm-context is what verifies the ICP from the deals."}
+{"prompt": "Score these leads against our ICP", "expect": "score-leads", "why": "Applying the ICP to a list is scoring; crm-context is what verifies the ICP from the deals."}
 {"prompt": "Research acme.com for me right now", "expect": "research-account", "why": "A one-off answer in this chat, nothing deployed."}

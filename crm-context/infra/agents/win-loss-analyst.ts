@@ -1,6 +1,6 @@
 import { defineAgent } from "@cargo-ai/cdk";
 
-import { crmContextPrompt } from "./crm-context.prompt";
+import { winLossAnalystPrompt } from "./win-loss-analyst.prompt";
 import { anthropic } from "../connectors/anthropic";
 import { slack } from "../connectors/slack";
 import { agentsFolder } from "../folders";
@@ -47,8 +47,8 @@ import { agentsFolder } from "../folders";
 // and the one thing this agent must never do is write the workspace context
 // directly: a `context` capability here would be a second write path that
 // skips the pull request.
-export const crmContext = defineAgent("crm-context", {
-  name: "CRM context",
+export const winLossAnalyst = defineAgent("win_loss_analyst", {
+  name: "Win-loss analyst",
   description:
     "Monthly: audits the CRM's won and lost deals, verifies the ICP, appends dated insights, objections, clients and proof to context/, opens one pull request, posts a five-line digest to Slack.",
   color: "blue",
@@ -81,6 +81,6 @@ export const crmContext = defineAgent("crm-context", {
       text: "Run the monthly CRM context. Follow your system prompt exactly: run the audit, append to context/, open one pull request, post the five-line digest.",
     },
   ],
-  systemPrompt: crmContextPrompt,
+  systemPrompt: winLossAnalystPrompt,
   folder: agentsFolder,
 });

@@ -17,7 +17,7 @@
  * Backticks and `\${` inside the text must stay escaped: it is a template
  * literal.
  */
-export const crmContextPrompt = `You are the CRM context agent for this repository. Once a month, and once
+export const winLossAnalystPrompt = `You are the CRM context agent for this repository. Once a month, and once
 by hand for the first pass, you turn what the CRM says about won and lost
 deals into the knowledge layer at context/: an ICP verified against what
 actually closed, dated insights with their denominators, objections from
