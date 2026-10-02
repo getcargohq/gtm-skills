@@ -1,56 +1,29 @@
-import { definePlay, defineWorkflow, toolRef } from "@cargo-ai/cdk";
+import { definePlay, defineWorkflow } from "@cargo-ai/cdk";
 import { z } from "zod";
 
 import { icpQualifier } from "../agents/icp-qualifier";
-import { crm } from "../connectors/crm";
 import { linkedin } from "../connectors/linkedin";
+import { slack } from "../connectors/slack";
 import { playsFolder } from "../folders";
 import { newHires } from "../models/new-hires";
-import { prepareLookups } from "../scripts/lookup";
 
-// Instantiate Cargo's native Find Email tool, confirm that it accepts these
-// inputs, and replace this value with its deployed tool UUID. Confirm the
-// release output path before deployment; this example expects `email`.
-const findEmail = toolRef<{ email?: string }>(
-  "REPLACE-WITH-FIND-EMAIL-TOOL-UUID",
-);
+// PLACEHOLDER: the Slack channel every qualified new hire is posted to. A
+// channel id (C…), not a name: names collide, and the connector's autocomplete
+// resolves the id. Locked here so no run can post anywhere else.
+const slackChannelId = "PLACEHOLDER_SLACK_CHANNEL_ID";
 
-// PLACEHOLDER: the HubSpot owner ID that receives accounts this play creates.
-// A new account has no owner until someone is named, and a task with no owner
-// lands in nobody's queue. Resolve it from the live owner list; never guess.
-const newAccountOwnerId = "REPLACE-WITH-HUBSPOT-OWNER-ID";
-
-// PLACEHOLDER: the company property that holds the customer's CSM, as a
-// HubSpot owner. HubSpot has no standard one; find the portal's custom field
-// in the live company schema. The customer task goes to that person, and to
-// the account owner when the field is empty or the portal has none.
-const csmOwnerProperty = "REPLACE-WITH-CSM-OWNER-PROPERTY";
-
-// HubSpot's task-to-company and task-to-contact association types. A task
-// cannot be associated when it is created (`insertRecord` takes mappings
-// only), so each task is followed by explicit associations, or it surfaces in
-// a task list detached from the account a rep would open.
-const taskToCompany = "HUBSPOT_DEFINED:192";
-const taskToContact = "HUBSPOT_DEFINED:204";
-
-// One person who just took a target role. The same event means different
-// things depending on what the CRM already holds, and the routes below are
-// the play:
+// One person who just took a target role somewhere in the market:
 //
-//   not in the CRM      -> qualify, then create the account, the contact and
-//                          a task for the new account's owner
-//   open opportunity    -> a new decision-maker mid-deal: tell the owner now
-//   customer            -> a new stakeholder who did not choose you: the CSM
-//                          welcomes them before they form a view
-//   any other stage     -> add the contact to the account, nothing else. No
-//   (lead, MQL, SQL…)      task and no allocation: the account already has
-//                          whatever motion owns it
+//   no domain        -> stop: nothing to qualify the company on
+//   not ICP          -> stop: the channel only hears about companies worth a
+//                       rep's time
+//   ICP              -> one Slack message with the person, the company, the
+//                       verdict and the links
 //
-// One contact per person. The person is looked up across the whole CRM by
-// their LinkedIn identity before anything is written. Found on the very
-// account they just joined: not news, the run stops. Found anywhere else:
-// they moved, and that record is updated onto the new account instead of a
-// second contact being created. Ends at the CRM write: nothing is sent.
+// Ends at the Slack post. Nothing is written to a CRM and nothing is sent to
+// the person. Writing into the CRM is the `crm_routing` variation, and a
+// read-only "already in the CRM" line is `crm_context`; both are in
+// references/crm-adaptation.md in the skill.
 const routeNewHire = defineWorkflow(
   "route-new-hire",
   {
@@ -66,346 +39,51 @@ const routeNewHire = defineWorkflow(
       tenure_length: z.string().optional(),
     }),
     output: z.object({
-      route: z.enum([
-        "no_domain",
-        "new_account",
-        "open_opportunity",
-        "customer",
-        "known_account",
-      ]),
-      status: z.enum([
-        "written",
-        "not_icp",
-        "contact_already_on_account",
-        "skipped",
-      ]),
+      status: z.enum(["posted", "not_icp", "no_domain"]),
       rationale: z.string().optional(),
     }),
-    uses: { crm, linkedin, findEmail, icpQualifier },
-    imports: {
-      newAccountOwnerId,
-      csmOwnerProperty,
-      taskToCompany,
-      taskToContact,
-    },
+    uses: { linkedin, slack, icpQualifier },
+    imports: { slackChannelId },
   },
   ({ input, uses }) => {
-    // The lead carries a company URL, not a domain, and the CRM is matched on
-    // the domain. Enrich first, match second.
+    // The lead carries a company URL and a name, not the firmographics the
+    // qualifier judges on. Enrich first, judge second.
     const company = uses.linkedin.enrichCompany({
       linkedinUrl: input.sales_navigator_company_url,
     });
 
-    // Every form the CRM could hold the domain and the profile in. Both
-    // lookups below are exact, so searching one form reads a known account as
-    // new and a known person as a stranger, and the play duplicates both.
-    const lookup = prepareLookups({
-      domain: company.domain,
-      linkedinProfileUrl: input.linkedin_profile_url,
-    });
-
-    // The domain guard. An empty domain matches nothing in HubSpot and
-    // everything in a `contains` lookup on other CRMs; either way the route
-    // would be wrong, so the run stops here.
-    if (!lookup.domain) {
-      return { route: "no_domain" as const, status: "skipped" as const };
+    // The domain guard. A company page with no website is usually not an
+    // operating business, and every CRM variation matches on the domain.
+    if (!company.domain) {
+      return { status: "no_domain" as const };
     }
 
-    // The account, by domain, in each stored form. Several accounts sharing a
-    // domain is a duplicate for crm-deduplication; the first one is routed.
-    const accounts = uses.crm.findRecords({
-      objectType: "companies",
-      criterias: [{ propertyName: "domain", value: lookup.domainVariants }],
+    // The gate. Without it the channel hears about every new hire in the
+    // market and stops being read within a week.
+    const verdict = uses.icpQualifier({
+      prompt: `Qualify ${company.company_name} (${company.domain}) against the ICP. ${input.first_name} ${input.last_name} just joined as ${input.job_title}. Company object: ${JSON.stringify(company)}`,
     });
 
-    // The person, anywhere in the CRM, by LinkedIn identity in each stored
-    // form. Criteria are OR'd and empty values skipped. Add the portal's
-    // LinkedIn ID property as a second criterion when it has one; never match
-    // on the full name alone, which finds namesakes.
-    const people = uses.crm.findRecords({
-      objectType: "contacts",
-      criterias: [
-        { propertyName: "hs_linkedin_url", value: lookup.linkedinUrlVariants },
-      ],
-    });
-
-    if (accounts.length === 0) {
-      // New account: the only route that pays for a qualification, and the
-      // only one that gates. A company the ICP rejects never reaches the CRM.
-      const verdict = uses.icpQualifier({
-        prompt: `Qualify ${company.company_name} (${company.domain}) against the ICP. ${input.first_name} ${input.last_name} just joined as ${input.job_title}. Company object: ${JSON.stringify(company)}`,
-      });
-
-      if (!verdict.answer.is_icp) {
-        return {
-          route: "new_account" as const,
-          status: "not_icp" as const,
-          rationale: verdict.answer.rationale,
-        };
-      }
-
-      const created = uses.crm.upsertRecords({
-        objectType: "companies",
-        matchingPropertyName: "domain",
-        matchingValue: lookup.domain,
-        mappings: [
-          { propertyName: "name", value: company.company_name },
-          { propertyName: "website", value: company.website },
-          {
-            propertyName: "linkedin_company_page",
-            value: company.linkedin_url,
-          },
-          {
-            propertyName: "numberofemployees",
-            value: company.employee_count,
-          },
-          { propertyName: "lifecyclestage", value: "lead" },
-          { propertyName: "hubspot_owner_id", value: newAccountOwnerId },
-        ],
-      });
-
-      const found = uses.findEmail({
-        linkedin_url: input.linkedin_profile_url,
-        first_name: input.first_name,
-        last_name: input.last_name,
-      });
-
-      // A known person is moved, not duplicated: matched on their record ID.
-      // Otherwise keyed on the email when one was found, so the contact
-      // dedupes against one the team created by hand, and on the LinkedIn URL
-      // when not. A mover's email on file is their previous employer's, so it
-      // is replaced by the new one or cleared, never carried to this account.
-      const contact = uses.crm.upsertRecords({
-        objectType: "contacts",
-        matchingPropertyName:
-          people.length > 0
-            ? "hs_object_id"
-            : found.email
-              ? "email"
-              : "hs_linkedin_url",
-        matchingValue:
-          people.length > 0
-            ? people[0].id
-            : found.email
-              ? found.email
-              : input.linkedin_profile_url,
-        mappings: [
-          {
-            propertyName: "email",
-            value: found.email ? found.email : "",
-          },
-          { propertyName: "firstname", value: input.first_name },
-          { propertyName: "lastname", value: input.last_name },
-          { propertyName: "jobtitle", value: input.job_title },
-          {
-            propertyName: "hs_linkedin_url",
-            value: input.linkedin_profile_url,
-          },
-          { propertyName: "associatedcompanyid", value: created[0].id },
-        ],
-      });
-
-      const task = uses.crm.insertRecord({
-        objectType: "tasks",
-        mappings: [
-          {
-            propertyName: "hs_task_subject",
-            value: `New ${input.job_title} at ${company.company_name}, a new ${verdict.answer.fit_tier} account`,
-          },
-          {
-            propertyName: "hs_task_body",
-            value: `${input.first_name} ${input.last_name} just joined ${company.company_name} as ${input.job_title} (${input.tenure_length}). The account was not in the CRM; it was created because it qualified.${people.length > 0 ? " They were already in the CRM as a contact at another company, and the record was moved here." : ""}\n\nICP: ${verdict.answer.fit_tier}, ${verdict.answer.fit_score}/100, ${verdict.answer.confidence} confidence. ${verdict.answer.rationale}\n\nLinkedIn: ${input.linkedin_profile_url}`,
-          },
-          { propertyName: "hs_task_status", value: "NOT_STARTED" },
-          { propertyName: "hs_task_priority", value: "MEDIUM" },
-          { propertyName: "hs_task_type", value: "TODO" },
-          { propertyName: "hs_timestamp", value: new Date() },
-          { propertyName: "hubspot_owner_id", value: newAccountOwnerId },
-        ],
-      });
-
-      uses.crm.createAssociation(
-        {
-          fromObjectType: "tasks",
-          fromObjectId: task[0].id,
-          toObjectType: "companies",
-          toObjectId: created[0].id,
-          associationTypeId: taskToCompany,
-        },
-        { continueOnFailure: true },
-      );
-      uses.crm.createAssociation(
-        {
-          fromObjectType: "tasks",
-          fromObjectId: task[0].id,
-          toObjectType: "contacts",
-          toObjectId: contact[0].id,
-          associationTypeId: taskToContact,
-        },
-        { continueOnFailure: true },
-      );
-
+    if (!verdict.answer.is_icp) {
       return {
-        route: "new_account" as const,
-        status: "written" as const,
+        status: "not_icp" as const,
         rationale: verdict.answer.rationale,
       };
     }
 
-    // The account is in the CRM. Its lifecycle stage is the routing signal in
-    // HubSpot; confirm it is actually maintained before trusting it (see
-    // references/crm-adaptation.md for routing on deals instead).
-    const stage = accounts[0].properties.lifecyclestage;
-    const route =
-      stage === "opportunity"
-        ? ("open_opportunity" as const)
-        : stage === "customer"
-          ? ("customer" as const)
-          : ("known_account" as const);
-
-    // Already a contact on this very account: not news. Stop before paying
-    // for an email. Found on another account, they moved: carry on, and the
-    // write below moves that record here.
-    if (
-      people.length > 0 &&
-      people[0].properties.associatedcompanyid === accounts[0].id
-    ) {
-      return { route, status: "contact_already_on_account" as const };
-    }
-
-    const found = uses.findEmail({
-      linkedin_url: input.linkedin_profile_url,
-      first_name: input.first_name,
-      last_name: input.last_name,
+    // Field names follow standup's locked postMessage use. Confirm them with
+    // `cargo-ai cdk types` after the Slack connector is authorized.
+    uses.slack.postMessage({
+      channelId: slackChannelId,
+      format: "markdown",
+      disableUnfurling: true,
+      body: `*New ${input.job_title} at ${company.company_name}* (${verdict.answer.fit_tier}, ${verdict.answer.fit_score}/100)\n${input.first_name} ${input.last_name} just joined ${company.company_name} (${company.domain}) as ${input.job_title}, ${input.tenure_length} in.\n\n${verdict.answer.rationale}\n\nPerson: ${input.linkedin_profile_url}\nCompany: ${company.linkedin_url}`,
     });
 
-    const contact = uses.crm.upsertRecords({
-      objectType: "contacts",
-      matchingPropertyName:
-        people.length > 0
-          ? "hs_object_id"
-          : found.email
-            ? "email"
-            : "hs_linkedin_url",
-      matchingValue:
-        people.length > 0
-          ? people[0].id
-          : found.email
-            ? found.email
-            : input.linkedin_profile_url,
-      mappings: [
-        {
-          propertyName: "email",
-          value: found.email ? found.email : "",
-        },
-        { propertyName: "firstname", value: input.first_name },
-        { propertyName: "lastname", value: input.last_name },
-        { propertyName: "jobtitle", value: input.job_title },
-        { propertyName: "hs_linkedin_url", value: input.linkedin_profile_url },
-        { propertyName: "associatedcompanyid", value: accounts[0].id },
-      ],
-    });
-
-    // The routes differ in who is told and why. Each task sits on both the
-    // account and the contact.
-    if (stage === "opportunity") {
-      // The highest-urgency route and the one most CRMs miss: a new
-      // decision-maker landed mid-deal. The owner hears it today.
-      const task = uses.crm.insertRecord({
-        objectType: "tasks",
-        mappings: [
-          {
-            propertyName: "hs_task_subject",
-            value: `New decision-maker mid-deal: ${input.first_name} ${input.last_name}, ${input.job_title} at ${company.company_name}`,
-          },
-          {
-            propertyName: "hs_task_body",
-            value: `${input.first_name} ${input.last_name} just joined ${company.company_name} as ${input.job_title} (${input.tenure_length}), and the account has an open deal.${people.length > 0 ? " They were already in the CRM as a contact at another company, and the record was moved here." : " They were not in the CRM before today."} Multi-thread now: a new decision-maker either unblocks the deal or restarts it.\n\nLinkedIn: ${input.linkedin_profile_url}`,
-          },
-          { propertyName: "hs_task_status", value: "NOT_STARTED" },
-          { propertyName: "hs_task_priority", value: "HIGH" },
-          { propertyName: "hs_task_type", value: "TODO" },
-          { propertyName: "hs_timestamp", value: new Date() },
-          {
-            propertyName: "hubspot_owner_id",
-            value: accounts[0].properties.hubspot_owner_id,
-          },
-        ],
-      });
-      uses.crm.createAssociation(
-        {
-          fromObjectType: "tasks",
-          fromObjectId: task[0].id,
-          toObjectType: "companies",
-          toObjectId: accounts[0].id,
-          associationTypeId: taskToCompany,
-        },
-        { continueOnFailure: true },
-      );
-      uses.crm.createAssociation(
-        {
-          fromObjectType: "tasks",
-          fromObjectId: task[0].id,
-          toObjectType: "contacts",
-          toObjectId: contact[0].id,
-          associationTypeId: taskToContact,
-        },
-        { continueOnFailure: true },
-      );
-      return { route: "open_opportunity" as const, status: "written" as const };
-    } else if (stage === "customer") {
-      // A new leader inside a customer is a churn risk before it is an
-      // expansion: they did not choose you. The CSM welcomes them before they
-      // form a view; the account owner when no CSM is set.
-      const task = uses.crm.insertRecord({
-        objectType: "tasks",
-        mappings: [
-          {
-            propertyName: "hs_task_subject",
-            value: `New ${input.job_title} at customer ${company.company_name}: welcome them before they form a view`,
-          },
-          {
-            propertyName: "hs_task_body",
-            value: `${input.first_name} ${input.last_name} just joined ${company.company_name} as ${input.job_title} (${input.tenure_length}).${people.length > 0 ? " They were already in the CRM as a contact at another company, and the record was moved here." : ""} This is a customer, and a new leader arrives with opinions about the tools they used before. Welcome them and walk them through what the team already runs this week, before the renewal becomes their decision instead of the team's.\n\nLinkedIn: ${input.linkedin_profile_url}`,
-          },
-          { propertyName: "hs_task_status", value: "NOT_STARTED" },
-          { propertyName: "hs_task_priority", value: "HIGH" },
-          { propertyName: "hs_task_type", value: "TODO" },
-          { propertyName: "hs_timestamp", value: new Date() },
-          {
-            propertyName: "hubspot_owner_id",
-            value: accounts[0].properties[csmOwnerProperty]
-              ? accounts[0].properties[csmOwnerProperty]
-              : accounts[0].properties.hubspot_owner_id,
-          },
-        ],
-      });
-      uses.crm.createAssociation(
-        {
-          fromObjectType: "tasks",
-          fromObjectId: task[0].id,
-          toObjectType: "companies",
-          toObjectId: accounts[0].id,
-          associationTypeId: taskToCompany,
-        },
-        { continueOnFailure: true },
-      );
-      uses.crm.createAssociation(
-        {
-          fromObjectType: "tasks",
-          fromObjectId: task[0].id,
-          toObjectType: "contacts",
-          toObjectId: contact[0].id,
-          associationTypeId: taskToContact,
-        },
-        { continueOnFailure: true },
-      );
-      return { route: "customer" as const, status: "written" as const };
-    } else {
-      // Any other stage, lead included: the contact is on the account and
-      // that is the whole job. No task, no allocation.
-      return { route: "known_account" as const, status: "written" as const };
-    }
+    return {
+      status: "posted" as const,
+      rationale: verdict.answer.rationale,
+    };
   },
 );
 
@@ -413,10 +91,10 @@ const routeNewHire = defineWorkflow(
 // already IS the audience, and a segment that restated it would be a drift
 // trap.
 //
-// `changeKinds: ["added"]` is what makes a person routed once. The model
+// `changeKinds: ["added"]` is what makes a person posted once. The model
 // re-extracts the whole search on every sync, and only people who were not in
-// it before create a run. Drop it and every sync re-routes the whole search,
-// paying for the enrichment and the email again and raising duplicate tasks.
+// it before create a run. Drop it and every sync re-posts the whole search,
+// paying for the enrichment and the qualifier again.
 //
 // Cron, not watch or realtime: `fetchLeadSearch` is a fetch-mode extractor,
 // so realtime and watch both fail at deploy with integrationNotCompatible.
@@ -428,7 +106,7 @@ const routeNewHire = defineWorkflow(
 // backfill rows that landed while the play was off.
 export const routeNewHires = definePlay("route-new-hires", {
   description:
-    "Routes each person who just took a target role into the CRM by what the CRM already holds: qualify and create, alert the deal owner, have the CSM welcome them at a customer, or add them to a known account.",
+    "Posts each person who just took a target role at a company that fits the ICP to Slack, with the qualifier's verdict and the links.",
   folder: playsFolder,
   model: newHires,
   workflow: routeNewHire,

@@ -1,7 +1,7 @@
 # Acceptance
 
 Walk every line before calling the pipeline done. Report each with its evidence: a command output,
-a run link, or a CRM record link. A line that could not be checked is reported as unchecked, not
+a run link, or a Slack message link. A line that could not be checked is reported as unchecked, not
 as passed.
 
 ## Search and approval
@@ -18,53 +18,38 @@ as passed.
 - [ ] The operator approved the search, the limit, the cadence and the cost per sync before any
       extraction.
 
-## CRM shape
+## Destination
 
-- [ ] The CRM is the system of record the operator named, and the play was adapted to it as a whole
-      (connector, lookups, routing signal, contact key, task).
-- [ ] No lookup uses `soqlQuery`.
-- [ ] The routing signal is populated on the accounts it routes on, or routing was moved to deals.
-- [ ] The LinkedIn identity fields exist, the person lookup reads them, and the stored URL shape
-      is one of the four forms `infra/scripts/lookup.ts` searches.
-- [ ] Account domains are stored in one of the forms `infra/scripts/lookup.ts` searches, or the
-      missing form was added there.
-- [ ] The operator chose one contact per person (default) or one per company.
-- [ ] `csmOwnerProperty` names the portal's CSM field, or the operator confirmed the account owner
-      is the CSM.
-- [ ] The owner for new accounts is a real owner ID from the live owner list.
-- [ ] The Find Email placeholder is replaced, and the tool's live inputs and output path match the
-      call.
+- [ ] `slackChannelId` is the id of the channel the operator named, resolved through the
+      connector's autocomplete, and the Slack connector can post to it.
+- [ ] If a CRM is connected, the CRM variations were offered with their cost, and the operator's
+      answer is recorded under `## Decisions`.
+- [ ] With a CRM variation: every check in `references/crm-adaptation.md` for it holds, and the
+      contract was extended with its assertions.
 
 ## Template and compiled graph
 
-- [ ] `node --import tsx evals/contract.mjs` passes.
+- [ ] `node --import tsx evals/contract.mjs` passes, run from the skill folder.
 - [ ] `cargo-ai cdk types`, `cargo-ai cdk check` and `cargo-ai cdk plan` pass in the consumer
       project.
-- [ ] The plan shows one model, one agent, one disabled play, and no duplicated connector or folder.
-- [ ] The qualifier reads `icp.md` from the workspace context and has no CRM or model in reach.
+- [ ] The plan shows one model with no schedule, one agent, one disabled play, and no duplicated
+      connector or folder.
+- [ ] The qualifier reads `icp.md` from the workspace context and has no CRM, Slack, or model in
+      reach.
 
 ## Pilot of ten
 
 - [ ] The first deploy used `limit: 10` and no schedule.
 - [ ] Ten rows landed, and their columns match the workflow input.
 - [ ] The play was enabled and executed once; every one of the ten has a run.
-- [ ] Each run is reported with its route, status, and CRM record links.
-- [ ] A new-account run shows the qualifier's verdict and rationale; a declined company wrote
-      nothing.
-- [ ] No account the CRM already held was created again.
-- [ ] Every task carries an owner (the CSM on customers) and is attached to the account and the
-      contact; known accounts got the contact and no task.
-- [ ] A person already on the account produced no email lookup and no task.
-- [ ] A person found at another company was moved, not duplicated, and the task says so.
-- [ ] A moved person with no new email no longer carries their previous employer's address. If the
-      CRM ignored the empty value, the old address is still there: report it and clear it another
-      way before opening up.
-- [ ] Any route the ten did not reach is named as unverified, or was run on a chosen record.
+- [ ] Each run is reported with its status and verdict, and each `posted` run with its Slack
+      message.
+- [ ] Every post landed in the named channel and nowhere else.
+- [ ] A `not_icp` run shows the qualifier's rationale and posted nothing.
+- [ ] Any status the ten did not reach is named as unverified, or was run on a chosen record.
 
 ## Opening up
 
 - [ ] The operator approved opening up after reading the pilot report.
 - [ ] `limit` and the cadence were set to the approved values and redeployed.
 - [ ] The next sync created runs only for people new since the previous one.
-- [ ] The report per sync lists extracted, added, runs by route and status, accounts, contacts and
-      tasks created, companies declined, and spend against the estimate.

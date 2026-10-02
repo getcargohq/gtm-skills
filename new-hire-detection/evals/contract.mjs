@@ -1,20 +1,39 @@
 // The invariants under "What should not change", checked against the compiled
-// graph rather than the source, so they hold for any CRM the play is adapted
-// to.
+// graph rather than the source. Run it from the skill folder after every
+// adaptation:
+//   node --import tsx evals/contract.mjs
 //
 // It loads through `loadResources`, the same loader `cargo-ai cdk check`,
 // `plan`, and `deploy` use, so what is asserted here is what would deploy.
 import assert from "node:assert/strict";
 import { loadResources } from "@cargo-ai/cdk";
 
-import { prepareLookups } from "../infra/scripts/lookup.ts";
-
 const infraDir = new URL("../infra", import.meta.url).pathname;
 const byId = new Map(
   (await loadResources(infraDir)).map((resource) => [resource.id, resource]),
 );
 
-// The source: a Sales Navigator job-change search, capped per URL.
+// Slack is the only destination the template declares. A CRM connector is the
+// `crm_routing` or `crm_context` variation, added on purpose with its own
+// checks (references/crm-adaptation.md), never left behind by accident.
+assert.deepEqual(
+  [...byId.keys()].filter((id) => id.startsWith("connector:")).sort(),
+  [
+    "connector:anthropic",
+    "connector:linkedin",
+    "connector:sales_navigator",
+    "connector:slack",
+  ],
+  "the template binds Sales Navigator, LinkedIn, the LLM and Slack, and nothing else",
+);
+assert.equal(
+  [...byId.keys()].some((id) => id.startsWith("context:")),
+  false,
+  "this skill must not declare defineContext: the context is a per-workspace singleton the project owns",
+);
+
+// The source: a Sales Navigator job-change search, capped per URL, shipped as
+// the pilot.
 const model = byId.get("model:new_hires");
 assert.ok(model, "model:new_hires must exist");
 assert.equal(model.spec.extractorSlug, "fetchLeadSearch");
@@ -36,6 +55,11 @@ assert.ok(
   model.spec.config.limit <= 2500,
   "limit is per URL and Sales Navigator returns at most 2,500 per search",
 );
+assert.equal(
+  model.spec.schedule,
+  undefined,
+  "the model must not carry a schedule: the cadence is added when opening up, and deleting a live one does not clear it",
+);
 
 const play = byId.get("play:route-new-hires");
 assert.ok(play, "play:route-new-hires must exist");
@@ -44,7 +68,7 @@ assert.equal(play.spec.runCreationRule, "noConcurrency");
 assert.deepEqual(
   play.spec.changeKinds,
   ["added"],
-  "only people new to the search may create runs, or every sync re-routes the market",
+  "only people new to the search may create runs, or every sync re-posts the market",
 );
 assert.equal(
   play.spec.filter,
@@ -65,25 +89,16 @@ const ancestorsOf = (node) => {
     out.push(parent);
   return out;
 };
-const isCrm = (node) =>
-  node.kind === "connector" &&
-  node.connectorUuid?.resourceId === "connector:crm";
 const isEnd = (node) => node?.kind === "native" && node.actionSlug === "end";
-const isBranch = (node) => node?.kind === "native" && node.actionSlug === "branch";
+const isBranch = (node) =>
+  node?.kind === "native" && node.actionSlug === "branch";
 const findOne = (predicate, message) => {
   const matches = nodes.filter(predicate);
   assert.equal(matches.length, 1, message);
   return matches[0];
 };
 
-// Never SOQL: lookups go through findRecords / searchRecords on every CRM.
-assert.equal(
-  nodes.some((node) => node.kind === "connector" && node.actionSlug === "soqlQuery"),
-  false,
-  "lookups use findRecords or searchRecords, never soqlQuery",
-);
-
-// Enrich first, guard the domain, match second.
+// Enrich first, then stop when there is no domain.
 const start = findOne(
   (node) => node.kind === "native" && node.actionSlug === "start",
   "one start node",
@@ -91,164 +106,69 @@ const start = findOne(
 const enrich = childrenOf(start)[0];
 assert.equal(enrich?.integrationSlug, "linkedin");
 assert.equal(enrich.actionSlug, "enrichCompany");
-const prepare = childrenOf(enrich)[0];
+const domainGuard = childrenOf(enrich)[0];
 assert.ok(
-  prepare?.kind === "native" && prepare.actionSlug === "script",
-  "the company enrichment must be followed by the lookup preparation",
-);
-const domainGuard = childrenOf(prepare)[0];
-assert.ok(isBranch(domainGuard), "the lookup preparation must be followed by the domain guard");
-assert.ok(
-  domainGuard.config.condition.expression.includes(`nodes.${prepare.slug}`),
-  "the domain guard must read the normalized domain, not the raw enrichment",
+  isBranch(domainGuard),
+  "the company enrichment must be followed by the domain guard",
 );
 assert.match(domainGuard.config.condition.expression, /domain/);
 const [guardThen, guardElse] = childrenOf(domainGuard);
 assert.ok(isEnd(guardThen), "a company with no domain must end the run");
-assert.ok(
-  isCrm(guardElse) && ["searchRecords", "findRecords"].includes(guardElse.actionSlug),
-  "the account lookup must follow the domain guard",
-);
 
-// Both lookups search every stored form, or a known account reads as new and a
-// known person as a stranger, and the play duplicates them.
-for (const lookup of [guardElse, childrenOf(guardElse)[0]]) {
-  assert.ok(
-    JSON.stringify(lookup?.config).includes(`nodes.${prepare.slug}`),
-    "the account and person lookups must search the prepared variants",
-  );
-}
-assert.deepEqual(
-  prepareLookups({
-    domain: "HTTPS://www.Contoso.example/about",
-    linkedinProfileUrl: "linkedin.com/in/Mei-Lin/?trk=x",
-  }),
-  {
-    domain: "contoso.example",
-    domainVariants: [
-      "contoso.example",
-      "www.contoso.example",
-      "https://contoso.example",
-      "https://www.contoso.example",
-    ],
-    linkedinUrlVariants: [
-      "https://linkedin.com/in/mei-lin",
-      "https://linkedin.com/in/mei-lin/",
-      "https://www.linkedin.com/in/mei-lin",
-      "https://www.linkedin.com/in/mei-lin/",
-    ],
-  },
+// The qualifier judges every company, and its verdict gates the post.
+const agent = findOne(
+  (node) => node.kind === "agent",
+  "exactly one agent: the qualifier",
 );
-assert.equal(
-  prepareLookups({ domain: "https://", linkedinProfileUrl: "" }).domain,
-  undefined,
-  "a domain with no host must stop at the guard",
-);
-
-// The qualifier runs on the new-account route only, and gates every write.
-const agent = findOne((node) => node.kind === "agent", "exactly one agent: the qualifier");
 assert.equal(agent.agentUuid?.resourceId, "agent:new-hire-icp-qualifier");
-const isLookup = (node) =>
-  isCrm(node) && ["searchRecords", "findRecords"].includes(node.actionSlug);
-assert.ok(
-  ancestorsOf(agent).every((node) => !isCrm(node) || isLookup(node)),
-  "the qualifier must sit on the new-account route, before any CRM write",
+assert.equal(
+  guardElse?.uuid,
+  agent.uuid,
+  "the qualifier must follow the domain guard",
 );
 const gate = childrenOf(agent)[0];
 assert.ok(isBranch(gate), "the qualifier must be followed by its gate");
 assert.match(gate.config.condition.expression, /is_icp/);
 assert.ok(
   childrenOf(gate).some(isEnd),
-  "a company the ICP rejects must end the run without a CRM write",
+  "a company the ICP rejects must end the run without a post",
 );
-const accountWrites = nodes.filter(
-  (node) => isCrm(node) && node.actionSlug !== "searchRecords" && node.actionSlug !== "findRecords" &&
-    ancestorsOf(node).includes(agent),
-);
-assert.ok(accountWrites.length > 0, "the new-account route must write to the CRM");
 
-// One contact per person: the person is looked up across the CRM before the
-// routes split, and every contact write keys on that lookup first, so a mover
-// is moved rather than duplicated.
-const accountSplit = parentOf(agent);
-const personLookup = parentOf(accountSplit);
-assert.ok(
-  isLookup(personLookup) && personLookup.uuid !== guardElse.uuid,
-  "the person lookup must sit between the account lookup and the route split",
-);
-const contactWrites = nodes.filter(
+// One Slack post per qualified person, to one locked channel.
+const post = findOne(
   (node) =>
-    isCrm(node) &&
-    node.actionSlug === "upsertRecords" &&
-    /^contacts?$/i.test(String(node.config.objectType)),
+    node.kind === "connector" &&
+    node.integrationSlug === "slack" &&
+    node.actionSlug === "postMessage",
+  "exactly one Slack post",
 );
-assert.equal(contactWrites.length, 2, "one contact write per account state: new, and already held");
-for (const write of contactWrites) {
-  assert.ok(
-    String(write.config.matchingPropertyName?.expression).includes(`nodes.${personLookup.slug}`),
-    "a contact write must match the person found by the lookup before keying on anything else",
-  );  // A mover's email on file belongs to the employer they left.
-  const email = write.config.mappings.find((mapping) => mapping.propertyName === "email");
-  assert.ok(
-    !JSON.stringify(email?.value ?? "").includes(`nodes.${personLookup.slug}`),
-    "a mover's previous work email must not be carried to the new account",
-  );
-}
-
-// On accounts the CRM already holds, a person who is already a contact on that
-// very account stops the run before the email lookup is paid for.
-const emailLookups = nodes.filter(
-  (node) => node.kind === "tool" && node.toolUuid === "REPLACE-WITH-FIND-EMAIL-TOOL-UUID",
-);
-assert.equal(emailLookups.length, 2, "one email lookup per account state: new, and already held");
-const existingRouteLookup = emailLookups.find((node) => !ancestorsOf(node).includes(agent));
-assert.ok(existingRouteLookup, "the existing-account route must look the email up");
-const contactGate = parentOf(existingRouteLookup);
-assert.ok(isBranch(contactGate), "the email lookup must be gated on the same-account check");
-assert.ok(childrenOf(contactGate).some(isEnd), "a person already on the account must end the run");
 assert.ok(
-  contactGate.config.condition.expression.includes(`nodes.${personLookup.slug}`),
-  "the same-account check must read the person lookup",
+  ancestorsOf(post).includes(gate),
+  "the Slack post must sit behind the ICP gate",
 );
-
-// Three routes tell someone, on the account: new, open opportunity, customer.
-// The known-account route adds the contact and stops: no task, no allocation.
-// A task on HubSpot and Salesforce; a note on Attio, which has no task write.
-const tasks = nodes.filter(
-  (node) => isCrm(node) &&
-    ((node.actionSlug === "insertRecord" && /^tasks?$/i.test(String(node.config.objectType))) ||
-      node.actionSlug === "createNote"),
-);
-assert.equal(tasks.length, 3, "one task each for new account, open opportunity and customer");
-for (const task of tasks) {
-  if (task.actionSlug === "createNote") continue;
-  const props = new Set(task.config.mappings.map((mapping) => mapping.propertyName));
-  if (props.has("hubspot_owner_id")) {
-    // HubSpot cannot associate at insert: the task must be followed by its
-    // association to the company.
-    const next = childrenOf(task)[0];
-    assert.equal(next?.actionSlug, "createAssociation", "a HubSpot task must be associated");
-    assert.equal(next.config.toObjectType, "companies");
-  } else {
-    assert.ok(
-      props.has("OwnerId") || props.has("assignee") || props.has("owner"),
-      "a task must name its owner",
-    );
-  }
-}
-const routing = findOne(
-  (node) => node.kind === "native" && node.actionSlug === "switch",
-  "the existing-account routes must be one explicit switch",
-);
-const routes = childrenOf(routing);
-assert.equal(routes.length, 3, "open opportunity, customer, known account");
-assert.ok(isEnd(routes[2]), "the known-account route adds the contact and raises no task");
-
-// Ends at the CRM write: nothing is drafted or sent.
 assert.equal(
-  nodes.some((node) => /send|sequence|enroll/i.test(String(node.actionSlug))),
+  typeof post.config.channelId,
+  "string",
+  "the channel must be locked on the post, not computed per run",
+);
+
+// Ends at the Slack post: no CRM write, and nothing sent to the person.
+assert.equal(
+  nodes.some(
+    (node) =>
+      node.kind === "connector" &&
+      node.integrationSlug !== "linkedin" &&
+      node.integrationSlug !== "slack",
+  ),
   false,
-  "the play stops at the CRM write",
+  "the template reads LinkedIn and posts to Slack; CRM writes are the crm_routing variation",
+);
+assert.equal(
+  nodes.some((node) =>
+    /send|sequence|enroll|email/i.test(String(node.actionSlug)),
+  ),
+  false,
+  "the play stops at the Slack post: nothing is drafted to or sent to the person",
 );
 
 console.log("ok: new-hire-detection contract holds");

@@ -8,16 +8,16 @@ search. The only paid call in this file is the count, one per candidate URL.
 Read the ICP in the workspace context repo before asking anything. The four
 things the search needs usually sit in it already:
 
-| Search input          | Where it usually lives in `icp.md`             | Sales Navigator facet |
-| --------------------- | ---------------------------------------------- | --------------------- |
-| Titles to watch       | the buying committee, the personas             | `CURRENT_TITLE`       |
-| Industries            | firmographics                                  | `INDUSTRY`            |
-| Company headcount     | firmographics, the disqualifiers above a band  | `COMPANY_HEADCOUNT`   |
-| Locations             | geography                                      | `REGION`              |
+| Search input      | Where it usually lives in `icp.md`            | Sales Navigator facet |
+| ----------------- | --------------------------------------------- | --------------------- |
+| Titles to watch   | the buying committee, the personas            | `CURRENT_TITLE`       |
+| Industries        | firmographics                                 | `INDUSTRY`            |
+| Company headcount | firmographics, the disqualifiers above a band | `COMPANY_HEADCOUNT`   |
+| Locations         | geography                                     | `REGION`              |
 
 With no ICP file and no company domain to derive one from, ask for exactly
 those four, then write the answers into the project's `context/icp.md` rather
-than only into the search. The qualifier reads that file on every new account,
+than only into the search. The qualifier reads that file on every company,
 so an ICP that lives only in a URL leaves the agent judging against nothing.
 
 ## Titles are a boolean, exclusions are words

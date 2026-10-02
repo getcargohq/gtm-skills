@@ -91,13 +91,15 @@ const newHireSearchUrl = searchUrl([
 
 // One row per person who just took one of the titles above somewhere in the
 // market, keyed by `linkedin_profile_id`. The play reacts to rows ADDED here,
-// so a person is routed once, the first sync they appear in.
+// so a person is posted once, the first sync they appear in.
 //
-// `limit` is per URL and 2,500 is Sales Navigator's own ceiling for one
-// search. Count the search before deploying (`searchPersonMetrics`, see
-// ../../references/search.md). Above 2,500, split it by a facet (one URL per
-// region or per headcount band) and list every URL in `urls`; a single URL
-// over the cap returns its first 2,500 and the rest of the market is never
+// Ships as the pilot: `limit: 10` and no schedule. Opening up raises `limit`
+// to the approved value and adds the cadence (references/run.md in the skill).
+// `limit` is per URL, and 2,500 is Sales Navigator's own ceiling for one
+// search. Count the search before raising it (`searchPersonMetrics`, see
+// references/search.md in the skill). Above 2,500, split it by a facet (one
+// URL per region or per headcount band) and list every URL in `urls`; a single
+// URL over the cap returns its first 2,500 and the rest of the market is never
 // seen.
 //
 // THE SCHEDULE RE-BUYS THE SEARCH. `fetchLeadSearch` is not incremental:
@@ -105,7 +107,9 @@ const newHireSearchUrl = searchUrl([
 // ones already sitting in this model. "Changed jobs" covers roughly the last
 // 90 days, so a sync every two weeks re-pays for most of the previous sync to
 // find the people who are new. That is the price of being systematic; the
-// cadence is the dial (see "What you can change").
+// cadence is the dial (see "What you can change"). The default, added when
+// opening up, is the 1st and the 15th at 06:00 UTC:
+//   schedule: { type: "cron", cron: "0 6 1,15 * *" },
 //
 // If you deploy with a schedule and later delete the line, that does NOT clear
 // the live cron: the deploy engine omits a silent field and the platform keeps
@@ -115,12 +119,10 @@ export const newHires = defineModel("new_hires", {
   connector: salesNavigator,
   extractSlug: "fetchLeadSearch",
   description:
-    "People who just took a target role anywhere in the market, from a Sales Navigator job-change search. Each new row is routed into the CRM by the new-hire play.",
+    "People who just took a target role anywhere in the market, from a Sales Navigator job-change search. Each new row is qualified and, when it fits the ICP, posted to Slack by the new-hire play.",
   folder: modelsFolder,
   config: {
     urls: [newHireSearchUrl],
-    limit: 2500,
+    limit: 10,
   },
-  // The 1st and the 15th at 06:00 UTC: every two weeks, the default cadence.
-  schedule: { type: "cron", cron: "0 6 1,15 * *" },
 });

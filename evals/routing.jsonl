@@ -138,6 +138,7 @@
 {"prompt": "Every time a new head of RevOps starts at a company in our ICP, tell the account owner", "expect": "new-hire-detection", "why": "The standing tell: every time, routed to an owner."}
 {"prompt": "When a new decision-maker joins an account with an open deal, alert the deal owner", "expect": "new-hire-detection"}
 {"prompt": "Run our new-hire play every two weeks", "expect": "new-hire-detection"}
+{"prompt": "Post in Slack whenever a new VP Sales starts at a company that fits our ICP", "expect": "new-hire-detection", "why": "The market watched on a schedule, the signal in Slack: the pipeline, not a one-off search."}
 {"prompt": "Did any of our HubSpot contacts change jobs this quarter?", "expect": "track-job-changes", "why": "Your own contacts, checked once: the one-off, not the market pipeline."}
 {"prompt": "Which of our champions moved companies, and where did they go?", "expect": "track-job-changes", "why": "Movement among people you already hold is track-job-changes, however the CRM is involved."}
 {"prompt": "Build our company website on Cargo and keep it updated through reviewed PRs", "expect": "website-building"}

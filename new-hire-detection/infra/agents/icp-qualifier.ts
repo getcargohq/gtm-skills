@@ -3,11 +3,11 @@ import { defineAgent } from "@cargo-ai/cdk";
 import { anthropic } from "../connectors/anthropic";
 import { agentsFolder } from "../folders";
 
-// The qualifier: one judgment per company that is NOT in the CRM yet.
-//
-// It sits on the new-account route only. Customers and accounts with an open
-// deal are qualified by definition, and scoring them again wastes a call and
-// can wrongly drop an account somebody already sold.
+// The qualifier: one judgment per company a new hire just joined, and the
+// gate in front of the Slack post. With the `crm_routing` variation it moves to
+// the new-account route only: customers and accounts with an open deal are
+// qualified by definition, and scoring them again can drop an account somebody
+// already sold.
 //
 // An agent instead of a headcount filter, because the company object carries
 // more than a number: description, specialties, industry and locations. That
@@ -27,9 +27,9 @@ import { agentsFolder } from "../folders";
 // qualifies is a reviewed commit rather than a deploy. ../context/icp.md is
 // the example to copy there.
 //
-// No writable model and no CRM in reach. The agent hands back a verdict and
-// the play acts on it: the gate is a branch in the workflow, never a choice
-// the agent makes by writing.
+// No writable model, no CRM and no Slack in reach. The agent hands back a
+// verdict and the play acts on it: the gate is a branch in the workflow, never
+// a choice the agent makes by writing or posting.
 export const icpQualifier = defineAgent("new-hire-icp-qualifier", {
   color: "blue",
   connector: anthropic,
@@ -41,7 +41,7 @@ export const icpQualifier = defineAgent("new-hire-icp-qualifier", {
     "Read icp.md from the workspace context before every judgment. It is the rubric; nothing in this prompt overrides it.",
     "Judge only on the company object you are given. An absent fact is an absent fact: never invent a headcount, an industry or a location.",
     "A disqualifier in the ICP makes the company not ICP, whatever else fits. Competitors of the seller are always disqualified.",
-    "Return the verdict only. The play decides what to write; you write nothing.",
+    "Return the verdict only. The play decides what to post or write; you do neither.",
     "Answer in the exact JSON shape requested: a score from 0 to 100, a tier, whether it is ICP, a two-sentence rationale naming the ICP lines that decided it, and your confidence.",
   ].join(" "),
   output: {
