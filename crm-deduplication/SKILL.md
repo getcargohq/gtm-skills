@@ -36,7 +36,7 @@ criteria. Approval for one path does not authorize the other.
 
 ### Path 1: Account deduplication
 
-`deduplicate_accounts` searches live CRM companies by LinkedIn company ID, LinkedIn company page,
+`deduplicate-accounts` searches live CRM companies by LinkedIn company ID, LinkedIn company page,
 and non-generic domain. It scores the evidence, selects a deterministic survivor, and merges only
 an exact shared LinkedIn company ID when there is no identity, protected-ID, or parent-subsidiary
 conflict. Every other candidate reaches Cargo's native Human Review node. Company name never
@@ -47,7 +47,7 @@ populated records, recent activity, older creation time, then the smallest CRM r
 
 ### Path 2: Contact deduplication
 
-`deduplicate_contacts` searches live CRM contacts by LinkedIn person ID, normalized LinkedIn URL,
+`deduplicate-contacts` searches live CRM contacts by LinkedIn person ID, normalized LinkedIn URL,
 exact email, and exact stored phone. A second search expands the direct results into transitive
 clusters using normalized identity values from retrieved records. Phone normalization also compares
 records inside the cluster. The play merges automatically only on an exact LinkedIn person ID,
@@ -142,14 +142,14 @@ its authoring, state, plan, and deployment rules throughout this pipeline.
 
 Verify the live company schema, record ID, LinkedIn company properties, domain property, protected
 business identifiers, parent-company property, and survivor inputs. The account audit and policy
-must be approved before adapting `crm_accounts` or `deduplicate_accounts`.
+must be approved before adapting `crm_accounts` or `deduplicate-accounts`.
 
 ### Contact path setup
 
 Verify the live contact schema, record ID, LinkedIn person properties, email, phone, association
 evidence, and survivor inputs. Decide whether low-confidence clusters enter Human Review or remain
 untouched. The contact audit and policy must be approved before adapting `crm_contacts` or
-`deduplicate_contacts`.
+`deduplicate-contacts`.
 
 ### Shared review setup
 
@@ -278,7 +278,7 @@ effect on candidates, safeguards, and validation.
 
 - the account audit reconciles company identifier coverage, mutually exclusive classes, conflicts,
   survivor evidence, and proposed merge IDs to the source total
-- `deduplicate_accounts` runs directly on `crm_accounts` and searches companies live
+- `deduplicate-accounts` runs directly on `crm_accounts` and searches companies live
 - its graph contains preparation, native Scoring, the guarded Branch, native Human Review, and CRM
   merges only on automatic or approved paths
 - automatic merge requires exact shared LinkedIn company ID and every account conflict guard
@@ -289,7 +289,7 @@ effect on candidates, safeguards, and validation.
 - the contact audit reconciles source totals, person identifier coverage, unique candidate clusters,
   conflicts, survivor evidence, and proposed merge IDs, and reports overlapping matched classes
   separately
-- `deduplicate_contacts` runs directly on `crm_contacts` and performs both direct and transitive live
+- `deduplicate-contacts` runs directly on `crm_contacts` and performs both direct and transitive live
   searches
 - its graph contains preparation, native Scoring, the guarded Branch, optional native Human Review,
   and CRM merges only on automatic or approved paths

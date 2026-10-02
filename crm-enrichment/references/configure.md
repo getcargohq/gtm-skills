@@ -31,8 +31,8 @@ The account path consists only of:
 - `infra/tools/account-enrichment.ts`
 - `infra/plays/enrich-accounts.ts`
 
-`crm_accounts` must remain a direct CRM company extract. `account_enrichment` owns provider routing
-and has no CRM access. `enrich_accounts` owns the only company write.
+`crm_accounts` must remain a direct CRM company extract. `account-enrichment` owns provider routing
+and has no CRM access. `enrich-accounts` owns the only company write.
 
 ### Provider routes
 
@@ -46,7 +46,7 @@ LinkedIn identity is stronger and remains first. Do not move either provider act
 
 ### Mappings and filter
 
-Map only approved outputs from `account_enrichment`. The checked HubSpot starting fields are
+Map only approved outputs from `account-enrichment`. The checked HubSpot starting fields are
 `linkedin_company_id`, `name`, `domain`, `website`, `linkedin_company_page`, and
 `numberofemployees`.
 
@@ -54,7 +54,7 @@ Every business-field mapping is blank-only unless the operator explicitly approv
 policy. A fresh read must protect populated values, including numeric zero, on CRMs without a
 native blank-only flag. Stamp freshness only after the CRM update.
 
-The `enrich_accounts` filter requires:
+The `enrich-accounts` filter requires:
 
 - LinkedIn company page or domain present
 - `cargo_last_enriched_at` null or older than the approved window
@@ -66,10 +66,10 @@ eligible for an explicitly approved refresh policy.
 
 Confirm the compiled graph has:
 
-- one identifier gate and one mutually exclusive provider branch in `account_enrichment`
-- no CRM connector action in `account_enrichment`
-- one Tool node targeting `account_enrichment` in `enrich_accounts`
-- no direct LinkedIn action in `enrich_accounts`
+- one identifier gate and one mutually exclusive provider branch in `account-enrichment`
+- no CRM connector action in `account-enrichment`
+- one Tool node targeting `account-enrichment` in `enrich-accounts`
+- no direct LinkedIn action in `enrich-accounts`
 - one play-owned CRM update matching the audited company record ID
 - a disabled play with `noConcurrency`
 
@@ -83,8 +83,8 @@ The contact path consists only of:
 - `infra/tools/contact-linkedin-enrichment.ts`
 - `infra/plays/enrich-contacts.ts`
 
-`crm_contacts` must remain a direct CRM contact extract. `contact_linkedin_enrichment` owns the
-LinkedIn profile action and has no CRM access. `enrich_contacts` owns identifier resolution, gating,
+`crm_contacts` must remain a direct CRM contact extract. `contact-linkedin-enrichment` owns the
+LinkedIn profile action and has no CRM access. `enrich-contacts` owns identifier resolution, gating,
 and every contact write.
 
 ### Instantiate the Cargo-native tools
@@ -113,7 +113,7 @@ If the live schema differs, adapt the call and output access together. Never gue
 
 ### Configure Contact LinkedIn Enrichment
 
-`contact_linkedin_enrichment` accepts `linkedinUrl`, calls one LinkedIn `enrichProfile` action, and
+`contact-linkedin-enrichment` accepts `linkedinUrl`, calls one LinkedIn `enrichProfile` action, and
 returns approved person identity and role fields. Confirm the live output paths for stable person
 ID, canonical profile URL, and current job title.
 
@@ -122,7 +122,7 @@ write policy, and cost.
 
 ### Preserve the contact gates
 
-`enrich_contacts` must keep these routes:
+`enrich-contacts` must keep these routes:
 
 - LinkedIn and email present: skip both native tools, then call custom enrichment.
 - LinkedIn present and email blank: call Find Email, then custom enrichment.
@@ -138,7 +138,7 @@ fields only when blank. An unresolved email route must not write or stamp freshn
 
 ### Contact filter
 
-The `enrich_contacts` filter requires:
+The `enrich-contacts` filter requires:
 
 - email or LinkedIn profile URL present
 - `cargo_last_enriched_at` null or older than the approved window

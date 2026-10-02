@@ -7,7 +7,7 @@ import { toolsFolder } from "../folders/crm-enrichment";
 // Enrich a known LinkedIn profile without CRM access. Identifier resolution
 // stays visible in the play through the two Cargo-native tools.
 const enrichContactFromLinkedin = defineWorkflow(
-  "contact_linkedin_enrichment_workflow",
+  "contact-linkedin-enrichment-workflow",
   {
     input: z.object({
       linkedinUrl: z.string().optional(),
@@ -38,7 +38,7 @@ const enrichContactFromLinkedin = defineWorkflow(
 );
 
 export const contactLinkedinEnrichment = defineTool(
-  "contact_linkedin_enrichment",
+  "contact-linkedin-enrichment",
   {
     folder: toolsFolder,
     workflow: enrichContactFromLinkedin,

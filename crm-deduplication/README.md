@@ -27,7 +27,7 @@ flowchart LR
 | Resource               | Kind  | Purpose                                                  |
 | ---------------------- | ----- | -------------------------------------------------------- |
 | `crm_accounts`         | Model | Direct CRM company extract                               |
-| `deduplicate_accounts` | Play  | Search, score, review, and merge duplicate companies     |
+| `deduplicate-accounts` | Play  | Search, score, review, and merge duplicate companies     |
 | `infra/scripts/accounts/` | Code | Normalize company identity, cluster, rank, and summarize |
 
 Company name is excluded from candidate generation and scoring. The deterministic survivor policy
@@ -58,7 +58,7 @@ flowchart LR
 | Resource               | Kind  | Purpose                                                      |
 | ---------------------- | ----- | ------------------------------------------------------------ |
 | `crm_contacts`         | Model | Direct CRM contact extract                                   |
-| `deduplicate_contacts` | Play  | Search, score, review, and merge duplicate contacts           |
+| `deduplicate-contacts` | Play  | Search, score, review, and merge duplicate contacts           |
 | `infra/scripts/contacts/` | Code | Normalize person identity, expand clusters, rank, and review |
 
 Exact LinkedIn person ID, conflict-free LinkedIn URL, conflict-free non-generic email, and

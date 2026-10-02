@@ -9,7 +9,7 @@ import { accountEnrichment } from "../tools/account-enrichment";
 // One CRM account row in, one CRM write out. The tool decides what the company
 // is; this workflow decides what may be written about it.
 const enrichCrmAccount = defineWorkflow(
-  "enrich_crm_account",
+  "enrich-crm-account",
   {
     input: z.object({
       hs_object_id: z.string(),
@@ -101,7 +101,7 @@ const enrichCrmAccount = defineWorkflow(
 // has to be able to re-enrich a populated but stale field.
 //
 // Disabled and serial until the pilot is approved.
-export const enrichAccounts = definePlay("enrich_accounts", {
+export const enrichAccounts = definePlay("enrich-accounts", {
   folder: playsFolder,
   model: crmAccounts,
   workflow: enrichCrmAccount,

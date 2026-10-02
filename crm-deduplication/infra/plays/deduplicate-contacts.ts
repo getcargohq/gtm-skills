@@ -18,7 +18,7 @@ const automaticMergeScore = 60;
 const reviewTimeoutMilliseconds = 24 * 60 * 60 * 1000;
 
 const deduplicateCrmContact = defineWorkflow(
-  "deduplicate_crm_contact",
+  "deduplicate-crm-contact",
   {
     input: z.object({
       hs_object_id: z.string(),
@@ -186,7 +186,7 @@ ${evidence.reviewLines}`,
   },
 );
 
-export const deduplicateContacts = definePlay("deduplicate_contacts", {
+export const deduplicateContacts = definePlay("deduplicate-contacts", {
   folder: playsFolder,
   model: crmContacts,
   workflow: deduplicateCrmContact,

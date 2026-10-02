@@ -14,7 +14,7 @@ prices and recount eligibility from the current model snapshot immediately befor
 
 1. Confirm the account audit and field contract are approved.
 2. Confirm the company extract, CRM record ID, destinations, and write action match the live CRM.
-3. Confirm the plan contains `crm_accounts`, `account_enrichment`, and `enrich_accounts` only once.
+3. Confirm the plan contains `crm_accounts`, `account-enrichment`, and `enrich-accounts` only once.
 4. Confirm the tool chooses one provider route and contains no CRM action.
 5. Confirm the play contains one Tool node, no direct LinkedIn action, and one CRM update.
 6. Recount the LinkedIn URL and domain fallback routes.
@@ -112,7 +112,7 @@ Use fixtures or safe live rows to verify every state:
 | Neither                       | No call and no write                                               |
 
 Explicit successful branches compile three custom-tool call nodes. Every node targets the same
-`contact_linkedin_enrichment` resource.
+`contact-linkedin-enrichment` resource.
 
 ### Run the contact population
 

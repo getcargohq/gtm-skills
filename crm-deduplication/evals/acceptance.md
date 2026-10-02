@@ -27,7 +27,7 @@
 - The isolated plan contains `connector:crm`, `connector:slack` when at least one selected path uses
   Human Review, and the two ownership folders, plus only the model and play resources for the
   selected paths. When both paths are selected, it contains `model:crm_accounts`,
-  `model:crm_contacts`, `play:deduplicate_accounts`, and `play:deduplicate_contacts`.
+  `model:crm_contacts`, `play:deduplicate-accounts`, and `play:deduplicate-contacts`.
 - No account or contact candidate staging model exists.
 - Each selected play runs directly on its CRM-backed model. Its filter requires the CRM record ID and
   at least one supported identity key.
@@ -61,7 +61,7 @@
 
 ### Account resources and completion
 
-- The account path contains `model:crm_accounts` and `play:deduplicate_accounts` and runs directly on
+- The account path contains `model:crm_accounts` and `play:deduplicate-accounts` and runs directly on
   the account CRM extract.
 - Its live search uses non-empty LinkedIn company ID, LinkedIn company URL, and domain criteria.
 - Account evidence preparation and survivor selection remain deterministic, and the automatic gate
@@ -95,7 +95,7 @@
 
 ### Contact resources and completion
 
-- The contact path contains `model:crm_contacts` and `play:deduplicate_contacts` and runs directly on
+- The contact path contains `model:crm_contacts` and `play:deduplicate-contacts` and runs directly on
   the contact CRM extract.
 - Direct contact search prepares normalized LinkedIn URL variants and email while querying phone
   exactly as stored. A second live search expands normalized values from the direct results,

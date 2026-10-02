@@ -25,13 +25,13 @@ enrichment, both paths must pass independently. Evidence from one path does not 
 
 - [ ] `crm_accounts` is a direct CRM company extract and carries the CRM record ID used by the write.
 - [ ] No native account unification sits between the model and CRM write.
-- [ ] `account_enrichment` accepts company identifiers, normalizes LinkedIn handles, and has no CRM
+- [ ] `account-enrichment` accepts company identifiers, normalizes LinkedIn handles, and has no CRM
       record ID, connector access, or write action.
 - [ ] The compiled tool graph first ends rows with no identifier, then chooses exactly one provider
       route. LinkedIn URL is attempted before domain fallback.
 - [ ] A LinkedIn handle already beginning with `http` is used as-is; another handle is prefixed with
       the canonical company profile URL.
-- [ ] `enrich_accounts` starts with one Tool node targeting `account_enrichment`, contains no direct
+- [ ] `enrich-accounts` starts with one Tool node targeting `account-enrichment`, contains no direct
       LinkedIn connector action, and owns the only CRM update.
 - [ ] The play write matches the audited CRM record ID (`hs_object_id` in the HubSpot example).
 - [ ] Every approved business field uses a CRM-native blank-only update or an equivalent fresh-read
@@ -77,10 +77,10 @@ enrichment, both paths must pass independently. Evidence from one path does not 
 ### Template shape and gating
 
 - [ ] `crm_contacts` is a direct CRM contact extract and carries the CRM record ID used by the write.
-- [ ] There is one contact play: `enrich_contacts`.
+- [ ] There is one contact play: `enrich-contacts`.
 - [ ] The play targets exactly three tool resources: Cargo-native Find Email, Cargo-native Find
-      LinkedIn Profile from Email, and custom `contact_linkedin_enrichment`.
-- [ ] `contact_linkedin_enrichment` calls one LinkedIn profile enrichment action and has no CRM
+      LinkedIn Profile from Email, and custom `contact-linkedin-enrichment`.
+- [ ] `contact-linkedin-enrichment` calls one LinkedIn profile enrichment action and has no CRM
       record ID, connector access, or write action.
 - [ ] A row with email and LinkedIn skips both native tools and calls custom enrichment.
 - [ ] A LinkedIn-only row calls Find Email, then custom enrichment.
@@ -90,7 +90,7 @@ enrichment, both paths must pass independently. Evidence from one path does not 
       freshness.
 - [ ] A row with neither identifier makes no tool call and no CRM write.
 - [ ] The compiled graph proves these gates. Explicit successful branches may compile multiple call
-      nodes, but every custom call targets the same `contact_linkedin_enrichment` resource.
+      nodes, but every custom call targets the same `contact-linkedin-enrichment` resource.
 - [ ] The play contains no direct LinkedIn connector action.
 - [ ] No customer split, movement verdict, relationship mutation, note creation, or alert connector
       is present.

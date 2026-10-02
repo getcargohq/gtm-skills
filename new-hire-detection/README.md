@@ -44,7 +44,7 @@ which asks whether your own people moved.
 IDs, a CSM field, association types, a LinkedIn field, a routing signal someone maintains, and a
 dedupe policy for people who moved, and every mistake stays in the CRM. Most teams want the signal
 first and decide what to do with it after reading it. The CRM is one step away when they want it:
-a read-only "already in the CRM" line (`crm_context`), or the CRM as the destination with routed
+a read-only "already in the CRM" line (`crm_lookup`), or the CRM as the destination with routed
 tasks (`crm_routing`), both in [`references/crm-adaptation.md`](references/crm-adaptation.md).
 
 **Enrich, guard, then judge.** A Sales Navigator lead carries a company URL. The company is enriched

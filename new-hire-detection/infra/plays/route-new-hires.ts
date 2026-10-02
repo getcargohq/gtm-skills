@@ -22,7 +22,7 @@ const slackChannelId = "PLACEHOLDER_SLACK_CHANNEL_ID";
 //
 // Ends at the Slack post. Nothing is written to a CRM and nothing is sent to
 // the person. Writing into the CRM is the `crm_routing` variation, and a
-// read-only "already in the CRM" line is `crm_context`; both are in
+// read-only "already in the CRM" line is `crm_lookup`; both are in
 // references/crm-adaptation.md in the skill.
 const routeNewHire = defineWorkflow(
   "route-new-hire",

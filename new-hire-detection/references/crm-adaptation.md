@@ -7,7 +7,7 @@ either.
 
 | Variation     | What it adds                                                                                                | What it costs                                                                                                                          |
 | ------------- | ----------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
-| `crm_context` | One read-only line on the Slack post: already in the CRM or not, its stage, and its owner                   | A CRM connector and one lookup per qualified person. Nothing is written                                                                |
+| `crm_lookup`  | One read-only line on the Slack post: already in the CRM or not, its stage, and its owner                   | A CRM connector and one lookup per qualified person. Nothing is written                                                                |
 | `crm_routing` | The CRM becomes the destination: account, contact and an owner's task, routed on what the CRM already holds | Owner IDs, a CSM field, association types and a LinkedIn field to resolve; an email lookup per person; the CRM writes are irreversible |
 
 Both match on the domain and the LinkedIn profile in every stored form (the
@@ -130,7 +130,7 @@ contact search: criteria are OR'd and empty values are skipped.
 Then update the contract's connector inventory to include `connector:crm`, and
 add the assertions the variation below names.
 
-## `crm_context`: one read-only line on the post
+## `crm_lookup`: one read-only line on the post
 
 After the gate, before the post, look the account up and say what was found:
 

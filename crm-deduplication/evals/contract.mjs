@@ -61,8 +61,8 @@ assert.deepEqual(
     "folder:crm-deduplication-plays",
     "model:crm_accounts",
     "model:crm_contacts",
-    "play:deduplicate_accounts",
-    "play:deduplicate_contacts",
+    "play:deduplicate-accounts",
+    "play:deduplicate-contacts",
   ]),
   "crm-deduplication must deploy only its CRM models, connectors, and deduplication plays",
 );
@@ -93,7 +93,7 @@ for (const modelId of ["model:crm_accounts", "model:crm_contacts"]) {
     `${modelId} must belong to the skill's model folder`,
   );
 }
-for (const playId of ["play:deduplicate_accounts", "play:deduplicate_contacts"]) {
+for (const playId of ["play:deduplicate-accounts", "play:deduplicate-contacts"]) {
   assert.equal(
     byId.get(playId).spec.folderUuid.resourceId,
     "folder:crm-deduplication-plays",
@@ -101,11 +101,11 @@ for (const playId of ["play:deduplicate_accounts", "play:deduplicate_contacts"])
   );
 }
 
-const play = byId.get("play:deduplicate_accounts");
+const play = byId.get("play:deduplicate-accounts");
 assert.equal(
   play.spec.modelUuid.resourceId,
   "model:crm_accounts",
-  "deduplicate_accounts must run directly on the CRM account model",
+  "deduplicate-accounts must run directly on the CRM account model",
 );
 assert.equal(play.spec.isEnabled, false, "the dedup play must be disabled");
 assert.equal(play.spec.limit, 15, "the dedup pilot must be limited to 15 rows");
@@ -139,7 +139,7 @@ const isCrmAction = (actionSlug) => (node) =>
 // stale by the time the row is dequeued.
 const search = only(
   isCrmAction("findRecords"),
-  "deduplicate_accounts must search the CRM with exactly one findRecords node",
+  "deduplicate-accounts must search the CRM with exactly one findRecords node",
 );
 const evidenceNode = childrenOf(search)[0];
 assert.equal(
@@ -212,7 +212,7 @@ const mergeUuids = new Set(merges.map((merge) => merge.uuid));
 assert.equal(
   merges.length,
   2,
-  "deduplicate_accounts must expose exactly the automatic and human-approved merge paths",
+  "deduplicate-accounts must expose exactly the automatic and human-approved merge paths",
 );
 for (const merge of merges) {
   assert.match(
@@ -424,11 +424,11 @@ assert.deepEqual(
   "an account missing from the fresh search must never emit a merge ID",
 );
 
-const contactPlay = byId.get("play:deduplicate_contacts");
+const contactPlay = byId.get("play:deduplicate-contacts");
 assert.equal(
   contactPlay.spec.modelUuid.resourceId,
   "model:crm_contacts",
-  "deduplicate_contacts must run directly on the CRM contact model",
+  "deduplicate-contacts must run directly on the CRM contact model",
 );
 assert.equal(contactPlay.spec.isEnabled, false, "the contact play must be disabled");
 assert.equal(contactPlay.spec.limit, 15, "the contact pilot must be limited to 15 rows");

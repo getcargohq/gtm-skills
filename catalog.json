@@ -650,12 +650,12 @@
         "`node --import tsx evals/contract.mjs`, `cargo-ai cdk types`, `cargo-ai cdk check`, and `cargo-ai cdk plan` pass after adaptation",
         "every selected play is disabled, `noConcurrency`, and limited to 15 CRM rows before its pilot",
         "the account audit reconciles company identifier coverage, mutually exclusive classes, conflicts, survivor evidence, and proposed merge IDs to the source total",
-        "`deduplicate_accounts` runs directly on `crm_accounts` and searches companies live",
+        "`deduplicate-accounts` runs directly on `crm_accounts` and searches companies live",
         "its graph contains preparation, native Scoring, the guarded Branch, native Human Review, and CRM merges only on automatic or approved paths",
         "automatic merge requires exact shared LinkedIn company ID and every account conflict guard",
         "every account survivor and absorbed company ID is verified in the CRM",
         "the contact audit reconciles source totals, person identifier coverage, unique candidate clusters, conflicts, survivor evidence, and proposed merge IDs, and reports overlapping matched classes separately",
-        "`deduplicate_contacts` runs directly on `crm_contacts` and performs both direct and transitive live searches",
+        "`deduplicate-contacts` runs directly on `crm_contacts` and performs both direct and transitive live searches",
         "its graph contains preparation, native Scoring, the guarded Branch, optional native Human Review, and CRM merges only on automatic or approved paths",
         "automatic merge requires one approved high-confidence class plus every global contact guard",
         "the merge is the final CRM write, and every contact survivor and absorbed ID is verified in the CRM"
@@ -808,7 +808,7 @@
         {
           "id": "profile_provider",
           "when": "The workspace uses an equivalent approved profile action",
-          "how": "Replace the provider call inside `contact_linkedin_enrichment` and remap its output",
+          "how": "Replace the provider call inside `contact-linkedin-enrichment` and remap its output",
           "cost": "Coverage, fields, and unit price change"
         }
       ],
@@ -819,9 +819,9 @@
         "**Freshness follows a write.** Stamp `cargo_last_enriched_at` and `cargo_enrichment_status=succeeded` only on successful CRM write paths.",
         "**Selected plays deploy disabled and use `noConcurrency`.** Removing either expands an unapproved pilot.",
         "**LinkedIn first, domain fallback.** One account takes exactly one provider route. Rows without either identifier make no paid call.",
-        "**One account tool and one account play.** `account_enrichment` owns provider routing; `enrich_accounts` owns the only company write.",
+        "**One account tool and one account play.** `account-enrichment` owns provider routing; `enrich-accounts` owns the only company write.",
         "**Account eligibility does not require a blank destination.** Populated stale records remain eligible for an explicitly approved refresh policy.",
-        "**One contact play and three tool resources.** Keep contact orchestration in `enrich_contacts` and use only Find Email, Find LinkedIn Profile from Email, and Contact LinkedIn Enrichment.",
+        "**One contact play and three tool resources.** Keep contact orchestration in `enrich-contacts` and use only Find Email, Find LinkedIn Profile from Email, and Contact LinkedIn Enrichment.",
         "**Real branch gating.** Find Email runs only for LinkedIn-only rows. Find LinkedIn Profile from Email runs only for email-only rows. Contact LinkedIn Enrichment runs only with a LinkedIn URL.",
         "**No unresolved write.** When email cannot resolve to LinkedIn, stop without custom enrichment, CRM write, or successful freshness.",
         "**Null-safe blank filters.** Pair `isNull` and `isEmpty` for every contact string destination.",
@@ -1163,7 +1163,7 @@
       ],
       "canChange": [
         {
-          "id": "crm_context",
+          "id": "crm_lookup",
           "when": "A CRM is connected and the team wants to know, on the post, whether the company is already in it",
           "how": "Add the CRM connector, the lookup script, and one account lookup before the post (`references/crm-adaptation.md`)",
           "cost": "A CRM lookup per qualified person, and one more connector to keep authorized. Nothing is written"

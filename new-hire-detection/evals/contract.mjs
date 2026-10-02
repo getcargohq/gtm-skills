@@ -14,7 +14,7 @@ const byId = new Map(
 );
 
 // Slack is the only destination the template declares. A CRM connector is the
-// `crm_routing` or `crm_context` variation, added on purpose with its own
+// `crm_routing` or `crm_lookup` variation, added on purpose with its own
 // checks (references/crm-adaptation.md), never left behind by accident.
 assert.deepEqual(
   [...byId.keys()].filter((id) => id.startsWith("connector:")).sort(),
