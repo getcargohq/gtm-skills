@@ -53,9 +53,15 @@
     "demoWorkspace": null,
     "implementations": []
   },
-  "new-hire-detection": {
+  "website-building": {
     "state": "to-be-approved",
     "chain": 10,
+    "demoWorkspace": null,
+    "implementations": []
+  },
+  "new-hire-detection": {
+    "state": "to-be-approved",
+    "chain": 11,
     "demoWorkspace": null,
     "implementations": []
   }

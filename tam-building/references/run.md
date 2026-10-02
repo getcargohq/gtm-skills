@@ -70,7 +70,7 @@ an undefined.
 
 ## Verification
 
-1. `node --import tsx evals/contract.mjs` after adapting the resources.
+1. `node --import tsx evals/contract.mjs` from this skill's folder, after adapting the resources.
 2. `cargo-ai cdk types`, then `cargo-ai cdk check`, then `cargo-ai cdk plan`.
    Inspect every resource and action payload.
 3. Confirm the plan shows the model with **no schedule**, the play with
