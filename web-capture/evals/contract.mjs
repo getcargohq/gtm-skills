@@ -62,23 +62,59 @@ check("the shipped domain is the placeholder, and the prompt refuses it", async 
 });
 
 check("the prompt spells out the exact reads, the baseline and the files", async () => {
-  const { PAGES, webScribePrompt } = await import("../infra/agents/web-scribe.prompt.ts");
+  const { PAGES, COMPETITORS, URLS, webScribePrompt } = await import("../infra/agents/web-scribe.prompt.ts");
   for (const line of [
     '"integrationSlug":"parallel","actionSlug":"extract"',
     '"integrationSlug":"parallel","actionSlug":"createTask"',
-    '"processor":"lite"',
-    "git log -1 --format=%cs origin/HEAD -- cadence/log/raw/web",
-    "git diff origin/HEAD -- cadence/log/raw/web/pages",
-    "cadence/log/raw/web/news/<today>.json",
-    "verbatim",
-    "Do not fetch pages or search the news any other\nway",
+    "git log -1 --format=%cs HEAD -- cadence/log/raw/web",
+    "git diff HEAD -- cadence/log/raw/web/pages cadence/log/raw/web/competitors",
+    "> /tmp/web-capture-pages.json",
+    "> /tmp/web-capture-news.json",
+    "never write a page or news file yourself",
   ]) assert.ok(webScribePrompt.includes(line), `prompt lost: ${line}`);
+  assert.ok(!webScribePrompt.includes("origin/HEAD"), "origin/HEAD is not set in every clone; the cloned HEAD is the baseline");
   for (const name of Object.keys(PAGES)) {
     assert.ok(webScribePrompt.includes(`cadence/log/raw/web/pages/${name}.md`), `page ${name} has no file`);
   }
-  const extract = webScribePrompt.match(/--data '(\{"urls".*?\})'/);
-  assert.ok(extract, "the extract command must carry its data");
-  assert.equal(JSON.parse(extract[1]).urls.length, Object.keys(PAGES).length, "one call reads every page");
+  for (const [competitor, pages] of Object.entries(COMPETITORS)) {
+    for (const name of Object.keys(pages)) {
+      assert.ok(webScribePrompt.includes(`cadence/log/raw/web/competitors/${competitor}/${name}.md`), `${competitor} ${name} has no file`);
+    }
+  }
+  assert.ok(URLS.length <= 20, "parallel.extract reads at most 20 URLs a call");
+});
+
+check("the reads are configured the way the live actions accept them", async () => {
+  const { URLS, webScribePrompt } = await import("../infra/agents/web-scribe.prompt.ts");
+  const data = (slug) => {
+    const at = webScribePrompt.indexOf(`"actionSlug":"${slug}"`);
+    const match = webScribePrompt.slice(at).match(/--data '(.*?)' \\\n/);
+    assert.ok(match, `the ${slug} command must carry its data`);
+    return JSON.parse(match[1]);
+  };
+  const extract = data("extract");
+  assert.deepEqual(extract.urls, URLS, "one call reads every page");
+  assert.equal(extract.fullContent, true, "without fullContent the action returns excerpts, which change with the objective");
+  const news = data("createTask");
+  assert.equal(news.processor, "lite", "the cheapest rung of the processor ladder");
+  assert.equal(typeof news.outputSchema, "string", "the action takes the JSON schema as a string; an object fails validation");
+  assert.ok(JSON.parse(news.outputSchema).properties.items, "the schema asks for items");
+  assert.equal(news.afterDate, "<window start>", "the window is the action's own date filter");
+});
+
+check("the writers read the action output where the live actions put it", async () => {
+  const { webScribePrompt } = await import("../infra/agents/web-scribe.prompt.ts");
+  for (const line of [
+    "run.runContext.action",
+    "r.full_content",
+    "out.errors",
+    "JSON.parse(run.runContext.action.output.content).items",
+    'run.run?.status !== "success"',
+  ]) assert.ok(webScribePrompt.includes(line), `a writer lost: ${line}`);
+  // The writers end each file with the two characters `\n`; a real line break
+  // inside the quoted string would be a syntax error in `node -e`.
+  assert.equal(webScribePrompt.split('trimEnd() + "\\n"').length, 2, "the page writer must end files with an escaped newline");
+  assert.equal(webScribePrompt.split('null, 2) + "\\n"').length, 2, "the news writer must end files with an escaped newline");
 });
 
 check("the prompt carries the contract's fixed points and reads only the web", async () => {
@@ -88,6 +124,7 @@ check("the prompt carries the contract's fixed points and reads only the web", a
     "you never edit, rename or delete an existing file",
     "insight/<today>-web.md",
     "The first run always opens a pull request",
+    "Never write a page or\nnews file by hand",
     "open no pull\nrequest",
     "Never write to the workspace context repository directly",
   ]) assert.ok(webScribePrompt.includes(line), `prompt lost: ${line}`);

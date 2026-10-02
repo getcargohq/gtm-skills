@@ -137,6 +137,7 @@
 {"prompt": "Set up the workspace context from our domain", "expect": "web-capture"}
 {"prompt": "Add our company news to the knowledge base every week", "expect": "web-capture", "why": "Our own company, every week, into context/: not news about target accounts."}
 {"prompt": "Keep our context current from our website", "expect": "web-capture"}
+{"prompt": "Tell us when a competitor changes its pricing page", "expect": "web-capture", "why": "Competitors' own pages, read every week into context/: not buying signals on target accounts."}
 {"prompt": "Research acme.com for me right now", "expect": "research-account", "why": "A one-off answer in this chat, nothing deployed."}
 {"prompt": "Watch our market for new VPs of Sales at software companies and put them in HubSpot", "expect": "new-hire-detection", "why": "The market, not the book, and the CRM as the destination: the pipeline."}
 {"prompt": "Every time a new head of RevOps starts at a company in our ICP, tell the account owner", "expect": "new-hire-detection", "why": "The standing tell: every time, routed to an owner."}
