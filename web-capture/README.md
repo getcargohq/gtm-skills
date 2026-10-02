@@ -1,42 +1,53 @@
 # Web capture
 
-Keep the knowledge layer current from the one source every company has on day one: its own web
-presence. One Claude Code harness agent and its prompt, one pull request a week.
+Keep the knowledge layer current from the one source every company has on day one: the web, about
+itself and its competitors. One Claude Code harness agent and its prompt, one pull request a week.
 
 ## What it does
 
-- **Reads the web, the same way every week.** Two `cargo-ai` commands spelled out in the prompt:
-  one `parallel.extract` over the company's own pages, written verbatim to
-  `cadence/log/raw/web/pages/<page>.md`, and one `parallel.createTask` news question for the days
-  since the last merged read, written to `cadence/log/raw/web/news/<date>.json`.
+- **Reads the web, the same way every week.** Two `cargo-ai` commands generated in the prompt: one
+  `parallel.extract` with `fullContent` over the company's own pages and each competitor's watched
+  pages, and one `parallel.createTask` news question about all of them for the days since the last
+  merged read. A fixed `node -e` line writes each page to `cadence/log/raw/web/pages/<page>.md` or
+  `cadence/log/raw/web/competitors/<competitor>/<page>.md`, and the news to
+  `cadence/log/raw/web/news/<date>.json`. No text passes through the agent on its way to disk.
 - **Lets git say what changed.** `git diff` against the default branch shows which pages changed;
   a news URL not in an earlier file is new.
 - **Seeds once.** The first run fills every empty `context/` domain: `global/`, `icp/` with a
   disqualifier, `alternative/`, `client/`, `proof/`, `signal/`. Every sentence tagged `[R]`, `[I]`
   or `[TR]`.
-- **Adds what changed.** Every run after writes one dated `insight/<date>-web.md`, plus a file for
-  a newly named customer or competitor. It never edits a file that exists; a change to one is a
-  proposal in the pull request body.
+- **Adds what changed.** Every run after writes one dated `insight/<date>-web.md`, each line naming
+  its company, plus a file for a newly named customer or competitor. It never edits a file that
+  exists; a change to one is a proposal in the pull request body.
 - **Stops.** One pull request, never merged, or none in a quiet week. Nothing here reads a CRM, a
   call or Slack.
 
 Adds 4 resources and no script.
 
-| File                                | Resource                        | Role                                                              |
-| ----------------------------------- | ------------------------------- | ----------------------------------------------------------------- |
-| `infra/agents/web-scribe.ts`        | `defineAgent` (claudeCode)      | the scribe: model, folder, weekly cron, no env                    |
-| `infra/agents/web-scribe.prompt.ts` | (not a resource)                | the whole procedure: domain, pages, the exact commands, the rules |
-| `infra/connectors/anthropic.ts`     | `defineConnector` (`anthropic`) | the model the harness runs on, billed and metered                 |
-| `infra/connectors/git.ts`           | `defineConnector` (`github`)    | the clone, branch, push and PR path, resolved by binding          |
-| `infra/folders/index.ts`            | `defineFolder`                  | the workspace folder the agent is filed in                        |
+| File                                | Resource                        | Role                                                                           |
+| ----------------------------------- | ------------------------------- | ------------------------------------------------------------------------------ |
+| `infra/agents/web-scribe.ts`        | `defineAgent` (claudeCode)      | the scribe: model, folder, weekly cron, no env                                 |
+| `infra/agents/web-scribe.prompt.ts` | (not a resource)                | the whole procedure: domain, pages, competitors, the exact commands, the rules |
+| `infra/connectors/anthropic.ts`     | `defineConnector` (`anthropic`) | the model the harness runs on, billed and metered                              |
+| `infra/connectors/git.ts`           | `defineConnector` (`github`)    | the clone, branch, push and PR path, resolved by binding                       |
+| `infra/folders/index.ts`            | `defineFolder`                  | the workspace folder the agent is filed in                                     |
 
 ## Why no script
 
 The other capture cookbooks read their source with a committed collector, because a fetch loop an
 agent re-derives each week silently changes shape. Here the reads are two fixed commands, so the
-prompt can carry them exactly, and git already does the one thing a collector would add: comparing
-this week to the last. What keeps it stable is that the agent writes the page text verbatim; the
-contract checks that the prompt still says so.
+prompt carries them exactly, and git already does the one thing a collector would add: comparing
+this week to the last. What keeps the comparison honest is mechanical: `fullContent` returns the
+whole page rather than excerpts chosen for a question, and a `node -e` line writes the files from
+the command output, so the agent never retypes a page. Both were checked live: two reads of the same
+pages a minute apart were byte-identical.
+
+## Why competitors are in the default
+
+A company already knows its own launches, pricing and funding; it made them. What a weekly read
+catches that the team does not already know is a competitor changing its pricing or shipping
+something. Same two reads, one more set of URLs, and the findings land in `insight/` with the
+competitor's name and in proposals against its `alternative/` file.
 
 ## Why the baseline is the last merged read
 
@@ -55,14 +66,14 @@ have `call-capture`.
 
 ## Placeholders (edit before deploy)
 
-1. **`DOMAIN`** and **`PAGES`** in `infra/agents/web-scribe.prompt.ts`. The agent refuses the
-   placeholder domain.
+1. **`DOMAIN`**, **`PAGES`** and **`COMPETITORS`** in `infra/agents/web-scribe.prompt.ts`. The agent
+   refuses the placeholder domain; `COMPETITORS` ships empty.
 2. **`languageModel`** on the agent.
 
 ## What it does not do
 
 It does not read a CRM, a call, an inbox or Slack; write the workspace context directly; edit a
-file that exists; contact anyone; or merge its own pull request.
+file that exists; write a page by hand; contact anyone; or merge its own pull request.
 
 ## Verify
 

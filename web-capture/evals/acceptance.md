@@ -6,8 +6,9 @@ as passed.
 
 ## Configuration
 
-- `DOMAIN` in `infra/agents/web-scribe.prompt.ts` is the company's own domain, and `PAGES` are the
-  site's real sections.
+- `DOMAIN` in `infra/agents/web-scribe.prompt.ts` is the company's own domain, `PAGES` are the
+  site's real sections, and `COMPETITORS` names the competitors worth watching with their pricing
+  and changelog URLs, 20 URLs at most in all.
 - `node --import tsx evals/contract.mjs` passes, run from the skill folder.
 
 ## Template and compiled graph
@@ -18,8 +19,11 @@ as passed.
 ## First run
 
 - One pull request, unmerged, titled `[web-capture] first run`, carrying
-  `cadence/log/raw/web/pages/*.md` and `cadence/log/raw/web/news/<date>.json`.
-- Each page file is the text `parallel.extract` returned, not a summary of it.
+  `cadence/log/raw/web/pages/*.md`, `cadence/log/raw/web/competitors/*/*.md` and
+  `cadence/log/raw/web/news/<date>.json`.
+- Each page file is the full page the extract returned, written by the `node -e` line, not a
+  summary; the run's output shows the "wrote" lines and any "not read" pages.
+- The news file holds items naming the company and its competitors, each with a URL.
 - Every domain that was empty is seeded; no existing file changed.
 - Every factual sentence carries `[R: <url>]`, `[I: ...]` or `[TR: ...]`.
 - `icp/` names at least one disqualifier and says the CRM verifies it later.
@@ -30,8 +34,8 @@ as passed.
 ## A later week
 
 - With a change: one pull request adding `insight/<date>-web.md`, one tagged line per finding,
-  new `client/` or `alternative/` files only for newly named customers or competitors, and any
-  edit to an existing file proposed in the body, not made.
-- A page whose text did not change on the site shows no diff: the verbatim rule holds.
+  each naming its company, new `client/` or `alternative/` files only for newly named customers or
+  competitors, and any edit to an existing file proposed in the body, not made.
+- A page whose text did not change on the site shows no diff.
 - With nothing worth writing: no pull request.
 - The news window started at the date of the last merged commit under `cadence/log/raw/web/`.
