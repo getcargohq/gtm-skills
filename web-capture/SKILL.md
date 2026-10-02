@@ -34,10 +34,11 @@ for this skill until it is approved.
 What the company says about itself on the web, and what the web says about it, stops drifting away
 from what every agent reads. Once a week one agent runs, and lands it in your repository:
 
-1. **The snapshot.** A committed script reads the company's own pages (home, pricing, customers,
-   careers, blog, changelog) and asks one news question for the days since the last snapshot. It
-   writes one JSON under `cadence/log/raw/web/` with every page's text, the news items with their
-   URLs, and what changed since the previous snapshot.
+1. **The raw reads.** The agent reads the company's own pages (home, pricing, customers, careers,
+   blog, changelog) in one `parallel.extract` call and writes each page's text, verbatim, to a
+   fixed file under `cadence/log/raw/web/pages/`. It asks one news question for the days since the
+   last merged read and writes the items to `cadence/log/raw/web/news/<date>.json`. `git diff`
+   against the default branch is what says a page changed.
 2. **The context files.** The first run seeds every empty domain: `global/` (positioning, value
    proposition, offerings), `icp/` as an inferred profile with at least one disqualifier,
    `alternative/`, `client/`, `proof/` and `signal/` candidates. Every run after adds one dated
@@ -54,12 +55,13 @@ what>]` inferred, `[TR: <what would settle it>]` unknown. Public pages are one s
 here is stated with the conviction of a deal; `win-loss-review` is what later verifies the ICP
 against won and lost.
 
-Three properties make it safe enough to run unattended:
+The whole cookbook is one agent and its prompt. There is no collector script: the prompt spells out
+the two exact `cargo-ai` commands, so every week reads the web the same way, and git does the
+diffing. Three properties make it safe enough to run unattended:
 
-- **The collection is deterministic.** The agent does not crawl or search.
-  `scripts/collect/web.ts` does, the same way every week, and a page's hash is what says it
-  changed. The news window runs from the last committed snapshot, so a quiet week is covered by the
-  next run rather than skipped.
+- **The reads are fixed.** The same two commands every week, and the page text written verbatim,
+  so a diff is a change on the site, not a change in how the agent felt about it. The news window
+  starts at the last merged read, so a quiet week is covered by the next run rather than skipped.
 - **The pull request is the gate.** The agent has repository write access and nothing else: no
   workspace context write, no CRM, no email, no Slack, no merge.
 - **Append-only after the first run.** Existing files are never edited, so what a human corrected
@@ -83,7 +85,7 @@ PR body: proposes adding "Enterprise" to global/offerings.md; one file edit prop
 ```
 
 A week after the first run: one pull request, four findings, two new files, one proposed edit, and
-one news search billed.
+two reads billed (the pages and the news).
 
 ## Put it in your project
 
@@ -93,22 +95,22 @@ adapting. If the `cargo-cdk` skill is in your session it carries the long form o
 is enough.
 
 1. **Install it: the CLI does the copy.** From inside the CDK project,
-   `cargo-ai cdk add cookbook/web-capture` writes the resources to `infra/web-capture/`, the
-   collector to `scripts/web-capture/`, and this procedure to `.claude/skills/web-capture/`. No
-   project yet? `cargo-ai cdk init <dir> --cookbook web-capture && cd <dir> && npm install` does
-   both; this folder never ships a shell. **If you are reading this from the project's
-   `.claude/skills/`, the install already happened: start at step 2.** On a CLI too old to have
-   `add`, copy this folder in as a sibling of what is there by hand; everything below is unchanged.
+   `cargo-ai cdk add cookbook/web-capture` writes the resources to `infra/web-capture/` and this
+   procedure to `.claude/skills/web-capture/`. No project yet?
+   `cargo-ai cdk init <dir> --cookbook web-capture && cd <dir> && npm install` does both; this
+   folder never ships a shell. **If you are reading this from the project's `.claude/skills/`, the
+   install already happened: start at step 2.** On a CLI too old to have `add`, copy this folder in
+   as a sibling of what is there by hand; everything below is unchanged.
 2. **Reconcile it with what is already declared.** If the project already has a GitHub or
    Anthropic connector or an agents folder, rewire the imports to the existing one and drop the
    copy; two resources with one slug is a collision at deploy. The knowledge layer needs no work:
    the scaffold already declares the repo's root `context/` in `infra/context.ts`, and
    `defineContext` is a per-workspace singleton, which is why this folder ships none. **Append
    nothing to `.env.example`:** nothing here holds a credential.
-3. **Set the domain and the pages.** In `scripts/web-capture/collect/config.ts`, set `DOMAIN` to the
-   company's own domain and `PAGES` to the site's real sections (the sitemap lists them). Then,
-   from the repository root, `npx tsx scripts/web-capture/collect/web.ts --dry-run` prints the
-   domain, the pages, the news window and what the run bills.
+3. **Set the domain and the pages.** In `infra/agents/web-scribe.prompt.ts` (at
+   `infra/web-capture/agents/web-scribe.prompt.ts` once installed), set `DOMAIN` to the company's own domain and
+   `PAGES` to the site's real sections; the sitemap lists them. The agent refuses to run on the
+   placeholder domain.
 4. **Adapt.** Work the sections below in order: _What should not change_ is what you argue back
    about (say what breaks, then do it if they still want it); _What you can change_ is what you
    offer unprompted; _What you will be asked_ is the floor, and you derive before you ask. Set the
@@ -120,8 +122,8 @@ is enough.
    `cdk init --force` into a non-empty directory.
 6. **Run the first one by hand.** From the workspace UI or with
    `cargo-ai ai message create --agent-uuid <uuid> --parts '[{"type":"text","text":"Run the web capture. Follow your system prompt exactly."}]'`.
-   The first run always opens a pull request: its snapshot is the baseline every later week is
-   diffed against, and it only counts once it is merged. The Monday cron takes it from there.
+   The first run always opens a pull request: its page and news files are the baseline every later
+   week is diffed against, and they only count once merged. The Monday cron takes it from there.
 7. **Verify.** Walk _Done when_ line by line and report each with evidence.
 
 ## What you will be asked
@@ -129,16 +131,16 @@ is enough.
 **Derive before you ask.** An input with a lookup is looked up, not asked. Only the rows marked
 _asked_ genuinely live in the operator's head.
 
-| Input                                                     | Kind  | How it is answered                                                                                                                                                       | Why it matters                                                                                                                     |
-| --------------------------------------------------------- | ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------- |
-| domain (`DOMAIN` in `scripts/collect/config.ts`)          | value | **derived** from the workspace name, `context/global/` or the repository README. **asked** only when none of them names one                                              | Every file the agent writes is about this company; a wrong domain is a wrong knowledge base. The collector refuses the placeholder |
-| pages (`PAGES`)                                           | value | **derived** from the site's sitemap: the sections that say what is sold, to whom, at what price, for which customers, and what shipped                                   | A page not listed is a change never seen. A listed page that answers 404 is recorded as missing, not as an error                   |
-| LLM connector and model (`infra/connectors/anthropic.ts`) | value | **derived**: `cargo-ai connection connector list` shows whether an Anthropic connector is authorized; the agent's `languageModel` is a placeholder to set                | A harness does not bring its own model; this is what the weekly run is billed and metered against                                  |
-| repository binding (`infra/agents/web-scribe.ts`)         | value | **derived**: leave `repository` unset and `plan` fills it from the git origin of the checkout. `cargo-ai cdk check` prints what it resolved: confirm the repository root | A binding rooted at `infra/` has no node_modules, so the collector cannot run and the week reports nothing                         |
+| Input                                                     | Kind  | How it is answered                                                                                                                                                       | Why it matters                                                                                                                 |
+| --------------------------------------------------------- | ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------ |
+| domain (`DOMAIN` in `infra/agents/web-scribe.prompt.ts`)  | value | **derived** from the workspace name, `context/global/` or the repository README. **asked** only when none of them names one                                              | Every file the agent writes is about this company; a wrong domain is a wrong knowledge base. The agent refuses the placeholder |
+| pages (`PAGES`, same file)                                | value | **derived** from the site's sitemap: the sections that say what is sold, to whom, at what price, for which customers, and what shipped                                   | A page not listed is a change never seen                                                                                       |
+| LLM connector and model (`infra/connectors/anthropic.ts`) | value | **derived**: `cargo-ai connection connector list` shows whether an Anthropic connector is authorized; the agent's `languageModel` is a placeholder to set                | A harness does not bring its own model; this is what the weekly run is billed and metered against                              |
+| repository binding (`infra/agents/web-scribe.ts`)         | value | **derived**: leave `repository` unset and `plan` fills it from the git origin of the checkout. `cargo-ai cdk check` prints what it resolved: confirm the repository root | It is the working tree the agent diffs against the default branch, and the only place its output can land                      |
 
 Checked before moving on, not after the deploy:
 
-- the dry run printed the company's own domain and the pages you meant
+- `DOMAIN` is the company's own domain, and `PAGES` are sections that exist
 - `cargo-ai cdk check` prints the agent bound to the repository root, not `infra/`
 - exactly one `defineContext` in the project, the scaffold's, resolving to the root `context/`
 
@@ -148,12 +150,12 @@ The code is a worked example. These reshapes are expected, and the agent offers 
 waiting to be asked. Every one costs something; that is what makes it a variation and not the
 default.
 
-| Variation      | When it is right                                                           | How                                                                                                                 | What it costs                                                                                                       |
-| -------------- | -------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
-| `more_pages`   | Product, solution or docs pages say what is sold better than the home page | Add their paths to `PAGES` in `scripts/collect/config.ts`                                                           | More text per snapshot and more candidate changes for the agent to read; each JavaScript-only page bills an extract |
-| `daily`        | The company ships or gets covered several times a week                     | Change the cron in `infra/agents/web-scribe.ts`                                                                     | Five times the runs, and most days open no pull request                                                             |
-| `slack_digest` | The team does not watch pull requests                                      | Add a Slack connector and a locked `postMessage` use on the agent, as standup does, and a digest step to the prompt | One more connector to keep authorized, and a channel to choose                                                      |
-| `deeper_news`  | The `lite` search misses coverage the team knows about                     | Set `NEWS_PROCESSOR` to `base` in `scripts/collect/config.ts`                                                       | The next rung of the processor price ladder on every run; read it live before switching                             |
+| Variation      | When it is right                                                           | How                                                                                                                 | What it costs                                                                            |
+| -------------- | -------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| `more_pages`   | Product, solution or docs pages say what is sold better than the home page | Add them to `PAGES` in `infra/agents/web-scribe.prompt.ts`                                                          | One more URL billed on every page read, and more candidate changes for the agent to read |
+| `daily`        | The company ships or gets covered several times a week                     | Change the cron in `infra/agents/web-scribe.ts`                                                                     | Five times the reads, and most days open no pull request                                 |
+| `slack_digest` | The team does not watch pull requests                                      | Add a Slack connector and a locked `postMessage` use on the agent, as standup does, and a digest step to the prompt | One more connector to keep authorized, and a channel to choose                           |
+| `deeper_news`  | The `lite` search misses coverage the team knows about                     | Change `"processor":"lite"` to `"base"` in the news command and the line after it                                   | The next rung of the processor price ladder on every run; read it live before switching  |
 
 ## What should not change
 
@@ -163,36 +165,33 @@ it if you still want it, and records why under `## Decisions` in your copy of th
 - **The web is the only source.** (`web-scribe.prompt.ts`) No CRM, no calls, no inbox, no Slack.
   Each is another cookbook's evidence; mix one in here and a page and a deal end up in one file at
   one confidence nobody can tell apart afterwards.
-- **The agent does not crawl or search; the script does.** (`scripts/collect/web.ts`) A fetch loop
-  an agent re-derives each week silently changes shape, and the snapshot is what next week is
-  diffed against.
+- **The reads are the two commands in the prompt, and the page text is written verbatim.**
+  (`web-scribe.prompt.ts`) An agent that fetches its own way, or tidies the text, makes every week
+  look like a change on the site, and the diff stops meaning anything.
 - **Existing files are never edited.** (`web-scribe.prompt.ts`) What a human corrected stays
   corrected. A change to an existing file is a proposal in the pull request body.
 - **The one-PR write path.** (`infra/agents/web-scribe.ts`) The agent never writes the workspace
   context directly and has no `context` capability: the repository is the source and
   `cargo-ai cdk deploy` syncs it.
-- **The first run always opens a pull request.** (`web-scribe.prompt.ts`) Its snapshot is the
-  baseline. Without it committed, every run reads as a first run and nothing is ever a change.
+- **The first run always opens a pull request.** (`web-scribe.prompt.ts`) Its page and news files
+  are the baseline. Until they are merged, every run reads as a first run and nothing is ever a
+  change.
 - **Every claim is tagged.** (`web-scribe.prompt.ts`) `[R]`, `[I]` or `[TR]`, and missing evidence
   is never contradicting evidence.
-- **`scripts/web-capture/package.json` stays.** (`scripts/package.json`) The CDK loader imports
-  every `.ts` under the project root except directories carrying one; delete it and
-  `cargo-ai cdk plan` runs the news search on every plan.
 
 ## Done when
 
-- `npx tsx scripts/web-capture/collect/web.ts --dry-run` printed the company's own domain, the
-  pages and the news window
+- `DOMAIN` and `PAGES` name the company and its real sections, and the contract passes
 - `cargo-ai cdk check` prints the agent bound to the repository root, and `cargo-ai cdk plan`
   reports one agent, two bound connectors, one folder and no model
-- the first run opened one pull request with the baseline snapshot, seeded every empty domain, and
-  edited no existing file
+- the first run opened one pull request with the page and news files, seeded every empty domain,
+  and edited no existing file
 - every seeded file carries tags, `icp/` names a disqualifier, and every `client/` file carries
   `reference_permission: unknown`
 - after the baseline was merged, a run with a change opened a pull request adding
   `insight/<date>-web.md` with one tagged line per finding, and proposed rather than made any edit
   to an existing file
-- a run with nothing worth writing opened no pull request and printed the collector's counts
+- a run with nothing worth writing opened no pull request
 - after merging and `cargo-ai cdk deploy`, a seeded file is readable from the workspace context
   repository and an agent with the `context` capability quotes it back with its tag
 
@@ -201,10 +200,9 @@ it if you still want it, and records why under `## Decisions` in your copy of th
 Fetch live prices before every estimate: `cargo-ai connection integration get parallel`, plus the
 LLM connector's model. Quote the lookup time with the estimate.
 
-Pages are fetched like any visitor reads them, for nothing. The news is one `parallel.createTask` on
-the `lite` processor a run, the cheapest rung of its price ladder. A page that comes back as an empty
-JavaScript shell is read again through `parallel.extract`, billed per URL. A normal week is the one
-news task plus the harness run, which scales with how much changed.
+Each run bills two reads: one `parallel.extract` over the listed pages (billed per URL) and one
+`parallel.createTask` on the `lite` processor, the cheapest rung of its price ladder. Plus the
+harness run, which scales with how much changed.
 
 ## Composes into
 

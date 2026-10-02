@@ -5,9 +5,9 @@
  * Two halves. The registry half checks the compiled resources for the
  * boundaries CDK schema validation cannot express: one harness agent on a
  * weekly cron, nothing on `uses`, no capability, nothing deployed that bills,
- * and no connector for a system this cookbook must not read. The script half
- * checks the collector's invariants against canned data with no network: the
- * domain guard, the page text, and the diff against the previous snapshot.
+ * and no connector for a system this cookbook must not read. The prompt half
+ * checks what the prompt must keep, since it is the whole procedure: the
+ * placeholder guard, the exact read commands, the baseline and the files.
  *
  * Run it from the skill folder after every adaptation:
  *   node --import tsx evals/contract.mjs
@@ -48,92 +48,46 @@ check("the scribe is a harness agent on a weekly cron, with no actions, tools or
   assert.equal((agent.spec.tools ?? []).length, 0, "no tool");
   assert.equal((agent.spec.capabilities ?? []).length, 0, "a context capability would be a write path that skips the pull request");
   const env = agent.spec.repository?.env ?? [];
-  assert.equal((Array.isArray(env) ? env : Object.keys(env)).length, 0, "no env: the config is in scripts/, and there is no credential");
+  assert.equal((Array.isArray(env) ? env : Object.keys(env)).length, 0, "no env: the domain is in the prompt, and there is no credential");
 });
 
-check("scripts/package.json keeps the CDK loader out of the collector", () => {
-  assert.ok(existsSync(new URL("../scripts/package.json", import.meta.url)), "without it, cdk plan runs the news search");
+check("there is no collector script: the prompt is the whole procedure", () => {
+  assert.ok(!existsSync(new URL("../scripts", import.meta.url)), "scripts/ came back: the commands live in the prompt");
 });
 
-check("the domain guard refuses the placeholder and normalizes a real domain", async () => {
-  const { resolveDomain } = await import("../scripts/collect/snapshot.ts");
-  const { DOMAIN } = await import("../scripts/collect/config.ts");
-  assert.ok("error" in resolveDomain(undefined, DOMAIN), "the shipped config must not run");
-  assert.deepEqual(resolveDomain("https://www.Acme.com/about", DOMAIN), { domain: "acme.com" });
-  assert.ok("error" in resolveDomain("not a domain", DOMAIN));
+check("the shipped domain is the placeholder, and the prompt refuses it", async () => {
+  const { DOMAIN, webScribePrompt } = await import("../infra/agents/web-scribe.prompt.ts");
+  assert.equal(DOMAIN, "PLACEHOLDER_COMPANY_DOMAIN", "a template must not ship pointed at a real company");
+  assert.ok(webScribePrompt.includes("If that line reads PLACEHOLDER_COMPANY_DOMAIN"), "the guard is gone");
 });
 
-check("page text drops scripts and styles and is stable", async () => {
-  const { htmlToText } = await import("../scripts/collect/snapshot.ts");
-  const html = "<html><head><title>Acme &amp; Co</title><style>p{}</style></head><body><script>track()</script><h1>We sell X</h1><p>To Y teams.</p></body></html>";
-  const page = htmlToText(html, 1000);
-  assert.equal(page.title, "Acme & Co");
-  assert.equal(page.text, "Acme & Co We sell X\nTo Y teams.");
-  assert.deepEqual(htmlToText(html, 1000), page, "the same page must read the same, or every week is a change");
-  assert.equal(htmlToText(html, 5).text.length, 5, "text is capped");
-});
-
-check("the first run lists no changes; later runs diff pages and news", async () => {
-  const { buildSnapshot, sha256 } = await import("../scripts/collect/snapshot.ts");
-  const page = (url, text, status = "ok") => ({ url, status, via: status === "ok" ? "fetch" : null, title: null, hash: status === "ok" ? sha256(text) : null, text });
-  const window = { from: "2026-09-01", to: "2026-09-07", days: 6 };
-  const first = buildSnapshot({
-    domain: "acme.com", window,
-    pages: [page("https://acme.com", "home"), page("https://acme.com/pricing", "old pricing"), page("https://acme.com/blog", "blog")],
-    news: [{ date: "2026-09-02", title: "Acme raises", url: "https://news.example/acme-raises", kind: "funding", summary: null }],
-    previous: null, now: "2026-09-07T06:00:00Z",
-  });
-  assert.equal(first.firstRun, true);
-  assert.deepEqual(first.changes, { previous: null, pagesAdded: [], pagesRemoved: [], pagesChanged: [], newsNew: ["https://news.example/acme-raises"] });
-
-  const second = buildSnapshot({
-    domain: "acme.com", window: { from: "2026-09-07", to: "2026-09-14", days: 7 },
-    pages: [
-      page("https://acme.com", "home"),
-      page("https://acme.com/pricing", "new pricing"),
-      page("https://acme.com/blog", "", "error"),
-      page("https://acme.com/changelog", "", "missing"),
-      page("https://acme.com/customers", "customers"),
-    ],
-    news: [
-      { date: "2026-09-02", title: "Acme raises", url: "https://www.news.example/acme-raises/?utm_source=x", kind: "funding", summary: null },
-      { date: "2026-09-10", title: "Acme launches Z", url: "https://news.example/acme-z", kind: "launch", summary: null },
-      { date: "2026-09-10", title: "Acme launches Z", url: "https://news.example/acme-z", kind: "launch", summary: null },
-    ],
-    previous: { path: "cadence/log/raw/web/2026-09-07.json", snapshot: first }, now: "2026-09-14T06:00:00Z",
-  });
-  assert.equal(second.firstRun, false);
-  assert.deepEqual(second.changes.pagesChanged, ["acme.com/pricing"]);
-  assert.deepEqual(second.changes.pagesAdded, ["acme.com/customers"]);
-  assert.deepEqual(second.changes.pagesRemoved, ["acme.com/blog"], "a page that stopped answering is removed; a page that never existed is not");
-  assert.deepEqual(second.changes.newsNew, ["https://news.example/acme-z"], "a story seen last week is not new, whatever its tracking query");
-  assert.equal(second.news.length, 2, "the same story twice is one item");
-});
-
-check("action outputs are read defensively", async () => {
-  const { readNews, readExtract } = await import("../scripts/collect/snapshot.ts");
-  assert.deepEqual(readNews({ output: { content: { items: [{ title: "A", url: "https://a.example", date: "2026-09-01" }, { title: "", url: "https://b.example" }] } } }).map((n) => n.url), ["https://a.example"]);
-  assert.deepEqual(readNews({ unexpected: true }), [], "an unknown shape yields nothing, not a crash");
-  assert.equal(readExtract({ results: [{ url: "https://a.example", excerpts: ["one", "two"] }] }), "one\ntwo");
-  assert.equal(readExtract({ results: [{ url: "https://a.example", full_content: "all of it" }] }), "all of it");
-});
-
-check("an argument the collector does not know stops the run", async () => {
-  const { checkFlags, ConfigError } = await import("../scripts/collect/cli.ts");
-  checkFlags(["--dry-run", "--domain=acme.com"], ["--dry-run", "--domain="]);
-  for (const argv of [["--dryrun"], ["--domain", "acme.com"], ["-n"]]) {
-    assert.throws(() => checkFlags(argv, ["--dry-run", "--domain="]), ConfigError, `${argv.join(" ")} was accepted`);
+check("the prompt spells out the exact reads, the baseline and the files", async () => {
+  const { PAGES, webScribePrompt } = await import("../infra/agents/web-scribe.prompt.ts");
+  for (const line of [
+    '"integrationSlug":"parallel","actionSlug":"extract"',
+    '"integrationSlug":"parallel","actionSlug":"createTask"',
+    '"processor":"lite"',
+    "git log -1 --format=%cs origin/HEAD -- cadence/log/raw/web",
+    "git diff origin/HEAD -- cadence/log/raw/web/pages",
+    "cadence/log/raw/web/news/<today>.json",
+    "verbatim",
+    "Do not fetch pages or search the news any other\nway",
+  ]) assert.ok(webScribePrompt.includes(line), `prompt lost: ${line}`);
+  for (const name of Object.keys(PAGES)) {
+    assert.ok(webScribePrompt.includes(`cadence/log/raw/web/pages/${name}.md`), `page ${name} has no file`);
   }
+  const extract = webScribePrompt.match(/--data '(\{"urls".*?\})'/);
+  assert.ok(extract, "the extract command must carry its data");
+  assert.equal(JSON.parse(extract[1]).urls.length, Object.keys(PAGES).length, "one call reads every page");
 });
 
 check("the prompt carries the contract's fixed points and reads only the web", async () => {
   const { webScribePrompt } = await import("../infra/agents/web-scribe.prompt.ts");
   for (const line of [
-    "npx tsx scripts/web-capture/collect/web.ts",
     "[R:", "[I:", "[TR:",
     "you never edit, rename or delete an existing file",
     "insight/<today>-web.md",
-    "always opens a pull request",
+    "The first run always opens a pull request",
     "open no pull\nrequest",
     "Never write to the workspace context repository directly",
   ]) assert.ok(webScribePrompt.includes(line), `prompt lost: ${line}`);

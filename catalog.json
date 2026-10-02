@@ -1647,7 +1647,7 @@
       ],
       "example": {
         "prompt": "Every Monday, read our website and the news about us, and keep context/ current.",
-        "output": "```text\ninsight/2026-10-05-web.md\n- New offering on /pricing: \"Enterprise\" tier with SSO and audit logs [R: https://northwind.example/pricing]\n- Launched a HubSpot integration on 2026-09-30 [R: https://northwind.example/changelog]\n- Raised a $20M Series B led by Contoso Ventures, 2026-10-01 [R: https://news.example/northwind-series-b]\n- Fabrikam named as a customer, 40% faster onboarding [R: https://northwind.example/customers/fabrikam]\n\nclient/fabrikam.md, proof/fabrikam-onboarding.md   (reference_permission: unknown)\nPR body: proposes adding \"Enterprise\" to global/offerings.md; one file edit proposed, none made\n```\n\nA week after the first run: one pull request, four findings, two new files, one proposed edit, and\none news search billed."
+        "output": "```text\ninsight/2026-10-05-web.md\n- New offering on /pricing: \"Enterprise\" tier with SSO and audit logs [R: https://northwind.example/pricing]\n- Launched a HubSpot integration on 2026-09-30 [R: https://northwind.example/changelog]\n- Raised a $20M Series B led by Contoso Ventures, 2026-10-01 [R: https://news.example/northwind-series-b]\n- Fabrikam named as a customer, 40% faster onboarding [R: https://northwind.example/customers/fabrikam]\n\nclient/fabrikam.md, proof/fabrikam-onboarding.md   (reference_permission: unknown)\nPR body: proposes adding \"Enterprise\" to global/offerings.md; one file edit proposed, none made\n```\n\nA week after the first run: one pull request, four findings, two new files, one proposed edit, and\ntwo reads billed (the pages and the news)."
       },
       "state": "to-be-approved",
       "chain": 12,
@@ -1661,14 +1661,14 @@
         {
           "id": "more_pages",
           "when": "Product, solution or docs pages say what is sold better than the home page",
-          "how": "Add their paths to `PAGES` in `scripts/collect/config.ts",
-          "cost": "More text per snapshot and more candidate changes for the agent to read; each JavaScript-only page bills an extract"
+          "how": "Add them to `PAGES` in `infra/agents/web-scribe.prompt.ts",
+          "cost": "One more URL billed on every page read, and more candidate changes for the agent to read"
         },
         {
           "id": "daily",
           "when": "The company ships or gets covered several times a week",
           "how": "Change the cron in `infra/agents/web-scribe.ts",
-          "cost": "Five times the runs, and most days open no pull request"
+          "cost": "Five times the reads, and most days open no pull request"
         },
         {
           "id": "slack_digest",
@@ -1679,29 +1679,28 @@
         {
           "id": "deeper_news",
           "when": "The `lite` search misses coverage the team knows about",
-          "how": "Set `NEWS_PROCESSOR` to `base` in `scripts/collect/config.ts",
+          "how": "Change `\"processor\":\"lite\"` to `\"base\"` in the news command and the line after it",
           "cost": "The next rung of the processor price ladder on every run; read it live before switching"
         }
       ],
       "shouldNotChange": [
         "**The web is the only source.** (`web-scribe.prompt.ts`) No CRM, no calls, no inbox, no Slack. Each is another cookbook's evidence; mix one in here and a page and a deal end up in one file at one confidence nobody can tell apart afterwards.",
-        "**The agent does not crawl or search; the script does.** (`scripts/collect/web.ts`) A fetch loop an agent re-derives each week silently changes shape, and the snapshot is what next week is diffed against.",
+        "**The reads are the two commands in the prompt, and the page text is written verbatim.** (`web-scribe.prompt.ts`) An agent that fetches its own way, or tidies the text, makes every week look like a change on the site, and the diff stops meaning anything.",
         "**Existing files are never edited.** (`web-scribe.prompt.ts`) What a human corrected stays corrected. A change to an existing file is a proposal in the pull request body.",
         "**The one-PR write path.** (`infra/agents/web-scribe.ts`) The agent never writes the workspace context directly and has no `context` capability: the repository is the source and `cargo-ai cdk deploy` syncs it.",
-        "**The first run always opens a pull request.** (`web-scribe.prompt.ts`) Its snapshot is the baseline. Without it committed, every run reads as a first run and nothing is ever a change.",
-        "**Every claim is tagged.** (`web-scribe.prompt.ts`) `[R]`, `[I]` or `[TR]`, and missing evidence is never contradicting evidence.",
-        "**`scripts/web-capture/package.json` stays.** (`scripts/package.json`) The CDK loader imports every `.ts` under the project root except directories carrying one; delete it and `cargo-ai cdk plan` runs the news search on every plan."
+        "**The first run always opens a pull request.** (`web-scribe.prompt.ts`) Its page and news files are the baseline. Until they are merged, every run reads as a first run and nothing is ever a change.",
+        "**Every claim is tagged.** (`web-scribe.prompt.ts`) `[R]`, `[I]` or `[TR]`, and missing evidence is never contradicting evidence."
       ],
       "doneWhen": [
-        "`npx tsx scripts/web-capture/collect/web.ts --dry-run` printed the company's own domain, the pages and the news window",
+        "`DOMAIN` and `PAGES` name the company and its real sections, and the contract passes",
         "`cargo-ai cdk check` prints the agent bound to the repository root, and `cargo-ai cdk plan` reports one agent, two bound connectors, one folder and no model",
-        "the first run opened one pull request with the baseline snapshot, seeded every empty domain, and edited no existing file",
+        "the first run opened one pull request with the page and news files, seeded every empty domain, and edited no existing file",
         "every seeded file carries tags, `icp/` names a disqualifier, and every `client/` file carries `reference_permission: unknown`",
         "after the baseline was merged, a run with a change opened a pull request adding `insight/<date>-web.md` with one tagged line per finding, and proposed rather than made any edit to an existing file",
-        "a run with nothing worth writing opened no pull request and printed the collector's counts",
+        "a run with nothing worth writing opened no pull request",
         "after merging and `cargo-ai cdk deploy`, a seeded file is readable from the workspace context repository and an agent with the `context` capability quotes it back with its tag"
       ],
-      "cost": "Fetch live prices before every estimate: `cargo-ai connection integration get parallel`, plus the\nLLM connector's model. Quote the lookup time with the estimate.\n\nPages are fetched like any visitor reads them, for nothing. The news is one `parallel.createTask` on\nthe `lite` processor a run, the cheapest rung of its price ladder. A page that comes back as an empty\nJavaScript shell is read again through `parallel.extract`, billed per URL. A normal week is the one\nnews task plus the harness run, which scales with how much changed.",
+      "cost": "Fetch live prices before every estimate: `cargo-ai connection integration get parallel`, plus the\nLLM connector's model. Quote the lookup time with the estimate.\n\nEach run bills two reads: one `parallel.extract` over the listed pages (billed per URL) and one\n`parallel.createTask` on the `lite` processor, the cheapest rung of its price ladder. Plus the\nharness run, which scales with how much changed.",
       "composesInto": "`win-loss-review` (verifies the ICP this seeds against won and lost deals, and proposes the\ncorrections), `call-capture` (adds what buyers say on calls), `account-scoring` (reads the ICP),\nand any agent with the `context` capability."
     },
     {
