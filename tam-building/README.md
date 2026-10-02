@@ -38,7 +38,7 @@ flowchart TD
 
 1. **Write the ICP down** in the project's `context/icp.md`, and what A / B / C /
    disqualified mean in `context/tiering-rubric.md`. Copy the examples from
-   `infra/context/`. Both live in the workspace context repo, so they are
+   this skill's `context/`. Both live in the workspace context repo, so they are
    versioned and editable without a deploy. This skill declares no
    `defineContext`: that singleton belongs to the project.
 2. **Translate the ICP into filter groups** in
@@ -78,14 +78,14 @@ Adds a model, an agent, a play, four segments, and the folders they file into.
 | `infra/agents/tier-analyst.ts`  | `defineAgent`     | one judgment per company, from the rubric plus web evidence  |
 | `infra/plays/tier-companies.ts` | `definePlay`      | one agent call per row, and the only write                   |
 | `infra/segments/tiers.ts`       | `defineSegment`   | the A / B / C / disqualified slices downstream work takes    |
-| `infra/context/*.md`            | (not a resource)  | example ICP and rubric to copy into the project's `context/` |
+| this skill's `context/*.md`     | (not a resource)  | example ICP and rubric to copy into the project's `context/` |
 
 ## Why the rubric is not in the prompt
 
 Put it in the system prompt and three things stop being true: changing what tier
 A means becomes a deploy, the reason for the change stops being reviewable, and
 the rep who reads the tier can no longer read the file the agent read. In the project's `context/tiering-rubric.md` it is a
-commit, with a diff and a history. `infra/context/` is the example to copy
+commit, with a diff and a history. This skill's `context/` is the example to copy
 there.
 
 ## Why the agent cannot write
@@ -99,8 +99,8 @@ the judgment.
 
 ## Placeholders (edit before deploy)
 
-1. **The ICP and the rubric** — copy `infra/context/icp.md` and
-   `infra/context/tiering-rubric.md` into the project's `context/`. The example
+1. **The ICP and the rubric** — copy this skill's `context/icp.md` and
+   `context/tiering-rubric.md` into the project's `context/`. The example
    is a technical B2B software ICP; nothing in it is yours.
 2. **The filter groups** in `infra/models/tam-companies.ts` `config`. Nested
    groups, `_or` to include and `_not` to exclude, enum values from

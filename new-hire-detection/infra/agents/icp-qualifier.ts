@@ -24,8 +24,8 @@ import { agentsFolder } from "../folders";
 //
 // The ICP is deliberately NOT in this prompt. It lives in the project's
 // context repo (`context/icp.md` in a scaffolded project), so changing who
-// qualifies is a reviewed commit rather than a deploy. ../context/icp.md is
-// the example to copy there.
+// qualifies is a reviewed commit rather than a deploy. The skill's own
+// context/icp.md is the example to copy there.
 //
 // No writable model, no CRM and no Slack in reach. The agent hands back a
 // verdict and the play acts on it: the gate is a branch in the workflow, never

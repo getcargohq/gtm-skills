@@ -53,7 +53,7 @@ takes.
 
 **The rubric is a markdown file, not a prompt.** `context/icp.md` and
 `context/tiering-rubric.md` live in the workspace context repo (the project's
-root `context/` in a scaffolded project). The copies under `infra/context/` are
+root `context/` in a scaffolded project). The copies under this skill's `context/` are
 the example to put there. Changing what tier A means is a reviewed commit that
 takes effect on the next run, with no deploy and a git history of why. That is
 the difference between a scoring model your team owns and one only the person
@@ -142,7 +142,7 @@ sizing or template work if the skill cannot be installed or read.
    project already has (an AI Ark or LLM connector, a TAM-building folder), rewire the imports to
    the existing one and drop the copy. Two resources with one slug is a collision at deploy. This
    skill declares no `defineContext`: that resource is a per-workspace singleton owned by the
-   project (a scaffolded repo points it at the root `context/`). Copy `infra/context/*.md` into that
+   project (a scaffolded repo points it at the root `context/`). Copy this skill's `context/*.md` into that
    directory. If the project has an `accounts` model every other skill reads, see
    `promote-to-shared-accounts` below. This folder needs nothing in `.env`; append nothing and never
    overwrite it.
@@ -221,7 +221,7 @@ it if you still want it, and records why under `## Decisions` in your copy of th
   the whole database up to `limit`. A guessed enum member matches nothing and returns an empty sync
   that looks like a broken connector.
 - **The rubric lives in the workspace context, not in the system prompt and not in code.**
-  (`context/tiering-rubric.md` in the project's knowledge layer; `infra/context/` is the example
+  (`context/tiering-rubric.md` in the project's knowledge layer; this skill's `context/` is the example
   to copy there.) Put it in the prompt and changing what tier A means becomes a deploy, the reason
   for the change stops being reviewable, and the rep reading the tier can no longer read the same
   file the agent read.

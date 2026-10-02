@@ -64,7 +64,7 @@ adaptation is incomplete.
 - `tam-tier-analyst` has **no model in `uses`** and no connector action that
   writes.
 - This skill declares **no** `defineContext`. The example markdown under
-  `infra/context/` is copied into the project's knowledge layer.
+  this skill's `context/` is copied into the project's knowledge layer.
 - The play is filed under `tam-building-plays`.
 - The play's workflow contains exactly one agent node, and it is the first node
   after `start`.

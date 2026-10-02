@@ -32,7 +32,7 @@ flowchart TD
 | `PLACEHOLDER_SLACK_CHANNEL_ID` | `infra/plays/route-new-hires.ts` | The Slack connector's channel autocomplete           |
 | the `search` object            | `infra/models/new-hires.ts`      | The ICP, and the Sales Navigator autocompletes       |
 | `languageModel`                | `infra/agents/icp-qualifier.ts`  | The model the team runs its agents on                |
-| `icp.md`                       | `infra/context/icp.md`           | The team's ICP, copied into the project's `context/` |
+| `icp.md`                       | this skill's `context/icp.md`    | The team's ICP, copied into the project's `context/` |
 
 ## Why it is built this way
 

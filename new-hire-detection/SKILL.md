@@ -98,7 +98,7 @@ search or template work if the skill cannot be installed or read.
    project already has (a Sales Navigator, LinkedIn, LLM, or Slack connector, a new-hire folder),
    rewire the imports to the existing one and drop the copy. Two resources with one slug is a
    collision at deploy. This skill declares no `defineContext`: that resource is a per-workspace
-   singleton owned by the project. Copy `infra/context/icp.md` into the project's `context/` only
+   singleton owned by the project. Copy this skill's `context/icp.md` into the project's `context/` only
    when no ICP is written there yet. This folder needs nothing in `.env`; append nothing and never
    overwrite it.
 3. **Pick the channel, and offer the CRM.** Resolve the Slack channel id through the connector's

@@ -22,7 +22,7 @@ import { agentsFolder } from "../folders";
 // The rubric is deliberately NOT in this prompt. It lives in the project's
 // context repo (`context/tiering-rubric.md` in a scaffolded project) so that
 // changing what tier A means is a reviewed commit rather than a deploy, and so
-// a rep can read the same file the agent read. The copies under ../context/
+// a rep can read the same file the agent read. The copies in the skill's context/
 // are the example to copy there. The prompt says how to behave; the rubric
 // says what to decide.
 //
