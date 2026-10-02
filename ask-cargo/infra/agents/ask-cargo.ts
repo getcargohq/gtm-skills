@@ -33,7 +33,7 @@ import { agentsFolder } from "../folders";
 // read with Cargo's own CLI, which the harness already has, and only the
 // prompt can say which commands need a "go" in the thread first. The rules
 // are in `ask-cargo.prompt.ts`.
-export const askCargo = defineAgent("ask-cargo", {
+export const askCargo = defineAgent("ask_cargo", {
   name: "Ask Cargo",
   description:
     "The team's GTM agent in Slack: answers from the repo and the workspace, opens pull requests for changes, and hands work to the other agents only after a go in the thread.",

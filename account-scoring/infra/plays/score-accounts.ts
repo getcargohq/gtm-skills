@@ -10,7 +10,7 @@ import { accountScorer } from "../agents/scorer";
 // agent's `answer` is used as an object directly. Score AND rationale land on
 // the CRM record, so a rep can always see why an account is tier A.
 const scoreAccount = defineWorkflow(
-  "score-account",
+  "score_account",
   {
     input: z.object({ domain: z.string(), name: z.any() }),
     output: z.object({ scored: z.boolean() }),
@@ -46,7 +46,7 @@ const scoreAccount = defineWorkflow(
 // over 3 months ago — the `cargo_last_updated_at` filter keeps re-runs from
 // re-scoring fresh records. Edit the ICP markdown and the criteria change with
 // it: they're versioned where they belong, in the context repo.
-export const scoreAccounts = definePlay("score-accounts", {
+export const scoreAccounts = definePlay("score_accounts", {
   model: accounts,
   workflow: scoreAccount,
   changeKinds: ["added"],

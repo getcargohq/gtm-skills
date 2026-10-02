@@ -28,7 +28,7 @@ import { agentsFolder } from "../folders";
 // "read, never execute" — which is the whole point here, because a
 // recommendation is markdown a human merges, not a deploy. The commands are
 // listed in `planner.prompt.ts` §1b.
-export const planner = defineAgent("weekly-planning", {
+export const planner = defineAgent("weekly_planning", {
   name: "Weekly planning",
   description:
     "Ranks last week's GTM work against active initiatives, declared infra, and live runs, and opens one reviewable pull request per initiative (or one workspace pull request when there are none).",

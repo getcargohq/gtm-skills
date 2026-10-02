@@ -22,7 +22,7 @@ import { agentsFolder } from "../folders";
 // The rubric is deliberately NOT in this prompt. It lives in the project's
 // context repo (`context/tiering-rubric.md` in a scaffolded project) so that
 // changing what tier A means is a reviewed commit rather than a deploy, and so
-// a rep can read the same file the agent read. The copies under ../context/
+// a rep can read the same file the agent read. The copies in the skill's context/
 // are the example to copy there. The prompt says how to behave; the rubric
 // says what to decide.
 //
@@ -34,7 +34,7 @@ import { agentsFolder } from "../folders";
 // No writable model in `uses`, and none should be added. The agent hands back a
 // judgment and the play persists it. An agent that can write decides its own
 // routing, and then a null tier is indistinguishable from a bad judgment.
-export const tierAnalyst = defineAgent("tam-tier-analyst", {
+export const tierAnalyst = defineAgent("tam_tier_analyst", {
   color: "green",
   connector: anthropic,
   languageModel: "claude-sonnet-4-5", // PLACEHOLDER — your model of choice

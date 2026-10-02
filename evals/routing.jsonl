@@ -62,7 +62,8 @@
 
 // --- one-off / deployed seam -------------------------------------------------------
 // tam-building, account-scoring, crm-enrichment, crm-deduplication,
-// call-capture, agentic-engagement, standup, weekly-planning and ask-cargo are worked CDK
+// call-capture, agentic-engagement, standup, weekly-planning, ask-cargo and
+// new-hire-detection are worked CDK
 // examples that deploy a pipeline.
 // build-tam-list, score-leads and research-account are one-offs: the same
 // job once, in a turn. The
@@ -133,6 +134,13 @@
 {"prompt": "A slack bot that knows our repo and can open PRs", "expect": "ask-cargo"}
 {"prompt": "Post the day's recap to slack every evening", "expect": "standup", "why": "A scheduled digest is standup; ask-cargo only answers when mentioned."}
 {"prompt": "Research acme.com for me right now", "expect": "research-account", "why": "A one-off answer in this chat, nothing deployed."}
+{"prompt": "Watch our market for new VPs of Sales at software companies and put them in HubSpot", "expect": "new-hire-detection", "why": "The market, not the book, and the CRM as the destination: the pipeline."}
+{"prompt": "Every time a new head of RevOps starts at a company in our ICP, tell the account owner", "expect": "new-hire-detection", "why": "The standing tell: every time, routed to an owner."}
+{"prompt": "When a new decision-maker joins an account with an open deal, alert the deal owner", "expect": "new-hire-detection"}
+{"prompt": "Run our new-hire play every two weeks", "expect": "new-hire-detection"}
+{"prompt": "Post in Slack whenever a new VP Sales starts at a company that fits our ICP", "expect": "new-hire-detection", "why": "The market watched on a schedule, the signal in Slack: the pipeline, not a one-off search."}
+{"prompt": "Did any of our HubSpot contacts change jobs this quarter?", "expect": "track-job-changes", "why": "Your own contacts, checked once: the one-off, not the market pipeline."}
+{"prompt": "Which of our champions moved companies, and where did they go?", "expect": "track-job-changes", "why": "Movement among people you already hold is track-job-changes, however the CRM is involved."}
 {"prompt": "Build our company website on Cargo and keep it updated through reviewed PRs", "expect": "website-building"}
 {"prompt": "Recreate our website on Cargo from our existing GitHub repository", "expect": "website-building"}
 {"prompt": "Capture our design system so our website follows it", "expect": "website-building"}

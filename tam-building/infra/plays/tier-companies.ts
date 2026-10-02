@@ -9,7 +9,7 @@ import { tamCompanies } from "../models/tam-companies";
 // it. The agent judges; this workflow is the only thing that persists, so a
 // missing tier is always a failed run and never a silent skip.
 const tierCompany = defineWorkflow(
-  "tier-tam-company",
+  "tier_tam_company",
   {
     // The columns `aiArk.fetchCompanies` lands. Confirm them against the live
     // model after the first sync (`cargo-ai storage column list`) rather than
@@ -92,7 +92,7 @@ const tierCompany = defineWorkflow(
 // landed and the columns read back the way this file expects, not an input.
 // Enable, then execute once: `changeKinds: ["added"]` will not backfill rows
 // that landed while the play was off.
-export const tierCompanies = definePlay("tier-companies", {
+export const tierCompanies = definePlay("tier_companies", {
   description:
     "Per-row ICP tiering over AI Ark-sourced companies: the agent judges against the context rubric and the play writes tier, rationale, evidence and stamp back onto the row.",
   folder: playsFolder,

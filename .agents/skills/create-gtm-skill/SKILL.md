@@ -57,6 +57,16 @@ stay in that same slug. Accounts that are not in a CRM, if they land, are
 `signal-based-tam`, `rep-cockpit`). Do not rename existing skills to force
 `-ing` vs `-ment`; the kind matters more than the suffix.
 
+Inside a cookbook, resource slugs are snake_case: plays, workflows, tools,
+agents, segments and folders (`score_accounts`, `enrich_crm_contact`,
+`account_enrichment`, `tam_tier_analyst`, `tam_tier_a`,
+`crm_enrichment_plays`), the same as the connectors and models the CDK
+already requires it of. Workers and apps are the exception: the CDK requires
+kebab-case for them. File names stay kebab-case (`score-accounts.ts`). A slug
+is the resource's identity in `cargo.state.json`, so renaming one after a
+deploy creates a new resource and orphans the old one: get it right before
+the first deploy.
+
 ## 2. Description (the only text before load)
 
 Four parts, in order:

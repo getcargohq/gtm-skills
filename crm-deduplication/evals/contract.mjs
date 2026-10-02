@@ -57,8 +57,8 @@ assert.deepEqual(
   new Set([
     "connector:crm",
     "connector:slack",
-    "folder:crm-deduplication-models",
-    "folder:crm-deduplication-plays",
+    "folder:crm_deduplication_models",
+    "folder:crm_deduplication_plays",
     "model:crm_accounts",
     "model:crm_contacts",
     "play:deduplicate_accounts",
@@ -89,14 +89,14 @@ for (const connectorId of ["connector:crm", "connector:slack"]) {
 for (const modelId of ["model:crm_accounts", "model:crm_contacts"]) {
   assert.equal(
     byId.get(modelId).spec.folderUuid.resourceId,
-    "folder:crm-deduplication-models",
+    "folder:crm_deduplication_models",
     `${modelId} must belong to the skill's model folder`,
   );
 }
 for (const playId of ["play:deduplicate_accounts", "play:deduplicate_contacts"]) {
   assert.equal(
     byId.get(playId).spec.folderUuid.resourceId,
-    "folder:crm-deduplication-plays",
+    "folder:crm_deduplication_plays",
     `${playId} must belong to the skill's play folder`,
   );
 }

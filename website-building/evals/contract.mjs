@@ -31,8 +31,8 @@ for (const file of resourceFiles(fileURLToPath(new URL("../infra", import.meta.u
 const all = resources();
 const ofKind = (kind) => all.filter((resource) => resource.kind === kind);
 
-const folder = all.find((resource) => resource.id === "folder:website-building-apps");
-assert.ok(folder, "defineFolder(website-building-apps) must exist");
+const folder = all.find((resource) => resource.id === "folder:website_building_apps");
+assert.ok(folder, "defineFolder(website_building_apps) must exist");
 assert.equal(folder.spec.folderKind, "app", "the folder must be an app folder");
 
 const apps = ofKind("app");
@@ -41,7 +41,7 @@ const [app] = apps;
 assert.equal(
   app.spec.folderUuid?.resourceId,
   folder.id,
-  "the app must be filed in the website-building-apps folder",
+  "the app must be filed in the website_building_apps folder",
 );
 
 // The app declares its hostname, never the apex.

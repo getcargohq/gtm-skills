@@ -141,7 +141,7 @@ _asked_ genuinely live in the operator's head.
 Checked before moving on, not after the deploy:
 
 - the collector was run by hand once and wrote a real raw file
-- `cargo-ai cdk check` prints `agent:weekly-planning bound to <your repo>#<branch>` with no trailing
+- `cargo-ai cdk check` prints `agent:weekly_planning bound to <your repo>#<branch>` with no trailing
   subdirectory — the repo is the one holding `cadence/`, and the GitHub grant can push to it. A
   trailing `in infra/` is the failure to catch here: it roots the harness where there is no
   node_modules, so the collector cannot run

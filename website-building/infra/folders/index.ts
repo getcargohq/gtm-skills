@@ -8,7 +8,7 @@ import { defineFolder } from "@cargo-ai/cdk";
 //
 // Folders are per-kind. This skill deploys one app, so it declares one app
 // folder. Domains have no folder kind.
-export const appsFolder = defineFolder("website-building-apps", {
+export const appsFolder = defineFolder("website_building_apps", {
   kind: "app",
   name: "Website building",
 });
