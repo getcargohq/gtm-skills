@@ -25,7 +25,9 @@ as passed.
 - [ ] No lookup uses `soqlQuery`.
 - [ ] The routing signal is populated on the accounts it routes on, or routing was moved to deals.
 - [ ] The LinkedIn identity fields exist, the person lookup reads them, and the stored URL shape
-      matches what Sales Navigator returns.
+      is one of the four forms `infra/scripts/lookup.ts` searches.
+- [ ] Account domains are stored in one of the forms `infra/scripts/lookup.ts` searches, or the
+      missing form was added there.
 - [ ] The operator chose one contact per person (default) or one per company.
 - [ ] `csmOwnerProperty` names the portal's CSM field, or the operator confirmed the account owner
       is the CSM.
@@ -54,6 +56,9 @@ as passed.
       contact; known accounts got the contact and no task.
 - [ ] A person already on the account produced no email lookup and no task.
 - [ ] A person found at another company was moved, not duplicated, and the task says so.
+- [ ] A moved person with no new email no longer carries their previous employer's address. If the
+      CRM ignored the empty value, the old address is still there: report it and clear it another
+      way before opening up.
 - [ ] Any route the ten did not reach is named as unverified, or was run on a chosen record.
 
 ## Opening up

@@ -1181,8 +1181,8 @@
         {
           "input": "contact_key",
           "kind": "derived",
-          "how": "The CRM fields holding a LinkedIn identity: `hs_linkedin_url` on HubSpot (plus a LinkedIn ID property if the portal has one), a custom field on Salesforce. Check the stored URL shape against Sales Navigator's",
-          "why": "It is the person lookup. An exact match on a differently shaped URL finds nobody, so every mover reads as a stranger and gets duplicated"
+          "how": "The CRM fields holding a LinkedIn identity: `hs_linkedin_url` on HubSpot (plus a LinkedIn ID property if the portal has one), a custom field on Salesforce. The lookup searches four URL forms (`infra/scripts/lookup.ts`); check the stored shape is one of them",
+          "why": "It is the person lookup. A stored shape the lookup does not search finds nobody, so every mover reads as a stranger and gets duplicated"
         },
         {
           "input": "find_email_tool",

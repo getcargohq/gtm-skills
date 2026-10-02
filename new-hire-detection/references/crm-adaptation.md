@@ -56,7 +56,7 @@ const accounts = uses.crm.searchRecords({
       {
         conjonction: "and",
         conditions: [
-          { propertyName: "Website", operator: "contains", values: [company.domain] },
+          { propertyName: "Website", operator: "contains", values: [lookup.domain] },
         ],
       },
     ],
@@ -70,7 +70,7 @@ domain makes `contains` match every account in the org, and the first one wins.
 `notacme.com`), so check the pilot's matches by eye.
 
 If the org keeps a clean custom domain field, prefer
-`findRecords({ objectType: "Account", criterias: [{ propertyName: "<Domain__c>", value: company.domain }] })`.
+`findRecords({ objectType: "Account", criterias: [{ propertyName: "<Domain__c>", value: lookup.domainVariants }] })`.
 
 ### The routing signal: opportunities, not `Account.Type`
 

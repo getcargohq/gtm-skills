@@ -6,6 +6,7 @@ import { crm } from "../connectors/crm";
 import { linkedin } from "../connectors/linkedin";
 import { playsFolder } from "../folders";
 import { newHires } from "../models/new-hires";
+import { prepareLookups } from "../scripts/lookup";
 
 // Instantiate Cargo's native Find Email tool, confirm that it accepts these
 // inputs, and replace this value with its deployed tool UUID. Confirm the
@@ -95,46 +96,36 @@ const routeNewHire = defineWorkflow(
       linkedinUrl: input.sales_navigator_company_url,
     });
 
+    // Every form the CRM could hold the domain and the profile in. Both
+    // lookups below are exact, so searching one form reads a known account as
+    // new and a known person as a stranger, and the play duplicates both.
+    const lookup = prepareLookups({
+      domain: company.domain,
+      linkedinProfileUrl: input.linkedin_profile_url,
+    });
+
     // The domain guard. An empty domain matches nothing in HubSpot and
     // everything in a `contains` lookup on other CRMs; either way the route
     // would be wrong, so the run stops here.
-    if (!company.domain) {
+    if (!lookup.domain) {
       return { route: "no_domain" as const, status: "skipped" as const };
     }
 
-    // HubSpot matches `domain` exactly. A CRM that stores `www.` prefixes or
-    // full URLs needs the variant searched too, or every known account looks
-    // new and the qualifier creates a duplicate.
-    const accounts = uses.crm.searchRecords({
+    // The account, by domain, in each stored form. Several accounts sharing a
+    // domain is a duplicate for crm-deduplication; the first one is routed.
+    const accounts = uses.crm.findRecords({
       objectType: "companies",
-      limit: 1,
-      filter: {
-        conjonction: "or",
-        groups: [
-          {
-            conjonction: "and",
-            conditions: [
-              {
-                propertyName: "domain",
-                operator: "is",
-                values: [company.domain],
-              },
-            ],
-          },
-        ],
-      },
+      criterias: [{ propertyName: "domain", value: lookup.domainVariants }],
     });
 
-    // The person, anywhere in the CRM, by LinkedIn identity. Criteria are
-    // OR'd and empty values skipped. Add the portal's LinkedIn ID property as
-    // a second criterion when it has one; never match on the full name alone,
-    // which finds namesakes. `findRecords` is exact: if the portal stores
-    // LinkedIn URLs in another shape (no `https://www.`, a trailing slash),
-    // normalise the value here or every mover reads as a stranger.
+    // The person, anywhere in the CRM, by LinkedIn identity in each stored
+    // form. Criteria are OR'd and empty values skipped. Add the portal's
+    // LinkedIn ID property as a second criterion when it has one; never match
+    // on the full name alone, which finds namesakes.
     const people = uses.crm.findRecords({
       objectType: "contacts",
       criterias: [
-        { propertyName: "hs_linkedin_url", value: input.linkedin_profile_url },
+        { propertyName: "hs_linkedin_url", value: lookup.linkedinUrlVariants },
       ],
     });
 
@@ -156,7 +147,7 @@ const routeNewHire = defineWorkflow(
       const created = uses.crm.upsertRecords({
         objectType: "companies",
         matchingPropertyName: "domain",
-        matchingValue: company.domain,
+        matchingValue: lookup.domain,
         mappings: [
           { propertyName: "name", value: company.company_name },
           { propertyName: "website", value: company.website },
@@ -182,7 +173,8 @@ const routeNewHire = defineWorkflow(
       // A known person is moved, not duplicated: matched on their record ID.
       // Otherwise keyed on the email when one was found, so the contact
       // dedupes against one the team created by hand, and on the LinkedIn URL
-      // when not. A mover with no new email keeps the one on file.
+      // when not. A mover's email on file is their previous employer's, so it
+      // is replaced by the new one or cleared, never carried to this account.
       const contact = uses.crm.upsertRecords({
         objectType: "contacts",
         matchingPropertyName:
@@ -200,11 +192,7 @@ const routeNewHire = defineWorkflow(
         mappings: [
           {
             propertyName: "email",
-            value: found.email
-              ? found.email
-              : people.length > 0
-                ? people[0].properties.email
-                : "",
+            value: found.email ? found.email : "",
           },
           { propertyName: "firstname", value: input.first_name },
           { propertyName: "lastname", value: input.last_name },
@@ -308,11 +296,7 @@ const routeNewHire = defineWorkflow(
       mappings: [
         {
           propertyName: "email",
-          value: found.email
-            ? found.email
-            : people.length > 0
-              ? people[0].properties.email
-              : "",
+          value: found.email ? found.email : "",
         },
         { propertyName: "firstname", value: input.first_name },
         { propertyName: "lastname", value: input.last_name },

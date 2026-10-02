@@ -1,15 +1,18 @@
-import assert from "node:assert/strict";
-import { resetRegistry, resources } from "@cargo-ai/cdk";
-
 // The invariants under "What should not change", checked against the compiled
 // graph rather than the source, so they hold for any CRM the play is adapted
-// to. Run after every adaptation:
-//   node --import tsx evals/contract.mjs
+// to.
+//
+// It loads through `loadResources`, the same loader `cargo-ai cdk check`,
+// `plan`, and `deploy` use, so what is asserted here is what would deploy.
+import assert from "node:assert/strict";
+import { loadResources } from "@cargo-ai/cdk";
 
-resetRegistry();
-await import(`../infra/plays/route-new-hires.ts?contract=${Date.now()}`);
+import { prepareLookups } from "../infra/scripts/lookup.ts";
 
-const byId = new Map(resources().map((resource) => [resource.id, resource]));
+const infraDir = new URL("../infra", import.meta.url).pathname;
+const byId = new Map(
+  (await loadResources(infraDir)).map((resource) => [resource.id, resource]),
+);
 
 // The source: a Sales Navigator job-change search, capped per URL.
 const model = byId.get("model:new_hires");
@@ -88,14 +91,58 @@ const start = findOne(
 const enrich = childrenOf(start)[0];
 assert.equal(enrich?.integrationSlug, "linkedin");
 assert.equal(enrich.actionSlug, "enrichCompany");
-const domainGuard = childrenOf(enrich)[0];
-assert.ok(isBranch(domainGuard), "the company enrichment must be followed by the domain guard");
+const prepare = childrenOf(enrich)[0];
+assert.ok(
+  prepare?.kind === "native" && prepare.actionSlug === "script",
+  "the company enrichment must be followed by the lookup preparation",
+);
+const domainGuard = childrenOf(prepare)[0];
+assert.ok(isBranch(domainGuard), "the lookup preparation must be followed by the domain guard");
+assert.ok(
+  domainGuard.config.condition.expression.includes(`nodes.${prepare.slug}`),
+  "the domain guard must read the normalized domain, not the raw enrichment",
+);
 assert.match(domainGuard.config.condition.expression, /domain/);
 const [guardThen, guardElse] = childrenOf(domainGuard);
 assert.ok(isEnd(guardThen), "a company with no domain must end the run");
 assert.ok(
   isCrm(guardElse) && ["searchRecords", "findRecords"].includes(guardElse.actionSlug),
   "the account lookup must follow the domain guard",
+);
+
+// Both lookups search every stored form, or a known account reads as new and a
+// known person as a stranger, and the play duplicates them.
+for (const lookup of [guardElse, childrenOf(guardElse)[0]]) {
+  assert.ok(
+    JSON.stringify(lookup?.config).includes(`nodes.${prepare.slug}`),
+    "the account and person lookups must search the prepared variants",
+  );
+}
+assert.deepEqual(
+  prepareLookups({
+    domain: "HTTPS://www.Contoso.example/about",
+    linkedinProfileUrl: "linkedin.com/in/Mei-Lin/?trk=x",
+  }),
+  {
+    domain: "contoso.example",
+    domainVariants: [
+      "contoso.example",
+      "www.contoso.example",
+      "https://contoso.example",
+      "https://www.contoso.example",
+    ],
+    linkedinUrlVariants: [
+      "https://linkedin.com/in/mei-lin",
+      "https://linkedin.com/in/mei-lin/",
+      "https://www.linkedin.com/in/mei-lin",
+      "https://www.linkedin.com/in/mei-lin/",
+    ],
+  },
+);
+assert.equal(
+  prepareLookups({ domain: "https://", linkedinProfileUrl: "" }).domain,
+  undefined,
+  "a domain with no host must stop at the guard",
 );
 
 // The qualifier runs on the new-account route only, and gates every write.
@@ -140,6 +187,11 @@ for (const write of contactWrites) {
   assert.ok(
     String(write.config.matchingPropertyName?.expression).includes(`nodes.${personLookup.slug}`),
     "a contact write must match the person found by the lookup before keying on anything else",
+  );  // A mover's email on file belongs to the employer they left.
+  const email = write.config.mappings.find((mapping) => mapping.propertyName === "email");
+  assert.ok(
+    !JSON.stringify(email?.value ?? "").includes(`nodes.${personLookup.slug}`),
+    "a mover's previous work email must not be carried to the new account",
   );
 }
 

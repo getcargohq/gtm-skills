@@ -61,8 +61,9 @@ The play ends at the CRM write. It drafts and sends nothing; the task is the han
 
 **Two failure modes worth knowing before you start.** A search URL encoded once instead of twice
 loads an empty search, and the sync reports success with nothing in it. And if the CRM stores
-domains differently from the enrichment (`www.` prefixes, full URLs), every known account looks
-new, the qualifier creates duplicates, and the open-deal route never fires.
+domains in a form the lookup does not search, every known account looks new, the qualifier creates
+duplicates, and the open-deal route never fires. The play searches the bare domain, `www.` and
+`https://` forms (`infra/scripts/lookup.ts`); a CRM that stores anything else needs it added there.
 
 ## Example
 
@@ -148,7 +149,7 @@ _asked_ genuinely live in the operator's head.
 | `person_dedupe`     | asked   | One contact per person (default: a mover's existing record is moved to the new account) or a new contact per company. Ask; do not assume                                                                                    | Teams disagree on it, and it decides whether a person's history follows them or stays with their previous company                                                  |
 | `csm_owner_field`   | derived | Find the company property holding the CSM as an owner in the live schema and set `csmOwnerProperty`. Ask "which field holds the CSM?" only when none is obvious                                                              | The customer task goes to the CSM; with no field it falls back to the account owner, which is right only if the owner is the CSM                                     |
 | `routing_signal`    | derived | HubSpot: confirm `lifecyclestage` is populated on companies. Salesforce: check `Account.Type`; fall back to the opportunities. Attio: the deal stage or a status attribute                                                  | A switch on a field nobody maintains routes everything to "known account" and the open-deal alert never fires                                                       |
-| `contact_key`       | derived | The CRM fields holding a LinkedIn identity: `hs_linkedin_url` on HubSpot (plus a LinkedIn ID property if the portal has one), a custom field on Salesforce. Check the stored URL shape against Sales Navigator's               | It is the person lookup. An exact match on a differently shaped URL finds nobody, so every mover reads as a stranger and gets duplicated                             |
+| `contact_key`       | derived | The CRM fields holding a LinkedIn identity: `hs_linkedin_url` on HubSpot (plus a LinkedIn ID property if the portal has one), a custom field on Salesforce. The lookup searches four URL forms (`infra/scripts/lookup.ts`); check the stored shape is one of them | It is the person lookup. A stored shape the lookup does not search finds nobody, so every mover reads as a stranger and gets duplicated                             |
 | `find_email_tool`   | derived | Instantiate Cargo's native Find Email tool, confirm its live inputs and output path, and replace `REPLACE-WITH-FIND-EMAIL-TOOL-UUID`                                                                                        | A guessed input name returns no email on every run while the contacts still get created, keyed on LinkedIn only                                                    |
 
 Checked before moving on, not after the deploy:

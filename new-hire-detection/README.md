@@ -72,7 +72,8 @@ want one contact per person per company instead, so it is asked at install.
 **The contact key follows what was found.** A known person is matched on their record ID. Otherwise,
 with an email the contact is matched on it, so it merges with one a rep created by hand; without
 one, on the LinkedIn URL, so the person is still created, still reachable, and still deduped on the
-next sync. A mover with no new email keeps the one on file rather than having it blanked.
+next sync. A mover's email on file is their previous employer's: it is replaced by the new one, or
+cleared when none was found, so a rep never writes to an address that left with the old job.
 
 **Every task has an owner and a place.** Tasks go to the account owner on open deals, to the CSM on
 customers (the account owner when no CSM is set), and to the named owner on new accounts. They are
