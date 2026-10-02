@@ -10,9 +10,6 @@ metadata:
   personas:
     - sales-development
     - gtm-engineering
-  worksBestAfter:
-    - account-scoring
-    - crm-enrichment
   nextSteps:
     - call-capture
   openclaw:
@@ -207,6 +204,4 @@ warm-up is what moves the ramp; it takes forty-five days to finish. Check
 
 ## Composes into
 
-`account-scoring` (the engager should be talking to accounts the scorer already ranked),
-`call-capture` (a conversation that becomes a meeting is a call worth scribing),
-`crm-enrichment` (the record the thread is about should already be filled).
+`call-capture` (a conversation that becomes a meeting is a call worth scribing).

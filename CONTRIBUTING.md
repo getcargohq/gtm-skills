@@ -88,22 +88,24 @@ say, an `accounts` model, and that is fine: the agent placing the second one
 sees the first and rewires to it. Isolation is what lets a customer install
 exactly one skill and get exactly one working thing.
 
-**Recommendations, not requirements.** Every pipeline skill carries two lists in
+**Recommendations, not requirements.** Every pipeline skill carries one list in
 its frontmatter `metadata`, so a reader (and the site, through `catalog.json`)
-can see where it sits without a requires graph:
+can see what it sets up without a requires graph:
 
-- `worksBestAfter`: pipelines that make this one better when they already run.
-  `account-scoring` lists `web-capture` because it scores against the ICP that
-  one writes down; without it, the scorer still runs on the example ICP it carries.
 - `nextSteps`: pipelines this one sets up well. `crm-deduplication` lists
   `account-scoring` because scoring is worth more on consolidated records.
 
-Neither list is a precondition: the skill must still install and work on its own,
-and the agent placing it never installs a listed pipeline unasked. Empty lists are
-fine. `check-pipelines.mjs` checks that every name is a pipeline skill here, that a
-pipeline does not list itself or the same name on both sides, and that two pipelines
-do not each claim to come after the other. Prose about one-off skills and pipelines
-that do not exist yet stays in `## Composes into`.
+The reverse view, `worksBestAfter`, is derived by `build-catalog.mjs` from every
+other pipeline's `nextSteps`; never write it by hand. The list is not a
+precondition and not a build order: the skill must still install and work on its
+own, the agent placing it never installs a listed pipeline unasked, and two
+pipelines may feed each other. Empty is fine.
+
+`## Composes into` is the prose for that list: it says why each listed pipeline
+comes next, and it names no other pipeline in this repo. One-off skills and
+pipelines that do not exist yet may still appear there. `check-pipelines.mjs`
+checks that every name is a pipeline skill here, that a pipeline does not list
+itself, and that the prose and the list name the same pipelines.
 
 1. `<name>/` with the resource code (`models/`, `plays/`, `agents/`, or `infra/`) and a
    `README.md` that explains why the design is the way it is. Every value that

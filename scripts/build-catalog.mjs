@@ -214,7 +214,7 @@ for (const name of readdirSync(root).sort()) {
       doneWhen: bullets(section(body, "Done when")),
       cost: section(body, "What it costs"),
       composesInto: section(body, "Composes into"),
-      worksBestAfter: fm.metadata?.worksBestAfter ?? [],
+      worksBestAfter: [],
       nextSteps: fm.metadata?.nextSteps ?? [],
     });
   } else {
@@ -225,6 +225,13 @@ for (const name of readdirSync(root).sort()) {
   }
   skills.push(rec);
 }
+
+// A pipeline only writes what it sets up (`nextSteps`). What works best before
+// it is the same relation read backwards, so it is derived here and the two
+// views on the site always agree.
+for (const s of skills)
+  for (const next of s.nextSteps ?? [])
+    skills.find((t) => t.name === next)?.worksBestAfter?.push(s.name);
 
 const catalog = { source: "getcargohq/gtm-skills", skills };
 const rendered = JSON.stringify(catalog, null, 2) + "\n";

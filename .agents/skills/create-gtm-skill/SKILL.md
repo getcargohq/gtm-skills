@@ -172,6 +172,11 @@ Register: `skills.sh.json` ("Make it run forever"), `hooks/skill-loads.sh`,
 root README pipeline table, `.github/data/approvals.json` with
 `state: to-be-approved` and empty evidence.
 
+Frontmatter: `metadata.nextSteps`, the pipelines this one sets up well (a
+recommendation, not a build order; `[]` is fine). Never write `worksBestAfter`:
+the catalog derives it. `## Composes into` says why each listed pipeline comes
+next and names no other pipeline in this repo.
+
 ### Both kinds: personas and the example
 
 `validate.ts` requires these of every skill; the site renders them before

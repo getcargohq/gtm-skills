@@ -11,9 +11,6 @@ metadata:
     - revops
     - sales-leadership
     - gtm-engineering
-  worksBestAfter:
-    - web-capture
-    - crm-deduplication
   nextSteps:
     - agentic-engagement
   openclaw:
@@ -151,4 +148,5 @@ TAM built by `tam-building` scores at that size. Score a sample before the book.
 
 ## Composes into
 
-`routing-engine` (territories and capacity over the scored book), `rep-cockpit`, `ai-sdr`.
+`agentic-engagement` (the engager should be talking to accounts this already ranked). Not built
+yet: `routing-engine` (territories and capacity over the scored book), `rep-cockpit`, `ai-sdr`.

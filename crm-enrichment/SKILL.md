@@ -10,10 +10,9 @@ metadata:
   personas:
     - revops
     - gtm-engineering
-  worksBestAfter:
-    - tam-building
   nextSteps:
     - crm-deduplication
+    - agentic-engagement
   openclaw:
     requires:
       bins:
@@ -307,5 +306,6 @@ Show mutually exclusive route counts and maximum spend before requesting approva
 
 ## Composes into
 
-`crm-deduplication` after account enrichment, `find-stakeholders` for coverage gaps,
-`segment-accounts` for activation, and `track-job-changes` as a separate one-time movement check.
+`crm-deduplication` after account enrichment, `agentic-engagement` (a thread is better when the
+record it is about is already filled), `find-stakeholders` for coverage gaps, `segment-accounts`
+for activation, and `track-job-changes` as a separate one-time movement check.

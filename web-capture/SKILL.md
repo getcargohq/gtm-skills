@@ -11,10 +11,11 @@ metadata:
     - gtm-engineering
     - revops
     - marketing
-  worksBestAfter: []
   nextSteps:
     - tam-building
     - account-scoring
+    - new-hire-detection
+    - website-building
   openclaw:
     requires:
       bins:
@@ -222,6 +223,8 @@ changed.
 
 ## Composes into
 
+`tam-building` and `account-scoring` (they read the ICP this writes down: one to source the market,
+the other to score the book), `new-hire-detection` (it qualifies the company each new hire joined
+against that ICP), `website-building` (the positioning this captures is what the pages say),
 `win-loss-review` (verifies the ICP this seeds against won and lost deals, and proposes the
-corrections), `call-capture` (adds what buyers say on calls), `account-scoring` (reads the ICP),
-and any agent with the `context` capability.
+corrections), and any agent with the `context` capability.
