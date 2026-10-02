@@ -11,9 +11,6 @@ metadata:
     - revops
     - sales-leadership
     - gtm-engineering
-  worksBestAfter:
-    - standup
-    - weekly-planning
   nextSteps: []
   openclaw:
     requires:
@@ -212,7 +209,5 @@ schedule.
 
 ## Composes into
 
-`standup` and `weekly-planning` (it can run either on demand, and answers "what happened this week"
-from the logs they write), `account-scoring` and `crm-enrichment` (it hands them one-account
-requests instead of scoring or enriching by hand), `call-capture` (the call entries are context it
-answers from), `agentic-engagement` (it can report what a thread did, never send on its behalf).
+Nothing in particular comes after it: it is the on-demand layer over whatever else is deployed, so
+it gets more useful with every pipeline that writes logs, calls or scores it can read.

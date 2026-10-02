@@ -11,8 +11,6 @@ metadata:
     - revops
     - gtm-engineering
     - sales-leadership
-  worksBestAfter:
-    - web-capture
   nextSteps:
     - crm-enrichment
   openclaw:
@@ -294,7 +292,5 @@ source really costs.
 
 ## Composes into
 
-`contact-sourcing` (the buyers at every tier A account), `crm-enrichment` (fill the records these
-accounts become), `signal-based-tam` (watch the universe you just built). `account-scoring` is the
-sibling for a book that already exists, not the next step after this skill has already tiered the
-row.
+`crm-enrichment` (fill the records these accounts become), `contact-sourcing` (the buyers at every
+tier A account), `signal-based-tam` (watch the universe you just built).

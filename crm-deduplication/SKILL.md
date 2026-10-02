@@ -10,8 +10,6 @@ metadata:
   personas:
     - revops
     - gtm-engineering
-  worksBestAfter:
-    - crm-enrichment
   nextSteps:
     - account-scoring
   openclaw:
@@ -322,5 +320,4 @@ Enabling either recurring schedule is a separate final approval after that path'
 
 ## Composes into
 
-- `crm-enrichment` when either object path lacks reliable matching-key coverage
 - `account-scoring` after duplicate account records have been consolidated into authoritative survivors

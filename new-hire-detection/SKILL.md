@@ -11,8 +11,6 @@ metadata:
     - revops
     - sales-development
     - gtm-engineering
-  worksBestAfter:
-    - web-capture
   nextSteps:
     - account-scoring
     - crm-enrichment
