@@ -1,6 +1,0 @@
-{
-  "//": "Belt and braces. The CDK loader imports every .ts under the project root EXCEPT directories carrying a package.json - without this file, `cdk plan` would import collect/web.ts and run the news search on every plan.",
-  "name": "web-capture-scripts",
-  "private": true,
-  "type": "module"
-}
