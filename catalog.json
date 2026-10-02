@@ -325,7 +325,7 @@
       "kind": "one-off",
       "job": "Build a total addressable market list of companies filtered by industry, headcount, and geography.",
       "description": "Build a total addressable market list of companies filtered by industry, headcount, and geography, powered by Cargo. Triggers: \"build a TAM list\", \"how many companies match our ICP\", \"list every SaaS company in Europe under 200 employees\", \"size our addressable market\", \"find target accounts\", \"list building\", \"build a list of companies\". Providers: salesNavigator. Skip when: you want the people at those companies — use find-b2b-leads or find-stakeholders; or you want companies by tech stack — use find-companies-using-tech.",
-      "version": "1.1.2",
+      "version": "1.2.0",
       "homepage": "https://github.com/getcargohq/gtm-skills",
       "group": "Find the accounts and the people",
       "install": "npx skills add getcargohq/gtm-skills/build-tam-list",
@@ -343,7 +343,8 @@
       },
       "cost": "| Action | Credits |\n|---|---|\n| `salesNavigator.searchAccounts` | 0.2 |\n\n**Never run this across a full list on the first attempt.** Sample 10–20 records, report the\nobserved cost and hit-rate, then get the user to approve the full run — quoting the record count\nand the credit estimate. A batch fans out across every record in the source, and the bill scales\nwith it.",
       "worthKnowing": [
-        "Not the cheapest company search in the catalog: `aiArk.searchCompanies` (0.01) undercuts it when its filters fit. Sales Navigator is the default when the list is defined by LinkedIn-native filters.",
+        "Not the cheapest company search in the catalog. `FullEnrich.searchCompanies` is **free** (0 credits) and takes plain-string filters — `industry`, `headcount` `{min,max}`, `headquarters`, `technologies`, `keywords` — up to 2,000 per run; `FullEnrich.fetchCompanies`, also free, pulls up to 10,000 straight into a Cargo model. `aiArk.searchCompanies` (0.01) is the cheapest paid option and takes lookalike seeds. Sales Navigator is the default when the list is defined by LinkedIn-native filters.",
+        "`FullEnrich.lookupCompany` (free) returns one company's name, industry, headcount and LinkedIn URL from its domain.",
         "Filters take LinkedIn's internal codes (`[43]`, `[\"B\",\"C\",\"D\"]`, `[103644278]`), not names like `\"fintech\"` or `\"50-200\"` — strings fail or silently mismatch. Look them up with `cargo-ai connection integration get salesNavigator`.",
         "Billed per returned record: size the pool with `limit: 1` (the total match count comes back with it) before pulling the full scope.",
         "Size the market before you enrich it — a count is nearly free, a 5,000-company pull is ~1,000 credits."
@@ -905,7 +906,7 @@
       "kind": "one-off",
       "job": "Find B2B leads by job title, company, and keyword, and return them as a structured list.",
       "description": "Find B2B leads by job title, company, and keyword, and return them as a structured list, powered by Cargo. Triggers: \"find 50 VPs of Sales at fintech companies\", \"build me a list of leads\", \"who are the heads of engineering at Series B startups\", \"get me prospects matching this profile\", \"source leads for my outbound\", \"build a b2b lead list\", \"lead sourcing\". Providers: salesNavigator. Skip when: you need companies rather than people — use build-tam-list; or you already have the people and need contact details — use find-work-email.",
-      "version": "1.1.2",
+      "version": "1.2.0",
       "homepage": "https://github.com/getcargohq/gtm-skills",
       "group": "Find the accounts and the people",
       "install": "npx skills add getcargohq/gtm-skills/find-b2b-leads",
@@ -922,7 +923,8 @@
       },
       "cost": "| Action | Credits |\n|---|---|\n| `salesNavigator.searchLeads` | 0.2 |\n\n**Never run this across a full list on the first attempt.** Sample 10–20 records, report the\nobserved cost and hit-rate, then get the user to approve the full run — quoting the record count\nand the credit estimate. A batch fans out across every record in the source, and the bill scales\nwith it.",
       "worthKnowing": [
-        "The default for LinkedIn-native people sourcing (title, function, seniority, geo), but not the cheapest: `aiArk.searchPeople` (0.05) undercuts it when its filters fit.",
+        "The default for LinkedIn-native people sourcing (title, function, seniority, geo), but not the cheapest. `FullEnrich.searchPeople` is **free** (0 credits) with plain-string filters — `jobRole.title_or`, `jobRole.seniority_or`, `personLocation`, `skills`, `tenure`, and the employer's `industry` / `headcount` / `companyInfo.domain_or` — up to 2,000 per run; `FullEnrich.fetchPeople`, also free, pulls up to 10,000 into a Cargo model as contacts. `aiArk.searchPeople` (0.05) is the cheapest paid option.",
+        "`FullEnrich.lookupPerson` (free) resolves one person from a LinkedIn URL, or from a full name plus company domain.",
         "Pages come back in blocks of 25; ask for a `limit` in multiples of 25.",
         "Sourcing returns profiles, not emails. Pipe the LinkedIn URLs into `enrich-linkedin-profile` for verified emails."
       ]
