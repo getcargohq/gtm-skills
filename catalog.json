@@ -1627,6 +1627,84 @@
       ]
     },
     {
+      "name": "web-capture",
+      "kind": "cookbook",
+      "job": "Each Monday the company's own website, its competitors' pages and recent news about both land in context/ as one pull request: the first run seeds positioning, offerings, an inferred ICP with a disqualifier, competitors, clients and proof; every run after adds a dated note of what changed (pricing, a launch, funding, a customer) and never edits an existing file.",
+      "description": "Each Monday the company's own website, its competitors' pages and recent news about both land in context/ as one pull request: the first run seeds positioning, offerings, an inferred ICP with a disqualifier, competitors, clients and proof; every run after adds a dated note of what changed (pricing, a launch, funding, a customer) and never edits an existing file. Triggers: \"keep our context current from our website\", \"watch competitor pricing pages\", \"add our company news to the knowledge base\", \"our context repo is empty, seed it from our website\", \"set up the workspace context from our domain\". Cargo CDK, harness claudeCode, parallel, GitHub. Skip when: news about target accounts, which is monitor-buying-signals; one company researched before a call, which is research-account; or the ICP verified against won and lost deals, which is win-loss-review.",
+      "version": "0.1.0",
+      "homepage": "https://github.com/getcargohq/gtm-skills/tree/main/web-capture",
+      "group": "Make it run forever",
+      "install": "cargo-ai cdk add cookbook/web-capture",
+      "partOf": [],
+      "personas": [
+        "gtm-engineering",
+        "revops",
+        "marketing"
+      ],
+      "integrations": [
+        "anthropic",
+        "github"
+      ],
+      "example": {
+        "prompt": "Every Monday, read our website, our competitors' pricing and changelog pages, and the news about all of us, and keep context/ current.",
+        "output": "```text\ninsight/2026-10-05-web.md\n- Northwind: new \"Enterprise\" tier on /pricing, with SSO and audit logs [R: https://northwind.example/pricing]\n- Northwind: raised a $20M Series B led by Contoso Ventures, 2026-10-01 [R: https://news.example/northwind-series-b]\n- Northwind: Fabrikam named as a customer, 40% faster onboarding [R: https://northwind.example/customers/fabrikam]\n- Tailspin (competitor): Team plan price up from $49 to $69 a seat [R: https://tailspin.example/pricing]\n\nclient/fabrikam.md, proof/fabrikam-onboarding.md   (reference_permission: unknown)\nPR body: proposes adding \"Enterprise\" to global/offerings.md and the new price to alternative/tailspin.md\n```\n\nA week after the first run: one pull request, four findings across two companies, two new files, two\nproposed edits, and two reads billed (the pages and the news)."
+      },
+      "state": "to-be-approved",
+      "chain": 12,
+      "resources": [
+        "agents",
+        "connectors",
+        "folders"
+      ],
+      "asked": [],
+      "canChange": [
+        {
+          "id": "more_pages",
+          "when": "Product, solution or docs pages say what is sold better than the home page",
+          "how": "Add them to `PAGES` or a competitor's entry in `infra/agents/web-scribe.prompt.ts",
+          "cost": "One more URL billed on every read, more candidate changes for the agent to read, and the 20-URL cap"
+        },
+        {
+          "id": "daily",
+          "when": "The company or a competitor ships several times a week",
+          "how": "Change the cron in `infra/agents/web-scribe.ts",
+          "cost": "Five times the reads, and most days open no pull request"
+        },
+        {
+          "id": "slack_digest",
+          "when": "The team does not watch pull requests",
+          "how": "Add a Slack connector and a locked `postMessage` use on the agent, as standup does, and a digest step to the prompt",
+          "cost": "One more connector to keep authorized, and a channel to choose"
+        },
+        {
+          "id": "deeper_news",
+          "when": "The `lite` search misses coverage the team knows about",
+          "how": "Change `processor: \"lite\"` to `\"base\"` in `newsData` in the prompt file",
+          "cost": "The next rung of the processor price ladder on every run; read it live before switching"
+        }
+      ],
+      "shouldNotChange": [
+        "**The web is the only source.** (`web-scribe.prompt.ts`) No CRM, no calls, no inbox, no Slack. Each is another cookbook's evidence; mix one in here and a page and a deal end up in one file at one confidence nobody can tell apart afterwards.",
+        "**The reads are the commands in the prompt, with `fullContent`, and code writes the files.** (`web-scribe.prompt.ts`) Excerpts change with the question asked, and an agent that retypes a page truncates and tidies it; either makes every week look like a change on the site.",
+        "**`outputSchema` stays a string.** (`web-scribe.prompt.ts`) The news action takes the JSON schema as a string; an object fails its validation and the week reads no news.",
+        "**Existing files are never edited.** (`web-scribe.prompt.ts`) What a human corrected stays corrected. A change to an existing file is a proposal in the pull request body.",
+        "**The one-PR write path.** (`infra/agents/web-scribe.ts`) The agent never writes the workspace context directly and has no `context` capability: the repository is the source and `cargo-ai cdk deploy` syncs it.",
+        "**The first run always opens a pull request.** (`web-scribe.prompt.ts`) Its page and news files are the baseline. Until they are merged, every run reads as a first run and nothing is ever a change.",
+        "**Every claim is tagged.** (`web-scribe.prompt.ts`) `[R]`, `[I]` or `[TR]`, and missing evidence is never contradicting evidence."
+      ],
+      "doneWhen": [
+        "`DOMAIN`, `PAGES` and `COMPETITORS` name the company, its real sections and the competitors worth watching, and the contract passes",
+        "`cargo-ai cdk check` prints the agent bound to the repository root, and `cargo-ai cdk plan` reports one agent, two bound connectors, one folder and no model",
+        "the first run opened one pull request with the page, competitor and news files, seeded every empty domain, and edited no existing file",
+        "every seeded file carries tags, `icp/` names a disqualifier, and every `client/` file carries `reference_permission: unknown`",
+        "after the baseline was merged, a run with a change opened a pull request adding `insight/<date>-web.md` with one tagged line per finding, each naming its company, and proposed rather than made any edit to an existing file",
+        "a run with nothing worth writing opened no pull request",
+        "after merging and `cargo-ai cdk deploy`, a seeded file is readable from the workspace context repository and an agent with the `context` capability quotes it back with its tag"
+      ],
+      "cost": "Fetch live prices before every estimate: `cargo-ai connection integration get parallel`, plus the\nLLM connector's model. Quote the lookup time with the estimate.\n\nEach run bills two reads: one `parallel.extract` over every listed URL, the company's and the\ncompetitors' (billed per URL, a 404 included), and one `parallel.createTask` on the `lite`\nprocessor, the cheapest rung of its price ladder. Plus the harness run, which scales with how much\nchanged.",
+      "composesInto": "`win-loss-review` (verifies the ICP this seeds against won and lost deals, and proposes the\ncorrections), `call-capture` (adds what buyers say on calls), `account-scoring` (reads the ICP),\nand any agent with the `context` capability."
+    },
+    {
       "name": "website-building",
       "kind": "cookbook",
       "job": "Build the company website on Cargo and serve it on your own domain: a statically exported Next.js app, one defineApp with its www hostname, and a defineDomain that publishes the records and forwards the apex, changed only through reviewed pull requests.",

@@ -64,5 +64,11 @@
     "chain": 11,
     "demoWorkspace": null,
     "implementations": []
+  },
+  "web-capture": {
+    "state": "to-be-approved",
+    "chain": 12,
+    "demoWorkspace": null,
+    "implementations": []
   }
 }
