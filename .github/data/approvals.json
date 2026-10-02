@@ -54,9 +54,9 @@
     "implementations": []
   },
   "website-building": {
-    "state": "to-be-approved",
+    "state": "approved",
     "chain": 10,
-    "demoWorkspace": null,
+    "demoWorkspace": "2026-10-01",
     "implementations": []
   },
   "new-hire-detection": {
