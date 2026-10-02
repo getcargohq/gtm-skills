@@ -49,7 +49,7 @@ Sourcing: who exists, who fits, and who sits on the buying committee.
 | Skill | Does | Try saying |
 | --- | --- | --- |
 | [`find-b2b-leads`](find-b2b-leads/SKILL.md) | Find B2B leads by job title, company, and keyword, and return them as a structured list. | “Find 25 VPs of Sales at US software companies and give me their LinkedIn URLs.” |
-| [`build-tam-list`](build-tam-list/SKILL.md) | Build a total addressable market list of companies filtered by industry, headcount, and geography. | “Size the market of US software companies with 51–200 employees and give me the first 100.” |
+| [`build-tam-list`](build-tam-list/SKILL.md) | Build a total addressable market list of companies filtered by industry, headcount, and geography. | “Size the market of US fintech companies with 50–500 employees and give me the first 100.” |
 | [`find-stakeholders`](find-stakeholders/SKILL.md) | Find the buying committee at a target account — every stakeholder matching a set of titles, seniorities, and departments. | “Who's on the buying committee at northwind.example — VP and above in Sales, Marketing, Ops and Finance?” |
 | [`find-portfolio-companies`](find-portfolio-companies/SKILL.md) | Find every portfolio company of an investor or accelerator, then the people inside them. | “Pull every portfolio company of Harbor Point Ventures so I can ask the partners for warm intros.” |
 
