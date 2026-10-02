@@ -23,9 +23,9 @@ import { theirStack } from "../connectors/theirstack";
  * rows in cadence/log/raw/jobs/ are the rows the model will keep pulling.
  *
  *   import { defineFolder } from "@cargo-ai/cdk";
- *   const modelsFolder = defineFolder("context-seeding-models", {
+ *   const modelsFolder = defineFolder("context_seeding_models", {
  *     kind: "model",
- *     name: "Context building",
+ *     name: "Context seeding",
  *   });
  *   export const revenueOperationsJobs = personaJobsModel(
  *     {

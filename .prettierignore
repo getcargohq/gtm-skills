@@ -12,6 +12,7 @@ llms.txt
 !account-scoring/**/*.md
 !crm-enrichment/**/*.md
 !crm-context/**/*.md
+!context-seeding/**/*.md
 !CONTRIBUTING.md
 !.agents/skills/**/*.md
 !.claude/skills/**/*.md

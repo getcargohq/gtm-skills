@@ -17,7 +17,7 @@ import { resetRegistry, resources } from "@cargo-ai/cdk";
 
 resetRegistry();
 const stamp = Date.now();
-await import(`../infra/agents/context-seeding.ts?contract=${stamp}`);
+await import(`../infra/agents/context-seeder.ts?contract=${stamp}`);
 await import(`../infra/connectors/git.ts?contract=${stamp}`);
 await import(`../infra/connectors/theirstack.ts?contract=${stamp}`);
 await import(`../infra/models/persona-jobs.ts?contract=${stamp}`);
@@ -53,7 +53,7 @@ check("no defineContext: the project's own root context/ is the singleton", () =
 });
 
 check("the seeding agent is a harness agent with no trigger, no actions and no capability", () => {
-  const agent = byId.get("agent:context-seeding");
+  const agent = byId.get("agent:context_seeder");
   assert.ok(agent, "defineAgent(context-seeding) must exist");
   assert.equal(agent.spec.harnessSlug, "claudeCode", "its output is a repo diff");
   assert.ok(agent.spec.connectorUuid, "the harness does not bring its own model");
@@ -69,7 +69,7 @@ check("the seeding agent is a harness agent with no trigger, no actions and no c
 
 check("exactly one agent deploys", () => {
   const agents = [...byId.keys()].filter((id) => id.startsWith("agent:"));
-  assert.deepEqual(agents, ["agent:context-seeding"], "one cookbook, one use case, one agent");
+  assert.deepEqual(agents, ["agent:context_seeder"], "one cookbook, one use case, one agent");
 });
 
 check("no persona model deploys by default", () => {
@@ -129,7 +129,7 @@ check("an argument the collector does not know stops the run", async () => {
 });
 
 check("the prompt carries the contract's fixed points and names no other cookbook's source", async () => {
-  const { contextSeedingPrompt } = await import(`../infra/agents/context-seeding.prompt.ts?contract=${stamp}`);
+  const { contextSeederPrompt } = await import(`../infra/agents/context-seeder.prompt.ts?contract=${stamp}`);
   for (const line of [
     "scripts/context-seeding/collect/jobs.ts",
     "Target market:", "Target personas:", "Key competitors:",
@@ -137,9 +137,9 @@ check("the prompt carries the contract's fixed points and names no other cookboo
     "skip list", "Setup mode", "Questions for the reviewer",
     "## Company GTM Profile",
     "Never write to the workspace context repository directly",
-  ]) assert.ok(contextSeedingPrompt.includes(line), `prompt lost: ${line}`);
-  for (const word of ["call-capture", "crm-context", "hubspot", "cadence/log/calls", "postMessage"]) {
-    assert.ok(!contextSeedingPrompt.toLowerCase().includes(word.toLowerCase()), `prompt mentions ${word}: this cookbook reads the public surface and nothing else`);
+  ]) assert.ok(contextSeederPrompt.includes(line), `prompt lost: ${line}`);
+  for (const word of ["call-capture", "win-loss-review", "hubspot", "cadence/log/calls", "postMessage"]) {
+    assert.ok(!contextSeederPrompt.toLowerCase().includes(word.toLowerCase()), `prompt mentions ${word}: this cookbook reads the public surface and nothing else`);
   }
 });
 

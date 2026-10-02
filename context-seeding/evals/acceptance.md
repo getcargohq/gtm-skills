@@ -15,7 +15,7 @@ Walk every line. A checked template without an evidence-backed consumer adaptati
   call TheirStack while planning.
 - Exactly one `defineContext` exists in the project, the scaffold's, resolving to the root
   `context/`.
-- `cargo-ai cdk check` prints `agent:context-seeding` bound to `<repo>#<branch>` at the repository
+- `cargo-ai cdk check` prints `agent:context_seeder` bound to `<repo>#<branch>` at the repository
   root. A trailing `in infra/` roots the harness where there is no node_modules; the collector
   cannot run and the run writes from the website alone.
 - `cargo-ai cdk plan` reports one agent, three bound connectors, one folder, and no model.
