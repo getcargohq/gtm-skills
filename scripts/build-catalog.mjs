@@ -227,11 +227,29 @@ for (const name of readdirSync(root).sort()) {
 }
 
 // A pipeline only writes what it sets up (`nextSteps`). What works best before
-// it is the same relation read backwards, so it is derived here and the two
-// views on the site always agree.
+// it is the same relation read backwards, so it is derived here and written
+// back into each pipeline's frontmatter, just above `nextSteps`: an agent
+// reading one SKILL.md sees both directions, and the two never disagree.
 for (const s of skills)
   for (const next of s.nextSteps ?? [])
     skills.find((t) => t.name === next)?.worksBestAfter?.push(s.name);
+const WORKS_BEST_AFTER =
+  /  worksBestAfter:(?: \[\]\n|\n(?:    - .*\n)+)(?=  nextSteps:)/;
+const skillFiles = skills
+  .filter((s) => s.worksBestAfter)
+  .map((s) => {
+    const path = join(root, s.name, "SKILL.md");
+    const current = readFileSync(path, "utf8");
+    const after = [...s.worksBestAfter].sort();
+    const block = after.length
+      ? `  worksBestAfter:\n${after.map((n) => `    - ${n}\n`).join("")}`
+      : "  worksBestAfter: []\n";
+    const rendered = WORKS_BEST_AFTER.test(current)
+      ? current.replace(WORKS_BEST_AFTER, block)
+      : current.replace(/^  nextSteps:/m, `${block}  nextSteps:`);
+    s.worksBestAfter = after;
+    return { name: s.name, path, current, rendered };
+  });
 
 const catalog = { source: "getcargohq/gtm-skills", skills };
 const rendered = JSON.stringify(catalog, null, 2) + "\n";
@@ -299,9 +317,10 @@ const renderedReadme =
 
 if (process.argv.includes("--check")) {
   const current = existsSync(out) ? readFileSync(out, "utf8") : "";
-  if (current !== rendered || readme !== renderedReadme) {
+  const staleSkills = skillFiles.filter((f) => f.current !== f.rendered);
+  if (current !== rendered || readme !== renderedReadme || staleSkills.length) {
     console.error(
-      "catalog.json or the README tables are stale. Regenerate with: node scripts/build-catalog.mjs",
+      `catalog.json, the README tables or metadata.worksBestAfter in ${staleSkills.map((f) => `${f.name}/SKILL.md`).join(", ") || "no SKILL.md"} are stale. Regenerate with: node scripts/build-catalog.mjs`,
     );
     process.exit(1);
   }
@@ -311,5 +330,7 @@ if (process.argv.includes("--check")) {
 } else {
   writeFileSync(out, rendered);
   writeFileSync(readmePath, renderedReadme);
+  for (const f of skillFiles)
+    if (f.current !== f.rendered) writeFileSync(f.path, f.rendered);
   console.log(`wrote catalog.json and README tables (${skills.length} skills)`);
 }

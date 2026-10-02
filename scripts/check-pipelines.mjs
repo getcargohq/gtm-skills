@@ -242,8 +242,8 @@ for (const name of exampleFolders) {
   // Recommendations, not requirements: `nextSteps` names the pipelines this one
   // sets up well. It is not a precondition and not a build order, so the skill
   // still installs and works alone, and two pipelines may feed each other. The
-  // reverse view (what works best before this one) is derived by
-  // build-catalog.mjs, so it is never written by hand and cannot drift.
+  // reverse view, `worksBestAfter`, is generated into the frontmatter by
+  // build-catalog.mjs, and its --check fails when it is stale.
   const nextSteps = fm.metadata?.nextSteps;
   if (!Array.isArray(nextSteps)) {
     errors.push(
@@ -258,10 +258,6 @@ for (const name of exampleFolders) {
   }
   composesIntoOf[name] =
     body.match(/\n## Composes into\n([\s\S]*?)(?=\n## |$)/)?.[1] ?? "";
-  if (fm.metadata?.worksBestAfter !== undefined)
-    errors.push(
-      `${name}/SKILL.md carries metadata.worksBestAfter: it is derived from the other pipelines' nextSteps, so list this pipeline there instead`,
-    );
 
   const nestedSkillFiles = [];
   const findNestedSkills = (dir) => {

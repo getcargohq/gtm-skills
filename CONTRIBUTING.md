@@ -95,8 +95,10 @@ can see what it sets up without a requires graph:
 - `nextSteps`: pipelines this one sets up well. `crm-deduplication` lists
   `account-scoring` because scoring is worth more on consolidated records.
 
-The reverse view, `worksBestAfter`, is derived by `build-catalog.mjs` from every
-other pipeline's `nextSteps`; never write it by hand. The list is not a
+The reverse view, `metadata.worksBestAfter`, is generated into the same
+frontmatter by `build-catalog.mjs` from every other pipeline's `nextSteps`, so an
+agent reading one SKILL.md sees both directions. Never edit it by hand: change
+`nextSteps` on the other pipeline and regenerate; `--check` fails when it is stale. The list is not a
 precondition and not a build order: the skill must still install and work on its
 own, the agent placing it never installs a listed pipeline unasked, and two
 pipelines may feed each other. Empty is fine.

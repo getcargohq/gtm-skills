@@ -10,6 +10,8 @@ metadata:
   personas:
     - revops
     - gtm-engineering
+  worksBestAfter:
+    - crm-enrichment
   nextSteps:
     - account-scoring
   openclaw:

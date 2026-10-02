@@ -10,6 +10,8 @@ metadata:
   personas:
     - sales-leadership
     - revops
+  worksBestAfter:
+    - call-capture
   nextSteps:
     - weekly-planning
     - ask-cargo

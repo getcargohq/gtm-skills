@@ -10,6 +10,8 @@ metadata:
   personas:
     - sales-leadership
     - revops
+  worksBestAfter:
+    - standup
   nextSteps:
     - ask-cargo
   openclaw:

@@ -11,6 +11,8 @@ metadata:
     - sales-leadership
     - account-executive
     - revops
+  worksBestAfter:
+    - agentic-engagement
   nextSteps:
     - account-scoring
     - standup

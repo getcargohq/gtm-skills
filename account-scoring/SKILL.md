@@ -11,6 +11,11 @@ metadata:
     - revops
     - sales-leadership
     - gtm-engineering
+  worksBestAfter:
+    - call-capture
+    - crm-deduplication
+    - new-hire-detection
+    - web-capture
   nextSteps:
     - agentic-engagement
   openclaw:

@@ -10,6 +10,9 @@ metadata:
   personas:
     - revops
     - gtm-engineering
+  worksBestAfter:
+    - new-hire-detection
+    - tam-building
   nextSteps:
     - crm-deduplication
     - agentic-engagement

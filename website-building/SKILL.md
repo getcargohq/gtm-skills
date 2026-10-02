@@ -10,6 +10,8 @@ metadata:
   personas:
     - marketing
     - gtm-engineering
+  worksBestAfter:
+    - web-capture
   nextSteps: []
   openclaw:
     requires:
