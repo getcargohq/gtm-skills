@@ -1,75 +1,65 @@
 # The CRM audit
 
-`scripts/collect/crm.ts` is the deterministic half of every run, the first pass and each month after: it reads
-the CRM the same way every time and writes one JSON snapshot the agent reasons from. No LLM is
-anywhere near it. This file is the snapshot's shape, the adapter contract, and how to add a CRM.
+The audit has two halves, and neither is a script. The platform extracts the CRM into three models;
+the agent reads them with the fixed SQL in `infra/agents/win-loss-analyst.prompt.ts`. This file is
+what each model holds, how the queries read it, and how to move to another CRM.
 
-## What it reads, and through what
+## The models
 
-Everything goes through `cargo-ai orchestration action execute` against the workspace's CRM
-connector, which the harness sandbox is already signed in to. Nothing here holds a credential.
-HubSpot, the checked example, uses `hubspot.searchRecords` three ways:
+| Model          | Extractor                     | What it holds                                                                                                                                                                                               |
+| -------------- | ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `crm_deals`    | `fetchRecords` on `deals`     | Closed deals only (`hs_is_closed` is true), with the picked properties: name, pipeline, stage, type, close date, the won and lost flags, the contact count, the primary company, the lost reason. No amount |
+| `crm_accounts` | `fetchRecords` on `companies` | Every company, all columns. Declared as crm-enrichment and crm-deduplication declare it                                                                                                                     |
+| `crm_contacts` | `fetchRecords` on `contacts`  | Every contact, all columns. Declared as crm-enrichment and crm-deduplication declare it. The audit reads titles and company ids only                                                                        |
 
-| Read               | Filter                                                                                  | Notes                                                                                                                                                   |
-| ------------------ | --------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| closed deals       | `hs_is_closed` is true, `closedate` inside the window, sorted by `closedate` descending | HubSpot caps a page at 200. The window is walked by moving the upper bound to the last close date seen, deduplicating on id, until a page adds nothing. |
-| accounts           | `hs_object_id` in a list of ids from `hs_primary_associated_company`                    | 100 per call.                                                                                                                                           |
-| contacts on a deal | `associations.deal` is the deal id                                                      | The pseudo-property HubSpot's search API accepts; no association endpoint needed. Only won deals, newest first, capped by `MAX_WON_DEALS_FOR_CONTACTS`. |
+Columns are named after the HubSpot properties. In SQL a model is `<dataset>.<model>`, and a
+connector-backed model's dataset is its connector's slug, so the queries read `crm.crm_deals`,
+`crm.crm_accounts` and `crm.crm_contacts`. Extraction bills no credits; `crm_deals` syncs daily
+and the shared two hourly, as the other CRM cookbooks sync them.
 
-A search returns every property on the object; the audit keeps the few it names. The one that is
-not standard on every portal is the lost reason, `LOST_REASON_PROPERTY` in `config.ts`.
+## The queries
 
-## The snapshot, `cadence/log/raw/crm/<YYYY-MM-DD>.json`
+Each has a name, and every `[R: <name>, n of N]` tag in the context files cites one. The run record
+under `outputs/` holds each result.
 
-```
-collectedAt          ISO timestamp
-crm                  { integration, connectorSlug, connectorUuid }
-window               { from, to, days }
-mode                 "verify" | "hypothesis"   (won >= VERIFY_MIN_WON in the window)
-pipelines[]          { id, closed, won, lost }  more than one is the one CRM question the operator gets
-counts               { closed, won, lost }
-lostReason           { property, lost, filled, values[] { value, deals } }
-association          { closed, dealsWithContacts }
-stakeholdersPerDeal  { won, lost } each { deals, mean, median, histogram {0,1,2,3+} }
-deals[]              { id, name, pipeline, stage, outcome, closedAt, dealType,
-                       lostReason, contactCount, companyId }
-companies[]          { id, name, domain, industry, employees, country, revenue, won, lost }
-wonDealContacts[]    { dealId, contacts[] { id, title } }
-titlesOnWonDeals[]   { title, deals }   a title counts once per deal however many people share it
-newSincePrevious     { previous: path | null, dealIds[] }
-```
+| Query                    | What it answers                                                                                       |
+| ------------------------ | ----------------------------------------------------------------------------------------------------- |
+| `pipelines`              | Won and lost per pipeline in the window. More than one pipeline is the one question the operator gets |
+| `lost_reasons`           | Each lost reason and its count. The empty reason's count is the hygiene finding's complement          |
+| `contacts_on_deals`      | Won, lost, and deals with at least one contact: the association rate                                  |
+| `by_industry`            | Won and lost per account industry                                                                     |
+| `by_size`                | Won and lost per employee band                                                                        |
+| `by_country`             | Won and lost per account country                                                                      |
+| `titles_at_won_accounts` | Each job title and the number of won accounts it appears at                                           |
+| `deals_since`            | Every deal closed since the last run, with its account: ids for receipts, accounts for `client/`      |
 
-Every count travels with its denominator, because that is how the agent writes it into the
-knowledge layer: "lost reason filled on 41 of 154 lost deals", never "27%".
-
-No emails, no names of people: titles and ids only. The snapshot lives in a git repository.
-
-One file per day, overwritten on a re-run. The previous day's file is what `newSincePrevious` is
-computed against, which is how the monthly refresh knows which deals are new without a state file.
+`<window start>` is the window's first day; `<since>` is the date of the last merged run record, or
+the window start on the first pass. The agent substitutes those two and nothing else.
 
 ## Reading the numbers
 
-- `mode: hypothesis` with a CRM connected means fewer than `VERIFY_MIN_WON` wins in the window. The
-  ICP is then a hypothesis from the website that the CRM corroborates, and every claim is tagged
-  `[I]`.
-- `lostReason.filled` of 0 with lost deals in the window is almost always a custom property, not a
-  team that never records reasons. Look for it in the CRM and set `LOST_REASON_PROPERTY`.
-- `association.dealsWithContacts` well under `closed` means titles on won deals are a sample, and
-  the persona reconciliation says so with the denominator.
-- More than one entry in `pipelines[]` is the one question the audit produces: which pipeline is
-  the sales pipeline. Partner, renewal and support pipelines close deals too, and they are not the
-  same evidence.
+- Fewer than `VERIFY_MIN_WON` wins in the window means hypothesis mode: every finding carries its
+  denominator and `confidence: hypothesis`.
+- A lost-reason fill rate of 0 with lost deals in the window is almost always a custom property, not
+  a team that never records reasons. Find it and set it in `crm-deals.ts` and `LOST_REASON_COLUMN`.
+- An association rate well under the closed count means titles are a sample, and the persona
+  reconciliation says so with the denominator.
+- Titles are read at the won accounts, through `crm_contacts.associatedcompanyid`: everyone at the
+  account, not only the people on the deal. The `deal_contacts` variation narrows it.
+- Zero won with deals you know closed means the flags are typed differently on this portal (a
+  boolean rather than the string `'true'`). Change the comparison in the prompt once.
 
-## Adding a CRM
+## Another CRM
 
-Write one object satisfying `Crm` (in `audit.ts`) beside `crms/hubspot.ts`, keyed in
-`crms/index.ts` under its Cargo integration slug (`salesforce`, `attio`). Three methods:
-`closedDeals(from, to)`, `companies(ids)`, `contactsOnDeal(dealId)`. Auth stays with Cargo; the
-adapter only chooses actions and maps properties. Mark it `written: "docs"` until it has run
-against a live workspace, and the collector prints a warning on every run until then. Nothing in
-`audit.ts` changes: the window, the aggregation, the mode line and the file layout are the same
-whoever holds the deals.
+The connector, the three models' config and the queries change together; the prompt's rules do
+not.
 
-Salesforce: `Opportunity` with `IsClosed`, `IsWon`, `CloseDate`, `StageName`, `AccountId`; contacts
-through `OpportunityContactRole` (`soqlQuery` is the simplest read). Attio: the `deals` object with
-its status attribute, and the `associated_people` attribute for contacts.
+- **Salesforce:** `Opportunity` with `IsClosed`, `IsWon`, `CloseDate`, `StageName`, `AccountId`
+  for `crm_deals`; `Account` and `Contact` for the other two. Lost reasons are usually a custom
+  field (`Loss_Reason__c` or similar). Titles at won accounts join `Contact.AccountId`; titles on the
+  opportunity itself come from `OpportunityContactRole`.
+- **Attio:** the `deals` object with its stage or status attribute, `companies`, and `people`. The
+  lost reason is whatever attribute the workspace keeps it in.
+
+Read each object's live fields before writing a query, and check the first pass by eye: field names
+vary per org far more than on HubSpot.

@@ -1,62 +1,48 @@
 # Acceptance
 
-Walk every line. A checked template without an evidence-backed consumer adaptation is incomplete.
+Walk every line before calling the pipeline done. Report each with its evidence: a command output,
+a run link, or a pull request link. A line that could not be checked is reported as unchecked, not
+as passed.
 
 ## Before deploy
 
-- `cargo-ai whoami` names the workspace, and the name was read back and matched to the company
-  out loud.
-- `npx tsx scripts/win-loss-review/collect/crm.ts --dry-run` printed real counts (closed, won, lost),
-  the pipelines and the mode. A `hypothesis` on a workspace known to have the deals means the
-  wrong connection or window; `CRM` and `WINDOW_DAYS` in `config.ts` pin them.
-- The run without `--dry-run` wrote `cadence/log/raw/crm/<today>.json`, and the file carries real
-  deal names, a lost-reason fill rate with its denominator, an association rate, stakeholders per
-  deal and titles on won deals. No emails, no people's names, no amounts in what the agent writes.
-- Running it a second time the same day overwrote the file with the same counts. Running it the
-  next day sets `newSincePrevious.previous` to the earlier file.
-- With lost deals in the window and `lostReason.filled` at 0, the real property was found in the
-  CRM and `LOST_REASON_PROPERTY` was set to it.
-- With more than one pipeline in the snapshot, `PIPELINES` in `config.ts` names the sales ones, or
-  the first pass's pull request carries the question.
-- `scripts/win-loss-review/package.json` exists in the project, and `cargo-ai cdk plan` did not run the
-  audit while planning.
-- Exactly one `defineContext` exists in the project, the scaffold's, resolving to the root
-  `context/`.
+- `node --import tsx evals/contract.mjs` passes, run from the skill folder.
+- The project holds exactly one `crm` connector and one each of `crm_accounts` and `crm_contacts`;
+  copies this cookbook brought were dropped where another cookbook already declares them.
+- The lost-reason property in `infra/models/crm-deals.ts` and `LOST_REASON_COLUMN` in the prompt
+  are the same, and exist on the portal's deals.
+- The Slack channel id is an id, not a name, and not a customer shared channel.
 - `cargo-ai cdk check` prints `agent:win_loss_analyst` bound to `<repo>#<branch>` at the repository
-  root. A trailing `in infra/` roots the harness where there is no node_modules; the audit cannot
-  run and the month reports clean and empty.
-- `cargo-ai cdk plan` reports one agent, three bound connectors, one folder, and no model.
-- The Slack channel id is an id (`C…`), and it is not a customer shared channel.
-- `node --import tsx evals/contract.mjs` passes after every adaptation.
+  root, and `cargo-ai cdk plan` shows the agent, the models, the bound connectors and two folders.
+
+## After the models sync
+
+- The `pipelines` query, run by hand, returns non-zero won and lost counts.
+- `crm_deals` has no amount column.
 
 ## The first pass
 
-- The pull request body opens with the two hygiene findings, with denominators, then the mode
-  and the won count that set it.
-- With the fill rate under half, no `objection/` file was written and the body says why.
-- `icp/` either gained a dated "Verified against the CRM" section (seeded before) or was written
-  (empty before); either way it names a disqualifier derived from won versus lost and cites the
-  snapshot.
-- `insight/` holds dated files in the three buckets (who we talk to, where we win, where we lose),
-  each with counts and denominators, a Watch section, and `confidence: validated` only on two or
-  more deals in verify mode.
-- Every title on a won deal is either mapped to the `persona/` file that detects it or listed as
-  undetected, with the count of deals it appears on.
-- `client/` has one file per closed-won account, `reference_permission: unknown`, no amount.
-- Nothing under `persona/` changed. A proposed change, if any, is in the pull request body with
-  deal ids.
-- Exactly one pull request, unmerged, titled `[win-loss-review] first pass <date>`; the Slack digest is
-  five lines, its numbers match the snapshot, and the last line is the pull request link.
+- Exactly one pull request, unmerged, titled `[win-loss-review] first pass <date>`; the Slack digest
+  is posted once, five lines, ending with its link.
+- The body opens with the two hygiene findings, each with its denominator, then the mode and the won
+  count that set it.
+- `outputs/<date>-win-loss-review/README.md` holds each query's result, counts and ids only, no
+  amount and no email.
+- `icp/` carries a disqualifier, as a new file or one dated section appended to the seeded one.
+- `insight/` holds dated files in the three buckets; every title at a won account is mapped to a
+  persona or listed as undetected, and the file says the titles are at the accounts, not only on
+  the deals.
+- With the fill rate under half, no `objection/` file exists and the body says why.
+- Every `client/` file carries `reference_permission: unknown` and no amount.
+- Nothing under `persona/` changed.
 
 ## A monthly run
 
-- The run read only the deals in `newSincePrevious`, and `outputs/<date>-win-loss-review/README.md`
-  lists their ids.
-- The pull request adds files and modifies none under `icp/` or `persona/`. An existing objection
-  gained at most one dated "Seen again" line.
-- With nothing new, no pull request was opened and the digest said so.
+- It read the deals closed since the date of the last merged run record.
+- With new deals: a pull request that adds files and modifies none under `icp/` or `persona/`.
+- With none: no pull request, and the digest says so.
 
 ## After merge
 
-- `cargo-ai cdk deploy` syncs the changed `context/` files into the workspace context repository.
-- An agent with the `context` capability quotes the verified ICP section back, with its tag.
+- The verified ICP section is readable from the workspace context repository after
+  `cargo-ai cdk deploy`, and an agent with the `context` capability quotes it back with its tag.

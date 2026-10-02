@@ -11,10 +11,14 @@ import { defineFolder } from "@cargo-ai/cdk";
 // repo. It is also what makes removing a cookbook a bounded operation rather
 // than a hunt.
 //
-// Folders are per-kind, and this cookbook deploys one agent, so one folder.
-// A folder nothing is filed into is a resource that deploys, shows up in the
-// workspace and rots.
+// Folders are per-kind: this cookbook deploys three models and one agent, so
+// two folders.
 export const agentsFolder = defineFolder("win_loss_review_agents", {
   kind: "agent",
+  name: "Win-loss review",
+});
+
+export const modelsFolder = defineFolder("win_loss_review_models", {
+  kind: "model",
   name: "Win-loss review",
 });

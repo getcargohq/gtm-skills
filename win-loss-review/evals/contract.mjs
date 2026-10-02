@@ -2,54 +2,98 @@
  * What has to hold about this cookbook, checked on every run of
  * `npm run validate` (scripts/check-pipelines.mjs executes this file).
  *
- * Two halves. The registry half checks the compiled resources for the
- * boundaries CDK schema validation cannot express: one harness agent on a
- * monthly cron, the Slack channel locked on the use, no connector for a
- * system this cookbook must not read. The script half checks the audit's
- * invariants against canned data with no network: the aggregation, the
- * denominators, the mode line, the CRM registry.
+ * Three parts. The registry checks the compiled resources for the boundaries
+ * CDK schema validation cannot express: one harness agent on a monthly cron
+ * with the Slack channel locked, the CRM models it reads, and no connector
+ * for a system this cookbook must not read. The models check that closed
+ * deals are extracted without an amount, and that the shared CRM models are
+ * declared exactly as the other CRM cookbooks declare them. The audit checks
+ * the SQL in the prompt: read-only, over the three models, no amount, no
+ * email.
  *
  * Run it from the skill folder after every adaptation:
  *   node --import tsx evals/contract.mjs
+ *
+ * It loads through `loadResources`, the same loader `cargo-ai cdk check`,
+ * `plan`, and `deploy` use, so what is asserted here is what would deploy.
  */
 import assert from "node:assert/strict";
-import { resetRegistry, resources } from "@cargo-ai/cdk";
+import { existsSync } from "node:fs";
+import { loadResources } from "@cargo-ai/cdk";
 
-resetRegistry();
-const stamp = Date.now();
-await import(`../infra/agents/win-loss-analyst.ts?contract=${stamp}`);
-await import(`../infra/connectors/git.ts?contract=${stamp}`);
-
-const byId = new Map(resources().map((resource) => [resource.id, resource]));
+const infraDir = new URL("../infra", import.meta.url).pathname;
+const byId = new Map(
+  (await loadResources(infraDir)).map((resource) => [resource.id, resource]),
+);
 const checks = [];
 const check = (name, run) => checks.push([name, run]);
 
-check("the three connectors exist and bind, never create", () => {
-  for (const [id, integration] of [
-    ["connector:github", "github"],
-    ["connector:anthropic", "anthropic"],
-    ["connector:slack", "slack"],
-  ]) {
-    const connector = byId.get(id);
-    assert.ok(connector, `${id} must exist`);
-    assert.equal(connector.spec.integrationSlug, integration);
-    assert.equal(connector.spec.config, undefined, `${id} must bind the workspace's connection, not declare a config`);
+check("the template declares one agent, four bound connectors, three models and two folders", () => {
+  assert.deepEqual(
+    [...byId.keys()].sort(),
+    [
+      "agent:win_loss_analyst",
+      "connector:anthropic",
+      "connector:crm",
+      "connector:github",
+      "connector:slack",
+      "folder:win_loss_review_agents",
+      "folder:win_loss_review_models",
+      "model:crm_accounts",
+      "model:crm_contacts",
+      "model:crm_deals",
+    ],
+  );
+  for (const id of ["connector:anthropic", "connector:crm", "connector:github", "connector:slack"]) {
+    assert.equal(byId.get(id).spec.config, undefined, `${id} must bind the workspace's connection, not declare a config`);
+  }
+  assert.equal(byId.get("connector:crm").spec.integrationSlug, "hubspot", "HubSpot is the checked example");
+});
+
+check("there is no collector script: the platform extracts, the prompt queries", () => {
+  assert.ok(!existsSync(new URL("../scripts", import.meta.url)), "scripts/ came back: the audit lives in the prompt's SQL");
+});
+
+check("closed deals are extracted with the audit's properties and never an amount", async () => {
+  const { LOST_REASON_COLUMN } = await import("../infra/agents/win-loss-analyst.prompt.ts");
+  const deals = byId.get("model:crm_deals");
+  assert.equal(deals.spec.extractorSlug, "fetchRecords");
+  const { config } = deals.spec;
+  assert.equal(config.objectType, "deals");
+  assert.match(JSON.stringify(config.filter), /"propertyName":"hs_is_closed"/, "only closed deals are extracted");
+  assert.equal(config.columnSelectionMode, "pick", "pick, so nothing the audit does not read is extracted");
+  const picked = [config.selectedPropertiesNames].flat();
+  for (const name of ["closedate", "hs_is_closed_won", "hs_is_closed_lost", "pipeline", "num_associated_contacts", "hs_primary_associated_company", LOST_REASON_COLUMN]) {
+    assert.ok(picked.includes(name), `${name} is read by the audit and must be picked`);
+  }
+  for (const name of picked) {
+    assert.ok(!/amount|revenue|value/i.test(name), `${name} is money: context/ is read by agents that talk to prospects`);
   }
 });
 
-check("no CRM connector resource, and no connector to a source this cookbook must not read", () => {
-  for (const connector of resources().filter((r) => r.id.startsWith("connector:"))) {
-    assert.ok(
-      !["hubspot", "salesforce", "attio", "theirStack"].includes(connector.spec.integrationSlug),
-      `${connector.id} binds ${connector.spec.integrationSlug}: the CRM is resolved at run time by the audit so a workspace without one still deploys, and postings are another cookbook's source`,
-    );
+check("the shared CRM models are declared exactly as the other CRM cookbooks declare them", () => {
+  for (const [id, objectType] of [["model:crm_accounts", "companies"], ["model:crm_contacts", "contacts"]]) {
+    const model = byId.get(id);
+    assert.equal(model.spec.extractorSlug, "fetchRecords");
+    assert.deepEqual(model.spec.config, { objectType, columnSelectionMode: "all" }, `${id} must match crm-enrichment's and crm-deduplication's, so one copy serves all three`);
   }
 });
 
-check("no defineContext and no model", () => {
-  for (const id of byId.keys()) {
-    assert.ok(!id.startsWith("context:"), `${id} would collide with the scaffold's`);
-    assert.ok(!id.startsWith("model:"), `${id}: this cookbook reads the CRM through the audit script, not through an extract`);
+check("the audit is read-only SQL over the three models, with no amount and no email", async () => {
+  const { QUERIES, winLossAnalystPrompt } = await import("../infra/agents/win-loss-analyst.prompt.ts");
+  assert.ok(Object.keys(QUERIES).length >= 6, "the audit lost queries");
+  for (const [name, sql] of Object.entries(QUERIES)) {
+    assert.match(sql, /^SELECT /, `${name} must be a SELECT`);
+    assert.ok(!/\b(INSERT|UPDATE|DELETE|DROP|ALTER|CREATE)\b/i.test(sql), `${name} must not write`);
+    for (const ref of sql.match(/\b(?:FROM|JOIN)\s+([a-z_.]+)/gi) ?? []) {
+      assert.match(ref, /crm\.crm_(deals|accounts|contacts)$/, `${name} reads ${ref}: only the three models`);
+    }
+    assert.ok(!/amount|email/i.test(sql), `${name} reads money or an email`);
+    assert.ok(!sql.includes('"'), `${name} holds a double quote, which breaks the shell command it is wrapped in`);
+    assert.ok(winLossAnalystPrompt.includes(`cargo-ai storage query execute "${sql}"`), `${name} is not in the prompt as a command`);
+  }
+  for (const name of ["pipelines", "lost_reasons", "contacts_on_deals", "deals_since"]) {
+    assert.ok(QUERIES[name], `the ${name} query is what a hygiene finding or a receipt reads`);
   }
 });
 
@@ -64,7 +108,7 @@ check("exactly one agent deploys, a harness on a monthly cron with the channel l
   assert.equal((agent.spec.capabilities ?? []).length, 0, "a context capability would be a write path that skips the pull request");
   assert.equal((agent.spec.tools ?? []).length, 0, "slack.postMessage is an action on the agent, not a wrapped tool");
   const env = agent.spec.repository?.env ?? [];
-  assert.equal((Array.isArray(env) ? env : Object.keys(env)).length, 0, "no env: choices live in scripts/win-loss-review/collect/config.ts and there is no credential");
+  assert.equal((Array.isArray(env) ? env : Object.keys(env)).length, 0, "no env: the audit is in the prompt and there is no credential");
   const crons = (agent.spec.triggers ?? []).filter((t) => t.type === "cron");
   assert.equal(crons.length, 1, "exactly one cron trigger");
   assert.match(crons[0].cron, /^\S+ \S+ \d+ \* \*$/, "the cron is monthly: a day-of-month, every month");
@@ -77,82 +121,11 @@ check("exactly one agent deploys, a harness on a monthly cron with the channel l
   assert.equal(post.config.disableUnfurling, true, "disableUnfurling must be locked so the PR link stays a link");
 });
 
-check("the CRM registry key equals the adapter's integration", async () => {
-  const { CRMS } = await import("../scripts/collect/crms/index.ts");
-  for (const [slug, entry] of Object.entries(CRMS)) {
-    assert.equal(entry.crm.integration, slug, `${slug} is filed under an adapter whose integration is "${entry.crm.integration}"`);
-    assert.ok(["live", "docs"].includes(entry.written));
-    for (const method of ["closedDeals", "companies", "contactsOnDeal"]) {
-      assert.equal(typeof entry.crm[method], "function", `${slug} does not satisfy Crm: ${method} is missing`);
-    }
-  }
-});
-
-const deal = (id, outcome, extra = {}) => ({
-  id, name: `deal ${id}`, pipeline: "default", stage: outcome === "won" ? "closedwon" : "closedlost", outcome,
-  closedAt: "2026-06-01T00:00:00Z", dealType: null, lostReason: null, contactCount: null, companyId: null, ...extra,
-});
-
-check("the snapshot aggregates counts with denominators, lists pipelines, and diffs the previous run", async () => {
-  const { buildSnapshot } = await import("../scripts/collect/audit.ts");
-  const deals = [
-    deal("w1", "won", { contactCount: 3, companyId: "c1" }),
-    deal("w2", "won", { contactCount: 1, companyId: "c1" }),
-    deal("l1", "lost", { contactCount: 0, lostReason: "price", pipeline: "partners" }),
-    deal("l2", "lost", { contactCount: 2, lostReason: "price" }),
-    deal("l3", "lost", { contactCount: null }),
-  ];
-  const snapshot = buildSnapshot({
-    crm: { integration: "hubspot", connectorSlug: "hubspot", connectorUuid: "u" },
-    window: { from: "2025-09-29", to: "2026-09-29", days: 365 },
-    deals,
-    companies: [{ id: "c1", name: "Acme", domain: "acme.example", industry: null, employees: 120, country: "FR", revenue: null }],
-    wonDealContacts: [
-      { dealId: "w1", contacts: [{ id: "p1", title: "VP Sales" }, { id: "p2", title: "VP Sales" }, { id: "p3", title: "CFO" }] },
-      { dealId: "w2", contacts: [{ id: "p4", title: "VP Sales" }] },
-    ],
-    previous: { path: "cadence/log/raw/crm/2026-08-29.json", deals: [deal("w1", "won")] },
-    now: "2026-09-29T00:00:00Z",
-  });
-  assert.equal(snapshot.mode, "hypothesis", "two wins is under the verify line");
-  assert.deepEqual(snapshot.counts, { closed: 5, won: 2, lost: 3 });
-  assert.deepEqual(snapshot.pipelines.map((p) => p.id), ["default", "partners"], "more than one pipeline is what the operator gets asked about");
-  assert.deepEqual({ lost: snapshot.lostReason.lost, filled: snapshot.lostReason.filled }, { lost: 3, filled: 2 });
-  assert.deepEqual(snapshot.lostReason.values, [{ value: "price", deals: 2 }]);
-  assert.deepEqual(snapshot.association, { closed: 5, dealsWithContacts: 3 });
-  assert.equal(snapshot.stakeholdersPerDeal.won.mean, 2);
-  assert.equal(snapshot.stakeholdersPerDeal.lost.histogram["0"], 1, "a deal with no contacts is counted, a deal with an unknown count is not");
-  assert.deepEqual(snapshot.titlesOnWonDeals, [{ title: "VP Sales", deals: 2 }, { title: "CFO", deals: 1 }], "a title counts once per deal however many people share it");
-  assert.deepEqual(snapshot.companies[0], { id: "c1", name: "Acme", domain: "acme.example", industry: null, employees: 120, country: "FR", revenue: null, won: 2, lost: 0 });
-  assert.deepEqual(snapshot.newSincePrevious, { previous: "cadence/log/raw/crm/2026-08-29.json", dealIds: ["w2", "l1", "l2", "l3"] });
-  assert.ok(!JSON.stringify(snapshot).includes("@"), "no email address anywhere in the snapshot: it lives in a git repository");
-  assert.ok(!/"(amount|currency)"/.test(JSON.stringify(snapshot)), "no deal amount anywhere in the snapshot: it lives in a git repository");
-});
-
-check("twenty wins in the window is verify mode", async () => {
-  const { buildSnapshot } = await import("../scripts/collect/audit.ts");
-  const deals = Array.from({ length: 20 }, (_, i) => deal(`w${i}`, "won"));
-  const snapshot = buildSnapshot({
-    crm: { integration: "hubspot", connectorSlug: "hubspot", connectorUuid: "u" },
-    window: { from: "2025-09-29", to: "2026-09-29", days: 365 },
-    deals, companies: [], wonDealContacts: [], previous: null,
-  });
-  assert.equal(snapshot.mode, "verify");
-  assert.deepEqual(snapshot.newSincePrevious, { previous: null, dealIds: deals.map((d) => d.id) });
-});
-
-check("an argument the audit does not know stops the run", async () => {
-  const { checkFlags, ConfigError } = await import("../scripts/collect/cli.ts");
-  checkFlags(["--dry-run", "--crm=hubspot"], ["--dry-run", "--crm="]);
-  for (const argv of [["--dryrun"], ["--crm", "hubspot"], ["-n"]]) {
-    assert.throws(() => checkFlags(argv, ["--dry-run", "--crm="]), ConfigError, `${argv.join(" ")} was accepted`);
-  }
-});
-
 check("the prompt carries the contract's fixed points and names no other cookbook's source", async () => {
-  const { winLossAnalystPrompt } = await import(`../infra/agents/win-loss-analyst.prompt.ts?contract=${stamp}`);
+  const { winLossAnalystPrompt } = await import("../infra/agents/win-loss-analyst.prompt.ts");
   for (const line of [
-    "scripts/win-loss-review/collect/crm.ts",
+    "do not improvise this step",
+    "never run a query that is not in step 1",
     "Lost reason filled on", "Contacts on <n> of <closed> closed deals",
     "[R:", "[I:", "[TR:",
     "Never edit a file under persona/", "never edit icp/ after the first pass",

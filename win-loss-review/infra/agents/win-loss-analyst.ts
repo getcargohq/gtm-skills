@@ -12,8 +12,8 @@ import { agentsFolder } from "../folders";
 // is what makes this cookbook possible. The output of a month is not a column
 // value; it is a diff across markdown files: an ICP verified against won and
 // lost, dated insights with denominators, objections from lost reasons,
-// clients from closed-won, plus the audit snapshot under cadence/. Only an
-// agent with a working tree can produce that diff, and only a pull request
+// clients from closed-won, plus the record of each run under outputs/. Only
+// an agent with a working tree can produce that diff, and only a pull request
 // makes it reviewable before it becomes what every other agent believes.
 //
 // `connector` and `languageModel` are required even here. The harness does not
@@ -32,19 +32,19 @@ import { agentsFolder } from "../folders";
 // No `repository` block, and nothing left to put in one. Plan and deploy
 // fill the repo, branch, root and GitHub connector from the git origin of
 // the checkout, which is the correct binding: the repository holding
-// context/ and cadence/ IS this CDK project's. `cargo-ai cdk check` prints
+// context/ and outputs/ IS this CDK project's. `cargo-ai cdk check` prints
 // what it resolved; confirm the root is the repository root and not
-// `infra/`, since that is where the agent's `npx tsx` resolves node_modules
-// from.
+// `infra/`.
 //
-// No `env` either. The CRM choice, the pipelines, the window, the lost-reason
-// property and the verify line are in scripts/win-loss-review/collect/config.ts,
-// where the compiler checks the slug and the harness picks up an edit on its
-// next clone. The CRM is reached through `cargo-ai`, which the sandbox is
-// signed in to, so there is no credential anywhere in this cookbook.
+// No `env` either, and no script. The CRM is extracted by the platform into
+// the three models under ../models/, and the audit is fixed SQL over them in
+// ./win-loss-analyst.prompt.ts, with the lost-reason column and the verify
+// line beside it. The agent runs those queries through `cargo-ai`, which the
+// sandbox is signed in to, so there is no credential anywhere in this
+// cookbook.
 //
-// No `capabilities`. The audit is read from the snapshot the collector wrote,
-// and the one thing this agent must never do is write the workspace context
+// No `capabilities`. The audit is read with `cargo-ai storage query`, and the
+// one thing this agent must never do is write the workspace context
 // directly: a `context` capability here would be a second write path that
 // skips the pull request.
 export const winLossAnalyst = defineAgent("win_loss_analyst", {
@@ -74,9 +74,10 @@ export const winLossAnalyst = defineAgent("win_loss_analyst", {
       type: "cron",
       name: "monthly",
       // 06:00 UTC on the first of the month, before anyone reads the repo.
-      // The window is "since the previous snapshot", so a missed month is
-      // caught up by the next one rather than lost. The first pass is run by
-      // hand: same agent, same prompt, no previous snapshot to diff against.
+      // A month's new deals are those closed since the last merged run record
+      // (outputs/<date>-win-loss-review/), so a missed month is caught up by
+      // the next one rather than lost. The first pass is run by hand: same
+      // agent, same prompt, no record yet.
       cron: "0 6 1 * *",
       text: "Run the monthly win-loss review. Follow your system prompt exactly: run the audit, append to context/, open one pull request, post the five-line digest.",
     },
