@@ -1,7 +1,7 @@
 ---
 name: build-tam-list
 description: "Build a total addressable market list of companies filtered by industry, headcount, and geography, powered by Cargo. Triggers: \"build a TAM list\", \"how many companies match our ICP\", \"list every SaaS company in Europe under 200 employees\", \"size our addressable market\", \"find target accounts\", \"list building\", \"build a list of companies\". Providers: salesNavigator. Skip when: you want the people at those companies — use find-b2b-leads or find-stakeholders; or you want companies by tech stack — use find-companies-using-tech."
-version: "1.1.2"
+version: "1.2.0"
 compatibility: Requires @cargo-ai/cli (npm). Sign in or create an account with `cargo-ai login --email` (emailed code, no browser), `--oauth`, or an API token
 homepage: https://github.com/getcargohq/gtm-skills
 metadata:
@@ -109,7 +109,8 @@ with it.
 
 ## Worth knowing
 
-- Not the cheapest company search in the catalog: `aiArk.searchCompanies` (0.01) undercuts it when its filters fit. Sales Navigator is the default when the list is defined by LinkedIn-native filters.
+- Not the cheapest company search in the catalog. `FullEnrich.searchCompanies` is **free** (0 credits) and takes plain-string filters — `industry`, `headcount` `{min,max}`, `headquarters`, `technologies`, `keywords` — up to 2,000 per run; `FullEnrich.fetchCompanies`, also free, pulls up to 10,000 straight into a Cargo model. `aiArk.searchCompanies` (0.01) is the cheapest paid option and takes lookalike seeds. Sales Navigator is the default when the list is defined by LinkedIn-native filters.
+- `FullEnrich.lookupCompany` (free) returns one company's name, industry, headcount and LinkedIn URL from its domain.
 - Filters take LinkedIn's internal codes (`[43]`, `["B","C","D"]`, `[103644278]`), not names like `"fintech"` or `"50-200"` — strings fail or silently mismatch. Look them up with `cargo-ai connection integration get salesNavigator`.
 - Billed per returned record: size the pool with `limit: 1` (the total match count comes back with it) before pulling the full scope.
 - Size the market before you enrich it — a count is nearly free, a 5,000-company pull is ~1,000 credits.
