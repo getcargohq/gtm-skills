@@ -63,7 +63,7 @@
 // --- one-off / deployed seam -------------------------------------------------------
 // tam-building, account-scoring, crm-enrichment, crm-deduplication,
 // call-capture, agentic-engagement, standup, weekly-planning, ask-cargo,
-// new-hire-detection and context-seeding are worked CDK examples that deploy a
+// new-hire-detection and web-capture are worked CDK examples that deploy a
 // pipeline.
 // build-tam-list, score-leads and research-account are one-offs: the same
 // job once, in a turn. The
@@ -133,9 +133,10 @@
 {"prompt": "One agent on top of all the others that anyone can mention in slack", "expect": "ask-cargo"}
 {"prompt": "A slack bot that knows our repo and can open PRs", "expect": "ask-cargo"}
 {"prompt": "Post the day's recap to slack every evening", "expect": "standup", "why": "A scheduled digest is standup; ask-cargo only answers when mentioned."}
-{"prompt": "Our context repo is empty, seed it from our website", "expect": "context-seeding"}
-{"prompt": "Set up the workspace context from acme.com", "expect": "context-seeding"}
-{"prompt": "Write a first ICP and personas from our public pages and job postings", "expect": "context-seeding", "why": "Derived from the public surface, tagged, as a pull request: not one file written by hand."}
+{"prompt": "Our context repo is empty, seed it from our website", "expect": "web-capture"}
+{"prompt": "Set up the workspace context from our domain", "expect": "web-capture"}
+{"prompt": "Add our company news to the knowledge base every week", "expect": "web-capture", "why": "Our own company, every week, into context/: not news about target accounts."}
+{"prompt": "Keep our context current from our website", "expect": "web-capture"}
 {"prompt": "Research acme.com for me right now", "expect": "research-account", "why": "A one-off answer in this chat, nothing deployed."}
 {"prompt": "Watch our market for new VPs of Sales at software companies and put them in HubSpot", "expect": "new-hire-detection", "why": "The market, not the book, and the CRM as the destination: the pipeline."}
 {"prompt": "Every time a new head of RevOps starts at a company in our ICP, tell the account owner", "expect": "new-hire-detection", "why": "The standing tell: every time, routed to an owner."}

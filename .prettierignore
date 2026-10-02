@@ -13,7 +13,7 @@ llms.txt
 !crm-enrichment/**/*.md
 !website-building/**/*.md
 !new-hire-detection/**/*.md
-!context-seeding/**/*.md
+!web-capture/**/*.md
 !CONTRIBUTING.md
 !.agents/skills/**/*.md
 !.claude/skills/**/*.md

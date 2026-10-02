@@ -485,113 +485,6 @@
       ]
     },
     {
-      "name": "context-seeding",
-      "kind": "cookbook",
-      "job": "Seed the knowledge layer at context/ from the company's public surface alone: positioning and offerings, an inferred ICP with a disqualifier, three to five personas from job ads with title detection lists, jobs to be done, competitors and the status quo, clients and proof from case studies, and signal candidates, every sentence tagged receipted, inferred or unknown, as one pull request. Runs once, by hand or at workspace setup.",
-      "description": "Seed the knowledge layer at context/ from the company's public surface alone: positioning and offerings, an inferred ICP with a disqualifier, three to five personas from job ads with title detection lists, jobs to be done, competitors and the status quo, clients and proof from case studies, and signal candidates, every sentence tagged receipted, inferred or unknown, as one pull request. Runs once, by hand or at workspace setup. Triggers: \"our context repo is empty\", \"seed the context from our website\", \"set up the workspace context from our domain\", \"write a first ICP and personas from our public pages\", \"derive our personas from job ads\", \"we have no CRM yet\". Cargo CDK, harness claudeCode, GitHub. Skip when: one ICP or persona file written by hand now, which is cargo-context; or the ICP verified against won and lost deals, which is win-loss-review.",
-      "version": "0.1.0",
-      "homepage": "https://github.com/getcargohq/gtm-skills/tree/main/context-seeding",
-      "group": "Make it run forever",
-      "install": "cargo-ai cdk add cookbook/context-seeding",
-      "partOf": [],
-      "personas": [
-        "gtm-engineering",
-        "revops",
-        "marketing"
-      ],
-      "integrations": [
-        "anthropic",
-        "github",
-        "theirStack"
-      ],
-      "example": {
-        "prompt": "Our workspace is new and context/ is empty. Seed it from northwind.example, ask me the three lines, and open one pull request.",
-        "output": "```text\nWorkspace: Northwind (northwind.example). Mode: chat. Skip list: none, every domain is empty.\n\nTarget market: B2B SaaS, 50 to 500 employees, US and UK, selling through an AE team\nTarget personas: Head of Revenue Operations, Sales Operations Manager, VP Sales, GTM Engineer\nKey competitors: Contoso Ops, Fabrikam Flow, the spreadsheet plus a RevOps contractor\nConfirm or correct.\n\n[context-seeding] northwind.example 2026-10-06\nglobal/ 3 · icp/ 1 · persona/ 4 · jtbd/ 3 · alternative/ 5 · client/ 6 · proof/ 9 · signal/ 4\nTags: 41 receipted · 118 inferred · 12 unknown\nPersona pull: 4 personas, 40 postings each, inside the 50 to 500 band, own-key connector\n+ context/persona/head-of-revenue-operations.md\n+   ## Detection\n+   Title include: Head of Revenue Operations, Director of Revenue Operations, RevOps Lead\n+   Title exclude: intern, analyst, assistant\n+   ## Evidence\n+   Pipeline accuracy named as a KPI in 27 of 40 postings [R: cadence/log/raw/jobs/head_of_revenue_operations.json]\n```\n\nThirty-five files, every claim tagged, one pull request; the ICP carries a disqualifier and says a\nCRM-reading cookbook is what verifies it."
-      },
-      "state": "to-be-approved",
-      "chain": 12,
-      "resources": [
-        "agents",
-        "connectors",
-        "folders",
-        "models"
-      ],
-      "asked": [
-        {
-          "input": "icp/",
-          "kind": "generated",
-          "how": "**derived**: the profile method's fit conditions and its \"looks like fit, is not\" as the disqualifier, tagged inferred, with \"How to identify\" built from the profile's custom attributes.",
-          "why": "A first ICP that a scorer can already read, honest about its source. The disqualifier is the half of an ICP that protects the team's time, and the half a crawl never produces unless asked."
-        },
-        {
-          "input": "persona/",
-          "kind": "generated",
-          "how": "**derived**: one pull per confirmed persona through TheirStack, size filtered at pull time inside the ICP band, postings read in batches of 15 to 20 until two consecutive batches change nothing. **asked** at the second stop, after drafting: which personas are real, which merge or split.",
-          "why": "A persona without a title include and exclude list cannot be detected by any classifier and is not done. Merging and splitting is a judgement about the team's market that postings cannot settle."
-        },
-        {
-          "input": "client/`, `proof/",
-          "kind": "generated",
-          "how": "**derived** from the case-study and customers pages, one client node and its proof nodes each. **asked** once, at the second stop: which customers can be named to prospects, which are internal only; becomes `reference_permission: named \\",
-          "why": "internal` on every client and proof file, `unknown` in setup mode."
-        }
-      ],
-      "canChange": [
-        {
-          "id": "standing-persona-models",
-          "when": "You want new postings per persona flowing every month, for signals",
-          "how": "After the run, declare one `personaJobsModel(...)` per confirmed persona in `infra/models/persona-jobs.ts` from the entry in `scripts/collect/personas.ts`, add the models folder, add a monthly `schedule`, deploy. `references/persona-pulls.md` has the steps",
-          "cost": "The first run at deploy re-bills the postings the run already read. After that the extractor is incremental and only new postings bill. A model created some other way is not adopted by the declaration: the deploy stops on `duplicateSlug` and needs `cdk import"
-        },
-        {
-          "id": "no-persona-pull",
-          "when": "No TheirStack connection and no appetite for one",
-          "how": "Delete `infra/connectors/theirstack.ts` and step 5's pull from `context-seeder.prompt.ts`; the personas are written from the careers pages",
-          "cost": "Pains, KPIs and responsibility language come from postings, not from titles. The persona files carry `[I]` where the postings would have put `[R]`, and the messaging built on them is weaker for it"
-        },
-        {
-          "id": "deeper-crawl",
-          "when": "You want objections and alternatives from what buyers say in public, not only what the site says",
-          "how": "Add review sites and communities to step 2's crawl list in `context-seeder.prompt.ts`, landing in `objection/` and `alternative/",
-          "cost": "Public complaints are one source, often one reviewer. Everything from them stays `hypothesis`, and the objection files will read as authoritative to an agent that does not check the tag"
-        },
-        {
-          "id": "two-stops-into-one",
-          "when": "The operator is not available twice and accepts the drafted personas as they are",
-          "how": "Merge step 6's questions into step 4 in `context-seeder.prompt.ts",
-          "cost": "The persona merge/split question is answered before the postings were read, so it is answered about candidates, not drafts. Expect one round of corrections on the pull request instead"
-        }
-      ],
-      "shouldNotChange": [
-        "**The public surface is the only source.** (`context-seeder.prompt.ts`) No CRM, no calls, no inbox, no Slack, and no mention of them to the agent. Each is another cookbook's evidence; wire one in here and this agent stops being the thing that runs at setup with nothing connected, and starts mixing a hypothesis with a verification nobody can tell apart afterwards.",
-        "**The one-PR write path.** (`infra/agents/context-seeder.ts`) The agent never writes the workspace context directly and has no `context` capability: the repository is the source and `cargo-ai cdk deploy` syncs it. Give it `cargo-ai context runtime write` and the knowledge layer has two sources of truth; the next deploy overwrites whichever one a human did not see.",
-        "**The agent does not pull; the script does.** (`scripts/collect/jobs.ts`) A fetch loop an agent re-derives is a fetch loop that silently changes shape, and the pull is the one spend in this run. The budget is read and computed, never estimated, and `--over-budget` is the operator's word.",
-        "**Size is filtered at pull time through `companyFields`, never after.** (`scripts/collect/personas.ts`, `infra/models/persona-jobs.ts`) Billing is per returned posting. Filter after the pull and every row outside the band was paid for and thrown away.",
-        "**Derive before you ask, and the three-line confirmation stays three lines.** (`context-seeder.prompt.ts`) More than about four questions at one stop means a lookup was skipped. In setup mode the questions move to the pull request; they never disappear.",
-        "**Personas ship with detection lists or are not done.** (`context-seeder.prompt.ts`) A persona file without a title include and exclude list cannot be used by any classifier, scorer or router.",
-        "**Persona files are product-free except one final derived section.** (`context-seeder.prompt.ts`) Everything above \"How we land\" describes the job, not what is sold to it.",
-        "**Everything is a hypothesis, and the tags say so.** (`context-seeder.prompt.ts`) `[R]` only for what a page states, with the URL; `confidence: hypothesis` everywhere; missing evidence is never contradicting evidence. Drop the tags and the cookbook that later verifies against the CRM cannot tell what it is correcting.",
-        "**Idempotent: seeded domains are skipped, and the skip list is printed first.** (`context-seeder.prompt.ts`) A domain with two or more entries is left alone entirely. Drop the rule and a re-run overwrites the ICP a human refined.",
-        "**No persona model deploys by default.** (`infra/models/persona-jobs.ts`) A model runs at creation and bills `limit` postings before anyone confirmed the persona.",
-        "**`scripts/context-seeding/package.json` stays.** (`scripts/package.json`) The CDK loader imports every `.ts` under the project root except directories carrying one; delete it and `cargo-ai cdk plan` calls TheirStack on every plan.",
-        "**The harness root stays the repository root.** (`infra/agents/context-seeder.ts`) That is where `node_modules` is, so it is the only place `npx tsx …/collect/jobs.ts` resolves. `cargo-ai cdk check` prints the resolved binding; a line ending `in infra/` means the collector cannot run."
-      ],
-      "doneWhen": [
-        "`npx tsx scripts/context-seeding/collect/jobs.ts --dry-run` printed a per-persona limit and the reason, read from the workspace, and nothing in this folder states a credit amount",
-        "`cargo-ai cdk check` prints the agent bound to the repository root, and `cargo-ai cdk plan` reports one agent, three bound connectors, one folder and no model",
-        "from a fresh project, one run in chat mode opened one pull request touching `global/`, `icp/`, `persona/`, `jtbd/`, `alternative/`, `client/`, `proof/` and `signal/`, every factual sentence tagged, and the operator was asked at most the questions in the table, at two stops",
-        "one run in setup mode opened the same pull request with a \"Questions for the reviewer\" section and asked nothing",
-        "`icp/` names a disqualifier and says which cookbook verifies it",
-        "every persona file has a title include list, a title exclude list and a buying roles section, and nothing above \"How we land\" names the product",
-        "every `client/` and `proof/` file carries `reference_permission`",
-        "the pull request body states files per domain, tag counts (receipted, inferred, unknown), the credit spend per persona pull, and the questions asked with their answers",
-        "re-running against the merged result prints every seeded domain on the skip list and opens no pull request",
-        "after merging and `cargo-ai cdk deploy`, a seeded `context/` file is readable from the workspace context repository and an agent with the `context` capability quotes it back with its tag"
-      ],
-      "cost": "The crawl is the harness's own fetches. The persona pull is the one deliberate spend and it is per\nreturned posting: `scripts/context-seeding/collect/jobs.ts` reads the price and the balance at run\ntime and prints what each pull will cost before it runs, and a TheirStack connection carrying its\nown key bills TheirStack's plan rather than Cargo credits. Three to five personas at the default\nper-persona limit is the whole run. The recurring cost is nothing: it runs once, and again by hand\nwhen the site changes.",
-      "composesInto": "`win-loss-review` (verifies the seeded ICP and personas against won and lost deals, and proposes the\ncorrections), `account-scoring` (reads the `icp/` this writes, disqualifier included),\n`monitor-buying-signals` and `tam-building` (the `signal/` candidates and the ICP band), and any\nagent with the `context` capability."
-    },
-    {
       "name": "crm-deduplication",
       "kind": "cookbook",
       "job": "Keep CRM accounts and contacts duplicate-free: audit company and person identity, run recurring deduplication plays directly on CRM models, merge safe exact matches, and route uncertain clusters to manual review.",
@@ -1732,6 +1625,84 @@
         "**A waterfall bills the record, not the vendor.** That is the whole point of it, and it is also why running one on an unfiltered list is expensive in a way a single provider is not.",
         "**Report the hit rate, not just the cost.** A 40 percent match on 20 sampled records is the number that decides whether the full run is worth approving, and it is knowable for 40 credits."
       ]
+    },
+    {
+      "name": "web-capture",
+      "kind": "cookbook",
+      "job": "Each Monday the company's own website and recent news about it land in context/ as one pull request: the first run seeds positioning, offerings, an inferred ICP with a disqualifier, competitors, clients and proof from the public pages; every run after adds a dated note of what changed (an offering, pricing, a launch, funding, a customer) and never edits an existing file.",
+      "description": "Each Monday the company's own website and recent news about it land in context/ as one pull request: the first run seeds positioning, offerings, an inferred ICP with a disqualifier, competitors, clients and proof from the public pages; every run after adds a dated note of what changed (an offering, pricing, a launch, funding, a customer) and never edits an existing file. Triggers: \"keep our context current from our website\", \"what changed on our website lately\", \"add our company news to the knowledge base\", \"our context repo is empty, seed it from our website\", \"set up the workspace context from our domain\". Cargo CDK, harness claudeCode, parallel, GitHub. Skip when: news about target accounts, which is monitor-buying-signals; one company researched before a call, which is research-account; or the ICP verified against won and lost deals, which is win-loss-review.",
+      "version": "0.1.0",
+      "homepage": "https://github.com/getcargohq/gtm-skills/tree/main/web-capture",
+      "group": "Make it run forever",
+      "install": "cargo-ai cdk add cookbook/web-capture",
+      "partOf": [],
+      "personas": [
+        "gtm-engineering",
+        "revops",
+        "marketing"
+      ],
+      "integrations": [
+        "anthropic",
+        "github"
+      ],
+      "example": {
+        "prompt": "Every Monday, read our website and the news about us, and keep context/ current.",
+        "output": "```text\ninsight/2026-10-05-web.md\n- New offering on /pricing: \"Enterprise\" tier with SSO and audit logs [R: https://northwind.example/pricing]\n- Launched a HubSpot integration on 2026-09-30 [R: https://northwind.example/changelog]\n- Raised a $20M Series B led by Contoso Ventures, 2026-10-01 [R: https://news.example/northwind-series-b]\n- Fabrikam named as a customer, 40% faster onboarding [R: https://northwind.example/customers/fabrikam]\n\nclient/fabrikam.md, proof/fabrikam-onboarding.md   (reference_permission: unknown)\nPR body: proposes adding \"Enterprise\" to global/offerings.md; one file edit proposed, none made\n```\n\nA week after the first run: one pull request, four findings, two new files, one proposed edit, and\none news search billed."
+      },
+      "state": "to-be-approved",
+      "chain": 12,
+      "resources": [
+        "agents",
+        "connectors",
+        "folders"
+      ],
+      "asked": [],
+      "canChange": [
+        {
+          "id": "more_pages",
+          "when": "Product, solution or docs pages say what is sold better than the home page",
+          "how": "Add their paths to `PAGES` in `scripts/collect/config.ts",
+          "cost": "More text per snapshot and more candidate changes for the agent to read; each JavaScript-only page bills an extract"
+        },
+        {
+          "id": "daily",
+          "when": "The company ships or gets covered several times a week",
+          "how": "Change the cron in `infra/agents/web-scribe.ts",
+          "cost": "Five times the runs, and most days open no pull request"
+        },
+        {
+          "id": "slack_digest",
+          "when": "The team does not watch pull requests",
+          "how": "Add a Slack connector and a locked `postMessage` use on the agent, as standup does, and a digest step to the prompt",
+          "cost": "One more connector to keep authorized, and a channel to choose"
+        },
+        {
+          "id": "deeper_news",
+          "when": "The `lite` search misses coverage the team knows about",
+          "how": "Set `NEWS_PROCESSOR` to `base` in `scripts/collect/config.ts",
+          "cost": "The next rung of the processor price ladder on every run; read it live before switching"
+        }
+      ],
+      "shouldNotChange": [
+        "**The web is the only source.** (`web-scribe.prompt.ts`) No CRM, no calls, no inbox, no Slack. Each is another cookbook's evidence; mix one in here and a page and a deal end up in one file at one confidence nobody can tell apart afterwards.",
+        "**The agent does not crawl or search; the script does.** (`scripts/collect/web.ts`) A fetch loop an agent re-derives each week silently changes shape, and the snapshot is what next week is diffed against.",
+        "**Existing files are never edited.** (`web-scribe.prompt.ts`) What a human corrected stays corrected. A change to an existing file is a proposal in the pull request body.",
+        "**The one-PR write path.** (`infra/agents/web-scribe.ts`) The agent never writes the workspace context directly and has no `context` capability: the repository is the source and `cargo-ai cdk deploy` syncs it.",
+        "**The first run always opens a pull request.** (`web-scribe.prompt.ts`) Its snapshot is the baseline. Without it committed, every run reads as a first run and nothing is ever a change.",
+        "**Every claim is tagged.** (`web-scribe.prompt.ts`) `[R]`, `[I]` or `[TR]`, and missing evidence is never contradicting evidence.",
+        "**`scripts/web-capture/package.json` stays.** (`scripts/package.json`) The CDK loader imports every `.ts` under the project root except directories carrying one; delete it and `cargo-ai cdk plan` runs the news search on every plan."
+      ],
+      "doneWhen": [
+        "`npx tsx scripts/web-capture/collect/web.ts --dry-run` printed the company's own domain, the pages and the news window",
+        "`cargo-ai cdk check` prints the agent bound to the repository root, and `cargo-ai cdk plan` reports one agent, two bound connectors, one folder and no model",
+        "the first run opened one pull request with the baseline snapshot, seeded every empty domain, and edited no existing file",
+        "every seeded file carries tags, `icp/` names a disqualifier, and every `client/` file carries `reference_permission: unknown`",
+        "after the baseline was merged, a run with a change opened a pull request adding `insight/<date>-web.md` with one tagged line per finding, and proposed rather than made any edit to an existing file",
+        "a run with nothing worth writing opened no pull request and printed the collector's counts",
+        "after merging and `cargo-ai cdk deploy`, a seeded file is readable from the workspace context repository and an agent with the `context` capability quotes it back with its tag"
+      ],
+      "cost": "Fetch live prices before every estimate: `cargo-ai connection integration get parallel`, plus the\nLLM connector's model. Quote the lookup time with the estimate.\n\nPages are fetched like any visitor reads them, for nothing. The news is one `parallel.createTask` on\nthe `lite` processor a run, the cheapest rung of its price ladder. A page that comes back as an empty\nJavaScript shell is read again through `parallel.extract`, billed per URL. A normal week is the one\nnews task plus the harness run, which scales with how much changed.",
+      "composesInto": "`win-loss-review` (verifies the ICP this seeds against won and lost deals, and proposes the\ncorrections), `call-capture` (adds what buyers say on calls), `account-scoring` (reads the ICP),\nand any agent with the `context` capability."
     },
     {
       "name": "website-building",

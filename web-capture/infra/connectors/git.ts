@@ -1,6 +1,6 @@
 import { defineConnector } from "@cargo-ai/cdk";
 
-// The git provider the seeding agent clones through, and pushes its branch
+// The git provider the web scribe clones through, and pushes its branch
 // and opens its pull request with. Its OAuth grant carries the `repo` scope,
 // so this one connector is the agent's entire write path into the
 // repository; it has no other way to land anything.
