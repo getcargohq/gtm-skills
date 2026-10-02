@@ -2,7 +2,7 @@ import { defineDomain } from "@cargo-ai/cdk";
 
 import { website } from "../apps/website";
 
-// PLACEHOLDER — the domain the website lives on, when Cargo holds its DNS.
+// PLACEHOLDER: the domain the website lives on, when Cargo holds its DNS.
 //
 // DNS hosted at another provider? DELETE THIS FILE. Keep
 // `domains` on the app; after a release, read the records the hostname needs

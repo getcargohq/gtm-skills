@@ -82,12 +82,12 @@ to end up with the code your company would have written, in your project, and an
 adapting. If the `cargo-project` skill is in your session it carries the long form of this,
 including CI that plans every pull request and deploys on merge; if not, this is enough.
 
-1. **Install it — the CLI does the copy.** From inside the CDK project,
+1. **Install it: the CLI does the copy.** From inside the CDK project,
    `cargo-ai cdk add cookbook/website-building` writes this example to
    `infra/website-building/` and this procedure to `.claude/skills/website-building/`. No project
    yet? `cargo-ai cdk init <dir> --cookbook website-building && cd <dir> && npm install` does
    both; this folder never ships a shell. **If you are reading this from the project's
-   `.claude/skills/`, the install already happened — start at step 2.**
+   `.claude/skills/`, the install already happened; start at step 2.**
 2. **Reconcile it with what is already declared.** An app or website domain the project already
    has is rewired to, not duplicated. A domain another skill already declares (for example
    `agentic-engagement`'s sending domain) is one resource: add `website.domainRecords` and the
