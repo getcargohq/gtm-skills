@@ -34,7 +34,7 @@ assert.equal(
   "weekly-planning must not wrap a Slack action in a tool",
 );
 
-const agent = byId.get("agent:weekly-planning");
+const agent = byId.get("agent:weekly_planning");
 assert.ok(agent, "defineAgent(weekly-planning) must exist");
 assert.equal(
   agent.spec.harnessSlug,

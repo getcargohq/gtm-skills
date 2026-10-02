@@ -1,10 +1,10 @@
 # Cargo GTM Skills
 
 [![cargo-ai cli](https://img.shields.io/npm/v/@cargo-ai/cli?label=cargo-ai%20cli&color=black)](https://www.npmjs.com/package/@cargo-ai/cli)
-[![skills.sh](https://img.shields.io/badge/skills.sh-29%20skills-black)](https://www.skills.sh)
+[![skills.sh](https://img.shields.io/badge/skills.sh-31%20skills-black)](https://www.skills.sh)
 [![License](https://img.shields.io/github/license/getcargohq/gtm-skills?color=black)](LICENSE)
 
-29 agent skills for B2B go-to-market work, each with one routed job. Some run once, in a turn:
+31 agent skills for B2B go-to-market work, each with one routed job. Some run once, in a turn:
 find the emails, score the list, brief me on this account. Others deploy a pipeline that keeps
 doing that job after the session ends.
 
@@ -16,7 +16,7 @@ doing that job after the session ends.
   that supports the [skills.sh](https://skills.sh) standard.
 
 ```bash
-npx skills add getcargohq/gtm-skills --all              # all 29
+npx skills add getcargohq/gtm-skills --all              # all 31
 npx skills add getcargohq/gtm-skills/<skill-name>       # exactly one
 cargo-ai cdk add cookbook/<skill-name>                  # a pipeline, into your Cargo project
 ```
@@ -84,7 +84,7 @@ Rank a list against your profile, then understand the one account before you wal
 | Skill | Does | Try saying |
 | --- | --- | --- |
 | [`score-leads`](score-leads/SKILL.md) | Score a list of companies against your ideal customer profile and rank them — every row gets a number, the reason behind it, and a tier, so the bottom of the list can be dropped before anyone spends time on it. | “Score the 20 companies in `webinar-accounts.csv` against our ICP: 50–500 employees, B2B software, US or UK, competitors out.” |
-| [`research-account`](research-account/SKILL.md) | Research one company before a meeting and hand back a briefing — what it does, what it publicly says is hard right now, and who it names as competition, each line traceable to where it came from. | “I have a discovery call with Fabrikam tomorrow — we sell data-pipeline monitoring. Brief me.” |
+| [`research-account`](research-account/SKILL.md) | Research one company and its public website before a meeting and hand back a briefing — what it does, what it publicly says is hard right now, and who it names as competition, each line traceable to where it came from. | “I have a discovery call with Fabrikam tomorrow — we sell data-pipeline monitoring. Brief me.” |
 
 ### Make it run forever
 
@@ -101,16 +101,18 @@ The same jobs as a deployed pipeline: each skill carries a worked CDK example yo
 | [`weekly-planning`](weekly-planning/SKILL.md) | Every Monday last week's GTM work is ranked against active initiatives, declared infra, and live runs, as one reviewable pull request per initiative — or one workspace pull request when there are none. | “Every Monday morning, check last week's runs against our initiatives and open one pull request per initiative saying what to do next.” |
 | [`ask-cargo`](ask-cargo/SKILL.md) | One agent the whole team @mentions in Slack, sitting on top of your GTM repo and workspace: it answers from context, cadence and live runs, turns change requests into pull requests, and hands work to the other deployed agents only after a go in the thread. | “Put one agent in our #gtm Slack channel that answers from this repo, opens a pull request for any edit, and runs nothing until someone says go.” |
 | [`agentic-engagement`](agentic-engagement/SKILL.md) | Deploy an agent that holds email conversations with leads: a sending domain, a mailbox, native sendEmail and listEmailEvents on the agent, a native email trigger on reply and unsubscribe, and a heartbeat that checks thread status when nothing inbound happened. | “Give our jordan@ mailbox an agent that answers leads who reply to my first emails, and checks quiet threads once for a single follow-up.” |
+| [`website-building`](website-building/SKILL.md) | Build the company website on Cargo and serve it on your own domain: a statically exported Next.js app, one defineApp with its www hostname, and a defineDomain that publishes the records and forwards the apex, changed only through reviewed pull requests. | “Build our company website on Cargo from our brand guide and serve it on www.fabrikam.example. Our DNS is hosted elsewhere.” |
+| [`new-hire-detection`](new-hire-detection/SKILL.md) | Watch your whole market for people who just took a role you sell to, qualify the company each one joined against your ICP, and post the ones that fit to Slack with the verdict and the links. A deployed pipeline on a Sales Navigator job-change search; checking or writing the CRM is an optional variation. | “Every time a new VP Sales or head of RevOps starts at a US software company with 51 to 500 people, post it in #new-hires.” |
 | [`context-seeding`](context-seeding/SKILL.md) | Seed the knowledge layer at context/ from the company's public surface alone: positioning and offerings, an inferred ICP with a disqualifier, three to five personas from job ads with title detection lists, jobs to be done, competitors and the status quo, clients and proof from case studies, and signal candidates, every sentence tagged receipted, inferred or unknown, as one pull request. Runs once, by hand or at workspace setup. | “Our workspace is new and context/ is empty. Seed it from northwind.example, ask me the three lines, and open one pull request.” |
 
 ### By role
 
-- **Sales development:** [`agentic-engagement`](agentic-engagement/SKILL.md), [`enrich-linkedin-profile`](enrich-linkedin-profile/SKILL.md), [`find-b2b-leads`](find-b2b-leads/SKILL.md), [`find-companies-using-tech`](find-companies-using-tech/SKILL.md), [`find-linkedin-url`](find-linkedin-url/SKILL.md), [`find-work-email`](find-work-email/SKILL.md); also [`enrich-company-data`](enrich-company-data/SKILL.md), [`find-portfolio-companies`](find-portfolio-companies/SKILL.md), [`find-stakeholders`](find-stakeholders/SKILL.md), [`monitor-buying-signals`](monitor-buying-signals/SKILL.md), [`research-account`](research-account/SKILL.md), [`score-leads`](score-leads/SKILL.md), [`track-funding-rounds`](track-funding-rounds/SKILL.md), [`track-job-changes`](track-job-changes/SKILL.md), [`verify-email-list`](verify-email-list/SKILL.md)
+- **Sales development:** [`agentic-engagement`](agentic-engagement/SKILL.md), [`enrich-linkedin-profile`](enrich-linkedin-profile/SKILL.md), [`find-b2b-leads`](find-b2b-leads/SKILL.md), [`find-companies-using-tech`](find-companies-using-tech/SKILL.md), [`find-linkedin-url`](find-linkedin-url/SKILL.md), [`find-work-email`](find-work-email/SKILL.md); also [`enrich-company-data`](enrich-company-data/SKILL.md), [`find-portfolio-companies`](find-portfolio-companies/SKILL.md), [`find-stakeholders`](find-stakeholders/SKILL.md), [`monitor-buying-signals`](monitor-buying-signals/SKILL.md), [`new-hire-detection`](new-hire-detection/SKILL.md), [`research-account`](research-account/SKILL.md), [`score-leads`](score-leads/SKILL.md), [`track-funding-rounds`](track-funding-rounds/SKILL.md), [`track-job-changes`](track-job-changes/SKILL.md), [`verify-email-list`](verify-email-list/SKILL.md)
 - **Account executives:** [`find-portfolio-companies`](find-portfolio-companies/SKILL.md), [`find-stakeholders`](find-stakeholders/SKILL.md), [`monitor-buying-signals`](monitor-buying-signals/SKILL.md), [`research-account`](research-account/SKILL.md), [`track-funding-rounds`](track-funding-rounds/SKILL.md), [`track-job-changes`](track-job-changes/SKILL.md); also [`call-capture`](call-capture/SKILL.md), [`enrich-linkedin-profile`](enrich-linkedin-profile/SKILL.md)
-- **RevOps:** [`account-scoring`](account-scoring/SKILL.md), [`apollo-to-cargo`](apollo-to-cargo/SKILL.md), [`ask-cargo`](ask-cargo/SKILL.md), [`build-tam-list`](build-tam-list/SKILL.md), [`crm-deduplication`](crm-deduplication/SKILL.md), [`crm-enrichment`](crm-enrichment/SKILL.md), [`enrich-company-data`](enrich-company-data/SKILL.md), [`score-leads`](score-leads/SKILL.md), [`tam-building`](tam-building/SKILL.md), [`waterfall-enrichment`](waterfall-enrichment/SKILL.md), [`zoominfo-to-cargo`](zoominfo-to-cargo/SKILL.md); also [`call-capture`](call-capture/SKILL.md), [`clay-to-cargo`](clay-to-cargo/SKILL.md), [`context-seeding`](context-seeding/SKILL.md), [`find-linkedin-url`](find-linkedin-url/SKILL.md), [`find-work-email`](find-work-email/SKILL.md), [`standup`](standup/SKILL.md), [`verify-email-list`](verify-email-list/SKILL.md), [`weekly-planning`](weekly-planning/SKILL.md)
+- **RevOps:** [`account-scoring`](account-scoring/SKILL.md), [`apollo-to-cargo`](apollo-to-cargo/SKILL.md), [`ask-cargo`](ask-cargo/SKILL.md), [`build-tam-list`](build-tam-list/SKILL.md), [`crm-deduplication`](crm-deduplication/SKILL.md), [`crm-enrichment`](crm-enrichment/SKILL.md), [`enrich-company-data`](enrich-company-data/SKILL.md), [`new-hire-detection`](new-hire-detection/SKILL.md), [`score-leads`](score-leads/SKILL.md), [`tam-building`](tam-building/SKILL.md), [`waterfall-enrichment`](waterfall-enrichment/SKILL.md), [`zoominfo-to-cargo`](zoominfo-to-cargo/SKILL.md); also [`call-capture`](call-capture/SKILL.md), [`clay-to-cargo`](clay-to-cargo/SKILL.md), [`context-seeding`](context-seeding/SKILL.md), [`find-linkedin-url`](find-linkedin-url/SKILL.md), [`find-work-email`](find-work-email/SKILL.md), [`standup`](standup/SKILL.md), [`verify-email-list`](verify-email-list/SKILL.md), [`weekly-planning`](weekly-planning/SKILL.md)
 - **Sales leadership:** [`call-capture`](call-capture/SKILL.md), [`standup`](standup/SKILL.md), [`weekly-planning`](weekly-planning/SKILL.md); also [`account-scoring`](account-scoring/SKILL.md), [`ask-cargo`](ask-cargo/SKILL.md), [`build-tam-list`](build-tam-list/SKILL.md), [`tam-building`](tam-building/SKILL.md), [`zoominfo-to-cargo`](zoominfo-to-cargo/SKILL.md)
-- **Marketing:** [`verify-email-list`](verify-email-list/SKILL.md); also [`context-seeding`](context-seeding/SKILL.md), [`find-companies-using-tech`](find-companies-using-tech/SKILL.md)
-- **GTM engineering:** [`clay-to-cargo`](clay-to-cargo/SKILL.md), [`context-seeding`](context-seeding/SKILL.md); also [`account-scoring`](account-scoring/SKILL.md), [`agentic-engagement`](agentic-engagement/SKILL.md), [`apollo-to-cargo`](apollo-to-cargo/SKILL.md), [`ask-cargo`](ask-cargo/SKILL.md), [`crm-deduplication`](crm-deduplication/SKILL.md), [`crm-enrichment`](crm-enrichment/SKILL.md), [`tam-building`](tam-building/SKILL.md), [`waterfall-enrichment`](waterfall-enrichment/SKILL.md)
+- **Marketing:** [`verify-email-list`](verify-email-list/SKILL.md), [`website-building`](website-building/SKILL.md); also [`context-seeding`](context-seeding/SKILL.md), [`find-companies-using-tech`](find-companies-using-tech/SKILL.md)
+- **GTM engineering:** [`clay-to-cargo`](clay-to-cargo/SKILL.md), [`context-seeding`](context-seeding/SKILL.md); also [`account-scoring`](account-scoring/SKILL.md), [`agentic-engagement`](agentic-engagement/SKILL.md), [`apollo-to-cargo`](apollo-to-cargo/SKILL.md), [`ask-cargo`](ask-cargo/SKILL.md), [`crm-deduplication`](crm-deduplication/SKILL.md), [`crm-enrichment`](crm-enrichment/SKILL.md), [`new-hire-detection`](new-hire-detection/SKILL.md), [`tam-building`](tam-building/SKILL.md), [`waterfall-enrichment`](waterfall-enrichment/SKILL.md), [`website-building`](website-building/SKILL.md)
 
 <!-- catalog:end -->
 
@@ -120,7 +122,7 @@ reconciles it with whatever your project already declares. More are coming (`con
 
 ## As an agent plugin: Claude Code, Codex, Cursor
 
-The same 29 skills also install as one native plugin. Take this route when you want all of them
+The same 31 skills also install as one native plugin. Take this route when you want all of them
 and two things `skills add` cannot give you:
 
 - **Fewer prompts, same guardrails.** An approval hook ([`hooks/approve-cli.sh`](hooks/approve-cli.sh))

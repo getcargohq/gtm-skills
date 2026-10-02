@@ -58,14 +58,14 @@ adaptation is incomplete.
   approved `refresh-cadence` variation whose re-billing cost was stated.
 - The model declares `tier`, `tier_rationale`, `tier_evidence_url` and
   `tiered_at` as custom columns.
-- `tam-tier-analyst` carries the read-only `context` capability and `webSearch`,
+- `tam_tier_analyst` carries the read-only `context` capability and `webSearch`,
   declares a `jsonSchema` output whose `tier` property is an enum, and carries an
   evaluator rubric with a threshold. It does **not** carry `memory`.
-- `tam-tier-analyst` has **no model in `uses`** and no connector action that
+- `tam_tier_analyst` has **no model in `uses`** and no connector action that
   writes.
 - This skill declares **no** `defineContext`. The example markdown under
-  `infra/context/` is copied into the project's knowledge layer.
-- The play is filed under `tam-building-plays`.
+  this skill's `context/` is copied into the project's knowledge layer.
+- The play is filed under `tam_building_plays`.
 - The play's workflow contains exactly one agent node, and it is the first node
   after `start`.
 - The play contains no connector node: sourcing is the extractor, never a search

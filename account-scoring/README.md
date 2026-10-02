@@ -28,7 +28,7 @@ markdown, and accounts re-score against it as they come due.
 3. **Write back.** The play writes `cargo_score`, `cargo_tier`,
    `cargo_rationale`, and `cargo_last_updated_at` onto the CRM record.
 4. **Sort into tiers.** The next model refresh pulls the score back in, and the
-   `tier-a-accounts` / `tier-c-accounts` segments group accounts by it.
+   `tier_a_accounts` / `tier_c_accounts` segments group accounts by it.
 
 Adds 4 resources on top of the base: 1 agent, 1 play (with an embedded
 workflow), and 2 segments. Carries an example ICP under `context/`; the agent scores against whatever the workspace context

@@ -10,7 +10,8 @@ import { defineDomain } from "@cargo-ai/cdk";
 // a new domain — that charges workspace credits and is not refundable, and a
 // `+ create domain:…` line in `cargo-ai cdk plan` is the signal.
 //
-// `dnsRecords` is deliberately omitted. Declaring it REPLACES the whole zone,
-// including the records the registrar wrote at purchase. Leave the zone alone
-// unless you mean to own DNS from this file.
+// `dnsRecords` is omitted: the registrar writes the mail records. Declare it
+// only for records this file should manage, such as a website's
+// `domainRecords`. It is merged into the live zone, so mail records stay; a
+// record dropped from the list is deleted on the next deploy.
 export const outreach = defineDomain("example-outreach.com", { adopt: true });

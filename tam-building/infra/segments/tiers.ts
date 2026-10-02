@@ -10,7 +10,7 @@ import { tamCompanies } from "../models/tam-companies";
 // a nurture sequence runs on tier B, reporting counts all four. They read
 // `custom__tier` because the read side exposes custom columns under that alias;
 // the play writes the bare slug.
-export const tierA = defineSegment("tam-tier-a", {
+export const tierA = defineSegment("tam_tier_a", {
   model: tamCompanies,
   filter: {
     conjonction: "and",
@@ -30,7 +30,7 @@ export const tierA = defineSegment("tam-tier-a", {
   },
 });
 
-export const tierB = defineSegment("tam-tier-b", {
+export const tierB = defineSegment("tam_tier_b", {
   model: tamCompanies,
   filter: {
     conjonction: "and",
@@ -50,7 +50,7 @@ export const tierB = defineSegment("tam-tier-b", {
   },
 });
 
-export const tierC = defineSegment("tam-tier-c", {
+export const tierC = defineSegment("tam_tier_c", {
   model: tamCompanies,
   filter: {
     conjonction: "and",
@@ -75,7 +75,7 @@ export const tierC = defineSegment("tam-tier-c", {
 // than the one you work. A disqualified count that is a large share of the book
 // is a sourcing filter that is too wide, not an agent that is too harsh: fix it
 // in the model's `config`, where narrowing is free, not in the rubric.
-export const tierDisqualified = defineSegment("tam-disqualified", {
+export const tierDisqualified = defineSegment("tam_disqualified", {
   model: tamCompanies,
   filter: {
     conjonction: "and",

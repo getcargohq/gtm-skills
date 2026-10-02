@@ -11,6 +11,8 @@ llms.txt
 !tam-building/**/*.md
 !account-scoring/**/*.md
 !crm-enrichment/**/*.md
+!website-building/**/*.md
+!new-hire-detection/**/*.md
 !context-seeding/**/*.md
 !CONTRIBUTING.md
 !.agents/skills/**/*.md

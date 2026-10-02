@@ -9,7 +9,7 @@ import { agentsFolder } from "../folders";
 // weights in code — and the agent pulls its own evidence from Cargo's
 // business database before judging. The evaluator is the QA gate: a score
 // without grounded rationale fails the rubric.
-export const accountScorer = defineAgent("account-scorer", {
+export const accountScorer = defineAgent("account_scorer", {
   color: "green",
   connector: openai,
   languageModel: "gpt-4o", // PLACEHOLDER — your model of choice
