@@ -93,7 +93,7 @@ cargo-ai orchestration action execute-batch \
 # 3. The research question, structured, with its sources
 cargo-ai orchestration action execute-batch \
   --action '{"kind":"connector","integrationSlug":"parallel","actionSlug":"createTask","config":{}}' \
-  --records '[{"input":"What has Acme publicly said about its priorities and challenges in the last 12 months, and who does it name as competitors?","processor":"lite","outputSchema":{"type":"object","properties":{"priorities":{"type":"array","items":{"type":"string"}},"competitors":{"type":"array","items":{"type":"string"}},"sources":{"type":"array","items":{"type":"string"}}}}}]' \
+  --records '[{"input":"What has Acme publicly said about its priorities and challenges in the last 12 months, and who does it name as competitors?","processor":"lite","outputSchema":"{\"type\":\"object\",\"properties\":{\"priorities\":{\"type\":\"array\",\"items\":{\"type\":\"string\"}},\"competitors\":{\"type\":\"array\",\"items\":{\"type\":\"string\"}},\"sources\":{\"type\":\"array\",\"items\":{\"type\":\"string\"}}}}"}]' \
   --wait-until-finished
 
 # 4. What they are hiring for, which is what they are spending on
@@ -112,7 +112,8 @@ of a ladder that runs to 60 credits a record, and it is a required field with no
 default, so an example copied without it fails rather than surprising you. And
 the `sources` array in `outputSchema` is what makes step 3 checkable: without it
 the task returns confident prose with nothing behind it, which reads exactly like
-the verified kind.
+the verified kind. `outputSchema` is that JSON schema **as a string**: pass it as an object and
+every record fails validation while the batch itself reports success.
 
 Open roles are the most under-used input in account research: a company hiring
 six data engineers is telling you where its budget went, in public, dated, and
