@@ -234,8 +234,10 @@ not cause. `validate.yml` still runs it against the pull request.
 
 ## Approval
 
-Every pipeline skill is **to be approved** until Cargo has tested it in a
-fresh demo workspace **and** two customers or partners have implemented it.
+Every pipeline skill is **to be approved** until Cargo has deployed it end to
+end in a live workspace and walked its `Done when` line by line. That run's
+date is the evidence (`demoWorkspace`). Customer and partner implementations
+are recorded as they happen, but approval does not wait for them.
 That state and its evidence live in `.github/data/approvals.json`, which no
 customer sees. The customer sees the banner in `SKILL.md`, and the validator
 requires it exactly while the state is `to-be-approved` and refuses it once

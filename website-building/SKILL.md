@@ -24,11 +24,6 @@ metadata:
 
 # Website building
 
-**State: to-be-approved.** Deploy-verified against a live workspace: yes, on 2026-10-01, serving
-the site on a Cargo-held sending domain whose mail kept delivering. Treat `Done when` below as the
-acceptance test and review `cargo-ai cdk plan` before deploying. Make no outcome claim for this
-skill until it is approved.
-
 ## The outcome
 
 The company website lives in the company's repository, is hosted by Cargo, and answers on the

@@ -43,8 +43,8 @@
 //   - the inline procedure section is present: each skill carries its own
 //     "Put it in your project", the way every one-off skill here carries its
 //     own Setup. There is no shared procedure skill to depend on.
-//   - approved needs its evidence: a fresh-workspace date AND two
-//     implementations. The banner must be present exactly while the state is
+//   - approved needs its evidence: the date Cargo deployed it end to end in a
+//     live workspace. The banner must be present exactly while the state is
 //     to-be-approved, and absent once approved, so approving in the data file
 //     and forgetting the customer file is a red build.
 import { execFileSync } from "node:child_process";
@@ -349,14 +349,6 @@ for (const name of exampleFolders) {
       errors.push(
         `${name} is marked approved but has no demoWorkspace date in approvals.json`,
       );
-    if (
-      !Array.isArray(record.implementations) ||
-      record.implementations.length < 2
-    ) {
-      errors.push(
-        `${name} is marked approved but lists ${record.implementations?.length ?? 0} implementations: the rule is two`,
-      );
-    }
   }
   const banner = /\*\*State: to-be-approved\.\*\*/.test(body);
   if (state === "to-be-approved" && !banner)

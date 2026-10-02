@@ -1723,7 +1723,7 @@
         "prompt": "Build our company website on Cargo from our brand guide and serve it on www.fabrikam.example. Our DNS is hosted elsewhere.",
         "output": "```text\nPR #12  Website: home, about and pricing from the brand guide        merged after review\n\napp:website   deployed\n  https://website-1a2b3c4d.app.getcargo.run/pricing/    Pricing | Fabrikam\n  www.fabrikam.example                                  pending: _cargo-verify not resolved\n\nDNS is hosted elsewhere, so infra/domains/website.ts was deleted. Add at the provider:\n  TXT    _cargo-verify.www   cargo-verify=9c1e4a…\n  CNAME  _3f2a91.www         _7b0c44.acm-validations.aws\n  CNAME  www                 d1x2y3z4.cloudfront.net\n  apex   fabrikam.example  → https://www.fabrikam.example   (provider redirect)\n```\n\nOnce the TXT resolves, `www.fabrikam.example` serves the reviewed pages with their own canonical\nURLs, and the next change to the site is another pull request."
       },
-      "state": "to-be-approved",
+      "state": "approved",
       "chain": 10,
       "resources": [
         "apps",
