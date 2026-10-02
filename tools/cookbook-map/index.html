@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>GTM cookbooks</title>
+    <link rel="icon" href="/cargo-logo.svg" />
+    <style>
+      /* tldraw's own chrome (menus, frame headings) reads CSS, not the canvas theme */
+      .tl-container {
+        --tl-font-sans: "Inter", sans-serif !important;
+        --tl-font-mono: "Source Code Pro", monospace !important;
+      }
+      .tl-frame-heading {
+        font-family: "Inter", sans-serif;
+        font-weight: 600;
+        letter-spacing: -0.01em;
+      }
+      body {
+        background: #0a0a0a;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

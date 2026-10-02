@@ -29,3 +29,4 @@ evals/
 scripts/build-codex-package.mjs
 scripts/validate.ts
 scripts/generate-llms-txt.ts
+tools/cookbook-map/src/cookbooks.json

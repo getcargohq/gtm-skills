@@ -17,6 +17,7 @@
     "hooks",
     "assets",
     "evals",
+    "tools",
     "*/apps/*/**",
     "*/infra/apps/*/**",
     "*/workers/*/**",

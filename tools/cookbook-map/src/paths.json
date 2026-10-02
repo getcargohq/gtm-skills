@@ -1,0 +1,74 @@
+{
+  "_comment": "Rows of the map, grouped by job. Each lane is one row; 'after' starts the lane one column right of that cookbook. Consecutive steps get an arrow: green when both are live on main, orange when one is still a pull request or planned. A cookbook sits in the first lane that names it. A 'parallel' lane draws no arrows between its steps; a 'linked' lane draws a two-headed arc between every pair of its steps, for cookbooks with no order between them. Cookbooks on no lane land in 'Not on a path yet'. 'planned' lists cookbooks that do not exist yet; 'owners' tags any cookbook with who is building it; 'hidden' leaves cookbooks off the map. Edit, then click 'Rebuild'.",
+  "lanes": [
+    {
+      "name": "1. Context",
+      "why": "Three sources keep context/ current: the website and news, every recorded call, and won and lost deals.",
+      "steps": ["web-capture", "call-capture", "win-loss-review"],
+      "parallel": true
+    },
+    {
+      "name": "2. Fundamentals",
+      "why": "Source the universe from the ICP, fill the records, merge duplicates, score what is left.",
+      "after": "web-capture",
+      "steps": [
+        "tam-building",
+        "crm-enrichment",
+        "crm-deduplication",
+        "account-scoring"
+      ]
+    },
+    {
+      "name": "3. Signals",
+      "why": "Market-wide triggers that tell you who to reach and when.",
+      "steps": [
+        "new-hire-detection",
+        "job-offers",
+        "website-visitors",
+        "linkedin-page-followers",
+        "champions"
+      ],
+      "linked": true
+    },
+    {
+      "name": "4. Engagement",
+      "why": "Once accounts are scored: source their stakeholders, let agents hold the conversations, and pick up the rest in one inbox.",
+      "steps": ["contact-sourcing", "agentic-engagement", "reply-inbox"]
+    },
+    {
+      "name": "5. Operations",
+      "why": "Logs feed the daily digest, the weekly recap, and on-demand answers.",
+      "steps": ["standup", "weekly-planning", "ask-cargo"]
+    }
+  ],
+  "planned": [
+    {
+      "name": "job-offers",
+      "title": "Job offers",
+      "source": "TheirStack",
+      "owner": "Max"
+    },
+    {
+      "name": "website-visitors",
+      "title": "Website visitors",
+      "source": "Snitcher",
+      "owner": "Alexis"
+    },
+    {
+      "name": "linkedin-page-followers",
+      "title": "LinkedIn page followers",
+      "source": "LinkedIn",
+      "owner": "Alexis"
+    },
+    {
+      "name": "champions",
+      "title": "Champions",
+      "source": "job changes of customer contacts",
+      "owner": "Max"
+    }
+  ],
+  "owners": {
+    "new-hire-detection": "Max"
+  },
+  "hidden": ["website-building"]
+}
