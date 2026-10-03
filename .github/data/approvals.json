@@ -18,9 +18,9 @@
     "implementations": []
   },
   "tam-building": {
-    "state": "to-be-approved",
+    "state": "approved",
     "chain": 2,
-    "demoWorkspace": null,
+    "demoWorkspace": "2026-10-03",
     "implementations": []
   },
   "call-capture": {

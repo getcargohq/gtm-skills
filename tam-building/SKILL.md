@@ -25,12 +25,6 @@ metadata:
 
 # Tam building
 
-**State: to-be-approved.** Deploy-verified against a live workspace: yes, on 2026-10-03, with AI
-Ark as the source: a filter counted at 7,251, synced at `limit: 500`, landed 500 rows with actual
-credits equal to the estimate, and every row carried a domain or a LinkedIn URL. Treat `Done when`
-below as the acceptance test and review `cargo-ai cdk plan` before deploying. Make no outcome claim
-for this skill until it is approved.
-
 ## The outcome
 
 Your account universe as one model in Cargo: every company that matches a written ICP, sourced from

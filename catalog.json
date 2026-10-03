@@ -1515,7 +1515,7 @@
         "prompt": "Source every B2B software company in the US and the UK with 20 to 500 employees from AI Ark, using the ICP in our context repo.",
         "output": "| Criterion    | Confirmed                                           | From                             |\n| ------------ | --------------------------------------------------- | -------------------------------- |\n| Industries   | software development, computer and network security | `icp.md`: \"Industry: …\"          |\n| Company size | 20 to 500 employees                                 | `icp.md`: \"Headcount: 20 to 500\" |\n| Countries    | United States, United Kingdom                       | the prompt                       |\n\n| Result                    | Value                                 |\n| ------------------------- | ------------------------------------- |\n| Counted pool              | 4,812 companies                       |\n| Landed in `tam_companies` | 500 of 500 (`limit`)                  |\n| By country                | United States 71%, United Kingdom 29% |\n| By size band              | 20-49: 38%, 50-199: 44%, 200-500: 18% |\n| No domain and no LinkedIn | 6 rows                                |\n\nThe report closes on one recommended opening: a CRM coverage analysis, since the workspace already\nholds HubSpot, to see how many of the 500 are already there."
       },
-      "state": "to-be-approved",
+      "state": "approved",
       "chain": 2,
       "resources": [
         "connectors",
