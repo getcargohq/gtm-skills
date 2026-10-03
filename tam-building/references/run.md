@@ -17,9 +17,9 @@ update says `No action needed` and names the next checkpoint.
    resources.
 2. `cargo-ai cdk types`, then `cargo-ai cdk check`, then `cargo-ai cdk plan`.
    Inspect every resource and action payload.
-3. Confirm the plan shows one AI Ark connector, one folder, and `tam_companies`
-   with **no schedule** and the `industry`, `employeeSize` and
-   `companyLocation` groups in its config.
+3. Confirm the plan shows one source connector (AI Ark unless swapped), one
+   folder, and `tam_companies` with **no schedule** and the industries,
+   company size and countries filters in its config.
 4. Deploy only under the sizing approval (filter, `limit`, spend).
 
 Resolve `workspaceUuid` from `cargo-ai whoami` (`workspace.uuid`) and the model
@@ -61,10 +61,11 @@ ORDER BY companies DESC
 ```sql
 SELECT
   CASE
-    WHEN employee_count < 50 THEN '1-49'
+    WHEN employee_count < 20 THEN 'under 20 (outside the ICP)'
+    WHEN employee_count < 50 THEN '20-49'
     WHEN employee_count < 200 THEN '50-199'
-    WHEN employee_count < 500 THEN '200-499'
-    ELSE '500+'
+    WHEN employee_count <= 500 THEN '200-500'
+    ELSE 'over 500 (outside the ICP)'
   END AS size_band,
   COUNT(*) AS companies
 FROM <aiArkDataset>.tam_companies
@@ -79,7 +80,9 @@ GROUP BY country
 ORDER BY companies DESC
 ```
 
-Match the size bands to the ones in `icp.md`. A share outside the approved
+Match the size bands to the ones in `icp.md`: the first and last band are the
+ICP's own floor and ceiling, so anything that lands in them is a row the filter
+should have excluded. A share outside the approved
 industries, size or countries means AI Ark's classification differs from the
 filter's intent: read a few of those rows before trusting the rest.
 
@@ -104,15 +107,18 @@ what the workspace already has, and let the operator pick.
 | **CRM coverage analysis** | How much of the TAM the CRM already holds, and the net-new list: "your CRM has 60% of your market" | A CRM companies extract (`crm-enrichment` ships one as `crm_accounts`) unified with `tam_companies` into the workspace's unified `accounts` model, which matches on domain and LinkedIn by default. Each unified account's `ids` column then shows whether a CRM record sits behind it. Read the unified model's merge settings; do not change them |
 | **Enrichment**            | The fields AI Ark did not return, filled                                                           | `crm-enrichment` once the accounts are in the CRM; `enrich-company-data` for a one-off pass before that                                                                                                                                                                                                                                             |
 | **Deduplication**         | No duplicate accounts once the net new are pushed into the CRM                                     | `crm-deduplication`, run after the push                                                                                                                                                                                                                                                                                                             |
-| **Scoring**               | The TAM tiered against the same `icp.md`, so the team knows where to start                         | `account-scoring`                                                                                                                                                                                                                                                                                                                                   |
+| **Scoring**               | The TAM tiered against the same `icp.md`, so the team knows where to start                         | `score-leads` on an export of `tam_companies` today. `account-scoring` only reads CRM accounts, so it applies after the push, not to the model itself                                                                                                                                                                                               |
 
 How to pick the one to recommend:
 
 - **The workspace has a CRM:** recommend the CRM coverage analysis first. It
   says how much of the market is already known before anything is pushed or
   enriched, and it produces the net-new list every other opening works from.
-- **No CRM yet:** recommend scoring or a one-off enrichment on the best-fit
-  slice, whichever the operator needs to start working the list.
+- **No CRM yet:** recommend scoring with `score-leads` on an export of the
+  model, or a one-off `enrich-company-data` pass on the best-fit slice,
+  whichever the operator needs to start working the list. Do not recommend
+  `account-scoring` here: it reads CRM accounts and has nothing to score until
+  the accounts are pushed.
 
 Pushing net-new accounts into the CRM is a write the operator approves on its
 own, with a reviewed sample first. It is never a side effect of any opening.

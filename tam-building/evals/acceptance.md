@@ -45,7 +45,8 @@ adaptation is incomplete.
   the maximum spend together. Nothing is deployed or synced before that
   approval.
 - The report ends on the openings (CRM coverage analysis, enrichment,
-  deduplication, scoring) with one recommended, and no other offer.
+  deduplication, scoring) with one recommended, and no other offer. Without a
+  CRM, scoring is offered through `score-leads`, never `account-scoring`.
 - In-progress messages that need no decision say `No action needed` and name the
   next checkpoint.
 
@@ -60,7 +61,8 @@ adaptation is incomplete.
   `companyLocation` groups, an explicit `limit`, and **no schedule** (or one only
   under an approved `refresh-cadence` variation whose re-billing cost was
   stated).
-- The skill deploys one AI Ark connector, one model and one folder: no CRM
+- The skill deploys one company source connector (AI Ark, or a source from
+  `references/sources.md` with the reason recorded), one model and one folder: no CRM
   connector, no unified model, no LLM connector, and no play, agent, tool or
   segment.
 - This skill declares **no** `defineContext`.

@@ -65,6 +65,7 @@ flowchart TD
 | `infra/folders/index.ts`        | `defineFolder`    | the model folder named after the skill            |
 | `infra/models/tam-companies.ts` | `defineModel`     | the universe: the ICP filter and the budget       |
 | this skill's `context/icp.md`   | (not a resource)  | example ICP to copy into the project's `context/` |
+| `references/sources.md`         | (not a resource)  | the other company sources, with pros and cons     |
 
 ## Why it is atomic
 
@@ -103,10 +104,19 @@ whole pool. Sourcing is a deliberate spend.
 
 ## Alternatives
 
-For a LinkedIn-native source whose facet taxonomy may express your market
-better, swap the extractor for `salesNavigator.fetchAccountSearch`. It returns
-no domain, and its extraction cap means splitting one market search into
-counted sub-searches.
+AI Ark is the default because it is the only source that counts for free with
+the filters it bills on. [`references/sources.md`](references/sources.md)
+compares it with the other sources the contract accepts as a swap:
+
+| Source          | Pick it when                               | Watch out for                                                       |
+| --------------- | ------------------------------------------ | ------------------------------------------------------------------- |
+| AI Ark          | You want the pool size before you commit   | Enum-backed filters; per-record billing; 10,000 per sync            |
+| FullEnrich      | Budget matters, or you want a free refresh | No count; no persona, funding or lookalike filter                   |
+| Apollo          | The market is defined by hiring or funding | No industry taxonomy (keyword tags only); no free count             |
+| Sales Navigator | The market is defined by LinkedIn facets   | Needs a seat; highest per-record price; no domain; 5,000 per search |
+
+People Data Labs, TheirStack, Ocean.io and CompanyEnrich are covered there too,
+with the reason each one is not a default TAM source.
 
 ## Verification
 
@@ -120,5 +130,6 @@ cargo-ai cdk types && cargo-ai cdk check && cargo-ai cdk plan
 ## Composes into
 
 A CRM coverage analysis (how much of the TAM the CRM already holds),
-`crm-enrichment`, `crm-deduplication`, `account-scoring`. `references/run.md`
-lists them as the report's openings.
+`crm-enrichment`, `crm-deduplication`, and scoring: `score-leads` on an export
+before the CRM, `account-scoring` once the accounts are pushed there.
+`references/run.md` lists them as the report's openings.

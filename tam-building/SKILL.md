@@ -1,8 +1,8 @@
 ---
 name: tam-building
-description: 'Stand up your account universe as a deployed model: an ICP read from your workspace context (or drafted from your website and customer stories when none is written), turned into an AI Ark company search that always sets industries, company size and countries, sized for free before it bills, and landed as one model in Cargo. Triggers: "our TAM is a stale CSV", "build our account universe", "source every company that matches our ICP", "keep our market list in Cargo", "how big is our market, and give me the companies", "keep our market list current". Cargo CDK, aiArk, countCompanies, fetchCompanies. Skip when: you want the list once rather than a model that keeps it, which is build-tam-list; or the accounts already exist and need tiering, which is account-scoring.'
+description: 'Stand up your account universe as a deployed model: an ICP read from your workspace context (or drafted from your website and customer stories when none is written), turned into an AI Ark company search that always sets industries, company size and countries, sized for free before it bills, and landed as one model in Cargo. Triggers: "our TAM is a stale CSV", "build our account universe", "source every company that matches our ICP", "keep our market list in Cargo", "how big is our market, and give me the companies", "land our TAM as a model the other pipelines can read". Cargo CDK, aiArk, countCompanies, fetchCompanies; FullEnrich, Apollo or Sales Navigator as swapped sources. Skip when: you want a list handed back in the chat or as a CSV rather than a model in the workspace, which is build-tam-list; or the accounts already exist and need tiering, which is account-scoring.'
 version: "0.5.0"
-compatibility: "Requires the cargo-cdk skill, a Cargo CDK project, @cargo-ai/cdk 1.0.58 or later, and an authenticated AI Ark connector. No CRM, no LLM connector, no API key, and no LinkedIn seat, user, or cookie needed. The repository example does not deploy or source anything until an agent adapts it in the consumer project."
+compatibility: "Requires the cargo-cdk skill, a Cargo CDK project, @cargo-ai/cdk 1.0.58 or later, and an authenticated AI Ark connector (or one of the swapped sources in references/sources.md). No CRM, no LLM connector, no API key, and no LinkedIn seat, user, or cookie needed (only Sales Navigator, as a swapped source, needs a seat). The repository example does not deploy or source anything until an agent adapts it in the consumer project."
 homepage: https://github.com/getcargohq/gtm-skills/tree/main/tam-building
 metadata:
   author: getcargo
@@ -74,7 +74,7 @@ Illustrative output, fictional records:
 | Counted pool              | 4,812 companies                       |
 | Landed in `tam_companies` | 500 of 500 (`limit`)                  |
 | By country                | United States 71%, United Kingdom 29% |
-| By size band              | 20-49: 38%, 50-199: 44%, 200-499: 18% |
+| By size band              | 20-49: 38%, 50-199: 44%, 200-500: 18% |
 | No domain and no LinkedIn | 6 rows                                |
 
 The report closes on one recommended opening: a CRM coverage analysis, since the workspace already
@@ -110,8 +110,7 @@ help.
    the `limit`, and that maximum spend. That one approval covers the deploy and the first sync.
 3. **Build and source.** Adapt, check, plan, and deploy. Run
    `node --import tsx evals/contract.mjs` from this skill's folder against the adapted resources
-   before the plan is
-   reviewed. Sync `tam_companies` once.
+   before the plan is reviewed. Sync `tam_companies` once.
 4. **Report.** Companies sourced against `limit` and against the counted pool, their split by
    industry, size band and country, actual credits against the estimate, and a direct Cargo link to
    the model. End with the openings in [`references/run.md`](references/run.md#openings): recommend
@@ -157,9 +156,10 @@ research or template work if the skill cannot be installed or read.
    what you offer unprompted (nobody asks for a variant they do not know exists); _What you will be
    asked_ is the floor, and you derive before you ask. If you are asking more than about four
    questions you have skipped lookups. Record what you changed and why under a `## Decisions`
-   section in your copy of this file. Then run `node --import tsx evals/contract.mjs` from this skill's folder, followed by
-   `cargo-ai cdk types && cargo-ai cdk check && cargo-ai cdk plan` from the project root. Show the diff and deploy. Never
-   run `cargo-ai cdk init --force` in a non-empty directory.
+   section in your copy of this file. Then run `node --import tsx evals/contract.mjs` from this
+   skill's folder, followed by `cargo-ai cdk types && cargo-ai cdk check && cargo-ai cdk plan` from
+   the project root. Show the diff and deploy. Never run `cargo-ai cdk init --force` in a non-empty
+   directory.
 6. **Source and report.** Follow [`references/run.md`](references/run.md): sync once, run the
    report queries, walk _Done when_ line by line with evidence, and end on the openings. Deployed
    cleanly and produced nothing is the normal failure.
@@ -196,11 +196,11 @@ Checked before moving on, not after the deploy:
 The code is a worked example. These reshapes are expected, and the agent offers them rather than
 waiting to be asked. Every one costs something; that is what makes it a variation and not the default.
 
-| Variation                | When it is right                                                                            | How                                                                                                                                                  | What it costs                                                                                                                                                  |
-| ------------------------ | ------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `lookalike-sourcing`     | The research found named customers that describe the market better than any facet does      | Add `lookalikeDomains` (up to five customer domains or LinkedIn URLs) to the model config beside the filter groups (`infra/models/tam-companies.ts`) | The pool is shaped by the seeds rather than by `icp.md`, so the two drift, and `countCompanies` becomes the only way to see what you asked for                 |
-| `refresh-cadence`        | The market moves and a one-time source goes stale                                           | Give `tam_companies` a cron and widen `limit`, then read the deleting-a-schedule warning in that file before you ever remove it again                | Every run re-bills every returned record, including the rows already there: a monthly refresh buys the handful of new companies at the price of the whole pool |
-| `sales-navigator-source` | Your market is expressed better by LinkedIn's facet taxonomy than by AI Ark's filter groups | Swap the connector and the extractor for `salesNavigator.fetchAccountSearch` over a list of search URLs                                              | Sales Nav returns no domain, so every later step that keys on a website pays to resolve one; its extraction cap also forces split, separately counted searches |
+| Variation            | When it is right                                                                                                 | How                                                                                                                                                                                   | What it costs                                                                                                                                                                                                                                     |
+| -------------------- | ---------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `lookalike-sourcing` | The research found named customers that describe the market better than any facet does                           | Add `lookalikeDomains` (up to five customer domains or LinkedIn URLs) to the model config beside the filter groups (`infra/models/tam-companies.ts`)                                  | The pool is shaped by the seeds rather than by `icp.md`, so the two drift, and `countCompanies` becomes the only way to see what you asked for                                                                                                    |
+| `refresh-cadence`    | The market moves and a one-time source goes stale                                                                | Give `tam_companies` a cron and widen `limit`, then read the deleting-a-schedule warning in that file before you ever remove it again                                                 | Every run re-bills every returned record, including the rows already there: a monthly refresh buys the handful of new companies at the price of the whole pool. On a free source (FullEnrich) the cost is only that the run replaces what you had |
+| `swap-source`        | Your market is better described by another source's filters: hiring, LinkedIn facets, or a free per-record price | Replace the AI Ark connector and the extractor with one of the sources in [`references/sources.md`](references/sources.md); the contract knows FullEnrich, Apollo and Sales Navigator | Only AI Ark counts for free with the same filters, so on any other source the pool is sized with a small sample pull. Each source has its own gaps, listed in that file                                                                           |
 
 ## What should not change
 
@@ -208,11 +208,13 @@ However far you adapt, these hold. Ask for one anyway and the agent tells you wh
 it if you still want it, and records why under `## Decisions` in your copy of this file.
 
 - **Industries, company size and countries are always set.** (`infra/models/tam-companies.ts`:
-  `industry`, `employeeSize`, `companyLocation`) Drop one and the TAM has no edge in that
+  `industry`, `employeeSize`, `companyLocation` on AI Ark; each swapped source's paths are in
+  `references/sources.md`) Drop one and the TAM has no edge in that
   dimension: the count reads like a market, but it is every industry, every size, or every country
   up to `limit`. Narrow further with other groups; never go below these three.
 - **Every filter is counted before it is sourced.** (`infra/models/tam-companies.ts`)
-  `countCompanies` takes the same groups and is free. Sourcing blind is how a filter that reads
+  `countCompanies` takes the same groups and is free; a swapped source without a count is sized
+  with a small sample pull instead. Sourcing blind is how a filter that reads
   right returns a market ten times the size you meant, already billed per record.
 - **The ICP filter is the narrowing, and there is no post-filter.** (`infra/models/tam-companies.ts`)
   Every returned record is paid for. A company outside the ICP was bought before anyone looked at
@@ -223,7 +225,8 @@ it if you still want it, and records why under `## Decisions` in your copy of th
   empty sync that looks like a broken connector.
 - **The sourced model carries no schedule.** (`infra/models/tam-companies.ts`) A cron re-bills
   every returned record on every run, including the ones already there.
-- **The cookbook stays atomic.** One AI Ark connector, one model, one folder. A CRM, an LLM, a
+- **The cookbook stays atomic.** One company source connector (AI Ark unless swapped), one model,
+  one folder. A CRM, an LLM, a
   play or a segment is a dependency of a next step, and adding it here makes every install set up
   an integration it does not need to build a TAM. The openings in the report are where those
   belong.
@@ -270,6 +273,8 @@ recurring source really costs.
 ## Composes into
 
 `crm-enrichment` (fill the records once they are in the CRM), `crm-deduplication` (keep them single
-once they are there), `account-scoring` (tier them against the same `icp.md`), `contact-sourcing`
-(the buyers at the accounts you keep). A CRM coverage analysis (how much of the TAM the CRM already
-holds) is the usual first opening; `references/run.md` describes it.
+once they are there), `contact-sourcing` (the buyers at the accounts you keep). A CRM coverage
+analysis (how much of the TAM the CRM already holds) is the usual first opening;
+`references/run.md` describes it. To tier the TAM before it reaches a CRM, use `score-leads` on an
+export of the model. `account-scoring` only reads CRM accounts today, so it tiers the TAM once the
+accounts have been pushed there, not before.

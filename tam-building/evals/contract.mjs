@@ -21,40 +21,90 @@ const get = (id) => {
 };
 
 // ---------------------------------------------------------------------------
-// The source is the model, and its filter is the TAM.
+// The source is the model, and its filter is the TAM. Each supported source
+// names its extractor and where industries, company size and countries live
+// in its config. A source missing from this table is not a supported swap:
+// add it here, with its three paths, in the same change that adopts it.
 // ---------------------------------------------------------------------------
+const SOURCES = {
+  aiArk: {
+    extractor: "fetchCompanies",
+    nested: true,
+    minimum: {
+      industries: ["industry"],
+      size: ["employeeSize"],
+      countries: ["companyLocation"],
+    },
+  },
+  FullEnrich: {
+    extractor: "fetchCompanies",
+    nested: true,
+    minimum: {
+      industries: ["industry"],
+      size: ["headcount"],
+      countries: ["headquarters"],
+    },
+  },
+  apolloio: {
+    extractor: "fetchOrganizations",
+    nested: false,
+    minimum: {
+      industries: ["filters", "q_organization_keyword_tags"],
+      size: ["filters", "organization_num_employees_ranges"],
+      countries: ["filters", "organization_locations"],
+    },
+  },
+  salesNavigator: {
+    extractor: "fetchAccounts",
+    nested: false,
+    minimum: {
+      industries: ["industryCodes"],
+      size: ["companyHeadcounts"],
+      countries: ["headquarterLocationIds"],
+    },
+  },
+};
+
 const sourceSpec = get("model:tam_companies").spec;
+const sourceConnector = get(sourceSpec.datasetUuid.resourceId).spec;
+const source = SOURCES[sourceConnector.integrationSlug];
+assert.ok(
+  source,
+  `${sourceConnector.integrationSlug} is not a supported TAM source: references/sources.md lists the ones this contract knows, with the extractor and the three minimum paths for each`,
+);
 
 assert.equal(
   sourceSpec.extractorSlug,
-  "fetchCompanies",
-  "the company universe must be the fetchCompanies extractor on the model",
+  source.extractor,
+  `the company universe must be ${sourceConnector.integrationSlug}.${source.extractor} on the model`,
 );
 
-const filterGroups = Object.entries(sourceSpec.config ?? {}).filter(
-  ([key]) => key !== "limit",
-);
+const config = sourceSpec.config ?? {};
+const filterGroups = Object.entries(config).filter(([key]) => key !== "limit");
 assert.ok(
   filterGroups.length > 0,
-  "the model config must carry at least one ICP filter group: an unfiltered search sources the whole database up to limit",
+  "the model config must carry at least one ICP filter: an unfiltered search sources the whole database up to limit",
 );
-for (const [key, value] of filterGroups) {
-  assert.equal(
-    typeof value === "object" && value !== null && !Array.isArray(value),
-    true,
-    `config.${key} must be a nested filter group, not a flat value: a flat map is ignored silently and you pay for the whole database`,
-  );
+if (source.nested) {
+  for (const [key, value] of filterGroups) {
+    assert.equal(
+      typeof value === "object" && value !== null && !Array.isArray(value),
+      true,
+      `config.${key} must be a nested filter group, not a flat value: a flat map is ignored silently and you pay for the whole database`,
+    );
+  }
 }
 
-for (const group of ["industry", "employeeSize", "companyLocation"]) {
+for (const [criterion, path] of Object.entries(source.minimum)) {
+  const value = path.reduce((node, key) => node?.[key], config);
   assert.ok(
-    filterGroups.some(([key]) => key === group),
-    `the model config must carry the ${group} group: industries, company size and countries are the minimum of every TAM, and without one the search bills for the whole dimension`,
+    value !== undefined && value !== null,
+    `the model config must set ${criterion} (config.${path.join(".")}): industries, company size and countries are the minimum of every TAM, and without one the search bills for the whole dimension`,
   );
 }
 
 assert.equal(
-  typeof sourceSpec.config?.limit,
+  typeof config.limit,
   "number",
   "the model config must set an explicit limit: the search bills per returned record and this is the only cap",
 );
@@ -80,8 +130,8 @@ const connectors = [...byId.values()].filter(
 );
 assert.deepEqual(
   connectors.map((resource) => resource.spec.integrationSlug),
-  ["aiArk"],
-  "the only connector is AI Ark: a CRM or an LLM is a dependency of a next step, not of building the TAM",
+  [sourceConnector.integrationSlug],
+  "the only connector is the company source: a CRM or an LLM is a dependency of a next step, not of building the TAM, and a swapped source replaces AI Ark rather than sitting beside it",
 );
 const models = [...byId.keys()].filter((id) => id.startsWith("model:"));
 assert.deepEqual(
@@ -91,5 +141,5 @@ assert.deepEqual(
 );
 
 console.log(
-  "ok: one connector, one model, and the ICP filter carries industries, company size and countries",
+  `ok: one ${sourceConnector.integrationSlug} connector, one model, and the ICP filter carries industries, company size and countries`,
 );

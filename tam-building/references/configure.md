@@ -6,8 +6,8 @@ they run only when no ICP is written down, after a yes.
 
 ## Reconcile before you edit
 
-Reuse what the project already declares: an AI Ark connector and TAM-building
-folders. Two resources with one slug collide at deploy. Nothing else is needed:
+Reuse what the project already declares: an AI Ark connector (or the swapped
+source from [`sources.md`](sources.md)) and TAM-building folders. Two resources with one slug collide at deploy. Nothing else is needed:
 this cookbook carries no CRM, no LLM and no unified model.
 
 This skill declares no `defineContext`: that resource is a **per-workspace
@@ -99,6 +99,11 @@ names and let the count in step 5 tell you whether a name matched.
 
 ## 4. Filter groups, not a flat map
 
+This section is AI Ark's shape. If the market is better described by another
+source (FullEnrich, Apollo, Sales Navigator), choose it now, before the filter
+is built: [`sources.md`](sources.md) gives each one's pros, cons, and where the
+three criteria live in its config.
+
 `fetchCompanies` and `countCompanies` take the same shape: **nested groups**,
 each one config key holding suffixed sub-keys.
 
@@ -142,6 +147,7 @@ cargo-ai orchestration action execute --wait-until-finished \
   --data '{
     "industry": {"industry_or": ["software development"]},
     "employeeSize": {"min_employee_count": 20, "max_employee_count": 500},
+    "companyLocation": {"location_or": ["United States", "United Kingdom"]},
     "employeeRole": {"employee_title_or": ["Revenue Operations"]}
   }'
 ```
