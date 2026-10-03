@@ -1496,9 +1496,9 @@
     {
       "name": "tam-building",
       "kind": "cookbook",
-      "job": "Stand up your account universe as a deployed pipeline: an AI Ark company search shaped by your ICP, sized for free before it bills, then tiered A / B / C / disqualified by an agent that reads your rubric from the workspace context and web-searches the evidence the sourced row does not carry.",
-      "description": "Stand up your account universe as a deployed pipeline: an AI Ark company search shaped by your ICP, sized for free before it bills, then tiered A / B / C / disqualified by an agent that reads your rubric from the workspace context and web-searches the evidence the sourced row does not carry. Triggers: \"our TAM is a stale CSV\", \"build our account universe\", \"source companies matching our ICP and rank them\", \"keep our market list current\", \"which of these companies are actually worth a rep\", \"tier the market we just sourced\". Cargo CDK, aiArk, countCompanies, fetchCompanies, agent tiering, workspace context, webSearch. Skip when: you want the list once rather than a pipeline that keeps producing it, which is build-tam-list; or the accounts already exist in a CRM or an accounts model and only need judging, which is account-scoring.",
-      "version": "0.3.1",
+      "job": "Stand up your account universe as a deployed model: an ICP read from your workspace context (or drafted from your website and customer stories when none is written), turned into an AI Ark company search that always sets industries, company size and countries, sized for free before it bills, and landed as one model in Cargo.",
+      "description": "Stand up your account universe as a deployed model: an ICP read from your workspace context (or drafted from your website and customer stories when none is written), turned into an AI Ark company search that always sets industries, company size and countries, sized for free before it bills, and landed as one model in Cargo. Triggers: \"our TAM is a stale CSV\", \"build our account universe\", \"source every company that matches our ICP\", \"keep our market list in Cargo\", \"how big is our market, and give me the companies\", \"land our TAM as a model the other pipelines can read\". Cargo CDK, aiArk, countCompanies, fetchCompanies; FullEnrich, Apollo or Sales Navigator as swapped sources. Skip when: you want a list handed back in the chat or as a CSV rather than a model in the workspace, which is build-tam-list; or the accounts already exist and need tiering, which is account-scoring.",
+      "version": "0.5.0",
       "homepage": "https://github.com/getcargohq/gtm-skills/tree/main/tam-building",
       "group": "Fundamentals",
       "install": "cargo-ai cdk add cookbook/tam-building",
@@ -1509,116 +1509,91 @@
         "sales-leadership"
       ],
       "integrations": [
-        "aiArk",
-        "anthropic"
+        "aiArk"
       ],
       "example": {
-        "prompt": "Source every US B2B software company with 100 to 1,000 employees from AI Ark and tier each one against the rubric in our context repo.",
-        "output": "| Company (domain)              | tier         | tier_rationale                                                                                                          | tier_evidence_url                         |\n| ----------------------------- | ------------ | ----------------------------------------------------------------------------------------------------------------------- | ----------------------------------------- |\n| Northwind (northwind.example) | A            | Fits the firmographics and has an open GTM Engineer role. Rubric line: evidence ranked 1.                               | https://northwind.example/careers/gtm-eng |\n| Globex (globex.example)       | B            | Fits the firmographics; its public stack lists a warehouse and a reverse-ETL tool, which the rubric ranks 3.            | https://globex.example/blog/data-stack    |\n| Initech (initech.example)     | C            | Fits size, industry and region, but no visible technical champion or automation practice. The sourced facts settled it. |                                           |\n| Tailspin (tailspin.example)   | disqualified | The sourced domain redirects to its acquirer, so the record is wrong about the company.                                 |                                           |\n\nEvery row also gets a `tiered_at` stamp and lands in `tam_tier_a`, `tam_tier_b`, `tam_tier_c` or\n`tam_disqualified`; the run report closes with the tier distribution and one recommended next step."
+        "prompt": "Source every B2B software company in the US and the UK with 20 to 500 employees from AI Ark, using the ICP in our context repo.",
+        "output": "| Criterion    | Confirmed                                           | From                             |\n| ------------ | --------------------------------------------------- | -------------------------------- |\n| Industries   | software development, computer and network security | `icp.md`: \"Industry: …\"          |\n| Company size | 20 to 500 employees                                 | `icp.md`: \"Headcount: 20 to 500\" |\n| Countries    | United States, United Kingdom                       | the prompt                       |\n\n| Result                    | Value                                 |\n| ------------------------- | ------------------------------------- |\n| Counted pool              | 4,812 companies                       |\n| Landed in `tam_companies` | 500 of 500 (`limit`)                  |\n| By country                | United States 71%, United Kingdom 29% |\n| By size band              | 20-49: 38%, 50-199: 44%, 200-500: 18% |\n| No domain and no LinkedIn | 6 rows                                |\n\nThe report closes on one recommended opening: a CRM coverage analysis, since the workspace already\nholds HubSpot, to see how many of the 500 are already there."
       },
-      "state": "to-be-approved",
+      "state": "approved",
       "chain": 2,
       "resources": [
-        "agents",
         "connectors",
         "folders",
-        "models",
-        "plays",
-        "segments"
+        "models"
       ],
       "asked": [
         {
           "input": "icp",
           "kind": "derived",
-          "how": "Read the workspace context repository first (`cargo-ai context …`, or the project's defineContext directory). Ask only when no ICP is written down anywhere, and then write it to the project's context/icp.md",
-          "why": "It is the one thing that cannot be computed: it encodes who you sell to. Everything else here is arithmetic or judgment on top of it"
+          "how": "Read the workspace context repository first (`cargo-ai context …`, or the project's defineContext directory) for an ICP or scoring file. None? Offer to research the website, customer stories and customers' LinkedIn pages, then have it corrected",
+          "why": "It is the one thing that cannot be computed. Everything else here is arithmetic on top of it"
+        },
+        {
+          "input": "market_minimum",
+          "kind": "derived",
+          "how": "Industries, company size and countries, each guessed from `icp.md` with the line quoted. A criterion the file does not state is suggested from the research and marked as such, or asked. The operator confirms all three before any filter is built",
+          "why": "These three are the floor of any TAM. Missing one sources a market with no edge in that dimension: every industry, every size, or the whole world, billed per record"
         },
         {
           "input": "sourcing_filter",
           "kind": "derived",
-          "how": "Translate the ICP into AI Ark filter groups (`industry`, `employeeSize`, `companyType`, `employeeRole`, `technologies`, `funding`, …), resolving enum-backed values through `listIndustries` and its siblings",
+          "how": "Translate the ICP into AI Ark filter groups (`industry`, `employeeSize`, `companyLocation`, then `companyType`, `employeeRole`, `technologies`, `funding`, …), resolving enum-backed values through `listIndustries` and its siblings",
           "why": "A flat map is ignored silently and a guessed enum member matches nothing. Either way you source a market nobody described"
         },
         {
           "input": "pool_size",
           "kind": "derived",
-          "how": "The JSON --action form in references/configure.md: aiArk.countCompanies with the same filter groups. It is free and returns {\"count\": N}",
+          "how": "aiArk.countCompanies` with the same filter groups, in the JSON `--action` form in references/configure.md. It is free and returns `{\"count\": N}",
           "why": "It is the only number that turns \"is this filter right\" into a question with an answer, and it costs nothing to ask"
         },
         {
           "input": "limit",
           "kind": "derived",
-          "how": "Defaults to a fraction of the counted pool for the first run; widen once rows land correctly. Ask only to change it",
-          "why": "fetchCompanies` bills per returned record, so this is the invoice. Sourcing wide and filtering later means paying for every company the rubric will throw away"
-        },
-        {
-          "input": "tier_rubric",
-          "kind": "asked",
-          "how": "Propose A / B / C / disqualified from the ICP's own language, then have the operator correct it. It is written to the project's context/tiering-rubric.md, not into the agent prompt",
-          "why": "It is what the whole book gets judged against, and the one thing the operator will want to change next month without a deploy"
-        },
-        {
-          "input": "llm",
-          "kind": "derived",
-          "how": "Inspect the authenticated LLM connectors and pick the one already in use, with its current model slug",
-          "why": "A second LLM connector is a collision at deploy, and a stale model slug fails at run time rather than at plan time"
+          "how": "Defaults to a fraction of the counted pool for the first run; widen once the report reads right. Ask only to change it. A capped run is not a random sample: AI Ark returned the largest companies first in the verified run",
+          "why": "fetchCompanies` bills per returned record, so this is the invoice. Below the counted pool, `limit` also decides which slice you get"
         }
       ],
       "canChange": [
         {
           "id": "lookalike-sourcing",
-          "when": "Your best customers describe the ICP better than any facet does, which is usual before a segment is written down",
-          "how": "Add `lookalikeDomains` (up to five domains or LinkedIn URLs) to the model config beside the filter groups (`infra/models/tam-companies.ts`)",
-          "cost": "The pool is shaped by the seeds rather than by anything written down, so it drifts from `icp.md` and `countCompanies` becomes the only way to see what you asked for"
+          "when": "The research found named customers that describe the market better than any facet does",
+          "how": "Add `lookalikeDomains` (up to five customer domains or LinkedIn URLs) to the model config beside the filter groups (`infra/models/tam-companies.ts`)",
+          "cost": "The pool is shaped by the seeds rather than by `icp.md`, so the two drift, and `countCompanies` becomes the only way to see what you asked for"
         },
         {
           "id": "refresh-cadence",
           "when": "The market moves and a one-time source goes stale",
-          "how": "Give the model a cron and widen `limit` (`infra/models/tam-companies.ts`), then read the deleting-a-schedule warning in that file before you ever remove it again",
-          "cost": "Every run re-bills every returned record, including the rows you already have: a monthly refresh buys the handful of new companies at the price of the whole pool"
+          "how": "Give `tam_companies` a cron and widen `limit`, then read the deleting-a-schedule warning in that file before you ever remove it again",
+          "cost": "Every run re-bills every returned record, including the rows already there: a monthly refresh buys the handful of new companies at the price of the whole pool. On a free source (FullEnrich) a re-run costs no credits, and the contract allows the schedule; on a paid one, record the decision and edit the contract check in the same change"
         },
         {
-          "id": "promote-to-shared-accounts",
-          "when": "The project already has an `accounts` model that scoring, routing, and signals all read",
-          "how": "Add a play that upserts tiered rows into that model keyed on its identity column, and leave `tam_companies` as the landing table",
-          "cost": "One more resource and one more dedupe key to keep true; a row that cannot resolve to that key has to be dropped rather than written, or it forks into duplicates the first time it appears elsewhere"
-        },
-        {
-          "id": "sales-navigator-source",
-          "when": "Your market is expressed better by LinkedIn's facet taxonomy than by AI Ark's filter groups",
-          "how": "Swap the connector and the extractor for `salesNavigator.fetchAccountSearch` over a list of search URLs, keeping the agent, the play, and the tier segments unchanged",
-          "cost": "Sales Nav returns no domain, so you add a resolution step of two credited calls per company; and its extraction cap forces splitting one market search into sub-searches and recounting each"
-        },
-        {
-          "id": "deterministic-tiering",
-          "when": "The rubric turns out to be thresholds (headcount band, industry, funding stage) with no judgment in it",
-          "how": "Delete the agent and write the tier in the play from the sourced columns, or push the thresholds up into the sourcing filter where they cost nothing",
-          "cost": "You lose the rationale a rep reads and the web-verified evidence, which is most of what makes a tier trusted rather than obeyed"
+          "id": "swap-source",
+          "when": "Your market is better described by another source's filters: hiring, LinkedIn facets, or a free per-record price",
+          "how": "Replace the AI Ark connector and the extractor with one of the sources in [`references/sources.md`](references/sources.md); the contract knows FullEnrich, Apollo and Sales Navigator",
+          "cost": "Only AI Ark counts for free with the same filters, so on any other source the pool is sized with a small sample pull. Each source has its own gaps, listed in that file"
         }
       ],
       "shouldNotChange": [
-        "**Every filter is counted before it is sourced.** (`infra/models/tam-companies.ts`) `countCompanies` takes the same groups and is free. Sourcing blind is how a filter that reads right returns a market ten times the size you meant, already billed per record, with no signal that anything went wrong.",
-        "**The ICP filter is the narrowing, and there is no post-filter.** (`infra/models/tam-companies.ts`) Every returned record is paid for, so a company the rubric will disqualify was bought before it was judged. A large disqualified segment is a filter that is too wide, not an agent that is too harsh.",
+        "**Industries, company size and countries are always set.** (`infra/models/tam-companies.ts`: `industry`, `employeeSize`, `companyLocation` on AI Ark; each swapped source's paths are in `references/sources.md`) Drop one and the TAM has no edge in that dimension: the count reads like a market, but it is every industry, every size, or every country up to `limit`. Narrow further with other groups; never go below these three.",
+        "**Every filter is counted before it is sourced.** (`infra/models/tam-companies.ts`) `countCompanies` takes the same groups and is free; a swapped source without a count is sized with a small sample pull instead. Sourcing blind is how a filter that reads right returns a market ten times the size you meant, already billed per record.",
+        "**The ICP filter is the narrowing, and there is no post-filter.** (`infra/models/tam-companies.ts`) Every returned record is paid for. A company outside the ICP was bought before anyone looked at it, so the fix for a wide result is a narrower filter, not a cleanup step.",
         "**Filter groups are nested, and enum values come from the autocompletes.** (`infra/models/tam-companies.ts`) A flat `{\"industry\": \"Software\"}` is ignored silently and sources the whole database up to `limit`. A guessed enum member matches nothing and returns an empty sync that looks like a broken connector.",
-        "**The rubric lives in the workspace context, not in the system prompt and not in code.** (`context/tiering-rubric.md` in the project's knowledge layer; this skill's `context/` is the example to copy there.) Put it in the prompt and changing what tier A means becomes a deploy, the reason for the change stops being reviewable, and the rep reading the tier can no longer read the same file the agent read.",
-        "**The agent judges and the play writes.** (`infra/agents/tier-analyst.ts`, `infra/plays/tier-companies.ts`) The agent carries no model in `uses`. Give it one and it decides its own routing, at which point an untiered row could be a failed run, a silent skip, or a judgment it chose not to record, and you cannot tell which.",
-        "**Custom columns are written with their bare slugs.** (`infra/plays/tier-companies.ts`) `custom__` is the read-side alias only. The write path nests the declared slug under `custom` itself, so a prefixed slug produces `custom.custom__tier`, the node reports \"Record upserted\", and the value is dropped. The failure looks like a play that ran perfectly over a book with no tiers in it.",
-        "**Eligibility is the stamp, not the tier.** (`infra/plays/tier-companies.ts`) Filter on `tiered_at` being null or stale. Filter on the tier column instead and a run that failed looks identical to a row waiting its turn, while a legitimate `disqualified` verdict gets re-judged forever.",
-        "**`changeKinds: [\"added\"]` stays.** (`infra/plays/tier-companies.ts`) Runs are created for rows entering the segment, so the LLM bill scales with how many companies you sourced. Drop it and it scales with how often the cron fires. After the first sync (play still disabled), enable and execute the play once: `added` does not backfill rows that landed while it was off.",
-        "**A tier ships with its rationale, its evidence, and its stamp, on the same write.** (`infra/plays/tier-companies.ts`) A tier nobody can audit is a number a rep will not trust, and a row marked judged without a judgment is worse than one that was never judged."
+        "**The sourced model carries no schedule on a paid source.** (`infra/models/tam-companies.ts`) A cron re-bills every returned record on every run, including the ones already there. A free source (FullEnrich today) is the exception, and the contract allows it.",
+        "**The cookbook stays atomic.** One company source connector (AI Ark unless swapped), one model, one folder. A CRM, an LLM, a play or a segment is a dependency of a next step, and adding it here makes every install set up an integration it does not need to build a TAM. The openings in the report are where those belong.",
+        "**The ICP lives in the context repo, not in a prompt or a config comment.** (`context/icp.md` in the project's knowledge layer; this skill's `context/icp.md` is the example.) It is the file every later skill reads; a copy anywhere else drifts from it."
       ],
       "doneWhen": [
+        "the ICP came from the context repo, or was researched and approved, and is written to `context/icp.md`",
+        "industries, company size and countries were proposed from `icp.md` (or suggested and marked), confirmed by the operator, and all three are in the deployed filter",
         "`countCompanies` was run for the filter actually deployed, and its number is recorded before any sourcing run",
-        "the sync landed rows, the row count is at or under `limit`, and the extractor's real column names match the workflow input",
-        "every row carries a tier the rubric defines, a rationale naming the deciding lines, and a `tiered_at` stamp",
-        "no row carries a stamp with an empty tier, and no row carries a tier with an empty stamp",
-        "the tier segments (`tam_tier_a`, `tam_tier_b`, `tam_tier_c`, `tam_disqualified`) resolve, and their counts sum to the tiered row count",
-        "the agent's evaluator pass rate is at or above its threshold, and a failing sample reads as a genuinely hard company rather than a missing rubric",
-        "editing `tiering-rubric.md` in the context repo changes the next tier with no deploy",
+        "the sync landed rows, and the row count is at or under `limit`",
+        "the report splits the landed rows by industry, size band and country, and states actual credits against the estimate",
+        "the report ended on the openings, with one recommended",
         "`node --import tsx evals/contract.mjs` passes against the adapted resources"
       ],
-      "cost": "Read this before pointing the skill at a market-sized filter.\n\n**Counting is free**, and it is the cheapest insurance in this skill: `aiArk.countCompanies` takes\nthe same filter groups as the search and returns the pool size without billing. Run it for every\ncandidate filter, every time you widen one.\n\n**Sourcing is the spend, and it is per returned record, not per call.** Immediately before every\npreview, run `cargo-ai connection integration get aiArk` and read the current entry under\n`integration.actions.searchCompanies.credits.costs`; the `fetchCompanies` extractor bills on the same\nper-record basis. Record the CLI version, the lookup time, and the unit price. The estimate is\n`limit * unit price`, which is why `limit` is the only control that matters: **to spend less, source\nless.** Start well under the counted pool, watch the rows land and the tiers come back sane, then\nwiden.\n\n**Tiering is one agent run per newly sourced company**, billed as LLM tokens through the bound\nconnector plus whatever web search steps it takes. `maxSteps` is the per-company ceiling and the\nrubric's one-question-one-search rule is what keeps a normal row far below it. Because the play runs\non `changeKinds: [\"added\"]`, steady state is only the companies a sourcing run newly added, plus\nwhatever comes back when its six-month stamp expires. A tick that follows no sourcing run is a no-op.\n\nThe model deliberately carries **no schedule**, because a cron re-runs the same search and re-bills\nevery returned record, including the rows already sitting in the model. Sourcing is a deliberate\nspend; the tiering play is the part that stands. See `refresh-cadence` above for what a recurring\nsource really costs.",
-      "composesInto": "`account-scoring` (keep the universe you just tiered scored as accounts arrive and as the ICP\nchanges), `contact-sourcing` (the buyers at every tier A account), `signal-based-tam` (watch the\nuniverse you just built)."
+      "cost": "Read this before pointing the skill at a market-sized filter.\n\n**Counting is free**, and it is the cheapest insurance in this skill: `aiArk.countCompanies` takes\nthe same filter groups as the search and returns the pool size without billing. Run it for every\ncandidate filter, every time you widen one.\n\n**Research bills per call**, and only runs when no ICP is written down. Reading the website and\ncustomer stories is one extraction per batch of pages, and each customer's LinkedIn page is one\nenrichment. Fetch the live prices with `cargo-ai connection integration get <slug>` for each\nintegration you use, and keep the customer list to the ones named on the site.\n\n**Sourcing is the spend, and it is per returned record, not per call.** Immediately before every\npreview, run `cargo-ai connection integration get aiArk` and read the current `fetchCompanies`\nentry under `credits.costs`. Record the CLI version, the lookup time, and the unit price. The\nestimate is `limit * unit price`, which is why `limit` is the only control that matters: **to spend\nless, source less.**\n\nThe sourced model deliberately carries **no schedule**. See `refresh-cadence` above for what a\nrecurring source really costs.",
+      "composesInto": "`crm-enrichment` (fill the records once they are in the CRM), `crm-deduplication` (keep them single\nonce they are there), `contact-sourcing` (the buyers at the accounts you keep). A CRM coverage\nanalysis (how much of the TAM the CRM already holds) is the usual first opening;\n`references/run.md` describes it. To tier the TAM before it reaches a CRM, use `score-leads` on an\nexport of the model. `account-scoring` only reads CRM accounts today, so it tiers the TAM once the\naccounts have been pushed there, not before."
     },
     {
       "name": "track-funding-rounds",

@@ -69,11 +69,11 @@
 // job once, in a turn. The
 // same words describe both, so these cases pin which way each phrasing goes;
 // a pipeline skill that starts winning the one-off prompts has stolen them.
-{"prompt": "Our TAM is a stale CSV, I want it to stay current", "expect": "tam-building", "why": "The standing tell, in the user's words: keep it current."}
-{"prompt": "Source companies matching our ICP and keep every one of them tiered", "expect": "tam-building", "why": "Source and judge, standing: the two halves of this pipeline in one sentence."}
-{"prompt": "Build our account universe and keep loading new companies into it", "expect": "tam-building"}
-{"prompt": "Stand up a pipeline that builds our market and tells us which accounts are worth a rep", "expect": "tam-building"}
-{"prompt": "Build a TAM list of seed-stage SaaS companies in Europe", "expect": "build-tam-list", "why": "Same words as tam-building, opposite intent: a list today, not a pipeline."}
+{"prompt": "Our TAM is a stale CSV, I want it to live in Cargo as a model", "expect": "tam-building", "why": "The tell is where it lands: a model in the workspace, not a file or a chat answer."}
+{"prompt": "Source every company that matches our ICP and keep them as a model in Cargo", "expect": "tam-building", "why": "Source and land as a model: the whole job of this pipeline in one sentence."}
+{"prompt": "Build our account universe as a model the rest of our pipelines can read", "expect": "tam-building"}
+{"prompt": "Stand up a pipeline that builds our market from the ICP in our context", "expect": "tam-building"}
+{"prompt": "Build a TAM list of seed-stage SaaS companies in Europe", "expect": "build-tam-list", "why": "Same words as tam-building, opposite intent: a list handed back today, not a model in the workspace."}
 {"prompt": "How many companies match our ICP in DACH?", "expect": "build-tam-list", "why": "A count is a one-off."}
 {"prompt": "Keep our accounts scored as they arrive and re-score when the ICP changes", "expect": "account-scoring"}
 {"prompt": "Our lead scoring is a spreadsheet nobody trusts", "expect": "account-scoring"}
