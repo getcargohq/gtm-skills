@@ -1,7 +1,7 @@
 # Run
 
 Adapt the resources after copying this folder into the consumer project. The
-first plan deploys the play disabled and sources nothing. Nothing in this
+deploy creates one model; the first sync is the only spend. Nothing in this
 repository deploys.
 
 ## Phase handoffs
@@ -11,111 +11,119 @@ phase-boundary handoff carries the evidence the operator needs, one concrete
 approval request, what approval unlocks, and what stays blocked. An in-progress
 update says `No action needed` and names the next checkpoint.
 
-After the filter, budget and rubric are approved, deploy with the play at
-`isEnabled: false` and no sync triggered. Resolve `workspaceUuid` from
-`cargo-ai whoami` (`workspace.uuid`) and resource UUIDs from `cargo.state.json`
-or the matching get/list command. Send all four links:
+## Deploy
 
-- Model: `https://app.getcargo.io/workspaces/<workspaceUuid>/models/<modelUuid>`
-- Agent: `https://app.getcargo.io/workspaces/<workspaceUuid>/agents/<agentUuid>`
-- Play: `https://app.getcargo.io/workspaces/<workspaceUuid>/plays/<playUuid>`
-- Context: the repository directory, so the operator can read the rubric the
-  agent will read
-
-Do not ask for run approval when a link is missing or does not resolve. The same
-message carries the counted pool, the `limit` that will actually be sourced, the
-live per-record price with its lookup time, the resulting estimate, and the
-per-company tiering cost. Its `Next step` asks the operator to approve the first
-sourcing run at that stated maximum.
-
-## The boundary between the agent and the play
-
-`tam_tier_analyst` is the judgment. It reads `icp.md` and `tiering-rubric.md`
-through the read-only `context` capability, judges on the sourced firmographics,
-and uses `webSearch` only to settle a doubt that would change the tier. It
-returns `{tier, rationale, evidence_url}` and carries **no model in `uses`**.
-
-`tier_companies` is the orchestration and the only write. One agent node, then
-one `modelCustomColumn` node writing `tier`, `tier_rationale`,
-`tier_evidence_url` and `tiered_at` back onto the row that triggered the run.
-
-This is a compiled-node contract, not a naming convention:
-`node --import tsx evals/contract.mjs` asserts it against the compiled registry
-and must pass before the plan is reviewed.
-
-Two things that fail silently and are worth checking by hand as well:
-
-- **Bare column slugs on the write.** `custom__` is the read-side alias. The
-  write path nests the declared slug under `custom` itself, so `custom__tier`
-  becomes `custom.custom__tier`, the node reports "Record upserted", and the
-  value is dropped.
-- **The extractor's real column names.** Confirm them with
-  `cargo-ai storage column list` after the first sync. A renamed column leaves
-  the prompt interpolating an undefined, and the agent confidently tiers a
-  company it was told nothing about.
-
-## Sourcing, once
-
-Sourcing is a deliberate spend, which is why the model carries no schedule.
-Trigger one sync from the model's UI or with the CLI, and watch the row count
-against `limit`. Rows landing well under `limit` means the pool was smaller than
-counted, or a filter value matched nothing: check the enum-backed values before
-widening anything.
-
-Then enable the play **and execute it once**. It will not pick up rows that
-landed while it was disabled: `changeKinds: ["added"]` only enrols rows entering
-the segment after the play is on. Confirm the extractor's column names against
-the live model before that run; a renamed column leaves the prompt interpolating
-an undefined.
-
-## Verification
-
-1. `node --import tsx evals/contract.mjs` from this skill's folder, after adapting the resources.
+1. `node --import tsx evals/contract.mjs` from this skill's folder, against the adapted
+   resources.
 2. `cargo-ai cdk types`, then `cargo-ai cdk check`, then `cargo-ai cdk plan`.
    Inspect every resource and action payload.
-3. Confirm the plan shows the model with **no schedule**, the play with
-   `isEnabled: false`, `runCreationRule: noConcurrency`, and
-   `changeKinds: ["added"]`.
-4. Confirm the play's trigger filters on `custom__tiered_at` (null or stale) and
-   not on the tier column.
-5. Deploy only under the phase-one authorization.
-6. Send the UI links, the counted pool, the estimate, and the pricing lookup
-   time. Stop for approval.
-7. Sync, enable, and monitor. Spot-check three tiered rows against the rubric by
-   hand: one A, one C, one disqualified. A rationale that does not name a rubric
-   line is the signal that the context capability is not reading what you think
-   it is.
+3. Confirm the plan shows one AI Ark connector, one folder, and `tam_companies`
+   with **no schedule** and the `industry`, `employeeSize` and
+   `companyLocation` groups in its config.
+4. Deploy only under the sizing approval (filter, `limit`, spend).
 
-## Post-run report
+Resolve `workspaceUuid` from `cargo-ai whoami` (`workspace.uuid`) and the model
+UUID from `cargo.state.json` or `cargo-ai storage model list`. The model link is
+`https://app.getcargo.io/workspaces/<workspaceUuid>/models/<modelUuid>`.
 
-- rows landed against `limit`, and against the counted pool
-- tier distribution: A, B, C, disqualified, and rows still untiered
-- the disqualified share, read as a verdict on the **filter** rather than on the
-  agent
-- the evaluator pass rate, with one failing sample quoted
-- estimated credits, actual credits, and the variance, with the pricing lookup
-  time
-- direct Cargo links for the model, the agent, and the play
+## Source, once
 
-End with one recommended `Next step`:
+Check before you sync: `cargo-ai storage run list --model-uuid <tamCompaniesUuid>`.
+If the deploy already started a run, wait for it. A second run bills every
+record again.
 
-- a large disqualified share means narrowing the filter, where narrowing is free,
-  then re-counting
-- a small one with rows to spare means widening `limit` and re-syncing
-- a healthy distribution means moving to contact sourcing on `tam_tier_a`
+```sh
+cargo-ai storage run create --model-uuid <tamCompaniesUuid>
+cargo-ai storage run list --model-uuid <tamCompaniesUuid>
+```
 
-Do not end the report with an open-ended offer to help.
+Watch the row count against `limit`. Rows landing well under `limit` means the
+pool was smaller than counted, or a filter value matched nothing: check the
+enum-backed values and the country names before widening anything.
+
+## Report
+
+Tables are `<datasetSlug>.<modelSlug>`: `cargo-ai storage dataset list` gives
+the AI Ark connector's dataset, and `cargo-ai storage model get-ddl
+<tamCompaniesUuid>` gives the SQL dialect. Confirm the column names with
+`cargo-ai storage column list --model-uuid <tamCompaniesUuid>` rather than
+assuming them.
+
+The split the operator reads the market off, one query per dimension:
+
+```sql
+SELECT industry, COUNT(*) AS companies
+FROM <aiArkDataset>.tam_companies
+GROUP BY industry
+ORDER BY companies DESC
+```
+
+```sql
+SELECT
+  CASE
+    WHEN employee_count < 50 THEN '1-49'
+    WHEN employee_count < 200 THEN '50-199'
+    WHEN employee_count < 500 THEN '200-499'
+    ELSE '500+'
+  END AS size_band,
+  COUNT(*) AS companies
+FROM <aiArkDataset>.tam_companies
+GROUP BY size_band
+ORDER BY size_band
+```
+
+```sql
+SELECT country, COUNT(*) AS companies
+FROM <aiArkDataset>.tam_companies
+GROUP BY country
+ORDER BY companies DESC
+```
+
+Match the size bands to the ones in `icp.md`. A share outside the approved
+industries, size or countries means AI Ark's classification differs from the
+filter's intent: read a few of those rows before trusting the rest.
+
+Report:
+
+- rows landed in `tam_companies`, against `limit` and against the counted pool
+- the split by industry, size band and country
+- rows with no domain and no LinkedIn URL (they will be hard to match or enrich
+  in any next step)
+- estimated credits, actual credits (`cargo-ai billing usage get-metrics`), and
+  the variance, with the pricing lookup time
+- the direct Cargo link to the model
+
+## Openings
+
+End the report by offering what can be built on the TAM. None of these is part
+of this cookbook, and each brings its own dependencies. Recommend one, based on
+what the workspace already has, and let the operator pick.
+
+| Opening                   | What the operator gets                                                                             | What it adds                                                                                                                                                                                                                                                                                                                                        |
+| ------------------------- | -------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **CRM coverage analysis** | How much of the TAM the CRM already holds, and the net-new list: "your CRM has 60% of your market" | A CRM companies extract (`crm-enrichment` ships one as `crm_accounts`) unified with `tam_companies` into the workspace's unified `accounts` model, which matches on domain and LinkedIn by default. Each unified account's `ids` column then shows whether a CRM record sits behind it. Read the unified model's merge settings; do not change them |
+| **Enrichment**            | The fields AI Ark did not return, filled                                                           | `crm-enrichment` once the accounts are in the CRM; `enrich-company-data` for a one-off pass before that                                                                                                                                                                                                                                             |
+| **Deduplication**         | No duplicate accounts once the net new are pushed into the CRM                                     | `crm-deduplication`, run after the push                                                                                                                                                                                                                                                                                                             |
+| **Scoring**               | The TAM tiered against the same `icp.md`, so the team knows where to start                         | `account-scoring`                                                                                                                                                                                                                                                                                                                                   |
+
+How to pick the one to recommend:
+
+- **The workspace has a CRM:** recommend the CRM coverage analysis first. It
+  says how much of the market is already known before anything is pushed or
+  enriched, and it produces the net-new list every other opening works from.
+- **No CRM yet:** recommend scoring or a one-off enrichment on the best-fit
+  slice, whichever the operator needs to start working the list.
+
+Pushing net-new accounts into the CRM is a write the operator approves on its
+own, with a reviewed sample first. It is never a side effect of any opening.
 
 ## Complete when
 
-- the plan showed the model unscheduled and the play disabled before anything
-  was sourced
-- the operator approved the filter, the budget and the rubric, and then approved
-  the run at a stated maximum
-- every landed row carries a tier, a rationale, and a stamp
-- the tier segments resolve (`tam_tier_a`, `tam_tier_b`, `tam_tier_c`,
-  `tam_disqualified`) and their counts reconcile with the tiered row count
-- the report includes the tier distribution, the evaluator pass rate, the actual
-  variance against estimate, and one recommended next step
+- the plan showed one connector, one folder and `tam_companies` unscheduled
+  before anything was sourced
+- exactly one sourcing run happened for the approved `limit`
+- the report gives rows landed, the split by industry, size band and country,
+  and actual credits against the estimate
+- the report ended on the openings, with one recommended
 - no credential, customer data, or deploy command was written into the copied
   template
