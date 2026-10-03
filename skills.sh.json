@@ -87,9 +87,10 @@
     },
     {
       "title": "Operations",
-      "description": "Deployed pipelines that run the team: the daily recap, the weekly plan, and one agent everyone can ask.",
+      "description": "Deployed pipelines that run the team: the daily recap, a weekly nudge on deals gone quiet, the weekly plan, and one agent everyone can ask.",
       "skills": [
         "standup",
+        "stalled-deal-nudge",
         "weekly-planning",
         "ask-cargo"
       ]
