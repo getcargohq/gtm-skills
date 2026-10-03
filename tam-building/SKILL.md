@@ -25,7 +25,9 @@ metadata:
 
 # Tam building
 
-**State: to-be-approved.** Deploy-verified against a live workspace: not yet. Treat `Done when`
+**State: to-be-approved.** Deploy-verified against a live workspace: yes, on 2026-10-03, with AI
+Ark as the source: a filter counted at 7,251, synced at `limit: 500`, landed 500 rows for 5 credits
+against a 5-credit estimate, and every row carried a domain or a LinkedIn URL. Treat `Done when`
 below as the acceptance test and review `cargo-ai cdk plan` before deploying. Make no outcome claim
 for this skill until it is approved.
 
@@ -175,7 +177,7 @@ _asked_ genuinely live in the operator's head.
 | `market_minimum`  | derived | Industries, company size and countries, each guessed from `icp.md` with the line quoted. A criterion the file does not state is suggested from the research and marked as such, or asked. The operator confirms all three before any filter is built | These three are the floor of any TAM. Missing one sources a market with no edge in that dimension: every industry, every size, or the whole world, billed per record |
 | `sourcing_filter` | derived | Translate the ICP into AI Ark filter groups (`industry`, `employeeSize`, `companyLocation`, then `companyType`, `employeeRole`, `technologies`, `funding`, …), resolving enum-backed values through `listIndustries` and its siblings                | A flat map is ignored silently and a guessed enum member matches nothing. Either way you source a market nobody described                                            |
 | `pool_size`       | derived | `aiArk.countCompanies` with the same filter groups, in the JSON `--action` form in references/configure.md. It is free and returns `{"count": N}`                                                                                                    | It is the only number that turns "is this filter right" into a question with an answer, and it costs nothing to ask                                                  |
-| `limit`           | derived | Defaults to a fraction of the counted pool for the first run; widen once the report reads right. Ask only to change it                                                                                                                               | `fetchCompanies` bills per returned record, so this is the invoice                                                                                                   |
+| `limit`           | derived | Defaults to a fraction of the counted pool for the first run; widen once the report reads right. Ask only to change it. A capped run is not a random sample: AI Ark returned the largest companies first in the verified run                         | `fetchCompanies` bills per returned record, so this is the invoice. Below the counted pool, `limit` also decides which slice you get                                 |
 
 The two approvals (the ICP with its three criteria, then filter plus `limit` plus spend) are
 decisions, not inputs: they are asked every time.

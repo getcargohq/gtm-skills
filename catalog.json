@@ -1550,8 +1550,8 @@
         {
           "input": "limit",
           "kind": "derived",
-          "how": "Defaults to a fraction of the counted pool for the first run; widen once the report reads right. Ask only to change it",
-          "why": "fetchCompanies` bills per returned record, so this is the invoice"
+          "how": "Defaults to a fraction of the counted pool for the first run; widen once the report reads right. Ask only to change it. A capped run is not a random sample: AI Ark returned the largest companies first in the verified run",
+          "why": "fetchCompanies` bills per returned record, so this is the invoice. Below the counted pool, `limit` also decides which slice you get"
         }
       ],
       "canChange": [

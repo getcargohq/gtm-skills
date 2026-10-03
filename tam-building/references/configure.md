@@ -10,6 +10,14 @@ Reuse what the project already declares: an AI Ark connector (or the swapped
 source from [`sources.md`](sources.md)) and TAM-building folders. Two resources with one slug collide at deploy. Nothing else is needed:
 this cookbook carries no CRM, no LLM and no unified model.
 
+Upgrading from the earlier tiering version of this skill: its models folder is
+also named "TAM building", so creating `tam_building_models` fails with
+`duplicateName`. Bind the existing folder instead of renaming it:
+`cargo-ai project import folder:tam_building_models <folderUuid>`, with the
+UUID from the error. The old agent, play and segments stay live until a deploy
+runs with `--prune`, and that prune also deletes the old folder entry, which
+now points at the same folder: retire it from state first.
+
 This skill declares no `defineContext`: that resource is a **per-workspace
 singleton** owned by the project (a scaffolded repo points it at the root
 `context/`).
@@ -128,6 +136,10 @@ Conventions inside a group:
   `listIndustries`, `listSeniorities`, `listDepartmentsAndFunctions`,
   `listCompanyDepartments`, `listFundingTypes`, `listLanguages`. A guessed label
   matches nothing and returns an empty sync that reads like a broken connector.
+  `listIndustries` returns one page of 100 and ignores the search value, so a
+  valid member can be missing from what you see (`computer and network
+security` is one). Count such a value on its own: a non-zero
+  `countCompanies` proves it matched.
 - **Numeric ranges are numbers**, not stringified numbers.
 - **A flat map expresses nothing.** `{"industry": "Software"}` at the top level
   is ignored, silently, and you source the whole database up to `limit`.

@@ -37,6 +37,19 @@ cargo-ai storage run create --model-uuid <tamCompaniesUuid>
 cargo-ai storage run list --model-uuid <tamCompaniesUuid>
 ```
 
+**A sync replaces the model's rows.** Verified on 2026-10-03: a model holding
+7,294 rows from an earlier filter held exactly the 500 the new sync returned.
+Values another skill wrote into custom columns survived only on the companies
+that came back. Narrowing the filter or lowering `limit` drops every company
+the new run does not return, so say so before a re-sync on a model other skills
+already write to.
+
+**A capped run is the top of AI Ark's order, not a sample.** With `limit`
+below the counted pool, the verified run returned the largest companies first:
+every one of the 500 sat between 387 and 500 employees, against an ICP that
+starts at 50. Read the size split with that in mind, and narrow the filter
+rather than lowering `limit` when you want a representative slice.
+
 Watch the row count against `limit`. Rows landing well under `limit` means the
 pool was smaller than counted, or a filter value matched nothing: check the
 enum-backed values and the country names before widening anything.
