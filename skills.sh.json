@@ -53,11 +53,12 @@
     },
     {
       "title": "Context",
-      "description": "Deployed pipelines that keep context/ current: every recorded call, your website and the news, and won and lost deals.",
+      "description": "Deployed pipelines that keep context/ current: every recorded call, your website and the news, won and lost deals, and the Slack threads the team chooses to keep.",
       "skills": [
         "call-capture",
         "web-capture",
-        "win-loss-review"
+        "win-loss-review",
+        "slack-capture"
       ]
     },
     {

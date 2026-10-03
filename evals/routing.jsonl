@@ -63,7 +63,7 @@
 // --- one-off / deployed seam -------------------------------------------------------
 // tam-building, account-scoring, crm-enrichment, crm-deduplication,
 // call-capture, agentic-engagement, standup, weekly-planning, ask-cargo,
-// new-hire-detection, web-capture and win-loss-review are worked CDK examples
+// new-hire-detection, web-capture, win-loss-review and slack-capture are worked CDK examples
 // that deploy a pipeline.
 // build-tam-list, score-leads and research-account are one-offs: the same
 // job once, in a turn. The
@@ -156,3 +156,7 @@
 {"prompt": "Put our website on our own domain, served by Cargo", "expect": "website-building"}
 {"prompt": "Host our marketing site on Cargo", "expect": "website-building"}
 {"prompt": "Research this prospect website and brief me before our sales call", "expect": "research-account", "why": "Researching another account is a one-off briefing, not maintaining our company website."}
+{"prompt": "When someone says @Cargo capture this in a deal channel, save the thread into our knowledge base", "expect": "slack-capture"}
+{"prompt": "The best customer intel dies in Slack threads, turn them into notes in the repo", "expect": "slack-capture", "why": "Slack threads kept as cadence entries and promoted into context: the standing capture, not a question."}
+{"prompt": "Let the team ask our GTM agent questions about the ICP in Slack", "expect": "ask-cargo", "why": "Answering from the repo in Slack is ask-cargo; slack-capture only archives the thread it is summoned into."}
+{"prompt": "Scribe our recorded sales calls into the repo every morning", "expect": "call-capture", "why": "Recorded calls on a schedule are call-capture; slack-capture is threads, on a mention."}

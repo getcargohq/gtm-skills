@@ -52,11 +52,12 @@
     },
     {
       "title": "Context",
-      "description": "Deployed pipelines that keep context/ current: every recorded call, your website and the news, and won and lost deals.",
+      "description": "Deployed pipelines that keep context/ current: every recorded call, your website and the news, won and lost deals, and the Slack threads the team chooses to keep.",
       "skills": [
         "call-capture",
         "web-capture",
-        "win-loss-review"
+        "win-loss-review",
+        "slack-capture"
       ]
     },
     {
@@ -1391,6 +1392,95 @@
         "Re-scoring after the criteria change costs nothing, because the enrichment is already stored. Say so, because users assume otherwise and under-ask as a result.",
         "Richer firmographics exist at a higher tier if a criterion genuinely needs them. Reach for one only when a stated criterion cannot be answered from the fields above, never by default."
       ]
+    },
+    {
+      "name": "slack-capture",
+      "kind": "cookbook",
+      "job": "Anyone @mentions the scribe in a Slack thread and the thread lands in the cadence log as a raw capture and a log entry, with any claim heard a second time across calls and threads promoted into the context knowledge layer, on one reviewable pull request per day.",
+      "description": "Anyone @mentions the scribe in a Slack thread and the thread lands in the cadence log as a raw capture and a log entry, with any claim heard a second time across calls and threads promoted into the context knowledge layer, on one reviewable pull request per day. Triggers: \"capture this slack thread into our knowledge base\", \"turn a customer thread into a note in the repo\", \"the best customer intel dies in slack\", \"@cargo capture this\", \"save deal-room discussions into context\", \"log what the team learned in slack\". Cargo CDK, defineAgent, harness claudeCode, Slack connector trigger, getThread, GitHub, cadence, context. Skip when: you want an answer or a change from the repo in Slack, which is ask-cargo; or you want recorded calls scribed every morning, which is call-capture.",
+      "version": "0.1.0",
+      "homepage": "https://github.com/getcargohq/gtm-skills/tree/main/slack-capture",
+      "group": "Context",
+      "install": "cargo-ai cdk add cookbook/slack-capture",
+      "partOf": [],
+      "personas": [
+        "account-executive",
+        "revops",
+        "sales-leadership"
+      ],
+      "integrations": [
+        "anthropic",
+        "github",
+        "slack"
+      ],
+      "example": {
+        "prompt": "When someone in #deal-rooms says \"@Cargo capture this\", put the thread in our repo and add anything we've now heard twice to context.",
+        "output": "```diff\n[slack-capture] 2026-10-07\nCaptured 2 threads · 1 context file promoted\n\n+ cadence/log/raw/slack/2026-10-07-northwind.md\n+ cadence/log/slack/2026-10-07-northwind.md\n+   ## Competitors mentioned\n+   - \"Their procurement asked why not Globex, it's already in their stack\" (first-hand,\n+     relayed by Dana from the Oct 6 email)\n+   ## Actions\n+   - [ ] Dana: send the Globex comparison before Friday\n+ context/objection/already-have-globex.md\n+   Heard 2 times: cadence/log/calls/2026-09-22-fabrikam.md,\n+   cadence/log/slack/2026-10-07-northwind.md\n```\n\nThe thread got the reply `cadence/log/slack/2026-10-07-northwind.md · promoted\ncontext/objection/already-have-globex.md · github.com/northwind/gtm/pull/341` and a\n:white_check_mark: on the summoning message."
+      },
+      "state": "to-be-approved",
+      "chain": 17,
+      "resources": [
+        "agents",
+        "connectors",
+        "folders"
+      ],
+      "asked": [
+        {
+          "input": "channelIds` (`infra/agents/slack-scribe.ts`)",
+          "kind": "asked",
+          "how": "the internal channels where \"capture this\" is the job, as `C…`/`G…` ids from the connector's channel autocomplete. `cargo-ai ai agent list` shows which channels other agents already list.",
+          "why": "A listed channel belongs to this agent, so `ask-cargo` stops answering there. A shared channel listed here would copy a customer's own words into your repository."
+        }
+      ],
+      "canChange": [
+        {
+          "id": "raise-the-bar",
+          "when": "Context is filling with claims that turn out to be one rep's reading of one deal",
+          "how": "In §4 of `infra/agents/slack-scribe.prompt.ts`, require three occurrences, from different accounts",
+          "cost": "The knowledge layer lags the field. Keep it equal to `call-capture`'s bar, or the two scribes promote on different evidence and the layer stops meaning one thing."
+        },
+        {
+          "id": "pr-per-thread",
+          "when": "Captures are rare and each deserves its own review",
+          "how": "In §5 of the prompt, open one pull request per capture titled after the thread",
+          "cost": "On a busy day the reviewer gets a pile of one-file pull requests, and two captures that promote the same claim conflict with each other."
+        },
+        {
+          "id": "no-reaction",
+          "when": "The team finds the :white_check_mark: noisy",
+          "how": "Drop `addReaction` from `uses` and the first sentence of §6",
+          "cost": "The reply in the thread is the only sign the capture landed. A failed run then looks the same as a quiet one until someone opens the thread."
+        },
+        {
+          "id": "more-channels",
+          "when": "Customer intel also shows up in general sales channels",
+          "how": "Add their ids to `channelIds",
+          "cost": "Those channels move from `ask-cargo` to this agent, so \"@Cargo what's our ICP?\" there gets a refusal to capture instead of an answer. Move a channel only when capture is its main job."
+        }
+      ],
+      "shouldNotChange": [
+        "**`channelIds`, never `allChannels`.** (`infra/agents/slack-scribe.ts`) `allChannels` puts this agent on every mention in the workspace beside `ask-cargo`, so every question gets two replies, and it reaches every shared channel the bot is in. The contract fails on it.",
+        "**One thread, read once, through `getThread`.** (`infra/agents/slack-scribe.prompt.ts` §1) No channel history, no search, no following links. A capture someone asked for in one thread must not pull in a conversation nobody chose to keep.",
+        "**No post action.** (`infra/agents/slack-scribe.ts`) The reply is the final text, posted by the trigger into the thread it was asked in. A `postMessage` on `uses` is only ever a way to write somewhere else. The contract fails on it.",
+        "**Shared channels and DMs are refused.** (`infra/agents/slack-scribe.prompt.ts` §1) A Slack Connect thread is the customer's conversation as much as yours; copying it verbatim into your repository is not a call one @mention makes.",
+        "**Raw captures are never touched, and one `source:` line is one capture.** (`infra/agents/slack-scribe.prompt.ts` §2) The `slack:<channel>/<parent ts>@<newest reply ts>` key is what makes a second mention of an unchanged thread a no-op and a grown thread a capture of only what is new. Let the agent rewrite entries and a re-mention re-litigates history.",
+        "**A claim reaches `context/` only on its second independent occurrence, counted across calls and threads.** (`infra/agents/slack-scribe.prompt.ts` §4) Two captures of one thread, or a thread relaying a call already logged, are one occurrence. Count them as two and one conversation becomes something the whole company believes.",
+        "**The agent opens or extends a pull request and never merges it.** Everything downstream reads `context/` as fact.",
+        "**No capability.** (`infra/agents/slack-scribe.ts`) Context is edited as files in the checkout, under review. A context capability would be a second, unreviewed write path into it."
+      ],
+      "doneWhen": [
+        "`node --import tsx evals/contract.mjs` passes",
+        "`cargo-ai cdk plan` reports the agent, the three connectors and the folder",
+        "a mention in a listed test thread produced one raw file under `cadence/log/raw/slack/` with every message verbatim and a `source:` line, and one entry under `cadence/log/slack/`",
+        "the thread got one reply naming the entry and the pull request, and a :white_check_mark: on the summoning message",
+        "a second mention with no new replies wrote nothing and replied with the existing entry",
+        "a second mention after one new reply wrote a raw file holding only that reply",
+        "two captures on the same day landed on the same `[slack-capture] <date>` pull request",
+        "a claim already in one call entry, captured first-hand in a thread about a different account, was promoted into `context/` citing both; a claim with one occurrence was not",
+        "a mention in an unlisted channel got no reply from this agent, and a mention in a shared channel was refused with nothing written"
+      ],
+      "cost": "The thread read, the user lookup and the reaction are Slack connector actions. Immediately before the\nplan, read their live prices and say each out loud:\n\n- `cargo-ai orchestration action list getThread --kind connector --integration-slug slack`\n- `cargo-ai orchestration action list addReaction --kind connector --integration-slug slack`\n\nThe recurring cost is the harness run itself, once per mention, billed as LLM tokens through the\nAnthropic connector. It scales with the thread's length and with how much of `cadence/log/` and\n`context/` the repetition check reads. There is no schedule and no fan-out: a quiet week costs\nnothing.",
+      "composesInto": "`call-capture` (the repetition bar counts both logs), `standup` (the day's captures are evidence the\nrecap reads), and any agent with the `context` capability, such as `account-scoring`, which\nreads what this promotes."
     },
     {
       "name": "standup",
