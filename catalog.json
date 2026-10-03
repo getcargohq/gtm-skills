@@ -98,10 +98,11 @@
     },
     {
       "title": "CRM",
-      "description": "Deployed pipelines that keep an existing CRM in step with the engine: records filled and duplicate-free.",
+      "description": "Deployed pipelines that keep an existing CRM in step with the engine: records filled, duplicate-free, and customers flagged before renewal.",
       "skills": [
         "crm-enrichment",
-        "crm-deduplication"
+        "crm-deduplication",
+        "expansion-signals"
       ]
     }
   ],
@@ -1024,6 +1025,98 @@
         "Bills 0 when no email is found, so a miss is free.",
         "The single best value in the catalog when you already hold LinkedIn URLs: profile and verified email together for less than a separate email lookup alone."
       ]
+    },
+    {
+      "name": "expansion-signals",
+      "kind": "cookbook",
+      "job": "Every week the CRM customers coming up on renewal are judged for an expansion moment — purchase cadence, last price paid, and dated outside events such as funding, hiring or a new leader — and the signal and its reason are written onto the HubSpot company, then posted as one digest for the customer team.",
+      "description": "Every week the CRM customers coming up on renewal are judged for an expansion moment — purchase cadence, last price paid, and dated outside events such as funding, hiring or a new leader — and the signal and its reason are written onto the HubSpot company, then posted as one digest for the customer team. Triggers: \"flag customers ready to expand\", \"which customers should we upsell this quarter\", \"renewal and expansion signals every week\", \"tell account managers which accounts to call before renewal\", \"find expansion opportunities in our customer base\", \"at-risk renewals digest in slack\". Cargo CDK, HubSpot companies and deals, fetchRecords, updateRecords, definePlay, defineAgent, webSearch, workspace context, Slack postMessage. Skip when: you want to know who raised money across a list of prospects, which is track-funding-rounds; or you want to watch target accounts for buying signals before they are customers, which is monitor-buying-signals.",
+      "version": "0.1.0",
+      "homepage": "https://github.com/getcargohq/gtm-skills/tree/main/expansion-signals",
+      "group": "CRM",
+      "install": "cargo-ai cdk add cookbook/expansion-signals",
+      "partOf": [],
+      "personas": [
+        "revops",
+        "account-executive"
+      ],
+      "integrations": [
+        "anthropic",
+        "hubspot",
+        "slack"
+      ],
+      "example": {
+        "prompt": "Every Monday, flag which customers near renewal are ready to expand and post the digest to #cs-weekly.",
+        "output": "```text\n:seedling: *Expansion signals, week of 2026-10-05*\n_6 accounts in their renewal window: 1 at risk, 2 ready to expand._\n\n*Tailspin Logistics* (tailspin.example) · at_risk · New CDO joined Sep 22 from a\n  competitor's customer; renewed every 12 months, last at 24,000. Play: executive\n  check-in. Sources: tailspin.example/news/new-cdo · owner 4411\n*Fabrikam* (fabrikam.example) · expansion · Raised a Series B on Sep 9 and posted\n  four data-engineer roles; renewed every 12 months, last at 38,000. Play: annual\n  prepay offer. Sources: fabrikam.example/press/series-b · owner 4402\n*Northwind Traders* (northwind.example) · expansion · Hired a Head of Compliance on\n  Sep 30. Play: governance add-on demo. Sources: northwind.example/team · owner 4402\n*Contoso* (contoso.example) · repeat_purchase · Ordered every 6 months, last at\n  9,500 on Apr 2. Play: renewal call at the last price. · owner 4419\n*Litware* (litware.example) · renewal · No outside event. · owner 4411\n```\n\nSix customers were judged and six HubSpot companies carry the signal and reason; a seventh, judged\nthree weeks ago, was skipped by the sixty-day rule."
+      },
+      "state": "to-be-approved",
+      "chain": 21,
+      "resources": [
+        "agents",
+        "connectors",
+        "folders",
+        "models",
+        "plays"
+      ],
+      "asked": [
+        {
+          "input": "channelId` on the digest",
+          "kind": "asked",
+          "how": "the Slack channel id (`C…`) from the connector's channel autocomplete. Invite the bot.",
+          "why": "The digest names customers and their renewal risk. Locked so it never lands in a customer shared channel."
+        }
+      ],
+      "canChange": [
+        {
+          "id": "window",
+          "when": "Contracts are not annual",
+          "how": "Change the two `recent_deal_close_date` values in `infra/plays/flag-expansion.ts`, and the sixty-day rule with them",
+          "cost": "A window longer than the re-judge rule judges an account twice per renewal."
+        },
+        {
+          "id": "renewal-date",
+          "when": "The CRM holds a real renewal date property",
+          "how": "Filter on that property instead of `recent_deal_close_date",
+          "cost": "Accounts without the property drop out silently. Count them first."
+        },
+        {
+          "id": "whole-book",
+          "when": "You want every customer judged, not only those near renewal",
+          "how": "Drop the two `recent_deal_close_date` conditions",
+          "cost": "Every customer is judged every sixty days. That is the whole book's worth of agent runs and searches each cycle."
+        },
+        {
+          "id": "no-web",
+          "when": "Compliance does not allow web research on customers",
+          "how": "Drop `webSearch` from the analyst and its search sentence",
+          "cost": "Only `renewal`, `repeat_purchase` and `none` remain reachable from the CRM alone."
+        },
+        {
+          "id": "per-owner-dm",
+          "when": "Account managers want their own list",
+          "how": "Replace the locked `channelId` with one `postMessage` use per owner channel, and split the post by owner",
+          "cost": "More locked uses to keep in sync with the team. An owner with no use gets nothing."
+        }
+      ],
+      "shouldNotChange": [
+        "**The models pull everything.** (`infra/models/`) Who is a customer and who is in the window is the play's filter. A filter in the extractor is a second place that question is asked, invisible from the play, and changing it means a re-extraction.",
+        "**The play writes the company record id, and only Cargo's three properties.** (`infra/plays/flag-expansion.ts`) A unify step between the play and the write reports success while nothing lands. A write to a deal or owner turns a judgment into a forecast change nobody approved. The contract fails on either.",
+        "**The analyst reads, never writes.** (`infra/agents/analyst.ts`) An agent that can write decides its own routing, and a missing signal could then be a failed run, a skip or a choice.",
+        "**The sixty-day rule stays at least as long as the window.** Without it the same renewal is judged and re-written every Monday, and each judgment overwrites the last reason.",
+        "**The digest re-judges nothing.** (`infra/agents/digest.ts`) It reads the reason the record carries. A second judgment in Slack is how the CRM and the channel disagree about the same account.",
+        "**The ledger, not Slack history, is the digest's dedupe.** A deleted post or another bot's message would otherwise read as \"already sent\" and drop a week in silence."
+      ],
+      "doneWhen": [
+        "`node --import tsx evals/contract.mjs` passes",
+        "`cargo-ai cdk plan` reports the two HubSpot models, the ledger, the two agents, the play, three connectors and three folders, with the play disabled",
+        "the first sync of `crm_companies` carries `lifecyclestage`, `recent_deal_close_date` and the three `cargo_expansion_*` columns",
+        "a hand run on five companies in the window wrote a signal, a reason and a stamp onto each HubSpot company, and every event named in a reason has a dated source in it",
+        "a second hand run the same week judged none of them again",
+        "the digest posted once in the locked channel, listed exactly the companies stamped that week with a signal other than `none`, and a re-run that week posted nothing",
+        "no deal, contact or owner changed in HubSpot"
+      ],
+      "cost": "The CRM sync and write are HubSpot API calls. The research is web search inside the analyst, at most\nthree per company. Immediately before the plan, read the live price of each action:\n\n- `cargo-ai orchestration action list updateRecords --kind connector --integration-slug hubspot`\n- `cargo-ai orchestration action list postMessage --kind connector --integration-slug slack`\n\nSay each number out loud. The recurring cost is one analyst run per company in the window each\nweek, plus one digest run, billed as LLM tokens through the Anthropic connector. It scales with how\nmany customers are near renewal, not with the size of the book, and the sixty-day rule keeps any\none company to one judgment per window. Count the window before enabling:\n`SELECT count(*)` over `crm_companies` with the play's filter.",
+      "composesInto": "`crm-enrichment` (firmographics on the same company records), `win-loss-review` (what closed-won\nsays about who expands), and `track-job-changes` (a champion who left is the first at-risk signal)."
     },
     {
       "name": "find-b2b-leads",
