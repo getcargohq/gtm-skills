@@ -120,18 +120,15 @@ what the workspace already has, and let the operator pick.
 | **CRM coverage analysis** | How much of the TAM the CRM already holds, and the net-new list: "your CRM has 60% of your market" | A CRM companies extract (`crm-enrichment` ships one as `crm_accounts`) unified with `tam_companies` into the workspace's unified `accounts` model, which matches on domain and LinkedIn by default. Each unified account's `ids` column then shows whether a CRM record sits behind it. Read the unified model's merge settings; do not change them |
 | **Enrichment**            | The fields AI Ark did not return, filled                                                           | `crm-enrichment` once the accounts are in the CRM; `enrich-company-data` for a one-off pass before that                                                                                                                                                                                                                                             |
 | **Deduplication**         | No duplicate accounts once the net new are pushed into the CRM                                     | `crm-deduplication`, run after the push                                                                                                                                                                                                                                                                                                             |
-| **Scoring**               | The TAM tiered against the same `icp.md`, so the team knows where to start                         | `score-leads` on an export of `tam_companies` today. `account-scoring` only reads CRM accounts, so it applies after the push, not to the model itself                                                                                                                                                                                               |
+| **Scoring**               | The TAM tiered against the same `icp.md`, so the team knows where to start                         | `account-scoring`: an agent tiers each row of `tam_companies` A / B / C / disqualified against a rubric in the context, and writes the reason on the row                                                                                                                                                                                            |
 
 How to pick the one to recommend:
 
 - **The workspace has a CRM:** recommend the CRM coverage analysis first. It
   says how much of the market is already known before anything is pushed or
   enriched, and it produces the net-new list every other opening works from.
-- **No CRM yet:** recommend scoring with `score-leads` on an export of the
-  model, or a one-off `enrich-company-data` pass on the best-fit slice,
-  whichever the operator needs to start working the list. Do not recommend
-  `account-scoring` here: it reads CRM accounts and has nothing to score until
-  the accounts are pushed.
+- **No CRM yet:** recommend `account-scoring`. It tiers `tam_companies` in
+  place, so the team knows which accounts to work first without a CRM.
 
 Pushing net-new accounts into the CRM is a write the operator approves on its
 own, with a reviewed sample first. It is never a side effect of any opening.

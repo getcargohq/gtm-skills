@@ -130,6 +130,6 @@ cargo-ai cdk types && cargo-ai cdk check && cargo-ai cdk plan
 ## Composes into
 
 A CRM coverage analysis (how much of the TAM the CRM already holds),
-`crm-enrichment`, `crm-deduplication`, and scoring: `score-leads` on an export
-before the CRM, `account-scoring` once the accounts are pushed there.
+`crm-enrichment`, `crm-deduplication`, and `account-scoring`, which tiers
+`tam_companies` in place.
 `references/run.md` lists them as the report's openings.

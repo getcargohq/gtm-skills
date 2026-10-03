@@ -104,9 +104,9 @@
     {
       "name": "account-scoring",
       "kind": "cookbook",
-      "job": "Keep every account scored and tiered against your written ICP by a deployed agent that re-scores as accounts arrive and as the ICP changes, writing the rationale back to the CRM.",
-      "description": "Keep every account scored and tiered against your written ICP by a deployed agent that re-scores as accounts arrive and as the ICP changes, writing the rationale back to the CRM. Triggers: \"keep our accounts scored as they arrive\", \"re-score everything when the ICP changes\", \"which accounts should the team work first\", \"our scoring is a spreadsheet nobody trusts\", \"why is this account tier A\", \"stand up account tiering\". Cargo CDK, defineAgent, cargo_score, cargo_tier, HubSpot, Salesforce, Attio. Skip when: someone hands you a list and wants it qualified once, which is cargo-gtm's job, not a deployed scorer's.",
-      "version": "0.2.1",
+      "job": "Tier every company in your TAM A / B / C / disqualified with a deployed agent that reads your ICP and tiering rubric from the workspace context, web-searches only to settle a doubt, and writes the tier, a two-sentence reason and its evidence back onto the row, then keeps new companies tiered as they land.",
+      "description": "Tier every company in your TAM A / B / C / disqualified with a deployed agent that reads your ICP and tiering rubric from the workspace context, web-searches only to settle a doubt, and writes the tier, a two-sentence reason and its evidence back onto the row, then keeps new companies tiered as they land. Triggers: \"score our TAM\", \"tier the market we just sourced\", \"which accounts should the team work first\", \"why is this account tier A\", \"keep our accounts tiered as they arrive\", \"our lead scoring is a spreadsheet nobody trusts\". Cargo CDK, defineAgent, webSearch, workspace context, tam_companies, tier segments. Skip when: someone hands you a list and wants it scored once, which is score-leads; or there is no account universe yet, which is tam-building.",
+      "version": "0.5.0",
       "homepage": "https://github.com/getcargohq/gtm-skills/tree/main/account-scoring",
       "group": "Fundamentals",
       "install": "cargo-ai cdk add cookbook/account-scoring",
@@ -117,12 +117,12 @@
         "gtm-engineering"
       ],
       "integrations": [
-        "hubspot",
-        "openAi"
+        "aiArk",
+        "anthropic"
       ],
       "example": {
-        "prompt": "Score every HubSpot company against the ICP in our context repo and put the tier and the reason on the record, re-checking weekly.",
-        "output": "| Company (domain)              | cargo_score | cargo_tier | cargo_rationale                                                                                                |\n| ----------------------------- | ----------- | ---------- | -------------------------------------------------------------------------------------------------------------- |\n| Northwind (northwind.example) | 86          | A          | 420-person B2B SaaS in the US running HubSpot and Snowflake. Matches the ICP on segment, size band and stack.  |\n| Fabrikam (fabrikam.example)   | 58          | B          | Right industry and region, but 60 employees sits below the ICP's 100–2,000 size band. No disqualifier applies. |\n| Tailspin (tailspin.example)   | 18          | C          | Consumer mobile game studio. B2C is an ICP disqualifier, which caps the score at 20.                           |\n\nEach record also gets `cargo_last_updated_at`, so the Monday sweep skips it for three months; after the next\nmodel refresh Northwind lands in `tier_a_accounts` and Tailspin in `tier_c_accounts`."
+        "prompt": "Tier every company in our TAM against the ICP and the rubric in our context repo, and keep new ones tiered as they land.",
+        "output": "| Company (domain)              | tier         | tier_rationale                                                                                                                                | tier_evidence_url                         |\n| ----------------------------- | ------------ | --------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------- |\n| Northwind (northwind.example) | A            | Fits the firmographics: 240-person B2B software company in the US. Has a GTM engineer on staff, which the rubric ranks as the strongest sign. | https://northwind.example/careers/gtm-eng |\n| Fabrikam (fabrikam.example)   | C            | Fits industry, size and country. No technical revenue role and no public automation practice was found, so nothing lifts it above C.          |                                           |\n| Tailspin (tailspin.example)   | disqualified | Services-only consultancy with no software product, which the ICP lists as a disqualifier. The sourced industry label was misleading.         | https://tailspin.example/about            |\n\nEvery row also gets `tiered_at` and lands in `tier_a_accounts`, `tier_b_accounts`,\n`tier_c_accounts` or `disqualified_accounts`. The report closes on the tier distribution and one\nrecommended next step."
       },
       "state": "to-be-approved",
       "chain": 1,
@@ -136,64 +136,83 @@
       ],
       "asked": [
         {
-          "input": "icp` (the repo's root `context/`)",
-          "kind": "generated",
-          "how": "**derived**: If the workspace already has closed-won and closed-lost data, extract the industry, size, geography and stack that separate won from lost accounts and propose the ICP from it rather than asking cold. Write it to the knowledge layer at the repository root — `context/icp/` in a scaffolded repo — which the project's own `defineContext` already syncs. This skill declares none: it is a per-workspace singleton, and a second one collides at deploy.",
-          "why": "The criteria ARE the prompt. There are no point weights in code, so a vague ICP produces vague scores and the disqualifiers are what cap a bad account at 20."
+          "input": "icp",
+          "kind": "derived",
+          "how": "Read from the workspace context (`cargo-ai context …`, or the project's context directory). None? Stop and run tam-building's first phase",
+          "why": "The rubric decides against it. A tier that cannot name the ICP line it came from is a guess, and the evaluator fails it"
         },
         {
-          "input": "languageModel` (`infra/agents/scorer.ts`)",
-          "kind": "value",
-          "how": "**derived**: whichever LLM connector is already authenticated in the workspace",
-          "why": "Scoring quality and per-account cost both live here."
+          "input": "tier_rubric",
+          "kind": "asked",
+          "how": "An existing rubric in the context is shown and confirmed. Otherwise propose A / B / C / disqualified from the ICP's language and have the operator correct it",
+          "why": "It is the one input that is genuinely a decision about the business: what \"work it now\" means here"
         },
         {
-          "input": "crmScoreProperties",
-          "kind": "manual",
-          "how": "**derived**: read the CRM's account schema through the CRM connector and report which of the four are missing",
-          "why": "The play writes all four back. If they do not exist the run looks successful and the scores land nowhere, which is the failure mode that wastes a whole batch."
+          "input": "model",
+          "kind": "derived",
+          "how": "tam_companies` from tam-building. Another companies model works if it has an id, a name and a domain; map its columns in the workflow input",
+          "why": "The workflow interpolates these columns into the prompt. A renamed one hands the agent an undefined"
         },
         {
-          "input": "tierThresholds` (`infra/segments/tiers.ts`)",
-          "kind": "value",
-          "how": "**asked**",
-          "why": "The agent emits A, B and C but the skill ships segments for A and C only. Tier B accounts land in no segment unless you add one."
+          "input": "languageModel",
+          "kind": "derived",
+          "how": "Whichever LLM connector the workspace already holds (`cargo-ai connection connector list`)",
+          "why": "Judgment quality and the cost per company both live here"
+        },
+        {
+          "input": "restale",
+          "kind": "derived",
+          "how": "Six months by default. Ask only to change it",
+          "why": "How often a tiered company is judged again. Shorter re-bills the whole book more often"
         }
       ],
       "canChange": [
         {
-          "id": "deterministic-scoring",
-          "when": "You need fixed cost and exact reproducibility, or an LLM judgement is not acceptable to your team",
-          "how": "Swap the agent call for the native `scoring` node, with criteria as {name, value, score} booleans in the workflow (`infra/agents/scorer.ts`, `infra/plays/score-accounts.ts`)",
-          "cost": "The criteria move out of the ICP markdown and into code, so they stop being reviewable by non-engineers, and you lose the rationale entirely"
+          "id": "crm-accounts",
+          "when": "The accounts already live in a CRM and the tier should be visible where reps work",
+          "how": "Point the play at a CRM companies model, and add a CRM update node after the custom-column write, mapping the same four values to CRM properties the operator created first",
+          "cost": "A CRM connector and four CRM properties to maintain. A property that does not exist makes the update succeed and write nothing"
         },
         {
-          "id": "skip-crm-roundtrip",
-          "when": "You want the score on the model directly and do not need it visible in the CRM",
-          "how": "Write with the platform's `native.modelUpsert({...})` in the workflow instead of going through the CRM connector (`infra/plays/score-accounts.ts`)",
-          "cost": "Reps lose the score and rationale where they actually work. The native's input is untyped, so confirm the field shape on the first run"
+          "id": "numeric-score",
+          "when": "A downstream router or report needs a 0 to 100 number, not four buckets",
+          "how": "Add `score` to the agent's output schema, a `score` custom column, and the mapping in the write; define what the number means in the rubric",
+          "cost": "A number reads more precise than the judgment behind it. Keep the tier as the field people act on"
         },
         {
-          "id": "no-crm-at-all",
-          "when": "You have no CRM, or the workspace has no CRM connection and you do not want to authorize one",
-          "how": "Take `skip-crm-roundtrip`, then delete `infra/connectors/hubspot.ts` so no CRM connector is registered",
-          "cost": "Every other CRM-dependent skill you install later brings a CRM connector of its own; reuse one"
+          "id": "deterministic-tiering",
+          "when": "The rubric turns out to be thresholds on sourced columns (headcount, industry, country) with no judgment in it",
+          "how": "Delete the agent and write the tier in the play from the columns, or push the thresholds into tam-building's filter",
+          "cost": "You lose the rationale and the evidence, and anything the sourced row does not hold can no longer move a tier"
+        },
+        {
+          "id": "tier-once",
+          "when": "The market is stable and nobody reads a tier older than a quarter anyway",
+          "how": "Remove the `lowerThan` condition from the play's filter",
+          "cost": "A company that changed (hired the persona, got acquired) keeps its old tier until someone re-tiers it by hand"
         }
       ],
       "shouldNotChange": [
-        "**The scorer looks the account up before judging it.** (`infra/agents/scorer.ts`) A score guessed from the domain name is unfalsifiable and the rationale cites nothing. The evaluator exists to fail exactly this, and a book scored that way is worse than an unscored one because people trust it.",
-        "**ICP disqualifiers cap the score, they are not just negative weight.** (`infra/agents/scorer.ts`) Without a cap, a disqualified account with many fit signals still scores high and reaches a rep. The disqualifiers are the half of an ICP that actually protects the team's time.",
-        "**`cargo_score` and `cargo_tier` are selected as columns on the accounts model.** (`infra/segments/tiers.ts`) The tier segments filter on a column they cannot see, so they come back empty while everything upstream reports success.",
-        "**Every tier the scorer can emit is either covered by a segment or excluded on purpose.** (`infra/segments/tiers.ts`) The shipped segments cover A and C. The agent also emits B, so tier B accounts land nowhere and quietly disappear from the book."
+        "**The rubric lives in the context repo.** (`context/tiering-rubric.md` in the project's knowledge layer.) Put it in the prompt and changing what tier A means becomes a deploy, the reason for the change stops being reviewable, and the rep reading the tier can no longer read the same file the agent read.",
+        "**The agent judges and the play writes.** (`infra/agents/tier-analyst.ts`) The agent carries no model in `uses`. Give it one and it decides its own routing, at which point an untiered row could be a failed run, a skip, or a choice.",
+        "**Custom columns are written with their bare slugs.** (`infra/plays/tier-accounts.ts`) `custom__tier` on the write becomes `custom.custom__tier`, the node reports \"Record upserted\", and the value is dropped.",
+        "**Eligibility is the stamp, not the tier.** (`infra/plays/tier-accounts.ts`) Filter on `tiered_at` being null or stale. Filter on the tier and a failed run looks the same as a legitimate `disqualified`, so it is either retried forever or never.",
+        "**A tier ships with its rationale, its evidence, and its stamp, on the same write.** (`infra/plays/tier-accounts.ts`) A tier nobody can audit is a number a rep will not trust, and a tier with no stamp is judged again on every tick.",
+        "**`changeKinds: [\"added\"]` stays.** (`infra/plays/tier-accounts.ts`) Runs are created for rows entering the filter. Without it, the LLM bill scales with how often the cron fires.",
+        "**Every tier the agent can emit has a segment.** (`infra/segments/tiers.ts`) A tier with no segment is a row that lands nowhere and quietly disappears from the book."
       ],
       "doneWhen": [
-        "a test account run shows the agent's lookups in the trace, not a score guessed from the domain name",
-        "the CRM record carries a score with a rationale citing real evidence and named ICP criteria",
-        "the evaluator scores at least 0.8",
-        "after the next model refresh the account appears in the matching tier segment"
+        "the ICP and the tiering rubric are in the workspace context, and the rubric was approved",
+        "the pilot tiered ten rows, and one A, one C and one disqualified were checked against the rubric by hand",
+        "every row in the model carries a tier the rubric defines, a rationale naming the deciding lines, and a `tiered_at` stamp, and no row carries one without the others",
+        "the four segments resolve, and their counts sum to the tiered row count",
+        "the agent's evaluator pass rate is at or above its threshold",
+        "editing the rubric in the context repo changes the next tier with no deploy",
+        "the report gave the tier distribution, actual credits against the pilot's estimate, and one recommended next step",
+        "`node --import tsx evals/contract.mjs` passes against the adapted resources"
       ],
-      "cost": "One LLM call plus up to two Cargo database calls (`matchBusiness`,\n`enrichBusinessFirmographics`) per account, on arrival and again on the weekly sweep of accounts\nlast scored three or more months ago. It scales with accounts in the model times re-scores, so a\nTAM built by `tam-building` scores at that size. Score a sample before the book.",
-      "composesInto": "`agentic-engagement` (the engager should be talking to accounts this already ranked). Not built\nyet: `routing-engine` (territories and capacity over the scored book), `rep-cockpit`, `ai-sdr`."
+      "cost": "**Tiering is one agent run per company**, billed as LLM tokens through the bound connector, plus\nthe web searches the agent decides to make. `maxSteps` is the per-company ceiling, and the rubric's\none-question-one-search rule is what keeps a normal row far below it. The pilot is how you learn\nthe real number: read actual credits for the ten rows, then multiply by the untiered row count\nbefore approving the backfill.\n\nAfter the backfill, the play only tiers what arrives (`changeKinds: [\"added\"]`) and what goes stale\nafter six months, so the steady-state cost follows how many companies tam-building lands, not how\noften the cron fires.",
+      "composesInto": "`contact-sourcing` (the buyers at every tier A account), `agentic-engagement` (talk to the accounts\nthis ranked), `new-hire-detection` (watch tier A for the hires that move a C up). Works best after\n`tam-building`, whose `tam_companies` it tiers."
     },
     {
       "name": "agentic-engagement",
@@ -1593,7 +1612,7 @@
         "`node --import tsx evals/contract.mjs` passes against the adapted resources"
       ],
       "cost": "Read this before pointing the skill at a market-sized filter.\n\n**Counting is free**, and it is the cheapest insurance in this skill: `aiArk.countCompanies` takes\nthe same filter groups as the search and returns the pool size without billing. Run it for every\ncandidate filter, every time you widen one.\n\n**Research bills per call**, and only runs when no ICP is written down. Reading the website and\ncustomer stories is one extraction per batch of pages, and each customer's LinkedIn page is one\nenrichment. Fetch the live prices with `cargo-ai connection integration get <slug>` for each\nintegration you use, and keep the customer list to the ones named on the site.\n\n**Sourcing is the spend, and it is per returned record, not per call.** Immediately before every\npreview, run `cargo-ai connection integration get aiArk` and read the current `fetchCompanies`\nentry under `credits.costs`. Record the CLI version, the lookup time, and the unit price. The\nestimate is `limit * unit price`, which is why `limit` is the only control that matters: **to spend\nless, source less.**\n\nThe sourced model deliberately carries **no schedule**. See `refresh-cadence` above for what a\nrecurring source really costs.",
-      "composesInto": "`crm-enrichment` (fill the records once they are in the CRM), `crm-deduplication` (keep them single\nonce they are there), `contact-sourcing` (the buyers at the accounts you keep). A CRM coverage\nanalysis (how much of the TAM the CRM already holds) is the usual first opening;\n`references/run.md` describes it. To tier the TAM before it reaches a CRM, use `score-leads` on an\nexport of the model. `account-scoring` only reads CRM accounts today, so it tiers the TAM once the\naccounts have been pushed there, not before."
+      "composesInto": "`crm-enrichment` (fill the records once they are in the CRM), `crm-deduplication` (keep them single\nonce they are there), `contact-sourcing` (the buyers at the accounts you keep). A CRM coverage\nanalysis (how much of the TAM the CRM already holds) is the usual first opening;\n`references/run.md` describes it. `account-scoring` tiers the TAM in place, with or without a CRM."
     },
     {
       "name": "track-funding-rounds",

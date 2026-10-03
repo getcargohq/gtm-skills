@@ -272,6 +272,4 @@ recurring source really costs.
 `crm-enrichment` (fill the records once they are in the CRM), `crm-deduplication` (keep them single
 once they are there), `contact-sourcing` (the buyers at the accounts you keep). A CRM coverage
 analysis (how much of the TAM the CRM already holds) is the usual first opening;
-`references/run.md` describes it. To tier the TAM before it reaches a CRM, use `score-leads` on an
-export of the model. `account-scoring` only reads CRM accounts today, so it tiers the TAM once the
-accounts have been pushed there, not before.
+`references/run.md` describes it. `account-scoring` tiers the TAM in place, with or without a CRM.
