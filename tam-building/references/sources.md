@@ -40,8 +40,8 @@ countries.
 ### FullEnrich
 
 - **For:** it is free per record. That changes the economics of this skill:
-  sourcing stops being the spend, and a `refresh-cadence` schedule costs
-  nothing to re-run. Filters are plain strings (`industry`, `headcount`
+  sourcing stops being the spend, and a `refresh-cadence` schedule re-runs
+  at no charge. It is the one source the contract allows a schedule on. Filters are plain strings (`industry`, `headcount`
   `{min, max}`, `headquarters`, `technologies`, `specialties`, `keywords`),
   with no autocomplete step.
 - **Against:** it has no count action. Size the pool with a small `limit`

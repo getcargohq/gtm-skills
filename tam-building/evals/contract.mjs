@@ -39,6 +39,10 @@ const SOURCES = {
   FullEnrich: {
     extractor: "fetchCompanies",
     nested: true,
+    // Free per returned record, so a schedule re-runs the search at no
+    // charge. Re-read the price before relying on this: if it stops being
+    // free, drop the flag.
+    freeToRefresh: true,
     minimum: {
       industries: ["industry"],
       size: ["headcount"],
@@ -109,11 +113,13 @@ assert.equal(
   "the model config must set an explicit limit: the search bills per returned record and this is the only cap",
 );
 
-assert.equal(
-  sourceSpec.schedule ?? null,
-  null,
-  "the sourced model must not carry a schedule: a cron re-runs the search and re-bills every returned record, including the rows already sourced",
-);
+if (!source.freeToRefresh) {
+  assert.equal(
+    sourceSpec.schedule ?? null,
+    null,
+    `the ${sourceConnector.integrationSlug} model must not carry a schedule: a cron re-runs the search and re-bills every returned record, including the rows already sourced. A paid refresh-cadence is a recorded decision: edit this check in the same change`,
+  );
+}
 
 // ---------------------------------------------------------------------------
 // Atomic: one connector, one model, one folder. Nothing judges, nothing writes.

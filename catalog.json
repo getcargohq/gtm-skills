@@ -1565,7 +1565,7 @@
           "id": "refresh-cadence",
           "when": "The market moves and a one-time source goes stale",
           "how": "Give `tam_companies` a cron and widen `limit`, then read the deleting-a-schedule warning in that file before you ever remove it again",
-          "cost": "Every run re-bills every returned record, including the rows already there: a monthly refresh buys the handful of new companies at the price of the whole pool. On a free source (FullEnrich) the cost is only that the run replaces what you had"
+          "cost": "Every run re-bills every returned record, including the rows already there: a monthly refresh buys the handful of new companies at the price of the whole pool. On a free source (FullEnrich) a re-run costs no credits, and the contract allows the schedule; on a paid one, record the decision and edit the contract check in the same change"
         },
         {
           "id": "swap-source",
@@ -1579,7 +1579,7 @@
         "**Every filter is counted before it is sourced.** (`infra/models/tam-companies.ts`) `countCompanies` takes the same groups and is free; a swapped source without a count is sized with a small sample pull instead. Sourcing blind is how a filter that reads right returns a market ten times the size you meant, already billed per record.",
         "**The ICP filter is the narrowing, and there is no post-filter.** (`infra/models/tam-companies.ts`) Every returned record is paid for. A company outside the ICP was bought before anyone looked at it, so the fix for a wide result is a narrower filter, not a cleanup step.",
         "**Filter groups are nested, and enum values come from the autocompletes.** (`infra/models/tam-companies.ts`) A flat `{\"industry\": \"Software\"}` is ignored silently and sources the whole database up to `limit`. A guessed enum member matches nothing and returns an empty sync that looks like a broken connector.",
-        "**The sourced model carries no schedule.** (`infra/models/tam-companies.ts`) A cron re-bills every returned record on every run, including the ones already there.",
+        "**The sourced model carries no schedule on a paid source.** (`infra/models/tam-companies.ts`) A cron re-bills every returned record on every run, including the ones already there. A free source (FullEnrich today) is the exception, and the contract allows it.",
         "**The cookbook stays atomic.** One company source connector (AI Ark unless swapped), one model, one folder. A CRM, an LLM, a play or a segment is a dependency of a next step, and adding it here makes every install set up an integration it does not need to build a TAM. The openings in the report are where those belong.",
         "**The ICP lives in the context repo, not in a prompt or a config comment.** (`context/icp.md` in the project's knowledge layer; this skill's `context/icp.md` is the example.) It is the file every later skill reads; a copy anywhere else drifts from it."
       ],

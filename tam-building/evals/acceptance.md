@@ -58,9 +58,11 @@ adaptation is incomplete.
 - Exactly one company source exists. The example is `aiArk.fetchCompanies` on
   `tam_companies`; a swapped source replaces it rather than sitting beside it.
 - The sourced model carries the `industry`, `employeeSize` and
-  `companyLocation` groups, an explicit `limit`, and **no schedule** (or one only
-  under an approved `refresh-cadence` variation whose re-billing cost was
-  stated).
+  `companyLocation` groups (or the swapped source's equivalents), an explicit
+  `limit`, and **no schedule** unless the source is free per record
+  (FullEnrich). A schedule on a paid source exists only under an approved
+  `refresh-cadence` variation whose re-billing cost was stated, with the
+  contract check edited and the reason recorded under `## Decisions`.
 - The skill deploys one company source connector (AI Ark, or a source from
   `references/sources.md` with the reason recorded), one model and one folder: no CRM
   connector, no unified model, no LLM connector, and no play, agent, tool or
