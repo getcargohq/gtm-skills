@@ -76,5 +76,11 @@
     "chain": 13,
     "demoWorkspace": null,
     "implementations": []
+  },
+  "visitor-identification": {
+    "state": "approved",
+    "chain": 14,
+    "demoWorkspace": "2026-10-04",
+    "implementations": []
   }
 }
