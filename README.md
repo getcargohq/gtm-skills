@@ -121,7 +121,7 @@ Deployed pipelines that watch the market for the moment to reach out: who just t
 
 ### Engagement
 
-Deployed pipelines that hold the conversation: every demo request answered on the page, and an agent answering every lead who replies.
+Deployed pipelines that hold the conversation: every inbound lead researched for its owner, every demo request answered on the page, and an agent answering every lead who replies.
 
 | Skill | Does | Try saying |
 | --- | --- | --- |
