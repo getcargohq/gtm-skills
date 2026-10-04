@@ -4,33 +4,49 @@ Walk every line. A checked template without an evidence-backed consumer adaptati
 
 ## Before deploy
 
-- `node --import tsx evals/contract.mjs` passes against the adapted graph: the model extracts
-  contacts with no config filter, the agent has no CRM, Slack or writable model and reads the
-  context read-only, the play is disabled on `changeKinds: ["added"]` and excludes researched rows.
-- `cargo-ai connection connector list` shows authorized HubSpot, Slack and Anthropic connectors.
+- `node --import tsx evals/contract.mjs` passes against the adapted graph: no CRM connector (unless
+  `crm-backed` was applied and the assertion changed with it), native `inbound_contacts` and
+  `inbound_accounts`, an agent with no connector action or writable model that reads the context
+  read-only, a disabled play on `changeKinds: ["added"]` that allow-lists `lead_source` and skips
+  researched rows, and writes to the declared `cargo_*` columns only, never `owner_id`.
+- `cargo-ai connection connector list` shows authorized Slack and Anthropic connectors.
 - `icp.md` and `tiering-rubric.md` are in the project context, with no `PLACEHOLDER` left in the
   rubric.
-- The four contact properties and the two company properties exist in HubSpot
-  (`listObjectProperties`).
+- The capture that writes into `inbound_contacts` is named, and the `lead_source` values it writes
+  are the play's allow-list.
 - The Slack channel id was read out loud from the connector's autocomplete, the channel is internal,
   and the bot is in it. Every owner in the map was confirmed by the operator.
 
-## Pilot
+## Seeded test
 
-Keep the HubSpot record links and the Slack permalinks as evidence.
+Read the two model UUIDs from `cargo-ai storage model list`, then seed:
 
-- **Ten contacts.** A manual run over ten recent inbound contacts wrote tier, brief, rationale and
-  stamp on each, and posted ten notes in the `references/note.md` shape.
-- **Company guard.** A company that already had `cargo_tier` kept it; a company without one got the
-  inbound tier.
-- **Truth.** For three sampled briefs, every fact is in the CRM record or on a listed source.
-- **Re-run.** A second manual run over the same ten wrote nothing and posted nothing.
-- **Not inbound.** A contact a rep created by hand during the pilot was not researched.
-- **Owner.** A mapped owner was mentioned; an unmapped one was named by id; no owner changed.
+```sh
+cargo-ai storage record create --model-uuid <inbound_accounts uuid> \
+  --data '{"id":"acc-test-1","name":"Fabrikam","website":"fabrikam.example"}'
+cargo-ai storage record create --model-uuid <inbound_contacts uuid> \
+  --data '{"id":"ct-test-1","account_id":"acc-test-1","first_name":"Dana","last_name":"Ruiz","title":"VP Revenue Operations","email":"dana@fabrikam.example","lead_source":"demo_request","owner_id":"owner-id"}'
+cargo-ai storage record create --model-uuid <inbound_contacts uuid> \
+  --data '{"id":"ct-test-2","first_name":"Lee","last_name":"Park","email":"lee@contoso.example","lead_source":"purchased_list"}'
+```
 
-## After enabling
+Keep the record JSON (`cargo-ai storage record get`) and the Slack permalinks as evidence.
 
-- A test form fill was researched within an hour, once.
+- **Researched.** A manual run of the play researched `ct-test-1`: all four `cargo_inbound_*`
+  columns are set, `acc-test-1` got `cargo_tier` and `cargo_tier_reason`, and one note landed in
+  the `references/note.md` shape.
+- **Not inbound.** `ct-test-2` (a source outside the allow-list) was not researched.
+- **Re-run.** A second manual run wrote nothing and posted nothing.
+- **Account guard.** Setting `cargo_tier` on the account by hand, then seeding a second contact on
+  it, left the hand-set tier in place.
+- **Owner.** The mapped owner was mentioned; `owner_id` on the contact is unchanged.
+- **Truth.** Every fact in the brief is in the record or on a listed source.
+
+## Pilot and enable
+
+- Ten real inbound contacts from the capture were researched by hand and read before enabling.
+- After enabling, a contact written by the real capture was researched within fifteen minutes,
+  once.
 
 ## Isolation
 

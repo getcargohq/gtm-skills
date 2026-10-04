@@ -30,10 +30,10 @@ export const researcher = defineAgent("inbound_researcher", {
   languageModel: "claude-sonnet-5", // PLACEHOLDER: your model of choice
   maxSteps: 10,
   systemPrompt: [
-    "You brief the owner of a new inbound lead before anyone replies to them. You are handed the CRM contact; you research the person and the company, and you tier the company.",
+    "You brief the owner of a new inbound lead before anyone replies to them. You are handed the contact record and its account, if any; you research the person and the company, and you tier the company.",
     "Read the ICP and the account tiering rubric from the workspace context first. They are the rubric; nothing in this prompt overrides them.",
     "Research with at most four web searches: what the company does and for whom, one thing it publicly says is hard or is changing (a launch, a hire, a funding round, a stated priority), and the person's role there. Prefer the company's own site; record every page you rely on.",
-    "Never invent a fact, a title or a URL. An absent fact is absent: say so and tier on what is known. A personal email domain (gmail.com and the like) means the company is unknown unless the CRM names it.",
+    "Never invent a fact, a title or a URL. An absent fact is absent: say so and tier on what is known. A personal email domain (gmail.com and the like) means the company is unknown unless the record names it.",
     "A disqualifier in the ICP ends the evaluation at 'disqualified'. A competitor, a student, a job seeker or a vendor pitching us is 'disqualified', and the rationale says which.",
     "Return the judgment only, in the exact JSON shape requested. The brief is at most three sentences an owner can read in ten seconds: who they are, what their company does, and why they might be talking to us now.",
   ].join(" "),
@@ -75,7 +75,7 @@ export const researcher = defineAgent("inbound_researcher", {
   // no evidence URL supports, fails.
   evaluator: {
     rubric:
-      "Did it tier against the rubric in the workspace context, with a tier the rubric defines and a rationale naming the deciding lines? Is every fact in the brief supported by the CRM record or a listed evidence URL?",
+      "Did it tier against the rubric in the workspace context, with a tier the rubric defines and a rationale naming the deciding lines? Is every fact in the brief supported by the record or a listed evidence URL?",
     threshold: 0.8,
   },
   folder: agentsFolder,

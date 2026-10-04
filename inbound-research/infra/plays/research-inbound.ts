@@ -2,10 +2,10 @@ import { definePlay, defineWorkflow } from "@cargo-ai/cdk";
 import { z } from "zod";
 
 import { researcher } from "../agents/researcher";
-import { hubspot } from "../connectors/hubspot";
 import { slack } from "../connectors/slack";
 import { playsFolder } from "../folders";
-import { crmContacts } from "../models/crm-contacts";
+import { accounts } from "../models/accounts";
+import { contacts } from "../models/contacts";
 
 // PLACEHOLDER: the Slack channel every inbound note lands in, as a channel id
 // (C…) read from the connector's channel autocomplete. Fixed here so no run
@@ -13,149 +13,148 @@ import { crmContacts } from "../models/crm-contacts";
 // never reach a customer shared channel.
 const slackChannelId = "PLACEHOLDER_SLACK_CHANNEL_ID";
 
-// PLACEHOLDER: HubSpot owner id -> Slack user id, so the note mentions the
-// owner. Read owner ids from the HubSpot `listUsers` autocomplete and Slack ids
-// from the Slack `listUsers` action. An owner missing here is named by id
-// instead of mentioned; the pipeline never assigns or changes an owner.
+// PLACEHOLDER: contact `owner_id` -> Slack user id, so the note mentions the
+// owner. An owner missing here is named by id instead of mentioned; the
+// pipeline never assigns or changes an owner.
 const ownerSlackIds: Record<string, string> = {
-  "00000000": "U0123456789",
+  "owner-id": "U0123456789",
 };
 
 // One new inbound contact:
 //
 //   researched already -> never reached: the play filter excludes it
-//   researcher answers -> tier and brief written onto the HubSpot contact,
-//                         tier onto its company if the company has none,
-//                         then one Slack note to the channel
+//   no email           -> stop: no domain to research, no person to brief
+//   researcher answers -> tier, brief and rationale written onto the contact
+//                         row, the tier onto its account only if the account
+//                         has none, then one Slack note to the channel
 //
-// The write targets the HubSpot record id the row came with. Nothing sits
-// between the extract and the write: a unification step there makes the run
-// look successful while nothing lands.
+// The writes target the native record ids the row came with. Bare slugs on
+// the write: the write path nests them under `custom` itself, so the
+// `custom__` names the read side shows would be dropped while the node still
+// reports success.
 const researchInbound = defineWorkflow(
   "research_inbound_contact",
   {
-    // The `fetchRecords` contact columns this workflow reads. Confirm them
-    // against the live model after the first sync (`cargo-ai storage column
-    // list`).
+    // `defineContact` columns. Confirm with `cargo-ai storage column list`
+    // after deploy.
     input: z.object({
-      hs_object_id: z.string(),
+      id: z.string(),
+      account_id: z.string().optional(),
+      first_name: z.string().optional(),
+      last_name: z.string().optional(),
+      title: z.string().optional(),
       email: z.string().optional(),
-      firstname: z.string().optional(),
-      lastname: z.string().optional(),
-      jobtitle: z.string().optional(),
-      company: z.string().optional(),
-      website: z.string().optional(),
-      associatedcompanyid: z.string().optional(),
-      hubspot_owner_id: z.string().optional(),
-      hs_analytics_source: z.string().optional(),
-      message: z.string().optional(),
+      linkedin_url: z.string().optional(),
+      lead_source: z.string().optional(),
+      owner_id: z.string().optional(),
+      description: z.string().optional(),
     }),
     output: z.object({
       status: z.enum(["researched", "skipped_no_email"]),
       tier: z.string().optional(),
     }),
-    uses: { hubspot, slack, researcher },
-    imports: { slackChannelId, ownerSlackIds },
+    uses: { slack, researcher },
+    // The body is parsed from source, not executed: model handles and
+    // constants it names must be listed here or the parser cannot resolve them.
+    imports: { contacts, accounts, slackChannelId, ownerSlackIds },
   },
-  ({ input, uses }) => {
-    // Without an email there is no domain to research and no person to brief.
+  ({ input, uses, model }) => {
     if (!input.email) {
       return { status: "skipped_no_email" as const };
     }
 
-    const verdict = uses.researcher({
-      prompt: `Research and tier this new inbound contact. CRM record: ${JSON.stringify(input)}`,
+    // What is already known about the company, if the contact is linked to
+    // one. Empty for a contact that arrived without an account.
+    const account = model.search({
+      modelUuid: accounts.uuid,
+      filter: {
+        conjonction: "and",
+        groups: [
+          {
+            conjonction: "and",
+            conditions: [
+              {
+                kind: "string",
+                columnSlug: "id",
+                operator: "is",
+                values: [input.account_id || "none"],
+              },
+            ],
+          },
+        ],
+      },
+      limit: 1,
     });
 
-    // Fill-blank guard on the judgment, a stamp that always lands. The stamp
-    // is what the play filter reads, so a contact is researched once; the
-    // guard keeps a rep's hand-written tier or an earlier brief.
-    uses.hubspot.updateRecords({
-      objectType: "contacts",
-      matchingPropertyName: "hs_object_id",
-      matchingValue: input.hs_object_id,
+    const verdict = uses.researcher({
+      prompt: `Research and tier this new inbound contact. Contact: ${JSON.stringify(input)}. Account on file: ${JSON.stringify(account)}`,
+    });
+
+    // The judgment and the stamp land on one node, so a contact is never
+    // marked researched without carrying the research.
+    model.customColumn({
+      modelUuid: contacts.uuid,
+      id: input.id,
       mappings: [
+        { columnSlug: "cargo_inbound_tier", value: verdict.answer.tier },
+        { columnSlug: "cargo_inbound_brief", value: verdict.answer.brief },
         {
-          propertyName: "cargo_inbound_tier",
-          value: verdict.answer.tier,
-          skipIfExist: true,
-        },
-        {
-          propertyName: "cargo_inbound_brief",
-          value: verdict.answer.brief,
-          skipIfExist: true,
-        },
-        {
-          propertyName: "cargo_inbound_rationale",
+          columnSlug: "cargo_inbound_rationale",
           value: verdict.answer.rationale,
-          skipIfExist: true,
         },
-        { propertyName: "cargo_inbound_researched_at", value: new Date() },
+        { columnSlug: "cargo_inbound_researched_at", value: new Date() },
       ],
     });
 
-    // The company keeps whatever tier it already has: account-scoring, or a
-    // rep, may have set it on more evidence than one inbound lead carries.
-    if (input.associatedcompanyid) {
-      uses.hubspot.updateRecords({
-        objectType: "companies",
-        matchingPropertyName: "hs_object_id",
-        matchingValue: input.associatedcompanyid,
+    // Fill-blank on the account: a tier already there was set on more
+    // evidence than one inbound lead carries.
+    if (account.length > 0 && !account[0].custom__cargo_tier) {
+      model.customColumn({
+        modelUuid: accounts.uuid,
+        id: account[0].id,
         mappings: [
-          {
-            propertyName: "cargo_tier",
-            value: verdict.answer.tier,
-            skipIfExist: true,
-          },
-          {
-            propertyName: "cargo_tier_reason",
-            value: verdict.answer.rationale,
-            skipIfExist: true,
-          },
+          { columnSlug: "cargo_tier", value: verdict.answer.tier },
+          { columnSlug: "cargo_tier_reason", value: verdict.answer.rationale },
         ],
       });
     }
 
-    const ownerSlackId = input.hubspot_owner_id
-      ? ownerSlackIds[input.hubspot_owner_id]
-      : "";
+    const ownerSlackId = input.owner_id ? ownerSlackIds[input.owner_id] : "";
     const ownerLine = ownerSlackId
       ? `<@${ownerSlackId}>`
-      : input.hubspot_owner_id
-        ? `HubSpot owner ${input.hubspot_owner_id}`
+      : input.owner_id
+        ? `owner ${input.owner_id}`
         : "No owner yet";
 
     uses.slack.postMessage({
       channelId: slackChannelId,
       format: "markdown",
       disableUnfurling: true,
-      body: `:inbox_tray: *${input.firstname} ${input.lastname}*, ${input.jobtitle} at ${input.company} — tier *${verdict.answer.tier}*\n${verdict.answer.brief}\n_${verdict.answer.rationale}_\nOwner: ${ownerLine} · Source: ${input.hs_analytics_source}\nSources: ${verdict.answer.evidence_urls.join(" · ")}`,
+      body: `:inbox_tray: *${input.first_name} ${input.last_name}*, ${input.title} (${input.email}) — tier *${verdict.answer.tier}*\n${verdict.answer.brief}\n_${verdict.answer.rationale}_\nOwner: ${ownerLine} · Source: ${input.lead_source}\nSources: ${verdict.answer.evidence_urls.join(" · ")}`,
     });
 
     return { status: "researched" as const, tier: verdict.answer.tier };
   },
 );
 
-// Researches each contact that arrives through an online channel and has not
-// been researched yet.
+// Researches each new contact whose lead source says it came to you, once.
 //
-// `changeKinds: ["added"]` is what makes a contact researched once on arrival:
-// the model re-extracts on every sync, and only rows that were not there
-// before create a run. The `cargo_inbound_researched_at` blank test is the
-// second key, so re-enabling the play or a manual run never pays twice.
+// `changeKinds: ["added"]` creates runs for rows entering the filter, not for
+// the whole table on every tick. The `cargo_inbound_researched_at` blank test
+// is the second key, so re-enabling the play or a manual run never pays twice.
 //
-// `hs_analytics_source` is HubSpot's original source. `OFFLINE` is imports,
-// integrations and contacts a rep typed in: not inbound, and the reason the
-// filter excludes it. Blank HubSpot strings surface as NULL or empty, so every
-// blank test pairs isNull with isEmpty.
+// PLACEHOLDER: the `lead_source` values your capture writes for inbound. An
+// allow-list, not a deny-list: a sourced list loaded into the same model with
+// an unexpected source must not be researched at inbound cost. Count the
+// values in the model before you set it.
 //
-// Ships disabled. Enabling is the last yes after the pilot, and
-// `changeKinds: ["added"]` does not backfill what landed while it was off.
+// Ships disabled. Enabling is the last yes after the pilot, and `added` does
+// not backfill what landed while it was off.
 export const researchInboundContacts = definePlay("research_inbound_contacts", {
   description:
-    "Researches each new inbound HubSpot contact, writes a tier and a brief onto the record, and posts a note to Slack.",
+    "Researches each new inbound contact, writes a tier and a brief onto the record, and posts a note to Slack.",
   folder: playsFolder,
-  model: crmContacts,
+  model: contacts,
   workflow: researchInbound,
   filter: {
     conjonction: "and",
@@ -165,14 +164,14 @@ export const researchInboundContacts = definePlay("research_inbound_contacts", {
         conditions: [
           {
             kind: "string",
-            columnSlug: crmContacts.columns.email,
+            columnSlug: contacts.columns.email,
             operator: "isNotEmpty",
           },
           {
             kind: "string",
-            columnSlug: crmContacts.columns.hs_analytics_source,
-            operator: "isNot",
-            values: ["OFFLINE"],
+            columnSlug: contacts.columns.lead_source,
+            operator: "is",
+            values: ["inbound", "website", "demo_request"],
           },
         ],
       },
@@ -181,7 +180,7 @@ export const researchInboundContacts = definePlay("research_inbound_contacts", {
         conditions: [
           {
             kind: "date",
-            columnSlug: crmContacts.columns.cargo_inbound_researched_at,
+            columnSlug: contacts.columns.custom__cargo_inbound_researched_at,
             operator: "isNull",
           },
         ],
@@ -191,5 +190,5 @@ export const researchInboundContacts = definePlay("research_inbound_contacts", {
   isEnabled: false,
   runCreationRule: "noConcurrency",
   changeKinds: ["added"],
-  schedule: { type: "cron", cron: "10,40 * * * *" },
+  schedule: { type: "cron", cron: "*/15 * * * *" },
 });

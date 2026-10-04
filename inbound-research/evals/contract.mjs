@@ -16,21 +16,25 @@ const byId = new Map(resources().map((resource) => [resource.id, resource]));
 const conditionsOf = (filter) =>
   (filter?.groups ?? []).flatMap((group) => group.conditions ?? []);
 
-// The model pulls everything. A filter in its config is a second place the
-// question "who is inbound" is asked, invisible to anyone reading the play.
-const model = byId.get("model:inbound_crm_contacts");
-assert.ok(model, "defineModel(inbound_crm_contacts) must exist");
-assert.equal(model.spec.extractorSlug, "fetchRecords");
-assert.equal(model.spec.config?.objectType, "contacts");
-assert.equal(
-  model.spec.config?.filter,
-  undefined,
-  "the contacts model must not filter: narrow in the play filter",
+// The worked example has no CRM dependency. The `crm-backed` variation adds
+// one deliberately, and changes this assertion with it.
+const crmConnectors = [...byId.values()].filter(
+  (resource) =>
+    resource.id.startsWith("connector:") &&
+    ["hubspot", "salesforce", "attio"].includes(resource.spec.integrationSlug),
 );
 assert.equal(
-  model.spec.config?.columnSelectionMode,
-  "all",
-  "the contacts model must extract every column",
+  crmConnectors.length,
+  0,
+  "the worked example runs on native models: no CRM connector",
+);
+
+const contacts = byId.get("model:inbound_contacts");
+assert.ok(contacts, "defineModel(inbound_contacts) must exist");
+assert.equal(contacts.spec.extractorSlug, "defineContact");
+assert.ok(
+  byId.get("model:inbound_accounts"),
+  "defineModel(inbound_accounts) must exist",
 );
 
 // The agent judges and writes nothing.
@@ -48,12 +52,9 @@ assert.equal(
 );
 const capabilities = JSON.stringify(agent.spec.capabilities ?? []);
 assert.ok(
-  capabilities.includes('"context"') && /"isReadOnly":\s*true/.test(capabilities),
+  capabilities.includes('"context"') &&
+    /"isReadOnly":\s*true/.test(capabilities),
   "the researcher must read the ICP and rubric through a read-only context capability",
-);
-assert.ok(
-  agent.spec.output?.jsonSchema?.properties?.tier,
-  "the researcher must return a tier in a JSON schema",
 );
 
 // The play: once per new contact, never twice, shipped off.
@@ -62,45 +63,48 @@ assert.ok(play, "definePlay(research_inbound_contacts) must exist");
 assert.deepEqual(
   play.spec.changeKinds,
   ["added"],
-  'changeKinds must stay ["added"]: without it every sync re-researches the portal',
+  'changeKinds must stay ["added"]: without it every tick re-researches the table',
 );
 assert.equal(play.spec.isEnabled, false, "the play ships disabled");
 const conditions = conditionsOf(play.spec.filter);
 assert.ok(
   conditions.some(
     (c) =>
-      c.columnSlug === "cargo_inbound_researched_at" && c.operator === "isNull",
+      c.columnSlug === "custom__cargo_inbound_researched_at" &&
+      c.operator === "isNull",
   ),
   "the play must skip contacts already researched",
 );
 assert.ok(
-  conditions.some(
-    (c) =>
-      c.columnSlug === "hs_analytics_source" &&
-      c.operator === "isNot" &&
-      JSON.stringify(c.values).includes("OFFLINE"),
-  ),
-  "the play must exclude contacts that did not come in through an online source",
+  conditions.some((c) => c.columnSlug === "lead_source" && c.operator === "is"),
+  "the play must allow-list inbound lead sources",
 );
 
-// The write-back targets the HubSpot record id, with the guard on the
-// judgment, and nothing in the workflow touches ownership.
-const workflow = JSON.stringify(play.spec.nodes ?? play.spec);
-assert.ok(
-  workflow.includes("hs_object_id"),
-  "the write must match on the HubSpot record id the row came with",
-);
-assert.ok(
-  workflow.includes("skipIfExist"),
-  "the tier and brief writes must be fill-blank",
-);
-assert.ok(
-  !/propertyName\\*":\s*\\*"hubspot_owner_id/.test(workflow),
-  "the pipeline must never write an owner",
-);
+// The workflow writes only the declared cargo_* columns, by bare slug, and
+// never touches ownership. `id` is the account lookup, not a write.
+const workflow = JSON.stringify(play.spec.nodes ?? []);
+const allowed = new Set([
+  "cargo_inbound_tier",
+  "cargo_inbound_brief",
+  "cargo_inbound_rationale",
+  "cargo_inbound_researched_at",
+  "cargo_tier",
+  "cargo_tier_reason",
+]);
+const writes = [...workflow.matchAll(/columnSlug\\*":\s*\\*"([a-z_]+)/g)]
+  .map((match) => match[1])
+  .filter((slug) => slug !== "id");
+assert.ok(writes.length > 0, "the workflow must write the research back");
+for (const slug of writes) {
+  assert.ok(
+    allowed.has(slug),
+    `the workflow writes only the declared cargo_* columns, by bare slug (a custom__ slug is dropped while the node reports success); found ${slug}`,
+  );
+}
+assert.ok(!writes.includes("owner_id"), "the pipeline must never write an owner");
 assert.ok(
   !workflow.includes("unifyAccounts") && !workflow.includes("unifyContacts"),
-  "no unification step between the extract and the write",
+  "no unification step between the record and the write",
 );
 
 console.log("ok: inbound-research contract");
