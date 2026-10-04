@@ -51,8 +51,5 @@
         }
       ]
     }
-  },
-  "knownCollisions": {
-    "account-scoring": "Its native `accounts` model predates this check and is removed by the account-scoring tiering rework; delete this entry when that lands."
   }
 }

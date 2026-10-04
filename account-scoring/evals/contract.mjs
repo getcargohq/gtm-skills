@@ -42,7 +42,7 @@ const modelSpec = get(modelId).spec;
 const declaredColumns = new Set(
   (modelSpec.additionalColumns ?? []).map((column) => column.slug),
 );
-for (const slug of ["tier", "tier_rationale", "tier_evidence_url", "tiered_at"]) {
+for (const slug of ["tier", "tier_reason", "tier_evidence_url", "tiered_at"]) {
   assert.equal(
     declaredColumns.has(slug),
     true,
@@ -153,7 +153,7 @@ assert.equal(
 const written = new Map(
   write.config.mappings.map((mapping) => [mapping.columnSlug, mapping.value]),
 );
-for (const slug of ["tier", "tier_rationale", "tier_evidence_url", "tiered_at"]) {
+for (const slug of ["tier", "tier_reason", "tier_evidence_url", "tiered_at"]) {
   assert.equal(
     written.has(slug),
     true,

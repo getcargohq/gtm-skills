@@ -61,7 +61,7 @@ rows that were already there: `changeKinds: ["added"]` only enrols rows that arr
 
 Illustrative output, fictional records:
 
-| Company (domain)              | tier         | tier_rationale                                                                                                                                | tier_evidence_url                         |
+| Company (domain)              | tier         | tier_reason                                                                                                                                   | tier_evidence_url                         |
 | ----------------------------- | ------------ | --------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------- |
 | Northwind (northwind.example) | A            | Fits the firmographics: 240-person B2B software company in the US. Has a GTM engineer on staff, which the rubric ranks as the strongest sign. | https://northwind.example/careers/gtm-eng |
 | Fabrikam (fabrikam.example)   | C            | Fits industry, size and country. No technical revenue role and no public automation practice was found, so nothing lifts it above C.          |                                           |

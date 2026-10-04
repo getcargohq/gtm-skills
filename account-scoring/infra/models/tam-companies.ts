@@ -38,7 +38,7 @@ export const tamCompanies = defineModel("tam_companies", {
     },
     {
       kind: "custom",
-      slug: "tier_rationale",
+      slug: "tier_reason",
       type: "string",
       label: "Tier rationale",
       description:

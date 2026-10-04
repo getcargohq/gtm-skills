@@ -42,7 +42,7 @@ cargo-ai orchestration batch create --workflow-uuid <tierAccountWorkflowUuid> \
 Then read the ten rows back:
 
 ```sql
-SELECT name, domain, custom__tier, custom__tier_rationale, custom__tier_evidence_url, custom__tiered_at
+SELECT name, domain, custom__tier, custom__tier_reason, custom__tier_evidence_url, custom__tiered_at
 FROM <aiArkDataset>.tam_companies
 WHERE custom__tiered_at IS NOT NULL
 ```

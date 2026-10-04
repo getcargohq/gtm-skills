@@ -51,7 +51,7 @@ const tierAccount = defineWorkflow(
       id: input.id,
       mappings: [
         { columnSlug: "tier", value: judgment.answer.tier },
-        { columnSlug: "tier_rationale", value: judgment.answer.rationale },
+        { columnSlug: "tier_reason", value: judgment.answer.rationale },
         {
           columnSlug: "tier_evidence_url",
           value: judgment.answer.evidence_url,
