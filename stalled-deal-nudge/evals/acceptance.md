@@ -22,9 +22,9 @@ Keep the Slack permalinks, the selection SQL output and the ledger rows as evide
   `cargo-ai storage record create-bulk --model-uuid <uuid> --records '[{"data":{...}}]'` for each
   model (uuids from `cargo-ai storage model list`): two accounts; four open deals across two owners
   and one closed deal; activities so that two open deals were last touched more than `QUIET_DAYS`
-  ago, one was touched yesterday, and one has no activity and an old creation date. Remove the seed
+  ago, one was touched yesterday, and one has no activity at all. Remove the seed
   rows with `remove-bulk` afterwards.
-- **Selection.** The prompt's SQL, run by hand, returns exactly the three quiet open deals: never the
+- **Selection.** The prompt's SQL, run by hand, returns exactly the two quiet open deals plus the never-touched one, marked as such: never the
   closed deal, never the one touched yesterday. On real data, a rep confirms a sample of five.
 - **Digest.** The first run posts one digest per owner with stalled deals, in the
   `references/digest.md` shape, and writes one `deal_nudges` row per deal carrying the digest's
