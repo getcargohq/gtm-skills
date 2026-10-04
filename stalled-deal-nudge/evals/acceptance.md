@@ -22,14 +22,20 @@ Keep the Slack permalinks, the selection SQL output and the ledger rows as evide
   `cargo-ai storage record create-bulk --model-uuid <uuid> --records '[{"data":{...}}]'` for each
   model (uuids from `cargo-ai storage model list`): two accounts; four open deals across two owners
   and one closed deal; activities so that two open deals were last touched more than `QUIET_DAYS`
-  ago, one was touched yesterday, and one has no activity at all. Remove the seed
-  rows with `remove-bulk` afterwards.
+  ago, one was touched yesterday, and one has no activity at all. Cargo generates the record ids:
+  create the accounts first and use the returned ids. Before the first run, wait until
+  `cargo-ai storage query execute "SELECT COUNT(*) FROM object.gtm_activities"` counts the seeded
+  rows: a fresh native write takes a few minutes to become readable, and a run before that sees no
+  activity and calls every open deal never touched. Remove the seed rows with `remove-bulk`
+  afterwards.
 - **Selection.** The prompt's SQL, run by hand, returns exactly the two quiet open deals plus the never-touched one, marked as such: never the
   closed deal, never the one touched yesterday. On real data, a rep confirms a sample of five.
 - **Digest.** The first run posts one digest per owner with stalled deals, in the
   `references/digest.md` shape, and writes one `deal_nudges` row per deal carrying the digest's
   Slack `ts`.
-- **Re-run.** Sending the trigger text again the same week posts nothing and adds no row.
+- **Re-run.** Once the first run's `deal_nudges` rows read back through SQL, sending the trigger
+  text again the same week posts nothing and adds no row. Sooner than that, the ledger is not yet
+  readable and the run posts again.
 - **Next week.** A deal still quiet the following Monday appears again, marked as flagged one Monday
   running.
 - **Failed post.** With the bot removed from the channel, the run posts nothing and writes no row;

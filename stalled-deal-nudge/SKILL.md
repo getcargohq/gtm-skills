@@ -25,7 +25,11 @@ metadata:
 
 # Stalled-deal nudge
 
-**State: to-be-approved.** Deploy-verified against a live workspace: not yet. Treat `Done when`
+**State: to-be-approved.** Deploy-verified against a live workspace: yes, on 2026-10-04, on native
+models seeded with five deals (four open, one closed) and four activities: the selection returned
+the two deals quiet 24 and 33 days plus the one never touched, and excluded the deal touched the day
+before and the closed one; one digest per owner landed in Slack with one `deal_nudges` row per deal
+carrying its `ts`; a re-run once the ledger was readable posted nothing and wrote nothing. Treat `Done when`
 below as the acceptance test and review `cargo-ai cdk plan` before deploying. Make no outcome claim
 for this skill until it is approved.
 
@@ -49,7 +53,9 @@ activity is computed in SQL as the latest `occurred_at` per deal, not read off a
 so "quiet for N days" is a query anyone can read. With deals in HubSpot, Salesforce or Attio, the
 models are swapped for connector-backed ones and the agent does not change (`crm-backed` below).
 A ledger records each deal nudged per ISO week: a re-run the same Monday posts nothing, and a failed
-post is retried the next run. The agent reads the deal models and never writes them.
+post is retried the next run. A native write takes a few minutes to become readable, through SQL
+and `search_records` alike, so a re-run within those minutes does not see the ledger yet and posts
+again; the Monday cadence never comes close. The agent reads the deal models and never writes them.
 
 ## Example
 
@@ -179,7 +185,8 @@ Checked before moving on, not after the deploy:
 - the hand-run selection returned only open deals whose latest activity is older than `QUIET_DAYS`
 - the first run posted exactly one digest per owner with stalled deals, in the `references/digest.md`
   shape, and wrote one `deal_nudges` row per deal with the digest's Slack `ts`
-- a second run the same Monday posted nothing and added no row
+- a second run the same Monday, once the first run's ledger rows read back through SQL, posted
+  nothing and added no row
 - every `Last:` quote exists in the `gtm_activities` row it came from, with that date
 - no draft was sent and no deal, account or activity row changed
 
