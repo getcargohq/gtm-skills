@@ -31,7 +31,7 @@ for this skill until it is approved.
 
 ## The outcome
 
-Someone asks for a demo on the website, and in the same request their company is identified and
+Someone asks for a demo on the website, and within seconds their company is identified and
 qualified, they land in the workspace's accounts and contacts, the team hears about it in Slack,
 and the page answers them: a booking link if they fit, a thank-you otherwise. There is no backend
 to run and no form vendor: the form is a Cargo tool.
@@ -104,13 +104,13 @@ not, this is enough.
 
 **Derive before you ask.** An input with a lookup is looked up, not asked.
 
-| Input                                                       | Kind    | How it is answered                                                                                           | Why it matters                                                                                                 |
-| ----------------------------------------------------------- | ------- | ------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------- |
-| ICP rules (`infra/tools/inbound-form.ts`)                   | derived | the ICP in `context/`: headcount band and ISO country codes, confirmed with one live enrichment          | Decides who sees the booking link. Rules nobody can read back are the reason inbound stops being trusted.      |
-| site origin (`publicForm.allowedOrigins`)                   | derived | the website app's `site.json` `canonicalUrl`, without the trailing slash                                     | Every other origin is refused with 403. A missing origin is a form that never submits.                          |
-| Slack channel (`slackChannelId`)                            | asked   | the channel's id, resolved through the Slack connector's autocomplete                                        | Every submission is posted there and only there.                                                               |
-| booking link (`bookingUrl`)                                 | asked   | the team's scheduling page                                                                                   | What a qualified visitor is sent to, on the page, in the same request.                                         |
-| privacy disclosure                                          | asked   | the operator's reviewed page, with a contact form section                                                   | The form collects personal data. This skill never writes legal text.                                           |
+| Input                                     | Kind    | How it is answered                                                                              | Why it matters                                                                                            |
+| ----------------------------------------- | ------- | ----------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| ICP rules (`infra/tools/inbound-form.ts`) | derived | the ICP in `context/`: headcount band and ISO country codes, confirmed with one live enrichment | Decides who sees the booking link. Rules nobody can read back are the reason inbound stops being trusted. |
+| site origin (`publicForm.allowedOrigins`) | derived | the website app's `site.json` `canonicalUrl`, without the trailing slash                        | Every other origin is refused with 403. A missing origin is a form that never submits.                    |
+| Slack channel (`slackChannelId`)          | asked   | the channel's id, resolved through the Slack connector's autocomplete                           | Every submission is posted there and only there.                                                          |
+| booking link (`bookingUrl`)               | asked   | the team's scheduling page                                                                      | What a qualified visitor is sent to, on the page, while they are still on it.                             |
+| privacy disclosure                        | asked   | the operator's reviewed page, with a contact form section                                       | The form collects personal data. This skill never writes legal text.                                      |
 
 Checked before moving on, not after the deploy:
 
@@ -125,13 +125,13 @@ Checked before moving on, not after the deploy:
 The code is a worked example. These reshapes are expected, and the agent offers them rather than
 waiting to be asked. Every one costs something.
 
-| Variation               | When it is right                                           | How                                                                                                                         | What it costs                                                                                         |
-| ----------------------- | ---------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
-| `crm-backed`            | Contacts belong in HubSpot, Salesforce or Attio            | Replace the two `model.upsert` calls with the CRM connector's upsert (matched on domain and email), same fields ([data](references/data.md)) | The worked example no longer deploys on a bare workspace; CRM properties must exist first.           |
-| `agent-qualification`   | The ICP does not reduce to headcount and country           | Replace the rules with an agent that reads the ICP from `context/` and returns a verdict and a reason                       | Each submission pays for a model call, and the answer is less predictable.                            |
-| `owner-routing`         | More than one rep takes inbound                            | Assign `owner_id` on the contact by territory or round robin before the Slack post, and mention the owner                   | An owner table to keep current, and a fallback when nobody matches.                                   |
-| `turnstile`             | Spam gets through the honeypot, time-trap and rate limit   | `publicForm.spam.captchaProvider: "turnstile"`, the site key, `captchaSecret: env("TURNSTILE_SECRET")`, the widget on the page | A third-party script on the page, with its own privacy disclosure.                                   |
-| `accept-personal-email` | A form that is not about the company (newsletter, events) | Drop the free-mail refusal, skip enrichment for those domains                                                               | No company to qualify or route; those contacts arrive without an account.                             |
+| Variation               | When it is right                                          | How                                                                                                                                          | What it costs                                                                              |
+| ----------------------- | --------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| `crm-backed`            | Contacts belong in HubSpot, Salesforce or Attio           | Replace the two `model.upsert` calls with the CRM connector's upsert (matched on domain and email), same fields ([data](references/data.md)) | The worked example no longer deploys on a bare workspace; CRM properties must exist first. |
+| `agent-qualification`   | The ICP does not reduce to headcount and country          | Replace the rules with an agent that reads the ICP from `context/` and returns a verdict and a reason                                        | Each submission pays for a model call, and the answer is less predictable.                 |
+| `owner-routing`         | More than one rep takes inbound                           | Assign `owner_id` on the contact by territory or round robin before the Slack post, and mention the owner                                    | An owner table to keep current, and a fallback when nobody matches.                        |
+| `turnstile`             | Spam gets through the honeypot, time-trap and rate limit  | `publicForm.spam.captchaProvider: "turnstile"`, the site key, `captchaSecret: env("TURNSTILE_SECRET")`, the widget on the page               | A third-party script on the page, with its own privacy disclosure.                         |
+| `accept-personal-email` | A form that is not about the company (newsletter, events) | Drop the free-mail refusal, skip enrichment for those domains                                                                                | No company to qualify or route; those contacts arrive without an account.                  |
 
 ## What should not change
 

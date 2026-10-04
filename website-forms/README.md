@@ -8,7 +8,7 @@ visitor submits /contact/ (headless form SDK, the site's own markup)
   -> public form API: origin, honeypot, time-trap, rate limit
   -> tool inbound_form: personal email? -> company from LinkedIn -> ICP rules
        -> gtm_accounts + gtm_contacts -> Slack
-  <- booking link or thank-you, in the same request
+  <- booking link or thank-you, when the run finishes (async: the SDK polls)
 ```
 
 ## Why it is built this way
@@ -40,18 +40,18 @@ who never submits gets none.
 
 ## Files
 
-| Path                               | What it is                                                 |
-| ---------------------------------- | ---------------------------------------------------------- |
-| `infra/tools/inbound-form.ts`      | The tool, its workflow and its public form                 |
-| `infra/models/gtm-accounts.ts`     | The shared GTM accounts model                              |
-| `infra/models/gtm-contacts.ts`     | The shared GTM contacts model, with the inbound columns    |
-| `infra/connectors/linkedin.ts`     | LinkedIn company data on Cargo's credits                   |
-| `infra/connectors/slack.ts`        | The Slack workspace the inbound channel lives in           |
-| `site/components/inbound-form.tsx` | The form, headless, loading the SDK after hydration        |
-| `site/app/contact/page.tsx`        | The page that holds it                                     |
-| `references/form.md`               | Wiring the site, the spam checks, privacy                  |
-| `references/data.md`               | The rows, querying, the `crm-backed` mapping               |
-| `evals/contract.mjs`               | Graph contract                                             |
+| Path                               | What it is                                              |
+| ---------------------------------- | ------------------------------------------------------- |
+| `infra/tools/inbound-form.ts`      | The tool, its workflow and its public form              |
+| `infra/models/gtm-accounts.ts`     | The shared GTM accounts model                           |
+| `infra/models/gtm-contacts.ts`     | The shared GTM contacts model, with the inbound columns |
+| `infra/connectors/linkedin.ts`     | LinkedIn company data on Cargo's credits                |
+| `infra/connectors/slack.ts`        | The Slack workspace the inbound channel lives in        |
+| `site/components/inbound-form.tsx` | The form, headless, loading the SDK after hydration     |
+| `site/app/contact/page.tsx`        | The page that holds it                                  |
+| `references/form.md`               | Wiring the site, the spam checks, privacy               |
+| `references/data.md`               | The rows, querying, the `crm-backed` mapping            |
+| `evals/contract.mjs`               | Graph contract                                          |
 
 ## Verify
 

@@ -7,8 +7,10 @@ import { Button } from "@/components/ui/button";
 
 // The website's demo form, rendered with the site's own markup and run
 // headless through Cargo's form SDK. Submitting runs the `inbound_form` tool's
-// workflow, and the answer (a booking link or a thank-you) comes back in the
-// same request.
+// workflow. It submits in async mode: the API accepts the submission at once
+// and the SDK polls the run, so no request is held open while the company is
+// looked up; the answer (a booking link or a thank-you) shows when the run
+// finishes. If polling gives up first, the visitor gets the thank-you.
 //
 // The SDK loads once the page has hydrated, in its own chunk: loading stamps
 // the time the server's minimum-fill check counts from, so it has to happen
@@ -41,7 +43,7 @@ export function InboundForm() {
     if (toolUuid === undefined || toolUuid === "") return null;
     if (form.current === null) {
       form.current = import("@cargo-ai/form-sdk").then(({ loadForm }) =>
-        loadForm(toolUuid, { render: "headless", mode: "sync" }),
+        loadForm(toolUuid, { render: "headless", mode: "async" }),
       );
     }
     return form.current;

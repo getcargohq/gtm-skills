@@ -51,7 +51,8 @@ const freeMailDomains = [
 //                      and the booking link on the page when it qualifies
 //
 // The company is enriched, never the person: the person told us who they are.
-// The answer goes back to the page because the form submits in sync mode.
+// The answer is the run's output: the site submits in async mode and shows it
+// when the run finishes.
 const inboundSubmission = defineWorkflow(
   "inbound_form",
   {
