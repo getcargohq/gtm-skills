@@ -8,7 +8,7 @@
   },
   "scripts": {
     "validate": "node scripts/validate.ts && node scripts/check-pipelines.mjs && node --import tsx scripts/check-native-models.mjs && node scripts/generate-llms-txt.ts --check && node scripts/build-catalog.mjs --check",
-    "validate:routing": "node .cargo-skills/.github/scripts/routing-eval.ts --skills-root . 2>/dev/null || node ../cargo-skills/.github/scripts/routing-eval.ts --skills-root .",
+    "validate:routing": "node $(test -d .cargo-skills && echo .cargo-skills || echo ../cargo-skills)/.github/scripts/routing-eval.ts --skills-root .",
     "types": "cargo-cdk types",
     "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.scripts.json",
     "format": "prettier --write .",
