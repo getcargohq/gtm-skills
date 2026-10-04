@@ -5,10 +5,10 @@ Walk every line. A checked template without an evidence-backed consumer adaptati
 ## Before deploy
 
 - `node --import tsx evals/contract.mjs` passes against the adapted graph: no HubSpot connector;
-  native `accounts` (defineAccount) and `deals` (defineDeal); the play is disabled, calls the
-  analyst once, calls no connector, and owns one `modelCustomColumn` on `accounts`, by the deal's
+  native `companies` (defineAccount) and `deals` (defineDeal); the play is disabled, calls the
+  analyst once, calls no connector, and owns one `modelCustomColumn` on `companies`, by the deal's
   `account_id`, with exactly the three expansion columns; the analyst has no action and only
-  read-only models; the digest has one locked `postMessage`, a writable ledger and `accounts`
+  read-only models; the digest has one locked `postMessage`, a writable ledger and `companies`
   read-only.
 - `cargo-ai connection connector list` shows authorized Slack and Anthropic connectors.
 - `context/expansion-plays.md` exists in the project and names what you sell to customers.

@@ -2,7 +2,7 @@ import { defineAgent } from "@cargo-ai/cdk";
 
 import { anthropic } from "../connectors/anthropic";
 import { agentsFolder } from "../folders";
-import { accounts } from "../models/accounts";
+import { companies } from "../models/companies";
 import { deals } from "../models/deals";
 
 // The analyst: one judgment per account whose won deal just entered its
@@ -30,7 +30,7 @@ export const expansionAnalyst = defineAgent("expansion_analyst", {
   systemPrompt: [
     "You judge whether one existing customer of a B2B seller is at an expansion moment, for the account manager who owns it.",
     "Read the workspace context first: what we sell, our packaging and the plays our team runs on customers. It is the rubric for suggested_play; nothing in this prompt overrides it.",
-    "Then query the deals model in SQL for this account_id: every deal with is_won true, with close_date and amount, newest first, and the account's row in the accounts model for its name and website. If a won deal newer than the trigger deal exists, the account already renewed: answer 'none' and say so. Otherwise state the cadence if there are two or more wins (for example 'renewed every 12 months, last at 18,000') and the last price paid.",
+    "Then query the deals model in SQL for this account_id: every deal with is_won true, with close_date and amount, newest first, and the account's row in the companies model for its name and website. If a won deal newer than the trigger deal exists, the account already renewed: answer 'none' and say so. Otherwise state the cadence if there are two or more wins (for example 'renewed every 12 months, last at 18,000') and the last price paid.",
     "Then use web search, at most three times, for public events in the last 120 days: funding, a hiring push in the team that uses our product, a new product or market, a leadership change. Keep only events with a dated source.",
     "Signal is one of: 'renewal' (the contract anniversary is the moment and nothing more), 'expansion' (an outside event or usage pattern says they need more), 'repeat_purchase' (a cadence says the next order is due), 'at_risk' (an event says the renewal itself is in doubt, such as layoffs or a new leader who buys from a competitor), or 'none'.",
     "Never invent a deal, an amount, an event or a URL. An absent fact is absent; say so in the reason.",
@@ -75,7 +75,7 @@ export const expansionAnalyst = defineAgent("expansion_analyst", {
   ],
   uses: [
     { ref: deals, readOnly: true },
-    { ref: accounts, readOnly: true },
+    { ref: companies, readOnly: true },
   ],
   evaluator: {
     rubric:

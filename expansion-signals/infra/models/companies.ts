@@ -14,7 +14,7 @@ import { modelsFolder } from "../folders";
 //
 // The three columns below are the pipeline's only writes. Read side:
 // `accounts.columns.custom__<slug>`. Write side (the play): the bare slug.
-export const accounts = defineModel("accounts", {
+export const companies = defineModel("companies", {
   kind: "native",
   extractSlug: "defineAccount",
   description:

@@ -23,7 +23,7 @@ Adds 11 resources.
 
 | File                                | Resource                        | Role                                                    |
 | ----------------------------------- | ------------------------------- | ------------------------------------------------------- |
-| `infra/models/accounts.ts`          | `defineModel` (native account)  | the customer book, plus the three expansion columns     |
+| `infra/models/companies.ts`          | `defineModel` (native account)  | the customer book, plus the three expansion columns     |
 | `infra/models/deals.ts`             | `defineModel` (native deal)     | every deal; the play's model and the purchase history   |
 | `infra/models/expansion-digests.ts` | `defineModel` (native custom)   | the digest ledger: one row per week posted              |
 | `infra/plays/flag-expansion.ts`     | `definePlay` + `defineWorkflow` | who is judged, the judgment, the one account write      |

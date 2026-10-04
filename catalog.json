@@ -1081,7 +1081,7 @@
         {
           "id": "whole-book",
           "when": "You want every customer judged on a cadence, not only near renewal",
-          "how": "Move the play to `accounts`, filter on `custom__cargo_expansion_signal_at` being empty or older than ninety days, and let the analyst decide in SQL whether the account has a win at all",
+          "how": "Move the play to `companies`, filter on `custom__cargo_expansion_signal_at` being empty or older than ninety days, and let the analyst decide in SQL whether the account has a win at all",
           "cost": "Every account in the book is judged each cycle, customers or not, at one agent run and up to three searches each."
         },
         {
@@ -1108,7 +1108,7 @@
       ],
       "doneWhen": [
         "`node --import tsx evals/contract.mjs` passes",
-        "`cargo-ai cdk plan` reports the `accounts`, `deals` and `expansion_digests` models, the two agents, the play, two connectors and three folders, with the play disabled and no CRM connector",
+        "`cargo-ai cdk plan` reports the `companies`, `deals` and `expansion_digests` models, the two agents, the play, two connectors and three folders, with the play disabled and no CRM connector",
         "seeded accounts and won deals, with two deals inside the window, produced two analyst runs and two accounts carrying a signal, a reason and a stamp; every event named in a reason has a dated source in it",
         "an account whose newer win already renewed it was written `none` with that reason",
         "a second play execution the same week judged neither deal again",

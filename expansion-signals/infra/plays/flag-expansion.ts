@@ -3,7 +3,7 @@ import { z } from "zod";
 
 import { expansionAnalyst } from "../agents/analyst";
 import { playsFolder } from "../folders";
-import { accounts } from "../models/accounts";
+import { companies } from "../models/companies";
 import { deals } from "../models/deals";
 
 // One won deal entering its renewal window in, one judgment written onto its
@@ -22,9 +22,9 @@ const flagAccount = defineWorkflow(
     }),
     output: z.object({ signal: z.string() }),
     uses: { expansionAnalyst },
-    // The body is parsed from source, not executed: `accounts` has to be
+    // The body is parsed from source, not executed: `companies` has to be
     // handed to the parser here, or its uuid is a name nothing resolves.
-    imports: { accounts },
+    imports: { companies },
   },
   ({ input, uses, model }) => {
     const judgment = uses.expansionAnalyst({
@@ -36,7 +36,7 @@ const flagAccount = defineWorkflow(
     // the `custom__` read alias: a prefixed slug is silently dropped while the
     // node still reports success.
     model.customColumn({
-      modelUuid: accounts.uuid,
+      modelUuid: companies.uuid,
       id: input.account_id,
       mappings: [
         { columnSlug: "cargo_expansion_signal", value: judgment.answer.signal },
