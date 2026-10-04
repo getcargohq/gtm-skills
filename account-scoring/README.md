@@ -1,74 +1,73 @@
 # Account scoring
 
-Score how well each account fits your ICP — judged by an agent against the ICP
-written in your context repo, not by point weights in code. Edit the ICP
-markdown, and accounts re-score against it as they come due.
+Tier every company in your TAM A, B, C or disqualified, with the reason and the
+evidence written on the row. An agent reads your ICP and tiering rubric from
+the workspace context; a play writes its judgment back and keeps new companies
+tiered as they land.
 
 ## What it does
 
-- Keeps the scoring criteria where the ICP already lives: the context repo
-  (the repo's root `context/`, which the project's own `defineContext` syncs) — versioned in git, reviewable, and
-  shared with every other agent.
-- An agent scores every account when it arrives, and re-scores stale ones (last
-  scored 3+ months ago) on a weekly sweep: it looks the account up in Cargo's
-  business database first, then judges it against the ICP.
-- Writes the score, the tier, AND the rationale back to the CRM — a rep can
-  always see why an account is tier A.
-- Slices accounts into tier segments (A / C ...) that other plays can target.
-- An evaluator QAs every score: ungrounded or malformed answers fail the
-  rubric.
+- **Judges against your own rubric.** The ICP and `tiering-rubric.md` live in
+  the context repo. Edit the rubric and the next tier changes, with no deploy.
+- **Looks up only what the row does not hold.** Firmographics were settled by
+  tam-building's filter. The agent searches once, to settle the doubt that
+  would change the tier, and records the page.
+- **Writes a reason a rep can argue with.** Every tier carries two sentences
+  naming the rubric lines that decided it, the evidence URL, and a stamp.
+- **Hands downstream work four segments.** `tier_a_accounts` is what contact
+  sourcing and engagement run on; `disqualified_accounts` is what they
+  suppress.
+- **Needs no CRM.** It tiers `tam_companies` in Cargo. Writing the tier to a
+  CRM as well is a variation.
 
 ## How it works
 
-1. **An account arrives** (or a stale account comes due on the weekly sweep).
-2. **The scorer agent judges it.** It matches the account in Cargo's business
-   database, pulls firmographics, reads the ICP from the context repo, and
-   answers with JSON: `{score, tier, rationale}`. ICP disqualifiers cap the
-   score at 20.
-3. **Write back.** The play writes `cargo_score`, `cargo_tier`,
-   `cargo_rationale`, and `cargo_last_updated_at` onto the CRM record.
-4. **Sort into tiers.** The next model refresh pulls the score back in, and the
-   `tier_a_accounts` / `tier_c_accounts` segments group accounts by it.
+```mermaid
+flowchart TD
+    tam["tam_companies<br/>from tam-building"]
+    play["tier_accounts play<br/>untiered or stale rows · hourly · added only"]
+    agent["account_tier_analyst<br/>reads ICP + rubric from context · webSearch"]
+    write["write tier · rationale · evidence · tiered_at<br/>onto the row"]
+    segments["tier_a / tier_b / tier_c / disqualified segments"]
 
-Adds 4 resources on top of the base: 1 agent, 1 play (with an embedded
-workflow), and 2 segments. Carries an example ICP under `context/`; the agent scores against whatever the workspace context
-holds.
+    tam --> play --> agent --> write --> segments
+```
 
-| File                            | Resource                        | Role                                            |
-| ------------------------------- | ------------------------------- | ----------------------------------------------- |
-| `infra/agents/scorer.ts`        | `defineAgent`                   | judges accounts against the ICP, with evaluator |
-| `infra/plays/score-accounts.ts` | `definePlay` + `defineWorkflow` | per-account scoring + CRM write-back            |
-| `infra/segments/tiers.ts`       | `defineSegment`                 | tier A / C slices over `cargo_tier`             |
+| File                                     | Resource           | Role                                                          |
+| ---------------------------------------- | ------------------ | ------------------------------------------------------------- |
+| `infra/models/tam-companies.ts`          | `defineModel`      | a copy of tam-building's model, plus the four tier columns    |
+| `infra/agents/tier-analyst.ts`           | `defineAgent`      | the judgment: context and webSearch, no write access          |
+| `infra/plays/tier-accounts.ts`           | `definePlay`       | the only write, and the eligibility filter on `tiered_at`     |
+| `infra/segments/tiers.ts`                | `defineSegment` ×4 | one per tier the agent can emit                               |
+| `infra/connectors/anthropic.ts`          | `defineConnector`  | the LLM, bound                                                |
+| `infra/connectors/ai-ark.ts`             | `defineConnector`  | the model copy's source; dropped when tam-building is present |
+| `infra/folders/index.ts`                 | `defineFolder` ×3  | models, agents and plays, named after the skill               |
+| this skill's `context/tiering-rubric.md` | (not a resource)   | example rubric to copy into the project's `context/`          |
 
 ## Placeholders (edit before deploy)
 
-1. **The ICP itself** — the repo's root `context/`: the criteria ARE
-   the prompt; disqualifiers matter as much as fit signals.
-2. **Language model** — `infra/agents/scorer.ts`.
-3. **Score columns** — `cargo_score`, `cargo_tier`, `cargo_rationale`, and
-   `cargo_last_updated_at` must exist as CRM properties, with `cargo_score` and
-   `cargo_tier` selected on the accounts model so the segments can filter on
-   them.
-4. **Tier thresholds** — `infra/segments/tiers.ts`.
+1. **The rubric**: copy `context/tiering-rubric.md` into the project's
+   `context/` beside the ICP, and rewrite every tier for your business.
+2. **The model**: when tam-building is installed, move the four
+   `additionalColumns` onto its `tam_companies` and delete this copy.
+3. **`languageModel`** in `infra/agents/tier-analyst.ts`.
 
-## Done when
+## Cost
 
-Add a test account: the run shows the agent's lookups, the CRM record gets a
-score with a rationale that cites real evidence and ICP criteria, the evaluator
-passes ≥ 0.8, and after the next model refresh the account lands in the right
-tier segment.
+One agent run per company, in LLM tokens plus any web searches, capped by
+`maxSteps`. The pilot measures it on ten rows before the backfill is approved.
+After that the play only tiers what arrives and what goes stale.
 
-## Variant: deterministic point-based scoring
+## Verification
 
-If you want zero-LLM scoring (fixed cost, exact reproducibility), swap the
-agent call for the native `scoring` node — criteria as `{name, value, score}`
-booleans in the workflow. The trade: criteria move from the ICP markdown into
-code, and you lose the rationale.
+```sh
+node --import tsx evals/contract.mjs   # the graph boundaries, from the compiled registry
+cargo-ai cdk types && cargo-ai cdk check && cargo-ai cdk plan
+```
 
-## Extending: skip the CRM roundtrip
+`evals/acceptance.md` is the line-by-line acceptance test.
 
-Writing the score straight onto the model (instead of going through the CRM)
-uses the platform's `modelUpsert` native — `native.modelUpsert({ ... })` in the
-workflow. It's in the generated native surface (`.cargo-ai/cargo-types.d.ts`,
-written by `cargo-cdk types` on `postinstall`), like the routing engine's
-`allocate`; its input is untyped, so confirm the field shape on first run.
+## Composes into
+
+`contact-sourcing` on tier A, `agentic-engagement`, `new-hire-detection`.
+Works best after `tam-building`.

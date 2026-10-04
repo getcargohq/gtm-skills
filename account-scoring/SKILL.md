@@ -1,8 +1,8 @@
 ---
 name: account-scoring
-description: 'Keep every account scored and tiered against your written ICP by a deployed agent that re-scores as accounts arrive and as the ICP changes, writing the rationale back to the CRM. Triggers: "keep our accounts scored as they arrive", "re-score everything when the ICP changes", "which accounts should the team work first", "our scoring is a spreadsheet nobody trusts", "why is this account tier A", "stand up account tiering". Cargo CDK, defineAgent, cargo_score, cargo_tier, HubSpot, Salesforce, Attio. Skip when: someone hands you a list and wants it qualified once, which is cargo-gtm''s job, not a deployed scorer''s.'
-version: "0.2.1"
-compatibility: "Requires @cargo-ai/cli with @cargo-ai/cdk 1.0.58 or later, a Cargo workspace, an authorized CRM connection (HubSpot in the example), and an authenticated LLM connector — nothing here needs a credential in .env, and a deploy cannot mint either connection. Self-contained: carries its own accounts model, CRM, Cargo DB and LLM connectors, and an example ICP under context/."
+description: 'Tier every company in your TAM A / B / C / disqualified with a deployed agent that reads your ICP and tiering rubric from the workspace context, web-searches only to settle a doubt, and writes the tier, a two-sentence reason and its evidence back onto the row, then keeps new companies tiered as they land. Triggers: "score our TAM", "tier the market we just sourced", "which accounts should the team work first", "why is this account tier A", "keep our accounts tiered as they arrive", "our lead scoring is a spreadsheet nobody trusts". Cargo CDK, defineAgent, webSearch, workspace context, tam_companies, tier segments. Skip when: someone hands you a list and wants it scored once, which is score-leads; or there is no account universe yet, which is tam-building.'
+version: "0.5.0"
+compatibility: "Requires the cargo-cdk skill, a Cargo CDK project, @cargo-ai/cdk 1.0.58 or later, an authenticated LLM connector (Anthropic in the example), and a model of companies to tier: tam-building's tam_companies, which this example carries a copy of. No CRM needed. The repository example does not deploy or tier anything until an agent adapts it in the consumer project."
 homepage: https://github.com/getcargohq/gtm-skills/tree/main/account-scoring
 metadata:
   author: getcargo
@@ -31,120 +31,204 @@ for this skill until it is approved.
 
 ## The outcome
 
-Every account scored against your ICP, tiered, and written back to the CRM **with the rationale**,
-so a rep can always see why an account is tier A. The criteria are not point weights in code: they
-are the ICP markdown in your context repo, versioned in git and shared with every other agent. Edit
-the ICP and accounts re-score against it as they come due.
+Every company in your TAM tiered A, B, C or disqualified, with a two-sentence reason and the page
+that decided it written on the row, so a rep can read why an account is tier A and argue with it.
+New companies are tiered as they land. The tiers are four segments: tier A is what contact
+sourcing and engagement run on, and disqualified is what everything else suppresses.
 
-**Two failure modes worth knowing before you start.** If the CRM properties do not exist, the run
-looks successful and the scores land nowhere, which wastes the whole batch. And `cargo_score` plus
-`cargo_tier` must be selected as columns on the accounts model, or the tier segments filter on a
-column they cannot see.
+It runs on `tam_companies`, the model tam-building lands, and needs nothing else: no CRM, no
+scoring code, no point weights.
+
+**The judgment lives in the context repo, not in code.** The agent reads the ICP and
+`tiering-rubric.md` from the workspace context on every call. Changing what tier A means is a
+reviewed commit to that file, with no deploy, and the rep reading the tier can read the same file
+the agent read.
+
+**Firmographics are tam-building's job; the tier is about what no column holds.** Headcount band,
+industry and country are already in the filter that sourced the row. What separates an A from a C
+is whether the company runs the motion you sell into: an open role, a public stack, an
+engineering post. So the agent judges on the sourced row first, and searches only to settle one
+doubt that would change the tier.
+
+**Two failure modes worth knowing before you start.** Writing a custom column with its
+`custom__` read-side name drops the value while the node reports success, so the play runs
+perfectly over a book with no tiers in it. And a play enabled without a backfill never tiers the
+rows that were already there: `changeKinds: ["added"]` only enrols rows that arrive after it is on.
 
 ## Example
 
-> Score every HubSpot company against the ICP in our context repo and put the tier and the reason on the record, re-checking weekly.
+> Tier every company in our TAM against the ICP and the rubric in our context repo, and keep new ones tiered as they land.
 
 Illustrative output, fictional records:
 
-| Company (domain)              | cargo_score | cargo_tier | cargo_rationale                                                                                                |
-| ----------------------------- | ----------- | ---------- | -------------------------------------------------------------------------------------------------------------- |
-| Northwind (northwind.example) | 86          | A          | 420-person B2B SaaS in the US running HubSpot and Snowflake. Matches the ICP on segment, size band and stack.  |
-| Fabrikam (fabrikam.example)   | 58          | B          | Right industry and region, but 60 employees sits below the ICP's 100–2,000 size band. No disqualifier applies. |
-| Tailspin (tailspin.example)   | 18          | C          | Consumer mobile game studio. B2C is an ICP disqualifier, which caps the score at 20.                           |
+| Company (domain)              | tier         | tier_reason                                                                                                                                   | tier_evidence_url                         |
+| ----------------------------- | ------------ | --------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------- |
+| Northwind (northwind.example) | A            | Fits the firmographics: 240-person B2B software company in the US. Has a GTM engineer on staff, which the rubric ranks as the strongest sign. | https://northwind.example/careers/gtm-eng |
+| Fabrikam (fabrikam.example)   | C            | Fits industry, size and country. No technical revenue role and no public automation practice was found, so nothing lifts it above C.          |                                           |
+| Tailspin (tailspin.example)   | disqualified | Services-only consultancy with no software product, which the ICP lists as a disqualifier. The sourced industry label was misleading.         | https://tailspin.example/about            |
 
-Each record also gets `cargo_last_updated_at`, so the Monday sweep skips it for three months; after the next
-model refresh Northwind lands in `tier_a_accounts` and Tailspin in `tier_c_accounts`.
+Every row also gets `tiered_at` and lands in `tier_a_accounts`, `tier_b_accounts`,
+`tier_c_accounts` or `disqualified_accounts`. The report closes on the tier distribution and one
+recommended next step.
+
+## Guide the operator through every phase
+
+```mermaid
+flowchart LR
+  rubric["1. Rubric"] -->|"Approve the rubric"| build["2. Build"]
+  build -->|"Approve deploy, play disabled"| pilot["3. Pilot"]
+  pilot -->|"Approve the backfill and the play"| run["4. Backfill, enable, report"]
+```
+
+Every substantive message starts with the current phase and ends with a `Next step` section giving
+the operator one concrete decision, what it unlocks, and what stays blocked. During an in-progress
+operation, say `No action needed` and name the next checkpoint. Never end with a generic offer to
+help.
+
+1. **Rubric.** Read the ICP and any tiering rubric from the workspace context. If there is no ICP,
+   stop and send the operator to tam-building's first phase: tiering against an unwritten ICP is
+   guessing. If there is no rubric, propose A, B, C and disqualified from the ICP's own language,
+   using this skill's `context/tiering-rubric.md` as the shape, and have the operator correct it.
+   End by asking the operator to approve the rubric. Nothing bills in this phase.
+2. **Build.** Reconcile with tam-building, adapt, run the contract, types, check and plan, and show
+   the plan: the tier columns added to `tam_companies`, the agent, the play **disabled**, and the
+   four segments. End by asking to deploy with the play disabled. A deploy tiers nothing.
+3. **Pilot.** Run ten rows through the workflow as a batch, with the play still disabled
+   ([`references/run.md`](references/run.md#pilot)). Spot-check one A, one C and one disqualified
+   against the rubric, quote the evaluator results, and give the observed cost per company and
+   what the whole book would cost. End by asking to approve the backfill at that cost and to
+   enable the play.
+4. **Backfill, enable, report.** Backfill every untiered row, enable the play, and report the
+   tier distribution, the disqualified share, the evaluator pass rate and actual credits, with a
+   direct Cargo link to each segment. Recommend one next step.
 
 ## Put it in your project
 
 This folder is a **worked example**: real CDK resources written for some other company. The job
 is to end up with the code your company would have written, in your project, and an agent does the
-adapting. If the `cargo-cdk` skill is in your session it carries the long form of this; if not,
-this is enough.
+adapting.
 
-1. **Install it — the CLI does the copy.** From inside the CDK project,
+**Install the required authoring skill first.** If `cargo-cdk` is absent, run:
+
+```sh
+npx skills add getcargohq/cargo-skills --skill cargo-cdk
+```
+
+Then read `.agents/skills/cargo-cdk/SKILL.md` directly; no session reload is needed. Complete its
+bootstrap and use its authoring, state, plan, and deployment rules throughout. Stop before any
+template work if the skill cannot be installed or read.
+
+1. **Install it: the CLI does the copy.** From inside the CDK project,
    `cargo-ai cdk add cookbook/account-scoring` writes this example to `infra/account-scoring/` and
    this procedure to `.claude/skills/account-scoring/`. No project yet?
-   `cargo-ai cdk init <dir> --cookbook account-scoring && cd <dir> && npm install` does both; this
-   folder never ships a shell. **If you are reading this from the project's `.claude/skills/`, the
-   install already happened — start at step 2.** On a CLI too old to have `add`, copy this folder
-   in as a sibling of what is there by hand; everything below is unchanged.
-2. **Reconcile it with what is already declared.** For every model or connector this example
-   carries that the project already has (an accounts model keyed on website, a HubSpot connector,
-   an OpenAI connector), rewire the imports to the existing one and drop the copy. Two resources
-   with one slug is a collision at deploy. **Append nothing to `.env.example`:** all three
-   connectors bind what the workspace already holds, so this folder needs no credential of its own.
-3. **Adapt.** Work the sections below in order: _What should not change_ is what you argue back
-   about (say what breaks, then do it if they still want it); _What you can change_ is what you
-   offer unprompted (nobody asks for a variant they do not know exists); _What you will be asked_
-   is the floor, and you derive before you ask. If you are asking more than about four questions
-   you have skipped lookups. Record what you changed and why under a `## Decisions` section in
-   your copy of this file.
-4. **Plan, then stop.** `npm run check && cargo-ai cdk plan` (`check` validates the resource tree
-   offline; the blank template ships it). Show the diff. Deploy only on an explicit yes:
-   `cargo-ai cdk deploy`. Never `cdk init --force` into a non-empty directory.
-5. **Verify.** Walk _Done when_ line by line and report each with evidence. Deployed cleanly and
-   produced nothing is the normal failure.
+   `cargo-ai cdk init <dir> --cookbook account-scoring && cd <dir> && npm install` does both.
+   **If you are reading this from the project's `.claude/skills/`, the install already happened:
+   start at step 2.**
+2. **Reconcile it with tam-building.** This example carries a copy of `tam_companies` and its AI
+   Ark connector so it deploys on its own. When `infra/tam-building/` exists, move the four
+   `additionalColumns` from the copy onto tam-building's model, point the play and the segments
+   at that export, and delete the copy and its connector: one slug declared twice collides at
+   deploy. Reuse an existing Anthropic connector the same way. This skill declares no
+   `defineContext`: that resource is a per-workspace singleton the project owns.
+3. **Write or confirm the rubric.** Phase 1 above. It goes in the project's context repo beside
+   the ICP, never into the agent's prompt.
+4. **Adapt and deploy disabled.** Work the sections below in order: _What should not change_ is
+   what you argue back about (say what breaks, then do it if they still want it); _What you can
+   change_ is what you offer unprompted; _What you will be asked_ is the floor, and you derive
+   before you ask. Record what you changed and why under a `## Decisions` section in your copy of
+   this file. Then run `node --import tsx evals/contract.mjs` from this skill's folder, followed by
+   `cargo-ai cdk types && cargo-ai cdk check && cargo-ai cdk plan` from the project root. Show the
+   diff, and deploy only on a yes. Never run `cargo-ai cdk init --force` in a non-empty directory.
+5. **Pilot, backfill, verify.** Follow [`references/run.md`](references/run.md), then walk _Done
+   when_ line by line with evidence. Deployed cleanly and tiered nothing is the normal failure.
 
 ## What you will be asked
 
-**Derive before you ask.** An input with a lookup is looked up, not asked. Only the ones marked
-_asked_ genuinely live in the operator's head.
+**Derive before you ask.** An input with a lookup is looked up, not asked.
 
-| Input                                         | Kind      | How it is answered                                                                                                                                                                                                                                                                                                                                                                                                                                                         | Why it matters                                                                                                                                                                                                             |
-| --------------------------------------------- | --------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `icp` (the repo's root `context/`)            | generated | **derived**: If the workspace already has closed-won and closed-lost data, extract the industry, size, geography and stack that separate won from lost accounts and propose the ICP from it rather than asking cold. Write it to the knowledge layer at the repository root — `context/icp/` in a scaffolded repo — which the project's own `defineContext` already syncs. This skill declares none: it is a per-workspace singleton, and a second one collides at deploy. | The criteria ARE the prompt. There are no point weights in code, so a vague ICP produces vague scores and the disqualifiers are what cap a bad account at 20.                                                              |
-| `languageModel` (`infra/agents/scorer.ts`)    | value     | **derived**: whichever LLM connector is already authenticated in the workspace                                                                                                                                                                                                                                                                                                                                                                                             | Scoring quality and per-account cost both live here.                                                                                                                                                                       |
-| CRM connector (`infra/connectors/hubspot.ts`) | value     | **derived**: `cargo-ai connection connector list` shows which CRM connection the workspace holds; point `integration` at that one (`hubspot`, `salesforce`, `attio`) and the declaration binds it with `default: true`. No connection yet? `cargo-ai cdk add connector/hubspot` authorizes one.                                                                                                                                                                            | It is the write path for the score, the tier and the rationale. Binding means no CRM token lives in this project — and it means a deploy cannot mint the connection, so a missing one fails at deploy rather than at plan. |
-| `crmScoreProperties`                          | manual    | **derived**: read the CRM's account schema through the CRM connector and report which of the four are missing                                                                                                                                                                                                                                                                                                                                                              | The play writes all four back. If they do not exist the run looks successful and the scores land nowhere, which is the failure mode that wastes a whole batch.                                                             |
-| `tierThresholds` (`infra/segments/tiers.ts`)  | value     | **asked**                                                                                                                                                                                                                                                                                                                                                                                                                                                                  | The agent emits A, B and C but the skill ships segments for A and C only. Tier B accounts land in no segment unless you add one.                                                                                           |
+| Input           | Kind    | How it is answered                                                                                                                                            | Why it matters                                                                                                          |
+| --------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `icp`           | derived | Read from the workspace context (`cargo-ai context …`, or the project's context directory). None? Stop and run tam-building's first phase                     | The rubric decides against it. A tier that cannot name the ICP line it came from is a guess, and the evaluator fails it |
+| `tier_rubric`   | asked   | An existing rubric in the context is shown and confirmed. Otherwise propose A / B / C / disqualified from the ICP's language and have the operator correct it | It is the one input that is genuinely a decision about the business: what "work it now" means here                      |
+| `model`         | derived | `tam_companies` from tam-building. Another companies model works if it has an id, a name and a domain; map its columns in the workflow input                  | The workflow interpolates these columns into the prompt. A renamed one hands the agent an undefined                     |
+| `languageModel` | derived | Whichever LLM connector the workspace already holds (`cargo-ai connection connector list`)                                                                    | Judgment quality and the cost per company both live here                                                                |
+| `restale`       | derived | Six months by default. Ask only to change it                                                                                                                  | How often a tiered company is judged again. Shorter re-bills the whole book more often                                  |
 
 Checked before moving on, not after the deploy:
 
-- `icp`: the file names at least one disqualifier, not only fit signals
-- the CRM connector: `cargo-ai connection connector list` shows an authorized connection for the
-  integration the declaration names, because binding has nothing to typecheck and a missing one is
-  discovered at deploy
-- `crmScoreProperties`: all four exist, and cargo_score plus cargo_tier are selected as columns on the accounts model so the tier segments can filter on them
-- `tierThresholds`: every tier the agent can emit is either covered by a segment or deliberately excluded
+- `icp`: it names at least one disqualifier, not only fit signals
+- `tier_rubric`: every tier is decidable from the sourced row plus at most one search, and each
+  tier names what evidence counts for it
+- `model`: the column names in the workflow input match `cargo-ai storage column list` on the live
+  model
 
 ## What you can change
 
 The code is a worked example. These reshapes are expected, and the agent offers them rather than
-waiting to be asked. Every one costs something; that is what makes it a variation and not the default.
+waiting to be asked. Every one costs something; that is what makes it a variation and not the
+default.
 
-| Variation               | When it is right                                                                                  | How                                                                                                                                                                           | What it costs                                                                                                                                |
-| ----------------------- | ------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| `deterministic-scoring` | You need fixed cost and exact reproducibility, or an LLM judgement is not acceptable to your team | Swap the agent call for the native `scoring` node, with criteria as {name, value, score} booleans in the workflow (`infra/agents/scorer.ts`, `infra/plays/score-accounts.ts`) | The criteria move out of the ICP markdown and into code, so they stop being reviewable by non-engineers, and you lose the rationale entirely |
-| `skip-crm-roundtrip`    | You want the score on the model directly and do not need it visible in the CRM                    | Write with the platform's `native.modelUpsert({...})` in the workflow instead of going through the CRM connector (`infra/plays/score-accounts.ts`)                            | Reps lose the score and rationale where they actually work. The native's input is untyped, so confirm the field shape on the first run       |
-| `no-crm-at-all`         | You have no CRM, or the workspace has no CRM connection and you do not want to authorize one      | Take `skip-crm-roundtrip`, then delete `infra/connectors/hubspot.ts` so no CRM connector is registered                                                                        | Every other CRM-dependent skill you install later brings a CRM connector of its own; reuse one                                               |
+| Variation               | When it is right                                                                                               | How                                                                                                                                                                         | What it costs                                                                                                                  |
+| ----------------------- | -------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| `crm-accounts`          | The accounts already live in a CRM and the tier should be visible where reps work                              | Point the play at a CRM companies model, and add a CRM update node after the custom-column write, mapping the same four values to CRM properties the operator created first | A CRM connector and four CRM properties to maintain. A property that does not exist makes the update succeed and write nothing |
+| `numeric-score`         | A downstream router or report needs a 0 to 100 number, not four buckets                                        | Add `score` to the agent's output schema, a `score` custom column, and the mapping in the write; define what the number means in the rubric                                 | A number reads more precise than the judgment behind it. Keep the tier as the field people act on                              |
+| `deterministic-tiering` | The rubric turns out to be thresholds on sourced columns (headcount, industry, country) with no judgment in it | Delete the agent and write the tier in the play from the columns, or push the thresholds into tam-building's filter                                                         | You lose the rationale and the evidence, and anything the sourced row does not hold can no longer move a tier                  |
+| `tier-once`             | The market is stable and nobody reads a tier older than a quarter anyway                                       | Remove the `lowerThan` condition from the play's filter                                                                                                                     | A company that changed (hired the persona, got acquired) keeps its old tier until someone re-tiers it by hand                  |
 
 ## What should not change
 
 However far you adapt, these hold. Ask for one anyway and the agent tells you what breaks, then does
 it if you still want it, and records why under `## Decisions` in your copy of this file.
 
-- **The scorer looks the account up before judging it.** (`infra/agents/scorer.ts`) A score guessed from the domain name is unfalsifiable and the rationale cites nothing. The evaluator exists to fail exactly this, and a book scored that way is worse than an unscored one because people trust it.
-- **ICP disqualifiers cap the score, they are not just negative weight.** (`infra/agents/scorer.ts`) Without a cap, a disqualified account with many fit signals still scores high and reaches a rep. The disqualifiers are the half of an ICP that actually protects the team's time.
-- **`cargo_score` and `cargo_tier` are selected as columns on the accounts model.** (`infra/segments/tiers.ts`) The tier segments filter on a column they cannot see, so they come back empty while everything upstream reports success.
-- **Every tier the scorer can emit is either covered by a segment or excluded on purpose.** (`infra/segments/tiers.ts`) The shipped segments cover A and C. The agent also emits B, so tier B accounts land nowhere and quietly disappear from the book.
+- **The rubric lives in the context repo.** (`context/tiering-rubric.md` in the project's knowledge
+  layer.) Put it in the prompt and changing what tier A means becomes a deploy, the reason for the
+  change stops being reviewable, and the rep reading the tier can no longer read the same file the
+  agent read.
+- **The agent judges and the play writes.** (`infra/agents/tier-analyst.ts`) The agent carries no
+  model in `uses`. Give it one and it decides its own routing, at which point an untiered row could
+  be a failed run, a skip, or a choice.
+- **Custom columns are written with their bare slugs.** (`infra/plays/tier-accounts.ts`)
+  `custom__tier` on the write becomes `custom.custom__tier`, the node reports "Record upserted",
+  and the value is dropped.
+- **Eligibility is the stamp, not the tier.** (`infra/plays/tier-accounts.ts`) Filter on `tiered_at`
+  being null or stale. Filter on the tier and a failed run looks the same as a legitimate
+  `disqualified`, so it is either retried forever or never.
+- **A tier ships with its rationale, its evidence, and its stamp, on the same write.**
+  (`infra/plays/tier-accounts.ts`) A tier nobody can audit is a number a rep will not trust, and a
+  tier with no stamp is judged again on every tick.
+- **`changeKinds: ["added"]` stays.** (`infra/plays/tier-accounts.ts`) Runs are created for rows
+  entering the filter. Without it, the LLM bill scales with how often the cron fires.
+- **Every tier the agent can emit has a segment.** (`infra/segments/tiers.ts`) A tier with no
+  segment is a row that lands nowhere and quietly disappears from the book.
 
 ## Done when
 
-- a test account run shows the agent's lookups in the trace, not a score guessed from the domain name
-- the CRM record carries a score with a rationale citing real evidence and named ICP criteria
-- the evaluator scores at least 0.8
-- after the next model refresh the account appears in the matching tier segment
+- the ICP and the tiering rubric are in the workspace context, and the rubric was approved
+- the pilot tiered ten rows, and one A, one C and one disqualified were checked against the rubric
+  by hand
+- every row in the model carries a tier the rubric defines, a rationale naming the deciding lines,
+  and a `tiered_at` stamp, and no row carries one without the others
+- the four segments resolve, and their counts sum to the tiered row count
+- the agent's evaluator pass rate is at or above its threshold
+- editing the rubric in the context repo changes the next tier with no deploy
+- the report gave the tier distribution, actual credits against the pilot's estimate, and one
+  recommended next step
+- `node --import tsx evals/contract.mjs` passes against the adapted resources
 
 ## What it costs
 
-One LLM call plus up to two Cargo database calls (`matchBusiness`,
-`enrichBusinessFirmographics`) per account, on arrival and again on the weekly sweep of accounts
-last scored three or more months ago. It scales with accounts in the model times re-scores, so a
-TAM built by `tam-building` scores at that size. Score a sample before the book.
+**Tiering is one agent run per company**, billed as LLM tokens through the bound connector, plus
+the web searches the agent decides to make. `maxSteps` is the per-company ceiling, and the rubric's
+one-question-one-search rule is what keeps a normal row far below it. The pilot is how you learn
+the real number: read actual credits for the ten rows, then multiply by the untiered row count
+before approving the backfill.
+
+After the backfill, the play only tiers what arrives (`changeKinds: ["added"]`) and what goes stale
+after six months, so the steady-state cost follows how many companies tam-building lands, not how
+often the cron fires.
 
 ## Composes into
 
-`agentic-engagement` (the engager should be talking to accounts this already ranked). Not built
-yet: `routing-engine` (territories and capacity over the scored book), `rep-cockpit`, `ai-sdr`.
+`contact-sourcing` (the buyers at every tier A account), `agentic-engagement` (talk to the accounts
+this ranked), `new-hire-detection` (watch tier A for the hires that move a C up). Works best after
+`tam-building`, whose `tam_companies` it tiers.

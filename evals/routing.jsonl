@@ -79,6 +79,7 @@
 {"prompt": "Our lead scoring is a spreadsheet nobody trusts", "expect": "account-scoring"}
 {"prompt": "The accounts are already in our CRM, we just need them tiered against the ICP", "expect": "account-scoring", "why": "A book that already exists is account-scoring; tam-building is for the book that does not exist yet."}
 {"prompt": "Why is this account tier A?", "expect": "account-scoring", "why": "Only the deployed scorer writes a rationale anyone can read back."}
+{"prompt": "Tier the TAM we just sourced so the team knows where to start", "expect": "account-scoring", "why": "The model exists and needs judging: scoring, not sourcing."}
 {"prompt": "Score this list of 200 companies against our ICP and rank them", "expect": "score-leads", "why": "A supplied list, scored once: the one-off, not the deployed scorer."}
 {"prompt": "Keep our CRM accounts filled", "expect": "crm-enrichment"}
 {"prompt": "Keep our CRM companies filled", "expect": "crm-enrichment"}

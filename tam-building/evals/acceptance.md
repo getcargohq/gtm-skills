@@ -46,7 +46,7 @@ adaptation is incomplete.
   approval.
 - The report ends on the openings (CRM coverage analysis, enrichment,
   deduplication, scoring) with one recommended, and no other offer. Without a
-  CRM, scoring is offered through `score-leads`, never `account-scoring`.
+  CRM, the recommended opening is `account-scoring`.
 - In-progress messages that need no decision say `No action needed` and name the
   next checkpoint.
 
