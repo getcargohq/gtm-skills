@@ -23,9 +23,9 @@ Adds 9 resources.
 | ------------------------------- | ------------------------------- | --------------------------------------------------------------- |
 | `infra/agents/nudger.ts`        | `defineAgent`                   | the Monday cron, the model reads, the locked Slack post         |
 | `infra/agents/nudger.prompt.ts` | (not a resource)                | the SQL rule, the owner map, research, digest, ledger           |
-| `infra/models/deals.ts`         | `defineModel` (native deal)     | the pipeline: stage, amount, close date, owner, is_closed       |
-| `infra/models/companies.ts`      | `defineModel` (native account)  | the company name each deal belongs to                           |
-| `infra/models/activities.ts`    | `defineModel` (native custom)   | one row per logged email, meeting, call or note                 |
+| `infra/models/gtm-opportunities.ts`         | `defineModel` (native deal)     | the pipeline: stage, amount, close date, owner, is_closed       |
+| `infra/models/gtm-accounts.ts`      | `defineModel` (native account)  | the company name each deal belongs to                           |
+| `infra/models/gtm-activities.ts`    | `defineModel` (native custom)   | one row per logged email, meeting, call or note                 |
 | `infra/models/deal-nudges.ts`   | `defineModel` (native)          | the ledger: one row per deal nudged per week                    |
 | `infra/connectors/slack.ts`     | `defineConnector` (`slack`)     | the post path                                                   |
 | `infra/connectors/anthropic.ts` | `defineConnector` (`anthropic`) | the model the agent runs on                                     |
@@ -49,7 +49,7 @@ is one readable query in the prompt.
 
 ## Deals in a CRM
 
-Swap `deals` and `activities` for connector-backed models that extract every record and every
+Swap `gtm_opportunities` and `gtm_activities` for connector-backed models that extract every record and every
 column, and adapt the column names in the prompt's SQL. `SKILL.md`, `crm-backed`, maps the last
 activity property for HubSpot and Salesforce.
 

@@ -5,12 +5,12 @@ Walk every line. A checked template without an evidence-backed consumer adaptati
 ## Before deploy
 
 - `node --import tsx evals/contract.mjs` passes against the adapted graph: no CRM connector in the
-  example, `deals`, `companies` and `activities` read-only to the agent, `deal_nudges` writable, no
+  example, `gtm_opportunities`, `gtm_accounts` and `gtm_activities` read-only to the agent, `deal_nudges` writable, no
   connector action but `postMessage` with `channelId` locked, no Slack read, a weekly cron.
 - `cargo-ai connection connector list` shows authorized Slack and Anthropic connectors, and
   `languageModel` names a model the Anthropic one can reach.
 - `OWNERS` covers every owner id that holds an open deal (`SELECT DISTINCT owner_id` over open rows
-  in `deals`).
+  in `gtm_opportunities`).
 - `channelId` was read out loud from the Slack connector's channel autocomplete, the channel is
   internal, and the bot is in it.
 
@@ -34,7 +34,7 @@ Keep the Slack permalinks, the selection SQL output and the ledger rows as evide
   running.
 - **Failed post.** With the bot removed from the channel, the run posts nothing and writes no row;
   after the bot is invited back, the next run posts the digest.
-- **Truth.** Every `Last:` quote and date exists in the `activities` row it cites, and no deal,
+- **Truth.** Every `Last:` quote and date exists in the `gtm_activities` row it cites, and no deal,
   account or activity row was changed by the run.
 
 ## Isolation

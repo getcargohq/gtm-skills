@@ -4,9 +4,9 @@ import { nudgerPrompt } from "./nudger.prompt";
 import { anthropic } from "../connectors/anthropic";
 import { slack } from "../connectors/slack";
 import { agentsFolder } from "../folders";
-import { companies } from "../models/companies";
-import { activities } from "../models/activities";
-import { deals } from "../models/deals";
+import { gtmAccounts } from "../models/gtm-accounts";
+import { gtmActivities } from "../models/gtm-activities";
+import { gtmOpportunities } from "../models/gtm-opportunities";
 import { dealNudges } from "../models/deal-nudges";
 
 // The nudger: every Monday, one Slack digest per owner listing the open deals
@@ -20,11 +20,11 @@ import { dealNudges } from "../models/deal-nudges";
 // query anyone can read in `nudger.prompt.ts`, not a segment filter.
 //
 // The example runs on Cargo native models and needs no CRM connector. With
-// deals in HubSpot, Salesforce or Attio, swap `deals` and `activities` for
+// deals in HubSpot, Salesforce or Attio, swap `gtm_opportunities` and `gtm_activities` for
 // connector-backed models (SKILL.md, `crm-backed`); this file does not change.
 //
 // What it may touch:
-//   - `deals`, `companies`, `activities`, read-only.
+//   - `gtm_opportunities`, `gtm_accounts`, `gtm_activities`, read-only.
 //   - `deal_nudges`, writable: the weekly ledger, the only thing it writes.
 //   - `slack.postMessage` with the channel locked.
 // A nudge that could move a stage would change the forecast from a guess.
@@ -45,9 +45,9 @@ export const nudger = defineAgent("stalled_deal_nudger", {
     { slug: "context", config: { isReadOnly: true } },
   ],
   uses: [
-    { ref: deals, readOnly: true },
-    { ref: companies, readOnly: true },
-    { ref: activities, readOnly: true },
+    { ref: gtmOpportunities, readOnly: true },
+    { ref: gtmAccounts, readOnly: true },
+    { ref: gtmActivities, readOnly: true },
     { ref: dealNudges, readOnly: false },
     {
       ref: slack.actions.postMessage,

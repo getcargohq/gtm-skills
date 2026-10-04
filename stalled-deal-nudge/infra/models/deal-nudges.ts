@@ -2,7 +2,7 @@ import { defineModel } from "@cargo-ai/cdk";
 
 import { modelsFolder } from "../folders";
 
-// The ledger: one row per deal nudged per week. `week` plus `deal_id` is the
+// The ledger: one row per deal nudged per week. `week` plus `opportunity_id` is the
 // idempotency key.
 //
 // The agent leaves out any deal that already has a row for this ISO week, and
@@ -18,8 +18,8 @@ export const dealNudges = defineModel("deal_nudges", {
   extractSlug: "defineCustom",
   config: {
     columns: [
-      // The deal id (deals.id).
-      { slug: "deal_id", type: "string" },
+      // The deal id (gtm_opportunities.id).
+      { slug: "opportunity_id", type: "string" },
       // ISO week the nudge belongs to, e.g. 2026-W41.
       { slug: "week", type: "string" },
       // ISO 8601 strings, not `date`: an agent's write to a date column comes

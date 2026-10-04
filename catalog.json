@@ -1578,7 +1578,7 @@
         {
           "id": "crm-backed",
           "when": "The deals already live in HubSpot, Salesforce or Attio",
-          "how": "Replace `deals` and `activities` with connector-backed models that extract every record and every column (`fetchRecords`, `columnSelectionMode: \"all\"`, no filter): HubSpot `deals` plus `notes`, `meetings`, `calls` and `emails`, or Salesforce `Opportunity` plus `Task` and `Event`. Last activity maps to the latest engagement timestamp (`hs_timestamp`, `ActivityDate`), or to the deal roll-up (`notes_last_updated`, `LastActivityDate`) if you extract only deals. Adapt the column names in §1 of the prompt; drop the no-connector assertion in the contract",
+          "how": "Replace `gtm_opportunities` and `gtm_activities` with connector-backed models of the same slugs that extract every record and every column (`fetchRecords`, `columnSelectionMode: \"all\"`, no filter): HubSpot `deals` plus `notes`, `meetings`, `calls` and `emails`, or Salesforce `Opportunity` plus `Task` and `Event`. Last activity maps to the latest engagement timestamp (`hs_timestamp`, `ActivityDate`), or to the deal roll-up (`notes_last_updated`, `LastActivityDate`) if you extract only deals. Adapt the column names in §1 of the prompt; drop the no-connector assertion in the contract",
           "cost": "One connector to authorize and a sync to schedule. A roll-up property is only as fresh as the CRM keeps it; engagement rows are what actually happened."
         },
         {
@@ -1600,11 +1600,11 @@
       ],
       "doneWhen": [
         "`node --import tsx evals/contract.mjs` passes",
-        "`cargo-ai cdk plan` reports the agent, the `deals`, `companies`, `activities` and `deal_nudges` models, the two connectors and the two folders",
+        "`cargo-ai cdk plan` reports the agent, the `gtm_opportunities`, `gtm_accounts`, `gtm_activities` and `deal_nudges` models, the two connectors and the two folders",
         "the hand-run selection returned only open deals whose latest activity is older than `QUIET_DAYS`",
         "the first run posted exactly one digest per owner with stalled deals, in the `references/digest.md` shape, and wrote one `deal_nudges` row per deal with the digest's Slack `ts`",
         "a second run the same Monday posted nothing and added no row",
-        "every `Last:` quote exists in the `activities` row it came from, with that date",
+        "every `Last:` quote exists in the `gtm_activities` row it came from, with that date",
         "no draft was sent and no deal, account or activity row changed"
       ],
       "cost": "There is no enrichment provider, no CRM connector and no per-record fan-out: the selection and the\nlast-activity reads are SQL over the workspace's own models. The one connector action is the Slack\npost. Immediately before the plan, read its live price:\n\n- `cargo-ai orchestration action list postMessage --kind connector --integration-slug slack`\n\nSay the number out loud; the run posts once per owner with stalled deals. The recurring cost is the\nagent run, once a week, billed as LLM tokens through the Anthropic connector. It scales with the\nnumber of stalled deals that week, and `maxSteps` caps it per run. A `crm-backed` adaptation adds\nthe CRM extract: read its price with `cargo-ai connection integration get <crm>`.",

@@ -32,7 +32,7 @@ assert.equal(
   false,
   "the example needs no CRM connector: deals and activities are native models",
 );
-for (const slug of ["deals", "companies", "activities"]) {
+for (const slug of ["gtm_opportunities", "gtm_accounts", "gtm_activities"]) {
   const model = byId.get(`model:${slug}`);
   assert.ok(model, `defineModel(${slug}) must exist`);
 }
@@ -43,7 +43,7 @@ const modelUse = (slug) =>
     (model) => model.uuid?.resourceId === `model:${slug}`,
     `${slug} must be on the nudger's uses`,
   );
-for (const slug of ["deals", "companies", "activities"]) {
+for (const slug of ["gtm_opportunities", "gtm_accounts", "gtm_activities"]) {
   assert.equal(
     modelUse(slug).readOnly,
     true,

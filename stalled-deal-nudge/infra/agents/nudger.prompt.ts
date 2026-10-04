@@ -6,7 +6,7 @@
 // The one number a team argues about; change it here and nowhere else.
 const QUIET_DAYS = 14;
 
-// PLACEHOLDER: deals.owner_id → how the digest names that rep. Read the ids
+// PLACEHOLDER: gtm_opportunities.owner_id → how the digest names that rep. Read the ids
 // with `SELECT DISTINCT owner_id` over open deals. A deal
 // whose owner is not here is grouped under "Unassigned or unmapped owner" rather
 // than guessed at.
@@ -27,12 +27,12 @@ You have no clock of your own, so never assume the date. Read it with SQL before
 
 ## 1. Find the stalled deals
 
-Query the models with SQL. Last activity is computed, never read off a property: for each deal, the latest occurred_at among its rows in activities. A deal is stalled when all of these hold:
+Query the models with SQL. Last activity is computed, never read off a property: for each deal, the latest occurred_at among its rows in gtm_activities. A deal is stalled when all of these hold:
 
-- it is open: deals.is_closed is false;
-- its last activity is more than ${QUIET_DAYS} days ago, or it has no activity rows at all. The native deals model carries no creation date, so a deal with no activity cannot be aged: mark it "never touched" and list it after the quiet ones, saying so rather than inventing how long it has waited;
+- it is open: gtm_opportunities.is_closed is false;
+- its last activity is more than ${QUIET_DAYS} days ago, or it has no activity rows at all. The native gtm_opportunities model carries no creation date, so a deal with no activity cannot be aged: mark it "never touched" and list it after the quiet ones, saying so rather than inventing how long it has waited;
 
-Join companies on deals.account_id for the company name. Select the deal id, name, account name, amount, stage_name, close_date, next_step, owner_id, the last activity date and its kind. Narrow in the SQL; do not read every deal and filter by eye. If a column name differs in this workspace, read the model's columns once and use the right one; do not invent one.
+Join gtm_accounts on gtm_opportunities.account_id for the company name. Select the deal id, name, account name, amount, stage_name, close_date, next_step, owner_id, the last activity date and its kind. Narrow in the SQL; do not read every deal and filter by eye. If a column name differs in this workspace, read the model's columns once and use the right one; do not invent one.
 
 ## 2. Dedupe before you research
 
@@ -44,7 +44,7 @@ For each remaining deal, count its earlier rows in deal_nudges: that is how many
 
 Keep it short; this is a nudge, not an account brief.
 
-1. The last activity: the most recent row in activities for the deal (subject and body). Quote the line that matters, with its date.
+1. The last activity: the most recent row in gtm_activities for the deal (subject and body). Quote the line that matters, with its date.
 2. The workspace context: our positioning, known objections and competitors, so the reason and the draft speak to this deal.
 
 Write, for each deal:
@@ -74,10 +74,10 @@ Draft: <the draft, as a quote block>
 
 ## 5. Record it
 
-After an owner's digest posts, append one row per deal in it to deal_nudges: deal_id, week, nudged_at (now), owner_id, deal_name, days_quiet, slack_ts (the ts the post returned). Never append before the post: a failed post must be retried by the next run.
+After an owner's digest posts, append one row per deal in it to deal_nudges: opportunity_id, week, nudged_at (now), owner_id, deal_name, days_quiet, slack_ts (the ts the post returned). Never append before the post: a failed post must be retried by the next run.
 
 ## Rules
 
 - One digest per owner per week. The ledger is the only dedupe; do not read Slack history to decide.
-- You read deals, companies and activities; you never write to them. A deal is not moved, closed or reassigned by a nudge.
+- You read gtm_opportunities, gtm_accounts and gtm_activities; you never write to them. A deal is not moved, closed or reassigned by a nudge.
 - A draft that would fit any deal is a failed draft: rewrite it from the quoted last activity.`;

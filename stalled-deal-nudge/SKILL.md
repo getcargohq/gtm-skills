@@ -43,8 +43,8 @@ For each deal:
 - **Draft**: a follow-up of at most four sentences that picks up from the quoted line, for the owner
   to send. The agent never sends it.
 
-The worked example runs on Cargo native models, with no CRM connector: `deals` (the standard deal
-schema), `companies`, and `activities`, one row per logged email, meeting, call or note. Last
+The worked example runs on Cargo native models, with no CRM connector: `gtm_opportunities` (the standard deal
+schema), `gtm_accounts`, and `gtm_activities`, one row per logged email, meeting, call or note. Last
 activity is computed in SQL as the latest `occurred_at` per deal, not read off a roll-up property,
 so "quiet for N days" is a query anyone can read. With deals in HubSpot, Salesforce or Attio, the
 models are swapped for connector-backed ones and the agent does not change (`crm-backed` below).
@@ -91,7 +91,7 @@ is enough.
    happened — start at step 2.** On a CLI too old to have `add`, copy this folder in as a sibling of
    what is there by hand; everything below is unchanged.
 2. **Reconcile it with what is already declared.** If the project already has a Slack or Anthropic
-   connector, or `deals`, `companies` or `activities` models, rewire the imports to the existing one
+   connector, or `gtm_opportunities`, `gtm_accounts` or `gtm_activities` models, rewire the imports to the existing one
    and drop the copy; two resources with one slug is a collision at deploy. If the deals live in a
    CRM, apply `crm-backed` now, before the first deploy.
 3. **Point Slack at your channel and name the owners.** Authorize the Slack connector if the
@@ -120,8 +120,8 @@ _asked_ genuinely live in the operator's head.
 
 | Input                                                     | Kind    | How it is answered                                                                                                                                                                    | Why it matters                                                                                                                                           |
 | --------------------------------------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| where deals and activities come from                       | asked   | the native models in this folder, filled by whatever the team already runs (a sync, call-capture, a sequencer), or a CRM via `crm-backed`. Check what fills them before anything else.                     | An empty `activities` model makes every open deal look quiet, and the first digest flags the whole pipeline.                                               |
-| deal and activity columns                                  | derived | Read the models' columns once. The native `defineDeal` schema carries `is_closed`, `owner_id`, `stage_name`, `close_date`; `activities` carries `deal_id` and `occurred_at`.                              | The selection rests on these. A CRM-backed swap renames them, and the prompt's SQL has to follow.                                                          |
+| where deals and activities come from                       | asked   | the native models in this folder, filled by whatever the team already runs (a sync, call-capture, a sequencer), or a CRM via `crm-backed`. Check what fills them before anything else.                     | An empty `gtm_activities` model makes every open deal look quiet, and the first digest flags the whole pipeline.                                               |
+| deal and activity columns                                  | derived | Read the models' columns once. The native `defineDeal` schema carries `is_closed`, `owner_id`, `stage_name`, `close_date`; `gtm_activities` carries `opportunity_id` and `occurred_at`.                              | The selection rests on these. A CRM-backed swap renames them, and the prompt's SQL has to follow.                                                          |
 | `QUIET_DAYS` (`infra/agents/nudger.prompt.ts`)            | asked   | the number of days without logged activity after which the team agrees a deal is stalled. Default fourteen.                                                                         | Too short and the digest is noise reps mute; too long and it reports deals already lost.                                                                 |
 | `OWNERS` (`infra/agents/nudger.prompt.ts`)                | derived | `SELECT DISTINCT owner_id` over open deals, then the name the digest prints for each.                                                                                                 | An owner missing from the map lands under "Unassigned or unmapped owner", which nobody reads as theirs.                                                  |
 | `channelId` (`infra/agents/nudger.ts`)                    | asked   | the Slack channel id (`C…`) the digests may land in, read from the connector's channel autocomplete. Invite the bot.                                                                 | Digests quote deal amounts and prospect lines. Locked so they never land in a customer shared channel.                                                   |
@@ -129,7 +129,7 @@ _asked_ genuinely live in the operator's head.
 
 Checked before moving on, not after the deploy:
 
-- `deals` and `activities` hold rows, and every open deal's activities carry its `deal_id`
+- `gtm_opportunities` and `gtm_activities` hold rows, and every open deal's activities carry its `opportunity_id`
 - the selection SQL run by hand returned deals a rep agrees are stalled, and none that are closed
 - `channelId` is a `C…` id the Slack connector can see, and the bot is in that channel
 - `node --import tsx evals/contract.mjs` passes
@@ -142,7 +142,7 @@ Checked before moving on, not after the deploy:
 | `per-rep-dm`     | Reps want their own digest, not a shared channel                    | Replace the locked `channelId` with one `postMessage` use per rep                                                                  | One use per rep to maintain. Dropping the lock instead lets the agent pick the destination, which is how a digest reaches the wrong person. |
 | `min-amount`     | Small deals flood the digest                                        | Add `amount >= <floor>` to the §1 SQL                                                                                              | Small deals that matter (a land for a big expansion) go unflagged.                                                                       |
 | `manager-rollup` | Leadership wants one view of every stalled deal                     | Add a final post to the same channel: one line per owner with their count and total amount                                         | One more post. It turns a nudge into a scoreboard, which changes how reps read the digest above it.                                       |
-| `crm-backed`     | The deals already live in HubSpot, Salesforce or Attio                                     | Replace `deals` and `activities` with connector-backed models that extract every record and every column (`fetchRecords`, `columnSelectionMode: "all"`, no filter): HubSpot `deals` plus `notes`, `meetings`, `calls` and `emails`, or Salesforce `Opportunity` plus `Task` and `Event`. Last activity maps to the latest engagement timestamp (`hs_timestamp`, `ActivityDate`), or to the deal roll-up (`notes_last_updated`, `LastActivityDate`) if you extract only deals. Adapt the column names in §1 of the prompt; drop the no-connector assertion in the contract | One connector to authorize and a sync to schedule. A roll-up property is only as fresh as the CRM keeps it; engagement rows are what actually happened. |
+| `crm-backed`     | The deals already live in HubSpot, Salesforce or Attio                                     | Replace `gtm_opportunities` and `gtm_activities` with connector-backed models of the same slugs that extract every record and every column (`fetchRecords`, `columnSelectionMode: "all"`, no filter): HubSpot `deals` plus `notes`, `meetings`, `calls` and `emails`, or Salesforce `Opportunity` plus `Task` and `Event`. Last activity maps to the latest engagement timestamp (`hs_timestamp`, `ActivityDate`), or to the deal roll-up (`notes_last_updated`, `LastActivityDate`) if you extract only deals. Adapt the column names in §1 of the prompt; drop the no-connector assertion in the contract | One connector to authorize and a sync to schedule. A roll-up property is only as fresh as the CRM keeps it; engagement rows are what actually happened. |
 | `no-drafts`      | Reps prefer to write their own follow-ups                           | Drop the Draft line from §3 and §4 of the prompt                                                                                   | The digest says what is stuck but not how to unstick it; the cheapest follow-up is the one already written.                              |
 
 ## What should not change
@@ -174,13 +174,13 @@ Checked before moving on, not after the deploy:
 ## Done when
 
 - `node --import tsx evals/contract.mjs` passes
-- `cargo-ai cdk plan` reports the agent, the `deals`, `companies`, `activities` and `deal_nudges`
+- `cargo-ai cdk plan` reports the agent, the `gtm_opportunities`, `gtm_accounts`, `gtm_activities` and `deal_nudges`
   models, the two connectors and the two folders
 - the hand-run selection returned only open deals whose latest activity is older than `QUIET_DAYS`
 - the first run posted exactly one digest per owner with stalled deals, in the `references/digest.md`
   shape, and wrote one `deal_nudges` row per deal with the digest's Slack `ts`
 - a second run the same Monday posted nothing and added no row
-- every `Last:` quote exists in the `activities` row it came from, with that date
+- every `Last:` quote exists in the `gtm_activities` row it came from, with that date
 - no draft was sent and no deal, account or activity row changed
 
 ## What it costs
