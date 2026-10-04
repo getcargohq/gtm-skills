@@ -19,23 +19,25 @@ Walk every line. A checked template without an evidence-backed consumer adaptati
 
 ## Seeded test
 
-Read the two model UUIDs from `cargo-ai storage model list`, then seed:
+Read the two model UUIDs from `cargo-ai storage model list`, then seed. Cargo generates every
+record id (passing an `id` is rejected), so read each one from the `record.id` the create returns:
 
 ```sh
-cargo-ai storage record create --model-uuid <accounts uuid> \
-  --data '{"id":"acc-test-1","name":"Fabrikam","website":"fabrikam.example"}'
-cargo-ai storage record create --model-uuid <contacts uuid> \
-  --data '{"id":"ct-test-1","account_id":"acc-test-1","first_name":"Dana","last_name":"Ruiz","title":"VP Revenue Operations","email":"dana@fabrikam.example","lead_source":"demo_request","owner_id":"owner-id"}'
-cargo-ai storage record create --model-uuid <contacts uuid> \
-  --data '{"id":"ct-test-2","first_name":"Lee","last_name":"Park","email":"lee@contoso.example","lead_source":"purchased_list"}'
+cargo-ai storage record create --model-uuid <companies uuid> \
+  --data '{"name":"Fabrikam","website":"fabrikam.example"}'
+# → record.id is <company id>
+cargo-ai storage record create --model-uuid <people uuid> \
+  --data '{"account_id":"<company id>","first_name":"Dana","last_name":"Ruiz","title":"VP Revenue Operations","email":"dana@fabrikam.example","lead_source":"demo_request","owner_id":"owner-id"}'
+cargo-ai storage record create --model-uuid <people uuid> \
+  --data '{"first_name":"Lee","last_name":"Park","email":"lee@contoso.example","lead_source":"purchased_list"}'
 ```
 
 Keep the record JSON (`cargo-ai storage record get`) and the Slack permalinks as evidence.
 
-- **Researched.** A manual run of the play researched `ct-test-1`: all four `cargo_inbound_*`
-  columns are set, `acc-test-1` got `cargo_tier` and `cargo_tier_reason`, and one note landed in
+- **Researched.** A manual run of the play researched Dana Ruiz: all four `cargo_inbound_*`
+  columns are set, Fabrikam got `cargo_tier` and `cargo_tier_reason`, and one note landed in
   the `references/note.md` shape.
-- **Not inbound.** `ct-test-2` (a source outside the allow-list) was not researched.
+- **Not inbound.** Lee Park (a source outside the allow-list) was not researched.
 - **Re-run.** A second manual run wrote nothing and posted nothing.
 - **Account guard.** Setting `cargo_tier` on the account by hand, then seeding a second contact on
   it, left the hand-set tier in place.
