@@ -24,7 +24,12 @@ metadata:
 
 # Expansion signals
 
-**State: to-be-approved.** Deploy-verified against a live workspace: not yet. Treat `Done when`
+**State: to-be-approved.** Deploy-verified against a live workspace: yes, on 2026-10-04, on native
+models seeded with six won deals across three accounts: the play's filter picked exactly the four
+won ten to twelve months back; the analyst wrote `renewal` onto the account with one win, `none` onto
+the account that renewed ten months later, and, after a fix found by this run, `repeat_purchase`
+onto the account with a six-month cadence; the digest posted once and a re-run, once its ledger read
+back, posted nothing. Treat `Done when`
 below as the acceptance test and review `cargo-ai cdk plan` before deploying. Make no outcome claim
 for this skill until it is approved.
 
@@ -161,7 +166,9 @@ is enough.
 - seeded accounts and won deals, with two deals inside the window, produced two analyst runs and
   two accounts carrying a signal, a reason and a stamp; every event named in a reason has a dated
   source in it
-- an account whose newer win already renewed it was written `none` with that reason
+- an account whose newer win already renewed it (closed more than two months after the trigger)
+  was written `none` with that reason, and an account with a second win within two months of the
+  trigger was judged on its whole purchase history instead
 - a second play execution the same week judged neither deal again
 - the digest posted once in the locked channel, listed exactly the accounts stamped that week with
   a signal other than `none`, and a re-run that week posted nothing

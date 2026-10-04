@@ -47,12 +47,16 @@ Keep the account records and the Slack permalink as evidence.
   signal, a reason and a stamp onto Fabrikam, Contoso and Litware. Contoso's reason names a
   six-month cadence at 9,500. Every outside event a reason names has a dated source in it.
 - **Already renewed.** Litware is written `none`, and its reason names the newer win.
+- **Same buying cycle.** An account with two won deals inside the window a few days apart is judged
+  on its purchase history, not written `none` because one of them is newer than the other.
 - **Re-run.** A second execution the same week judges none of the three deals again.
 - **Nothing else written.** No deal record changed (`cargo-ai storage query` over `gtm_opportunities` before and
   after).
 - **Digest.** The digest posts once, lists the accounts stamped that week with a signal other than
-  `none`, at-risk first, with each reason as written on the account. A re-run that week posts
-  nothing.
+  `none`, at-risk first, with each reason as written on the account. Once the digest's
+  `expansion_digests` row reads back through SQL, a re-run that week posts nothing. A native write
+  takes minutes to become readable, through SQL and `search_records` alike, so run the digest after
+  the play's stamps read back, and re-run it only after its own row does.
 
 ## Isolation
 
