@@ -156,3 +156,7 @@
 {"prompt": "Put our website on our own domain, served by Cargo", "expect": "website-building"}
 {"prompt": "Host our marketing site on Cargo", "expect": "website-building"}
 {"prompt": "Research this prospect website and brief me before our sales call", "expect": "research-account", "why": "Researching another account is a one-off briefing, not maintaining our company website."}
+{"prompt": "Which companies are visiting our website?", "expect": "website-visitors"}
+{"prompt": "Add visitor identification to our company website, with a consent banner", "expect": "website-visitors"}
+{"prompt": "Track which accounts read our pricing page", "expect": "website-visitors"}
+{"prompt": "Build our company website on Cargo", "expect": "website-building"}
