@@ -160,3 +160,6 @@
 {"prompt": "Add visitor identification to our company website, with a consent banner", "expect": "visitor-identification"}
 {"prompt": "Track which accounts read our pricing page", "expect": "visitor-identification"}
 {"prompt": "Build our company website on Cargo", "expect": "website-building"}
+{"prompt": "Add a demo request form to our website that qualifies inbound leads", "expect": "inbound-qualification"}
+{"prompt": "Route our website contact form submissions to Slack and our accounts", "expect": "inbound-qualification"}
+{"prompt": "Handle inbound demo requests from our site and send qualified ones a booking link", "expect": "inbound-qualification"}
