@@ -100,5 +100,11 @@
     "chain": 18,
     "demoWorkspace": null,
     "implementations": []
+  },
+  "linkedin-content": {
+    "state": "to-be-approved",
+    "chain": 20,
+    "demoWorkspace": null,
+    "implementations": []
   }
 }

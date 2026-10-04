@@ -172,3 +172,8 @@
 {"prompt": "Every week tell me which LinkedIn posts about our problem we should comment on", "expect": "social-listening", "why": "Every week, public posts, worth joining: the standing tell."}
 {"prompt": "Set up social listening on LinkedIn for lead routing and our competitors", "expect": "social-listening"}
 {"prompt": "Who is engaging with LinkedIn posts in our category, as a weekly digest in Slack", "expect": "social-listening"}
+// call-capture, agentic-engagement, standup, weekly-planning, linkedin-content, ask-cargo,
+{"prompt": "Draft our founder's LinkedIn posts every week from our proof points", "expect": "linkedin-content", "why": "Every week, drafts for a person: the standing content pipeline."}
+{"prompt": "Turn our customer wins and insights into weekly LinkedIn drafts for the CEO", "expect": "linkedin-content"}
+{"prompt": "Keep a LinkedIn content pipeline that opens a pull request with drafts each Monday", "expect": "linkedin-content"}
+{"prompt": "Every Monday, read our website and competitors' pages into context", "expect": "web-capture", "why": "Reading the web into context/ is web-capture; linkedin-content only drafts from what context/ already holds."}
