@@ -1603,7 +1603,7 @@
         "`cargo-ai cdk plan` reports the agent, the `gtm_opportunities`, `gtm_accounts`, `gtm_activities` and `deal_nudges` models, the two connectors and the two folders",
         "the hand-run selection returned only open deals whose latest activity is older than `QUIET_DAYS`",
         "the first run posted exactly one digest per owner with stalled deals, in the `references/digest.md` shape, and wrote one `deal_nudges` row per deal with the digest's Slack `ts`",
-        "a second run the same Monday posted nothing and added no row",
+        "a second run the same Monday, once the first run's ledger rows read back through SQL, posted nothing and added no row",
         "every `Last:` quote exists in the `gtm_activities` row it came from, with that date",
         "no draft was sent and no deal, account or activity row changed"
       ],
