@@ -88,5 +88,11 @@
     "chain": 15,
     "demoWorkspace": "2026-10-04",
     "implementations": []
+  },
+  "stalled-deal-nudge": {
+    "state": "to-be-approved",
+    "chain": 16,
+    "demoWorkspace": null,
+    "implementations": []
   }
 }

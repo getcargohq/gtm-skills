@@ -62,7 +62,7 @@
 
 // --- one-off / deployed seam -------------------------------------------------------
 // tam-building, account-scoring, crm-enrichment, crm-deduplication,
-// call-capture, agentic-engagement, standup, weekly-planning, ask-cargo,
+// call-capture, agentic-engagement, standup, stalled-deal-nudge, weekly-planning, ask-cargo,
 // new-hire-detection, web-capture and win-loss-review are worked CDK examples
 // that deploy a pipeline.
 // build-tam-list, score-leads and research-account are one-offs: the same
@@ -164,3 +164,7 @@
 {"prompt": "Add a demo request form to our website that qualifies inbound leads", "expect": "inbound-qualification"}
 {"prompt": "Route our website contact form submissions to Slack and our accounts", "expect": "inbound-qualification"}
 {"prompt": "Handle inbound demo requests from our site and send qualified ones a booking link", "expect": "inbound-qualification"}
+{"prompt": "Every Monday, tell each rep which of their open deals went quiet", "expect": "stalled-deal-nudge", "why": "Deals, quiet, every Monday: the standing tell."}
+{"prompt": "Flag opportunities with no activity in two weeks and draft the follow-up", "expect": "stalled-deal-nudge"}
+{"prompt": "Weekly stalled deal report in Slack", "expect": "stalled-deal-nudge"}
+{"prompt": "Rank last week's GTM work against our initiatives and say what to do next", "expect": "weekly-planning", "why": "Initiatives and next moves are weekly-planning; stalled-deal-nudge only lists quiet open deals per owner."}
