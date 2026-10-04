@@ -106,5 +106,11 @@
     "chain": 20,
     "demoWorkspace": null,
     "implementations": []
+  },
+  "expansion-signals": {
+    "state": "to-be-approved",
+    "chain": 21,
+    "demoWorkspace": null,
+    "implementations": []
   }
 }

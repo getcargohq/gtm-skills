@@ -99,10 +99,11 @@
     },
     {
       "title": "CRM",
-      "description": "Deployed pipelines that keep an existing CRM in step with the engine: records filled and duplicate-free.",
+      "description": "Deployed pipelines that keep an existing CRM in step with the engine: records filled, duplicate-free, and customers flagged before renewal.",
       "skills": [
         "crm-enrichment",
-        "crm-deduplication"
+        "crm-deduplication",
+        "expansion-signals"
       ]
     }
   ]
