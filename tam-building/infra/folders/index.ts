@@ -6,19 +6,8 @@ import { defineFolder } from "@cargo-ai/cdk";
 // answers "what put this here, and what else came with it" by looking. It is
 // also what makes removing a skill bounded rather than a hunt.
 //
-// Folders are per-kind, which is why there are three: this skill deploys a
-// model, an agent and a play, and each kind is filed separately.
+// One folder, because this skill deploys one kind of resource: a model.
 export const modelsFolder = defineFolder("tam_building_models", {
   kind: "model",
-  name: "TAM building",
-});
-
-export const agentsFolder = defineFolder("tam_building_agents", {
-  kind: "agent",
-  name: "TAM building",
-});
-
-export const playsFolder = defineFolder("tam_building_plays", {
-  kind: "play",
   name: "TAM building",
 });

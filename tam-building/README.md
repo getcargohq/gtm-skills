@@ -1,138 +1,122 @@
 # TAM building
 
 Source your account universe from AI Ark with a filter that encodes your ICP,
-then have an agent tier every company in it against a rubric your team owns.
+and keep it as one model in Cargo. Atomic by design: one connector, one model,
+one folder.
 
 ## What it does
 
+- **Starts from the ICP you already wrote, or drafts one from evidence.** It
+  reads the workspace context first. When nothing is there, it offers to read
+  your website and customer stories and enrich your customers' LinkedIn pages,
+  and drafts `context/icp.md` from what they share.
+- **Settles the minimum before any filter.** Industries, company size and
+  countries, each guessed from `icp.md` with the line quoted, or suggested and
+  labelled, then confirmed by the operator.
 - **Counts before it sources.** `aiArk.countCompanies` takes the same filter
   groups as the search, returns `{"count": N}`, and is free. The search bills
   per returned record, so this is the difference between a market you chose and
   one you discovered after paying for it.
 - **Puts the ICP in the filter, not in a post-filter.** Every returned record is
   paid for. Narrowing happens where it costs nothing.
-- **Tiers every row with an agent, not with point weights.** Whether a company
-  is in the size band is a column; whether it already runs the motion you sell
-  into is an open role, a changelog, or an engineering post. The agent reads the
-  rubric out of the workspace context, judges on the sourced facts, and searches
-  the web only to settle a doubt that would change the tier.
-- **Writes the reason next to the tier.** `tier`, `tier_rationale`,
-  `tier_evidence_url` and `tiered_at`, on the row that triggered the run.
-- **Needs no key and no seat.** AI Ark and the LLM both run on connections the
-  workspace already holds, bound with `default: true`.
+- **Needs nothing else.** No CRM, no LLM, no play, no key, no seat. AI Ark runs
+  on the connection the workspace already holds, bound with `default: true`.
+- **Ends on openings, not on more infrastructure.** A CRM coverage analysis,
+  enrichment, deduplication or scoring: each is a separate job the report
+  offers, with its own dependencies.
 
 ## How it works
 
 ```mermaid
 flowchart TD
+    icp["context/icp.md<br/>read, or drafted from website, customer stories, LinkedIn"]
+    minimum["industries · company size · countries<br/>confirmed by the operator"]
     count["aiArk.countCompanies<br/>free, same filters, run at design time"]
-    model["tam_companies<br/>aiArk.fetchCompanies · the ICP filter · limit"]
-    trigger["tier_companies trigger<br/>never tiered, or stamp older than six months"]
-    agent["tam_tier_analyst<br/>rubric from context · webSearch for one doubt"]
-    write["tier · rationale · evidence · tiered_at<br/>written back onto the row"]
-    segments["tam_tier_a · tam_tier_b · tam_tier_c · tam_disqualified"]
+    tam["tam_companies<br/>aiArk.fetchCompanies · the ICP filter · limit · no schedule"]
+    report["Report: companies found, split by industry, size, country"]
+    next["Openings: CRM coverage · enrichment · dedup · scoring"]
 
-    count -.->|"shapes"| model
-    model --> trigger --> agent --> write --> segments
+    icp --> minimum --> count
+    count -.->|"shapes"| tam
+    tam --> report --> next
 ```
 
-1. **Write the ICP down** in the project's `context/icp.md`, and what A / B / C /
-   disqualified mean in `context/tiering-rubric.md`. Copy the examples from
-   this skill's `context/`. Both live in the workspace context repo, so they are
-   versioned and editable without a deploy. This skill declares no
-   `defineContext`: that singleton belongs to the project.
-2. **Translate the ICP into filter groups** in
-   `infra/models/tam-companies.ts`. They are nested groups, not a flat map, and
-   enum-backed values come from the integration's autocompletes.
-3. **Count each candidate filter** with `aiArk.countCompanies`. It is free and
-   takes the same groups:
+1. **Write the ICP down** in the project's `context/icp.md`, or confirm the one
+   that is there. This skill's `context/icp.md` is the shape.
+2. **Confirm industries, company size and countries.** They are the floor of
+   the filter.
+3. **Translate the ICP into filter groups** in `infra/models/tam-companies.ts`.
+   They are nested groups, not a flat map, and enum-backed values come from the
+   integration's autocompletes.
+4. **Count each candidate filter** with `aiArk.countCompanies`:
 
    ```sh
    cargo-ai orchestration action execute --wait-until-finished \
      --action '{"kind":"connector","integrationSlug":"aiArk","actionSlug":"countCompanies","config":{}}' \
-     --data '{"industry":{"industry_or":["software development"]},"employeeSize":{"min_employee_count":20,"max_employee_count":500}}'
+     --data '{"industry":{"industry_or":["software development"]},"employeeSize":{"min_employee_count":20,"max_employee_count":500},"companyLocation":{"location_or":["United States"]}}'
    ```
 
-   Counting is design-time work you do from your terminal, so it needs no
-   deployed resource: a resource that only ever wraps one connector action is
-   ceremony.
+5. **Set `limit`** to what you are willing to spend on the first run.
+6. **Deploy and sync once**, then read the report and pick an opening.
 
-4. **Set `limit`** to what you are willing to spend on the first run. Sourcing
-   bills per returned record.
-5. **Sync, then execute the play once.** Rows land in `tam_companies` while the
-   play is still disabled so you can confirm column names. Enable it and run it
-   once: `changeKinds: ["added"]` will not backfill rows that landed while it
-   was off. After that, each new sync is enrolled on the next tick.
-6. **Work the segments.** `tam_tier_a` is the rep queue, `tam_tier_b` is the
-   sequence, `tam_tier_c` is in-market but not in-motion, `tam_disqualified` is
-   the suppression list with a written reason attached to every row in it.
+| File                            | Resource          | Role                                              |
+| ------------------------------- | ----------------- | ------------------------------------------------- |
+| `infra/connectors/ai-ark.ts`    | `defineConnector` | AI Ark, bound: no key, no seat, no cookie         |
+| `infra/folders/index.ts`        | `defineFolder`    | the model folder named after the skill            |
+| `infra/models/tam-companies.ts` | `defineModel`     | the universe: the ICP filter and the budget       |
+| this skill's `context/icp.md`   | (not a resource)  | example ICP to copy into the project's `context/` |
+| `references/sources.md`         | (not a resource)  | the other company sources, with pros and cons     |
 
-Adds a model, an agent, a play, four segments, and the folders they file into.
+## Why it is atomic
 
-| File                            | Resource          | Role                                                         |
-| ------------------------------- | ----------------- | ------------------------------------------------------------ |
-| `infra/connectors/ai-ark.ts`    | `defineConnector` | AI Ark, bound: no key, no seat, no cookie                    |
-| `infra/connectors/anthropic.ts` | `defineConnector` | the LLM behind the tiering agent, bound                      |
-| `infra/folders/index.ts`        | `defineFolder`    | model / agent / play folders named after the skill           |
-| `infra/models/tam-companies.ts` | `defineModel`     | the universe: the ICP filter, the budget, the tier columns   |
-| `infra/agents/tier-analyst.ts`  | `defineAgent`     | one judgment per company, from the rubric plus web evidence  |
-| `infra/plays/tier-companies.ts` | `definePlay`      | one agent call per row, and the only write                   |
-| `infra/segments/tiers.ts`       | `defineSegment`   | the A / B / C / disqualified slices downstream work takes    |
-| this skill's `context/*.md`     | (not a resource)  | example ICP and rubric to copy into the project's `context/` |
-
-## Why the rubric is not in the prompt
-
-Put it in the system prompt and three things stop being true: changing what tier
-A means becomes a deploy, the reason for the change stops being reviewable, and
-the rep who reads the tier can no longer read the file the agent read. In the project's `context/tiering-rubric.md` it is a
-commit, with a diff and a history. This skill's `context/` is the example to copy
-there.
-
-## Why the agent cannot write
-
-`tam_tier_analyst` carries no model in `uses`. It hands back
-`{tier, rationale, evidence_url}` and the play persists it. Give the agent a
-writable model and an untiered row could be a failed run, a silent skip, or a
-judgment it chose not to record, with no way to tell which. The play's write is
-also the eligibility stamp, so a row can never be marked judged without carrying
-the judgment.
+An agent installing a cookbook sets up every dependency the infra declares. If
+the TAM model shipped with a CRM extract, a unified model or a tiering agent,
+every install would wire a CRM connection or an LLM before it could source a
+single company, including for a company that has neither. Building the TAM
+needs AI Ark and a written ICP. Everything that acts on the TAM afterwards is a
+next step with its own cookbook.
 
 ## Placeholders (edit before deploy)
 
-1. **The ICP and the rubric** — copy this skill's `context/icp.md` and
-   `context/tiering-rubric.md` into the project's `context/`. The example
-   is a technical B2B software ICP; nothing in it is yours.
-2. **The filter groups** in `infra/models/tam-companies.ts` `config`. Nested
-   groups, `_or` to include and `_not` to exclude, enum values from
-   `listIndustries` / `listSeniorities` / `listDepartmentsAndFunctions` /
-   `listFundingTypes`, numeric ranges as numbers.
+1. **The ICP**: copy this skill's `context/icp.md` into the project's `context/`, or
+   keep the one already there. The example is a technical B2B software ICP;
+   nothing in it is yours.
+2. **The filter groups** in `infra/models/tam-companies.ts` `config`, always
+   including `industry`, `employeeSize` and `companyLocation`. Nested groups,
+   `_or` to include and `_not` to exclude, enum values from `listIndustries` /
+   `listSeniorities` / `listDepartmentsAndFunctions` / `listFundingTypes`,
+   numeric ranges as numbers.
 3. **`config.limit`** in the same file: the per-sync record budget, and the only
    real cost control.
-4. **`languageModel`** in `infra/agents/tier-analyst.ts`.
 
 ## Cost
 
-Counting is free. Sourcing bills **per returned record**, so the estimate is
+Counting is free. Research, when there is no ICP, bills per page read and per
+customer enriched. Sourcing bills **per returned record**, so the estimate is
 `limit` times the current per-record price: fetch it with
 `cargo-ai connection integration get aiArk` immediately before any preview
-rather than trusting a number written here. Tiering is one agent run per newly
-sourced company, billed as LLM tokens plus its web searches, with `maxSteps` as
-the ceiling.
+rather than trusting a number written here.
 
-The model carries **no schedule on purpose**. A cron re-runs the same search and
-re-bills every returned record, including the rows already in the model: a
-monthly refresh buys the handful of new companies at the price of the whole
-pool. Sourcing is a deliberate spend. The play is the part that stands, and
-because it runs on `changeKinds: ["added"]`, a tick that follows no sourcing run
-is a no-op — except the first enable, which must be followed by an explicit run
-so the rows that landed while the play was disabled are enrolled.
+The sourced model carries **no schedule on purpose**. A cron re-runs the same
+search and re-bills every returned record, including the rows already in the
+model: a monthly refresh buys the handful of new companies at the price of the
+whole pool. Sourcing is a deliberate spend.
 
 ## Alternatives
 
-For a LinkedIn-native source whose facet taxonomy may express your market
-better, swap the extractor for `salesNavigator.fetchAccountSearch`. It returns
-no domain, so you add a resolution step, and its extraction cap means splitting
-one market search into counted sub-searches.
+AI Ark is the default because it is the only source that counts for free with
+the filters it bills on. [`references/sources.md`](references/sources.md)
+compares it with the other sources the contract accepts as a swap:
+
+| Source          | Pick it when                               | Watch out for                                                       |
+| --------------- | ------------------------------------------ | ------------------------------------------------------------------- |
+| AI Ark          | You want the pool size before you commit   | Enum-backed filters; per-record billing; 10,000 per sync            |
+| FullEnrich      | Budget matters, or you want a free refresh | No count; no persona, funding or lookalike filter                   |
+| Apollo          | The market is defined by hiring or funding | No industry taxonomy (keyword tags only); no free count             |
+| Sales Navigator | The market is defined by LinkedIn facets   | Needs a seat; highest per-record price; no domain; 5,000 per search |
+
+People Data Labs, TheirStack, Ocean.io and CompanyEnrich are covered there too,
+with the reason each one is not a default TAM source.
 
 ## Verification
 
@@ -145,6 +129,7 @@ cargo-ai cdk types && cargo-ai cdk check && cargo-ai cdk plan
 
 ## Composes into
 
-`contact-sourcing` (the buyers at every tier A account), `crm-enrichment` (fill
-the records these accounts become), `signal-based-tam` (watch the universe you
-just built).
+A CRM coverage analysis (how much of the TAM the CRM already holds),
+`crm-enrichment`, `crm-deduplication`, and scoring: `score-leads` on an export
+before the CRM, `account-scoring` once the accounts are pushed there.
+`references/run.md` lists them as the report's openings.
