@@ -13,8 +13,13 @@ import { modelsFolder } from "../folders";
 // the same question that drifts from the deals.
 //
 // The three columns below are the pipeline's only writes. Read side:
-// `accounts.columns.custom__<slug>`. Write side (the play): the bare slug.
-export const companies = defineModel("companies", {
+// `gtmAccounts.columns.custom__<slug>`. Write side (the play): the bare slug.
+//
+// `gtm_accounts` is a shared native model (scripts/native-models.json): every
+// pipeline that needs accounts declares it under this slug, so a project that
+// installs several keeps one, with each pipeline's added columns merged.
+export const gtmAccounts = defineModel("gtm_accounts", {
+  name: "GTM accounts",
   kind: "native",
   extractSlug: "defineAccount",
   description:

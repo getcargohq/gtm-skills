@@ -2,14 +2,14 @@ import { defineAgent } from "@cargo-ai/cdk";
 
 import { anthropic } from "../connectors/anthropic";
 import { agentsFolder } from "../folders";
-import { companies } from "../models/companies";
-import { deals } from "../models/deals";
+import { gtmAccounts } from "../models/gtm-accounts";
+import { gtmOpportunities } from "../models/gtm-opportunities";
 
 // The analyst: one judgment per account whose won deal just entered its
 // renewal window.
 //
 // The play hands it a won deal ten to twelve months old. The rest is SQL over
-// the deals model: is this still the account's latest win (or did a newer one
+// the gtm_opportunities model: is this still the account's latest win (or did a newer one
 // already renew it), what is the cadence across its wins, what did it pay
 // last time. Then the question no column holds: is anything outside (a
 // funding round, a hiring push, a new product, a new leader) giving the
@@ -31,7 +31,7 @@ export const expansionAnalyst = defineAgent("expansion_analyst", {
     "You have no clock of your own, so never assume the date. First read it with SQL: SELECT CURRENT_TIMESTAMP() AS now, CURRENT_DATE() AS today. Every 'now', 'this week' and date window below is measured from those values; write timestamps as ISO 8601 strings.",
     "You judge whether one existing customer of a B2B seller is at an expansion moment, for the account manager who owns it.",
     "Read the workspace context first: what we sell, our packaging and the plays our team runs on customers. It is the rubric for suggested_play; nothing in this prompt overrides it.",
-    "Then query the deals model in SQL for this account_id: every deal with is_won true, with close_date and amount, newest first, and the account's row in the companies model for its name and website. If a won deal newer than the trigger deal exists, the account already renewed: answer 'none' and say so. Otherwise state the cadence if there are two or more wins (for example 'renewed every 12 months, last at 18,000') and the last price paid.",
+    "Then query the gtm_opportunities model in SQL for this account_id: every deal with is_won true, with close_date and amount, newest first, and the account's row in the gtm_accounts model for its name and website. If a won deal newer than the trigger deal exists, the account already renewed: answer 'none' and say so. Otherwise state the cadence if there are two or more wins (for example 'renewed every 12 months, last at 18,000') and the last price paid.",
     "Then use web search, at most three times, for public events in the last 120 days: funding, a hiring push in the team that uses our product, a new product or market, a leadership change. Keep only events with a dated source.",
     "Signal is one of: 'renewal' (the contract anniversary is the moment and nothing more), 'expansion' (an outside event or usage pattern says they need more), 'repeat_purchase' (a cadence says the next order is due), 'at_risk' (an event says the renewal itself is in doubt, such as layoffs or a new leader who buys from a competitor), or 'none'.",
     "Never invent a deal, an amount, an event or a URL. An absent fact is absent; say so in the reason.",
@@ -75,12 +75,12 @@ export const expansionAnalyst = defineAgent("expansion_analyst", {
     { slug: "context", config: { isReadOnly: true } },
   ],
   uses: [
-    { ref: deals, readOnly: true },
-    { ref: companies, readOnly: true },
+    { ref: gtmOpportunities, readOnly: true },
+    { ref: gtmAccounts, readOnly: true },
   ],
   evaluator: {
     rubric:
-      "Does the reason name the real purchase history from the deals model and, for any signal other than 'renewal' or 'none', a dated outside event with a URL in evidence_urls? Is suggested_play taken from the workspace context?",
+      "Does the reason name the real purchase history from the gtm_opportunities model and, for any signal other than 'renewal' or 'none', a dated outside event with a URL in evidence_urls? Is suggested_play taken from the workspace context?",
     threshold: 0.8,
   },
   folder: agentsFolder,

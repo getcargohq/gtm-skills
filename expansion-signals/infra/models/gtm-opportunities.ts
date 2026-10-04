@@ -9,7 +9,12 @@ import { modelsFolder } from "../folders";
 // deals, the last price paid, and whether a newer win already renewed it.
 //
 // Nothing in this pipeline writes a deal.
-export const deals = defineModel("deals", {
+//
+// `gtm_opportunities` is a shared native model (scripts/native-models.json): every
+// pipeline that needs opportunities declares it under this slug, so a project that
+// installs several keeps one, with each pipeline's added columns merged.
+export const gtmOpportunities = defineModel("gtm_opportunities", {
+  name: "GTM opportunities",
   kind: "native",
   extractSlug: "defineDeal",
   description:

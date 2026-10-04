@@ -1069,7 +1069,7 @@
         {
           "id": "crm-backed",
           "when": "The customers and deals live in HubSpot, Salesforce or Attio",
-          "how": "Add a `defineConnector` for the CRM (`default: true`). Replace both native models with connector-backed ones: `extractSlug: \"fetchRecords\"`, `config: { objectType: \"companies\" }` and `\"deals\"`, `columnSelectionMode: \"all\"`, an hourly `schedule`, and never a filter. Run the play on the deals model with the CRM's won flag and close date (HubSpot: `hs_is_closed_won`, `closedate`; or put it on companies and filter the `recent_deal_close_date` roll-up). Create three custom company properties (`expansion_signal` text, `expansion_reason` multi-line text, `expansion_signal_at` date) and replace `model.customColumn` with the CRM's `updateRecords` on `companies`, matched on the record id (`hs_object_id` of the deal's associated company), with those three mappings.",
+          "how": "Add a `defineConnector` for the CRM (`default: true`). Replace both native models with connector-backed ones: `extractSlug: \"fetchRecords\"`, `config: { objectType: \"companies\" }` and `\"deals\"`, `columnSelectionMode: \"all\"`, an hourly `schedule`, and never a filter. Run the play on the gtm_opportunities model with the CRM's won flag and close date (HubSpot: `hs_is_closed_won`, `closedate`; or put it on companies and filter the `recent_deal_close_date` roll-up). Create three custom company properties (`expansion_signal` text, `expansion_reason` multi-line text, `expansion_signal_at` date) and replace `model.customColumn` with the CRM's `updateRecords` on `companies`, matched on the record id (`hs_object_id` of the deal's associated company), with those three mappings.",
           "cost": "A write to a property that does not exist fails every row, so create them first. Never sit a unify step between the play and the write: it reports success and nothing lands."
         },
         {
@@ -1081,7 +1081,7 @@
         {
           "id": "whole-book",
           "when": "You want every customer judged on a cadence, not only near renewal",
-          "how": "Move the play to `companies`, filter on `custom__expansion_signal_at` being empty or older than ninety days, and let the analyst decide in SQL whether the account has a win at all",
+          "how": "Move the play to `gtm_accounts`, filter on `custom__expansion_signal_at` being empty or older than ninety days, and let the analyst decide in SQL whether the account has a win at all",
           "cost": "Every account in the book is judged each cycle, customers or not, at one agent run and up to three searches each."
         },
         {
@@ -1108,14 +1108,14 @@
       ],
       "doneWhen": [
         "`node --import tsx evals/contract.mjs` passes",
-        "`cargo-ai cdk plan` reports the `companies`, `deals` and `expansion_digests` models, the two agents, the play, two connectors and three folders, with the play disabled and no CRM connector",
+        "`cargo-ai cdk plan` reports the `gtm_accounts`, `gtm_opportunities` and `expansion_digests` models, the two agents, the play, two connectors and three folders, with the play disabled and no CRM connector",
         "seeded accounts and won deals, with two deals inside the window, produced two analyst runs and two accounts carrying a signal, a reason and a stamp; every event named in a reason has a dated source in it",
         "an account whose newer win already renewed it was written `none` with that reason",
         "a second play execution the same week judged neither deal again",
         "the digest posted once in the locked channel, listed exactly the accounts stamped that week with a signal other than `none`, and a re-run that week posted nothing",
         "no deal or contact record changed"
       ],
-      "cost": "The model writes are native and the research is web search inside the analyst, at most three per\naccount. Immediately before the plan, read the live price of the one connector action:\n\n- `cargo-ai orchestration action list postMessage --kind connector --integration-slug slack`\n\nSay it out loud. The recurring cost is one analyst run per won deal entering its window each week,\nplus one digest run, billed as LLM tokens through the Anthropic connector. It scales with how many\ncustomers are near renewal, not with the size of the book. Count the window before enabling: a\n`SELECT count(*)` over `deals` with `is_won` true and `close_date` ten to twelve months back.",
+      "cost": "The model writes are native and the research is web search inside the analyst, at most three per\naccount. Immediately before the plan, read the live price of the one connector action:\n\n- `cargo-ai orchestration action list postMessage --kind connector --integration-slug slack`\n\nSay it out loud. The recurring cost is one analyst run per won deal entering its window each week,\nplus one digest run, billed as LLM tokens through the Anthropic connector. It scales with how many\ncustomers are near renewal, not with the size of the book. Count the window before enabling: a\n`SELECT count(*)` over `gtm_opportunities` with `is_won` true and `close_date` ten to twelve months back.",
       "composesInto": "`crm-enrichment` (firmographics on the same company records), `win-loss-review` (what closed-won\nsays about who expands), and `track-job-changes` (a champion who left is the first at-risk signal)."
     },
     {

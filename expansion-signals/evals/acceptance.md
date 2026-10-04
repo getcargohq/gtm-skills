@@ -5,10 +5,10 @@ Walk every line. A checked template without an evidence-backed consumer adaptati
 ## Before deploy
 
 - `node --import tsx evals/contract.mjs` passes against the adapted graph: no HubSpot connector;
-  native `companies` (defineAccount) and `deals` (defineDeal); the play is disabled, calls the
-  analyst once, calls no connector, and owns one `modelCustomColumn` on `companies`, by the deal's
+  native `gtm_accounts` (defineAccount) and `gtm_opportunities` (defineDeal); the play is disabled, calls the
+  analyst once, calls no connector, and owns one `modelCustomColumn` on `gtm_accounts`, by the deal's
   `account_id`, with exactly the three expansion columns; the analyst has no action and only
-  read-only models; the digest has one locked `postMessage`, a writable ledger and `companies`
+  read-only models; the digest has one locked `postMessage`, a writable ledger and `gtm_accounts`
   read-only.
 - `cargo-ai connection connector list` shows authorized Slack and Anthropic connectors.
 - `context/expansion-plays.md` exists in the project and names what you sell to customers.
@@ -22,12 +22,12 @@ records on the `.example` TLD. Cargo generates every record id (passing an `id` 
 create the companies first and put each returned `id` into its deals' `account_id`:
 
 ```bash
-cargo-ai storage record create-bulk --model-uuid <companies-uuid> --records '[
+cargo-ai storage record create-bulk --model-uuid <gtm_accounts uuid> --records '[
   {"data":{"name":"Fabrikam","website":"fabrikam.example","owner_id":"4402"}},
   {"data":{"name":"Contoso","website":"contoso.example","owner_id":"4419"}},
   {"data":{"name":"Litware","website":"litware.example","owner_id":"4411"}}
 ]'
-cargo-ai storage record create-bulk --model-uuid <deals-uuid> --records '[
+cargo-ai storage record create-bulk --model-uuid <gtm_opportunities uuid> --records '[
   {"data":{"name":"Fabrikam annual","account_id":"<fabrikam id>","amount":38000,"stage_name":"Closed won","close_date":"<11 months ago>","is_closed":true,"is_won":true}},
   {"data":{"name":"Contoso H1","account_id":"<contoso id>","amount":9500,"stage_name":"Closed won","close_date":"<17 months ago>","is_closed":true,"is_won":true}},
   {"data":{"name":"Contoso H2","account_id":"<contoso id>","amount":9500,"stage_name":"Closed won","close_date":"<11 months ago>","is_closed":true,"is_won":true}},
@@ -48,7 +48,7 @@ Keep the account records and the Slack permalink as evidence.
   six-month cadence at 9,500. Every outside event a reason names has a dated source in it.
 - **Already renewed.** Litware is written `none`, and its reason names the newer win.
 - **Re-run.** A second execution the same week judges none of the three deals again.
-- **Nothing else written.** No deal record changed (`cargo-ai storage query` over `deals` before and
+- **Nothing else written.** No deal record changed (`cargo-ai storage query` over `gtm_opportunities` before and
   after).
 - **Digest.** The digest posts once, lists the accounts stamped that week with a signal other than
   `none`, at-risk first, with each reason as written on the account. A re-run that week posts

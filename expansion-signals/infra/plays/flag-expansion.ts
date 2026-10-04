@@ -3,8 +3,8 @@ import { z } from "zod";
 
 import { expansionAnalyst } from "../agents/analyst";
 import { playsFolder } from "../folders";
-import { companies } from "../models/companies";
-import { deals } from "../models/deals";
+import { gtmAccounts } from "../models/gtm-accounts";
+import { gtmOpportunities } from "../models/gtm-opportunities";
 
 // One won deal entering its renewal window in, one judgment written onto its
 // account out. The analyst decides what moment the account is at; this
@@ -22,9 +22,9 @@ const flagAccount = defineWorkflow(
     }),
     output: z.object({ signal: z.string() }),
     uses: { expansionAnalyst },
-    // The body is parsed from source, not executed: `companies` has to be
+    // The body is parsed from source, not executed: `gtm_accounts` has to be
     // handed to the parser here, or its uuid is a name nothing resolves.
-    imports: { companies },
+    imports: { gtmAccounts },
   },
   ({ input, uses, model }) => {
     const judgment = uses.expansionAnalyst({
@@ -36,7 +36,7 @@ const flagAccount = defineWorkflow(
     // the `custom__` read alias: a prefixed slug is silently dropped while the
     // node still reports success.
     model.customColumn({
-      modelUuid: companies.uuid,
+      modelUuid: gtmAccounts.uuid,
       id: input.account_id,
       mappings: [
         { columnSlug: "expansion_signal", value: judgment.answer.signal },
@@ -59,7 +59,7 @@ const flagAccount = defineWorkflow(
 // `changeKinds: ["added"]` is the idempotency. A deal enters this window once
 // per renewal, so each renewal is judged once, not once a week for two
 // months. Whether the account is still a customer, and whether a newer win
-// already renewed it, is the analyst's SQL over `deals`, not a hand-kept flag
+// already renewed it, is the analyst's SQL over `gtm_opportunities`, not a hand-kept flag
 // on the account.
 //
 // The window is the number most teams change: monthly or two-year contracts
@@ -69,7 +69,7 @@ export const flagExpansion = definePlay("flag_expansion", {
   description:
     "Per won deal entering its renewal window: the analyst judges the account and the play writes signal, reason and stamp onto it.",
   folder: playsFolder,
-  model: deals,
+  model: gtmOpportunities,
   workflow: flagAccount,
   filter: {
     conjonction: "and",
@@ -79,23 +79,23 @@ export const flagExpansion = definePlay("flag_expansion", {
         conditions: [
           {
             kind: "boolean",
-            columnSlug: deals.columns.is_won,
+            columnSlug: gtmOpportunities.columns.is_won,
             operator: "isTrue",
           },
           {
             kind: "string",
-            columnSlug: deals.columns.account_id,
+            columnSlug: gtmOpportunities.columns.account_id,
             operator: "isNotEmpty",
           },
           {
             kind: "date",
-            columnSlug: deals.columns.close_date,
+            columnSlug: gtmOpportunities.columns.close_date,
             operator: "lowerThan",
             value: "10 months",
           },
           {
             kind: "date",
-            columnSlug: deals.columns.close_date,
+            columnSlug: gtmOpportunities.columns.close_date,
             operator: "greaterThan",
             value: "12 months",
           },

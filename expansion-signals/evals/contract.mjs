@@ -21,8 +21,8 @@ const findOne = (nodes, predicate, message) => {
 // connector key. A CRM swap is the `crm-backed` variation, not the default.
 assert.equal(byId.has("connector:hubspot"), false, "the worked example has no HubSpot connector");
 for (const [id, extractor] of [
-  ["model:companies", "defineAccount"],
-  ["model:deals", "defineDeal"],
+  ["model:gtm_accounts", "defineAccount"],
+  ["model:gtm_opportunities", "defineDeal"],
 ]) {
   const model = byId.get(id);
   assert.ok(model, `${id} must exist`);
@@ -54,7 +54,7 @@ const [write] = writes;
 assert.equal(write.actionSlug, "modelCustomColumn", "the write sets custom columns on one record by id");
 assert.equal(
   write.config.modelUuid?.resourceId,
-  "model:companies",
+  "model:gtm_accounts",
   "only the account is written, never a deal or a contact",
 );
 assert.match(write.config.id?.expression ?? "", /account_id/, "the write targets the deal's account id");
@@ -98,7 +98,7 @@ assert.equal(
   false,
 );
 assert.equal(
-  findOne(digestModels, (m) => m.uuid?.resourceId === "model:companies", "the digest reads accounts").readOnly,
+  findOne(digestModels, (m) => m.uuid?.resourceId === "model:gtm_accounts", "the digest reads accounts").readOnly,
   true,
 );
 findOne(
