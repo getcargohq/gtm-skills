@@ -34,10 +34,10 @@ for this skill until it is approved.
 A demo request stops waiting in a queue for someone to look the person up. Every new inbound
 contact is researched within fifteen minutes of landing, and three things happen:
 
-1. **On the contact row**: `cargo_inbound_tier` (A, B, C or disqualified against your rubric),
-   `cargo_inbound_brief` (who they are, what their company does, why they might be talking to you
-   now), `cargo_inbound_rationale`, and `cargo_inbound_researched_at`.
-2. **On the account row**: `cargo_tier` and `cargo_tier_reason`, only when the account has none
+1. **On the contact row**: `inbound_tier` (A, B, C or disqualified against your rubric),
+   `inbound_brief` (who they are, what their company does, why they might be talking to you
+   now), `inbound_rationale`, and `inbound_researched_at`.
+2. **On the account row**: `tier` and `tier_reason`, only when the account has none
    yet. A tier set by `account-scoring` or by a rep is never overwritten by one inbound lead.
 3. **In Slack**: one note to a fixed channel with the brief, the tier, the rationale and the
    sources, mentioning the contact's owner.
@@ -131,7 +131,7 @@ _asked_ genuinely live in the operator's head.
 
 | Variation         | When it is right                                                     | How                                                                                                                                                                                                                                                                                                                                                                                            | What it costs                                                                                                                                                                         |
 | ----------------- | -------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `crm-backed`      | Inbound lands in HubSpot, Salesforce or Attio and the brief belongs there | Add the CRM connector (`default: true`). Replace `people` with a connector-backed model (`fetchRecords`, `objectType: "contacts"`, `columnSelectionMode: "all"`, no config filter, a 30-minute cron) and drop `companies`. Create the properties `cargo_inbound_tier`, `cargo_inbound_brief`, `cargo_inbound_rationale` (text) and `cargo_inbound_researched_at` (date) on contacts, `cargo_tier` and `cargo_tier_reason` on companies. In the workflow, replace each `model.customColumn` with the CRM's `updateRecords` matched on the record id the row came with (`hs_object_id` on HubSpot), `skipIfExist: true` on the tier fields; filter on the CRM's source column (`hs_analytics_source` not `OFFLINE` on HubSpot). Update the contract's no-CRM assertion. | A second system to authorize and a CRM sync interval (thirty minutes on HubSpot) between a form fill and its research. Only the native shape is checked here: re-run the pilot of ten. |
+| `crm-backed`      | Inbound lands in HubSpot, Salesforce or Attio and the brief belongs there | Add the CRM connector (`default: true`). Replace `people` with a connector-backed model (`fetchRecords`, `objectType: "contacts"`, `columnSelectionMode: "all"`, no config filter, a 30-minute cron) and drop `companies`. Create the properties `inbound_tier`, `inbound_brief`, `inbound_rationale` (text) and `inbound_researched_at` (date) on contacts, `tier` and `tier_reason` on companies. In the workflow, replace each `model.customColumn` with the CRM's `updateRecords` matched on the record id the row came with (`hs_object_id` on HubSpot), `skipIfExist: true` on the tier fields; filter on the CRM's source column (`hs_analytics_source` not `OFFLINE` on HubSpot). Update the contract's no-CRM assertion. | A second system to authorize and a CRM sync interval (thirty minutes on HubSpot) between a form fill and its research. Only the native shape is checked here: re-run the pilot of ten. |
 | `form-only`       | Only demo-request fills should be researched                         | Narrow the `lead_source` allow-list to the demo-request value                                                                                                                                                                                                                                                                                                                                  | Signups and content downloads go unresearched. Say so to the team, or they read silence as "not worth it".                                                                            |
 | `a-and-b-only`    | The channel is too busy                                              | In the workflow, post only when the tier is `A` or `B`; still write every tier                                                                                                                                                                                                                                                                                                                | C and disqualified leads are only visible on the row. A wrong `C` stops being noticed.                                                                                               |
 | `no-account-tier` | account-scoring owns the account tier and inbound must not seed it   | Drop the accounts `customColumn` block                                                                                                                                                                                                                                                                                                                                                         | An account with no tier stays untiered until the scoring play reaches it.                                                                                                            |
@@ -169,11 +169,11 @@ _asked_ genuinely live in the operator's head.
   connectors and the three folders
 - a test contact seeded with `cargo-ai storage record create` (an inbound `lead_source`, a work
   email, an `account_id` pointing at a seeded account with no tier) was researched by a manual run:
-  all four contact columns are set, the account got `cargo_tier`, and one note landed in the
+  all four contact columns are set, the account got `tier`, and one note landed in the
   `references/note.md` shape
 - a second manual run over the same contact wrote nothing and posted nothing
 - a contact seeded with a `lead_source` outside the allow-list was not researched
-- an account that already had `cargo_tier` kept it
+- an account that already had `tier` kept it
 - every fact in a sampled brief is in the record or on a listed source page
 - after enabling, a contact written by the real capture was researched within fifteen minutes, once
 

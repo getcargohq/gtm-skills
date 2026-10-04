@@ -96,25 +96,25 @@ const researchInbound = defineWorkflow(
       modelUuid: people.uuid,
       id: input.id,
       mappings: [
-        { columnSlug: "cargo_inbound_tier", value: verdict.answer.tier },
-        { columnSlug: "cargo_inbound_brief", value: verdict.answer.brief },
+        { columnSlug: "inbound_tier", value: verdict.answer.tier },
+        { columnSlug: "inbound_brief", value: verdict.answer.brief },
         {
-          columnSlug: "cargo_inbound_rationale",
+          columnSlug: "inbound_rationale",
           value: verdict.answer.rationale,
         },
-        { columnSlug: "cargo_inbound_researched_at", value: new Date() },
+        { columnSlug: "inbound_researched_at", value: new Date() },
       ],
     });
 
     // Fill-blank on the account: a tier already there was set on more
     // evidence than one inbound lead carries.
-    if (account.length > 0 && !account[0].custom__cargo_tier) {
+    if (account.length > 0 && !account[0].custom__tier) {
       model.customColumn({
         modelUuid: companies.uuid,
         id: account[0].id,
         mappings: [
-          { columnSlug: "cargo_tier", value: verdict.answer.tier },
-          { columnSlug: "cargo_tier_reason", value: verdict.answer.rationale },
+          { columnSlug: "tier", value: verdict.answer.tier },
+          { columnSlug: "tier_reason", value: verdict.answer.rationale },
         ],
       });
     }
@@ -140,7 +140,7 @@ const researchInbound = defineWorkflow(
 // Researches each new contact whose lead source says it came to you, once.
 //
 // `changeKinds: ["added"]` creates runs for rows entering the filter, not for
-// the whole table on every tick. The `cargo_inbound_researched_at` blank test
+// the whole table on every tick. The `inbound_researched_at` blank test
 // is the second key, so re-enabling the play or a manual run never pays twice.
 //
 // PLACEHOLDER: the `lead_source` values your capture writes for inbound. An
@@ -180,7 +180,7 @@ export const researchInboundContacts = definePlay("research_inbound_contacts", {
         conditions: [
           {
             kind: "date",
-            columnSlug: people.columns.custom__cargo_inbound_researched_at,
+            columnSlug: people.columns.custom__inbound_researched_at,
             operator: "isNull",
           },
         ],

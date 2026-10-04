@@ -34,12 +34,12 @@ cargo-ai storage record create --model-uuid <people uuid> \
 
 Keep the record JSON (`cargo-ai storage record get`) and the Slack permalinks as evidence.
 
-- **Researched.** A manual run of the play researched Dana Ruiz: all four `cargo_inbound_*`
-  columns are set, Fabrikam got `cargo_tier` and `cargo_tier_reason`, and one note landed in
+- **Researched.** A manual run of the play researched Dana Ruiz: all four `inbound_*`
+  columns are set, Fabrikam got `tier` and `tier_reason`, and one note landed in
   the `references/note.md` shape.
 - **Not inbound.** Lee Park (a source outside the allow-list) was not researched.
 - **Re-run.** A second manual run wrote nothing and posted nothing.
-- **Account guard.** Setting `cargo_tier` on the account by hand, then seeding a second contact on
+- **Account guard.** Setting `tier` on the account by hand, then seeding a second contact on
   it, left the hand-set tier in place.
 - **Owner.** The mapped owner was mentioned; `owner_id` on the contact is unchanged.
 - **Truth.** Every fact in the brief is in the record or on a listed source.

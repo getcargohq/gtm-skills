@@ -24,14 +24,14 @@ export const people = defineModel("people", {
   additionalColumns: [
     {
       kind: "custom",
-      slug: "cargo_inbound_tier",
+      slug: "inbound_tier",
       type: "string",
       label: "Inbound tier",
       description: "A, B, C or disqualified against the tiering rubric.",
     },
     {
       kind: "custom",
-      slug: "cargo_inbound_brief",
+      slug: "inbound_brief",
       type: "string",
       label: "Inbound brief",
       description:
@@ -39,14 +39,14 @@ export const people = defineModel("people", {
     },
     {
       kind: "custom",
-      slug: "cargo_inbound_rationale",
+      slug: "inbound_rationale",
       type: "string",
       label: "Inbound rationale",
       description: "The rubric lines that decided the tier.",
     },
     {
       kind: "custom",
-      slug: "cargo_inbound_researched_at",
+      slug: "inbound_researched_at",
       type: "date",
       label: "Researched at",
       description:

@@ -13,8 +13,8 @@ needed. Running HubSpot, Salesforce or Attio is the `crm-backed` variation in `S
   has never been researched.
 - Researches with the workspace context and web search, and tiers the company A, B, C or
   disqualified against the rubric.
-- Writes `cargo_inbound_tier`, `cargo_inbound_brief`, `cargo_inbound_rationale` and
-  `cargo_inbound_researched_at` onto the contact, and seeds `cargo_tier` on the linked account only
+- Writes `inbound_tier`, `inbound_brief`, `inbound_rationale` and
+  `inbound_researched_at` onto the contact, and seeds `tier` on the linked account only
   when it is blank.
 - Posts one note per contact to a fixed Slack channel, mentioning the owner.
 
@@ -25,7 +25,7 @@ Adds 9 resources.
 | File                              | Resource                        | Role                                                             |
 | --------------------------------- | ------------------------------- | ---------------------------------------------------------------- |
 | `infra/models/people.ts`        | `defineModel` (native contact)  | the inbound contacts, plus the four columns the play writes      |
-| `infra/models/companies.ts`        | `defineModel` (native account)  | their accounts, plus `cargo_tier` and `cargo_tier_reason`        |
+| `infra/models/companies.ts`        | `defineModel` (native account)  | their accounts, plus `tier` and `tier_reason`        |
 | `infra/agents/researcher.ts`      | `defineAgent`                   | research and tier; returns JSON, writes nothing                  |
 | `infra/plays/research-inbound.ts` | `definePlay` + `defineWorkflow` | the filter, the write-back, the Slack note                       |
 | `infra/connectors/slack.ts`       | `defineConnector` (`slack`)     | the note                                                         |

@@ -70,7 +70,7 @@ const conditions = conditionsOf(play.spec.filter);
 assert.ok(
   conditions.some(
     (c) =>
-      c.columnSlug === "custom__cargo_inbound_researched_at" &&
+      c.columnSlug === "custom__inbound_researched_at" &&
       c.operator === "isNull",
   ),
   "the play must skip people already researched",
@@ -84,12 +84,12 @@ assert.ok(
 // never touches ownership. `id` is the account lookup, not a write.
 const workflow = JSON.stringify(play.spec.nodes ?? []);
 const allowed = new Set([
-  "cargo_inbound_tier",
-  "cargo_inbound_brief",
-  "cargo_inbound_rationale",
-  "cargo_inbound_researched_at",
-  "cargo_tier",
-  "cargo_tier_reason",
+  "inbound_tier",
+  "inbound_brief",
+  "inbound_rationale",
+  "inbound_researched_at",
+  "tier",
+  "tier_reason",
 ]);
 const writes = [...workflow.matchAll(/columnSlug\\*":\s*\\*"([a-z_]+)/g)]
   .map((match) => match[1])

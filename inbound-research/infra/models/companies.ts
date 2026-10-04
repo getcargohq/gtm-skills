@@ -7,7 +7,7 @@ import { modelsFolder } from "../folders";
 // industry, number_of_employees, owner_id, ...
 //
 // The play reads the account to hand the researcher what is already known,
-// and seeds `cargo_tier` only when it is blank: account-scoring or a rep may
+// and seeds `tier` only when it is blank: account-scoring or a rep may
 // have set it on more evidence than one inbound lead carries.
 export const companies = defineModel("companies", {
   kind: "native",
@@ -16,14 +16,14 @@ export const companies = defineModel("companies", {
   additionalColumns: [
     {
       kind: "custom",
-      slug: "cargo_tier",
+      slug: "tier",
       type: "string",
       label: "Tier",
       description: "A, B, C or disqualified against the tiering rubric.",
     },
     {
       kind: "custom",
-      slug: "cargo_tier_reason",
+      slug: "tier_reason",
       type: "string",
       label: "Tier reason",
       description: "The rubric lines that decided the tier.",
