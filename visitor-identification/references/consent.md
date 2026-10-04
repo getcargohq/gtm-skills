@@ -40,7 +40,7 @@ unless the snippet is set **and** `site.json` is `ready` with a `canonicalUrl`.
 In the app's `defineApp` (`infra/website-building/apps/website.ts`):
 
 ```ts
-import { visitingCompanies } from "../../website-visitors/models/companies";
+import { visitingCompanies } from "../../visitor-identification/models/companies";
 
 env: {
   NEXT_PUBLIC_SNITCHER_SNIPPET: visitingCompanies.config._trackingScript,

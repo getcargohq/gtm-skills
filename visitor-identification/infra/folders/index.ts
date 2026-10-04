@@ -7,7 +7,7 @@ import { defineFolder } from "@cargo-ai/cdk";
 // skill bounded rather than a hunt.
 //
 // Folders are per-kind. This skill deploys two models and nothing else.
-export const modelsFolder = defineFolder("website_visitors_models", {
+export const modelsFolder = defineFolder("visitor_identification_models", {
   kind: "model",
-  name: "Website visitors",
+  name: "Visitor identification",
 });

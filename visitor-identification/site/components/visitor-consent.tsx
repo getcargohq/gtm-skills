@@ -15,7 +15,7 @@ import type { VisitorTracking } from "@/lib/visitors";
 // the tracker's listeners. It stops future collection; it does not erase what
 // Snitcher already holds.
 
-const STORAGE_KEY = "website-visitors-consent-v1";
+const STORAGE_KEY = "visitor-identification-consent-v1";
 
 type Choice = "accepted" | "denied" | null;
 

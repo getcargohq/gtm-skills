@@ -77,10 +77,10 @@
     "demoWorkspace": null,
     "implementations": []
   },
-  "website-visitors": {
-    "state": "to-be-approved",
+  "visitor-identification": {
+    "state": "approved",
     "chain": 14,
-    "demoWorkspace": null,
+    "demoWorkspace": "2026-10-04",
     "implementations": []
   }
 }

@@ -4,7 +4,7 @@
 
 - The website exists on Cargo Hosting, `site.json` is `ready`, and `canonicalUrl` is its HTTPS
   origin.
-- `infra/website-visitors/models/companies.ts` `url` is that origin.
+- `infra/visitor-identification/models/companies.ts` `url` is that origin.
 - The workspace's default Snitcher connection is on Cargo's credits
   (`cargo-ai connection connector list`).
 - The live price per identified company was read from `cargo-ai connection integration get

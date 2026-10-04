@@ -1,4 +1,4 @@
-# Website visitors
+# Visitor identification
 
 Which companies visit the website, and what they read, kept current in two Cargo models. The
 tracker loads only after a visitor accepts it.
@@ -48,5 +48,5 @@ person, no outreach in this skill.
 ## Verify
 
 ```sh
-node --import tsx website-visitors/evals/contract.mjs
+node --import tsx visitor-identification/evals/contract.mjs
 ```

@@ -26,8 +26,8 @@ interval after the first accepted visit.
 
 ```sql
 SELECT c.website, c.industry, COUNT(s.uuid) AS sessions, MAX(s.started_at) AS last_visit
-FROM website_visitors.website_visiting_companies c
-JOIN website_visitors.website_visitor_sessions s ON s.organisation_uuid = c.uuid
+FROM snitcher.website_visiting_companies c
+JOIN snitcher.website_visitor_sessions s ON s.organisation_uuid = c.uuid
 GROUP BY c.website, c.industry
 ORDER BY last_visit DESC
 ```

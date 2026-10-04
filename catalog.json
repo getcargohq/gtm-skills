@@ -73,7 +73,7 @@
       "description": "Deployed pipelines that watch the market for the moment to reach out: who just took a role you sell to.",
       "skills": [
         "new-hire-detection",
-        "website-visitors"
+        "visitor-identification"
       ]
     },
     {
@@ -1679,6 +1679,81 @@
       ]
     },
     {
+      "name": "visitor-identification",
+      "kind": "cookbook",
+      "job": "Learn which companies visit your website and what they read: Snitcher identifies the organisation behind each visit, two Cargo models keep the visiting companies and their sessions current, and the site loads the tracker only after a visitor accepts it.",
+      "description": "Learn which companies visit your website and what they read: Snitcher identifies the organisation behind each visit, two Cargo models keep the visiting companies and their sessions current, and the site loads the tracker only after a visitor accepts it. Triggers: \"who is visiting our website\", \"identify website visitors\", \"which companies visit our site\", \"track website sessions by company\", \"add visitor identification to our website\", \"website visitor intelligence\", \"Snitcher on our site\", \"which accounts read our pricing page\". Cargo CDK, defineModel, model.config, Snitcher, consent. Skip when: you want to identify named people, which this does not do; you want buying signals from the wider market, which is monitor-buying-signals; or there is no site to add it to yet, which is website-building.",
+      "version": "0.1.0",
+      "homepage": "https://github.com/getcargohq/gtm-skills/tree/main/visitor-identification",
+      "group": "Signals",
+      "install": "cargo-ai cdk add cookbook/visitor-identification",
+      "partOf": [],
+      "personas": [
+        "marketing",
+        "sales-development",
+        "gtm-engineering"
+      ],
+      "integrations": [
+        "snitcher"
+      ],
+      "example": {
+        "prompt": "Show us which companies visit www.fabrikam.example, and only track visitors who accept.",
+        "output": "```text\nmodel:website_visiting_companies     deployed   12 companies after the first day\n  northwind.example     Software     first seen 09:14   last seen 16:02\n  contoso.example       Logistics    first seen 11:40   last seen 11:52\nmodel:website_visitor_sessions       deployed   31 sessions\n  northwind.example     /pricing/ /about/      referrer: linkedin.com\napp:website                          updated    consent gate on, tracker after accept only\n```\n\nRows land on Cargo's own sync interval. A day with no identified company is an honest zero: not\nevery IP resolves to an organisation."
+      },
+      "state": "approved",
+      "chain": 14,
+      "resources": [
+        "connectors",
+        "folders",
+        "models"
+      ],
+      "asked": [],
+      "canChange": [
+        {
+          "id": "existing-cmp",
+          "when": "The site already runs a consent management platform",
+          "how": "Call `loadSnitcher` from the CMP's grant event and its deny path from revocation, instead of rendering the gate",
+          "cost": "The same behaviour has to be re-tested against the CMP's events, including withdrawal."
+        },
+        {
+          "id": "scoring-input",
+          "when": "Visits should move an account's score",
+          "how": "Read the companies model from `account-scoring` and weight recency and pages read",
+          "cost": "A score that leans on visits favours companies with more staff online, not more intent."
+        },
+        {
+          "id": "alert-on-visit",
+          "when": "Sales wants to know when a target account is on the site",
+          "how": "A segment over the companies model joined to the target list, with an alert on new rows",
+          "cost": "Alerts on company-level data invite reps to guess who visited; the alert has to say it is a company."
+        },
+        {
+          "id": "own-snitcher",
+          "when": "The company already pays for Snitcher",
+          "how": "Use its connector, select the existing workspace in the companies model, and pass that workspace to sessions",
+          "cost": "No managed provisioning: the snippet and workspace come from the existing account, outside this graph."
+        }
+      ],
+      "shouldNotChange": [
+        "**Nothing loads before an explicit accept.** (`site/components/visitor-consent.tsx`) Snitcher's `waitForConsent` still records pageviews before consent; only not requesting the script keeps a visit untracked. Global Privacy Control counts as a no.",
+        "**The site loads its own reviewed loader, never the provider's snippet.** (`site/lib/snitcher.ts`) Only the public profile ID is taken from it, and an unrecognised snippet fails the build. Form, click, download, error and recording capture stay off.",
+        "**Tracking runs only on the canonical origin of a `ready` site.** (`site/lib/visitors.ts`) The Cargo URL, previews and a draft site load nothing.",
+        "**Company-level only.** No identify call, no email capture, no named person inferred from a visit.",
+        "**The companies model's `url` stays stable.** A new URL provisions a new Snitcher workspace: a new tracker, an empty history.",
+        "**No credentials, deploy commands, or customer data in this repository.**"
+      ],
+      "doneWhen": [
+        "`node --import tsx evals/contract.mjs` passes: the companies model is `fetchOrganisations` on the Snitcher connector with an HTTPS `url`, the sessions model is `fetchSessions` reading `config._workspaceUuid` from it, both are filed in `visitor_identification_models`",
+        "the plan's first deploy shows the two models and the app update, and the operator approved the spend against the live price",
+        "in a browser on the canonical origin: no request to `snitcher.com` before a choice, after \"Reject tracking\", or after withdrawing and reloading; one \"Accept tracking\" makes a request to `cdn.snitcher.com` and `radar.snitcher.com`",
+        "the Cargo URL and a draft preview make no request to `snitcher.com` and show no banner",
+        "after the sync interval the models hold rows, or a zero reported as a zero",
+        "the banner links to the reviewed privacy disclosure"
+      ],
+      "cost": "Each company Snitcher identifies is billed once, when it first lands in the companies model;\nsessions add nothing. Read the live price from the integration (`cargo-ai connection integration\nget snitcher`) and the workspace's credit balance before the first deploy, and quote both. Spend\nfollows the site's traffic and there is no built-in cap, so say that too. Removing the companies\nmodel stops the billing.",
+      "composesInto": "`website-building` (the site this adds to), `account-scoring` (visits as a recency signal on the\naccounts it scores), `tam-building` (which visiting companies are in the market you chose), and\n`agentic-engagement` (a reason to reach out, said as a company, never as a person)."
+    },
+    {
       "name": "waterfall-enrichment",
       "kind": "one-off",
       "job": "Cascade one lookup through several vendors in priority order, so a row the first source misses falls through to the next instead of being lost.",
@@ -1871,81 +1946,6 @@
       ],
       "cost": "Each merge is one deployment of a static app; read the workspace's current hosting usage before\nthe first deploy, and say what you found. Adopting a domain the workspace owns adds no charge.\nRegistering one (`register-domain`) charges workspace credits once and is **not refundable**: read\nthe current price and the credit balance before proposing it, and quote both with the plan. A\nworking form adds whatever its backend costs. Nothing in the workspace runs on a schedule; your\ncoding agent's usage is the rest.",
       "composesInto": "Nothing in particular comes after it. It reads the positioning and customer language in\n`context/`, so the pages get better as that context does."
-    },
-    {
-      "name": "website-visitors",
-      "kind": "cookbook",
-      "job": "Learn which companies visit your website and what they read: Snitcher identifies the organisation behind each visit, two Cargo models keep the visiting companies and their sessions current, and the site loads the tracker only after a visitor accepts it.",
-      "description": "Learn which companies visit your website and what they read: Snitcher identifies the organisation behind each visit, two Cargo models keep the visiting companies and their sessions current, and the site loads the tracker only after a visitor accepts it. Triggers: \"who is visiting our website\", \"identify website visitors\", \"which companies visit our site\", \"track website sessions by company\", \"add visitor identification to our website\", \"website visitor intelligence\", \"Snitcher on our site\", \"which accounts read our pricing page\". Cargo CDK, defineModel, model.config, Snitcher, consent. Skip when: you want to identify named people, which this does not do; you want buying signals from the wider market, which is monitor-buying-signals; or there is no site to add it to yet, which is website-building.",
-      "version": "0.1.0",
-      "homepage": "https://github.com/getcargohq/gtm-skills/tree/main/website-visitors",
-      "group": "Signals",
-      "install": "cargo-ai cdk add cookbook/website-visitors",
-      "partOf": [],
-      "personas": [
-        "marketing",
-        "sales-development",
-        "gtm-engineering"
-      ],
-      "integrations": [
-        "snitcher"
-      ],
-      "example": {
-        "prompt": "Show us which companies visit www.fabrikam.example, and only track visitors who accept.",
-        "output": "```text\nmodel:website_visiting_companies     deployed   12 companies after the first day\n  northwind.example     Software     first seen 09:14   last seen 16:02\n  contoso.example       Logistics    first seen 11:40   last seen 11:52\nmodel:website_visitor_sessions       deployed   31 sessions\n  northwind.example     /pricing/ /about/      referrer: linkedin.com\napp:website                          updated    consent gate on, tracker after accept only\n```\n\nRows land on Cargo's own sync interval. A day with no identified company is an honest zero: not\nevery IP resolves to an organisation."
-      },
-      "state": "to-be-approved",
-      "chain": 14,
-      "resources": [
-        "connectors",
-        "folders",
-        "models"
-      ],
-      "asked": [],
-      "canChange": [
-        {
-          "id": "existing-cmp",
-          "when": "The site already runs a consent management platform",
-          "how": "Call `loadSnitcher` from the CMP's grant event and its deny path from revocation, instead of rendering the gate",
-          "cost": "The same behaviour has to be re-tested against the CMP's events, including withdrawal."
-        },
-        {
-          "id": "scoring-input",
-          "when": "Visits should move an account's score",
-          "how": "Read the companies model from `account-scoring` and weight recency and pages read",
-          "cost": "A score that leans on visits favours companies with more staff online, not more intent."
-        },
-        {
-          "id": "alert-on-visit",
-          "when": "Sales wants to know when a target account is on the site",
-          "how": "A segment over the companies model joined to the target list, with an alert on new rows",
-          "cost": "Alerts on company-level data invite reps to guess who visited; the alert has to say it is a company."
-        },
-        {
-          "id": "own-snitcher",
-          "when": "The company already pays for Snitcher",
-          "how": "Use its connector, select the existing workspace in the companies model, and pass that workspace to sessions",
-          "cost": "No managed provisioning: the snippet and workspace come from the existing account, outside this graph."
-        }
-      ],
-      "shouldNotChange": [
-        "**Nothing loads before an explicit accept.** (`site/components/visitor-consent.tsx`) Snitcher's `waitForConsent` still records pageviews before consent; only not requesting the script keeps a visit untracked. Global Privacy Control counts as a no.",
-        "**The site loads its own reviewed loader, never the provider's snippet.** (`site/lib/snitcher.ts`) Only the public profile ID is taken from it, and an unrecognised snippet fails the build. Form, click, download, error and recording capture stay off.",
-        "**Tracking runs only on the canonical origin of a `ready` site.** (`site/lib/visitors.ts`) The Cargo URL, previews and a draft site load nothing.",
-        "**Company-level only.** No identify call, no email capture, no named person inferred from a visit.",
-        "**The companies model's `url` stays stable.** A new URL provisions a new Snitcher workspace: a new tracker, an empty history.",
-        "**No credentials, deploy commands, or customer data in this repository.**"
-      ],
-      "doneWhen": [
-        "`node --import tsx evals/contract.mjs` passes: the companies model is `fetchOrganisations` on the Snitcher connector with an HTTPS `url`, the sessions model is `fetchSessions` reading `config._workspaceUuid` from it, both are filed in `website_visitors_models`",
-        "the plan's first deploy shows the two models and the app update, and the operator approved the spend against the live price",
-        "in a browser on the canonical origin: no request to `snitcher.com` before a choice, after \"Reject tracking\", or after withdrawing and reloading; one \"Accept tracking\" makes a request to `cdn.snitcher.com` and `radar.snitcher.com`",
-        "the Cargo URL and a draft preview make no request to `snitcher.com` and show no banner",
-        "after the sync interval the models hold rows, or a zero reported as a zero",
-        "the banner links to the reviewed privacy disclosure"
-      ],
-      "cost": "Each company Snitcher identifies is billed once, when it first lands in the companies model;\nsessions add nothing. Read the live price from the integration (`cargo-ai connection integration\nget snitcher`) and the workspace's credit balance before the first deploy, and quote both. Spend\nfollows the site's traffic and there is no built-in cap, so say that too. Removing the companies\nmodel stops the billing.",
-      "composesInto": "`website-building` (the site this adds to), `account-scoring` (visits as a recency signal on the\naccounts it scores), `tam-building` (which visiting companies are in the market you chose), and\n`agentic-engagement` (a reason to reach out, said as a company, never as a person)."
     },
     {
       "name": "weekly-planning",

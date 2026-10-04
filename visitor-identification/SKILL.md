@@ -1,9 +1,9 @@
 ---
-name: website-visitors
+name: visitor-identification
 description: 'Learn which companies visit your website and what they read: Snitcher identifies the organisation behind each visit, two Cargo models keep the visiting companies and their sessions current, and the site loads the tracker only after a visitor accepts it. Triggers: "who is visiting our website", "identify website visitors", "which companies visit our site", "track website sessions by company", "add visitor identification to our website", "website visitor intelligence", "Snitcher on our site", "which accounts read our pricing page". Cargo CDK, defineModel, model.config, Snitcher, consent. Skip when: you want to identify named people, which this does not do; you want buying signals from the wider market, which is monitor-buying-signals; or there is no site to add it to yet, which is website-building.'
 version: "0.1.0"
 compatibility: "Requires @cargo-ai/cli with @cargo-ai/cdk 1.0.98 or later (`model.config.<key>` tokens and token-valued app env), a website on Cargo Hosting (website-building), Node.js 22.18 or later, and a Cargo workspace."
-homepage: https://github.com/getcargohq/gtm-skills/tree/main/website-visitors
+homepage: https://github.com/getcargohq/gtm-skills/tree/main/visitor-identification
 metadata:
   author: getcargo
   source: cookbook
@@ -23,11 +23,7 @@ metadata:
     homepage: https://github.com/getcargohq/gtm-skills
 ---
 
-# Website visitors
-
-**State: to-be-approved.** Deploy-verified against a live workspace: not yet. Treat `Done when`
-below as the acceptance test and review `cargo-ai cdk plan` before deploying. Make no outcome claim
-for this skill until it is approved.
+# Visitor identification
 
 ## The outcome
 
@@ -76,9 +72,10 @@ adapting. If the `cargo-project` skill is in your session it carries the long fo
 not, this is enough.
 
 1. **Install it: the CLI does the copy.** From inside the CDK project,
-   `cargo-ai cdk add cookbook/website-visitors` writes the models to `infra/website-visitors/` and
-   this procedure, with the `site/` files, to `.claude/skills/website-visitors/`. No project yet?
-   `cargo-ai cdk init <dir> --cookbook website-visitors && cd <dir> && npm install`.
+   `cargo-ai cdk add cookbook/visitor-identification` writes the models to
+   `infra/visitor-identification/` and this procedure, with the `site/` files, to
+   `.claude/skills/visitor-identification/`. No project yet?
+   `cargo-ai cdk init <dir> --cookbook visitor-identification && cd <dir> && npm install`.
    **If you are reading this from the project's `.claude/skills/`, the install already happened;
    start at step 2.**
 2. **Reconcile it with what is already declared.** The website must already be declared, usually
@@ -149,7 +146,7 @@ it if you still want it, and records why under `## Decisions` in your copy of th
 
 - `node --import tsx evals/contract.mjs` passes: the companies model is `fetchOrganisations` on the
   Snitcher connector with an HTTPS `url`, the sessions model is `fetchSessions` reading
-  `config._workspaceUuid` from it, both are filed in `website_visitors_models`
+  `config._workspaceUuid` from it, both are filed in `visitor_identification_models`
 - the plan's first deploy shows the two models and the app update, and the operator approved the
   spend against the live price
 - in a browser on the canonical origin: no request to `snitcher.com` before a choice, after

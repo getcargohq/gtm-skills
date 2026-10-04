@@ -28,8 +28,8 @@ for (const file of resourceFiles(fileURLToPath(new URL("../infra", import.meta.u
 const all = resources();
 const byId = (id) => all.find((resource) => resource.id === id);
 
-const folder = byId("folder:website_visitors_models");
-assert.ok(folder, "defineFolder(website_visitors_models) must exist");
+const folder = byId("folder:visitor_identification_models");
+assert.ok(folder, "defineFolder(visitor_identification_models) must exist");
 assert.equal(folder.spec.folderKind, "model", "the folder must be a model folder");
 
 const connector = all.find(
@@ -70,7 +70,7 @@ for (const model of [companies, sessions])
   assert.equal(
     model.spec.folderUuid?.resourceId,
     folder.id,
-    `${model.id} must be filed in the website_visitors_models folder`,
+    `${model.id} must be filed in the visitor_identification_models folder`,
   );
 
 // The site keeps only the snippet's profile ID and loads its own settings.
@@ -110,4 +110,4 @@ assert.throws(
   "a snippet with no settings call",
 );
 
-console.log("ok: website-visitors contract");
+console.log("ok: visitor-identification contract");
