@@ -44,7 +44,7 @@ For each deal:
   to send. The agent never sends it.
 
 The worked example runs on Cargo native models, with no CRM connector: `deals` (the standard deal
-schema), `accounts`, and `activities`, one row per logged email, meeting, call or note. Last
+schema), `companies`, and `activities`, one row per logged email, meeting, call or note. Last
 activity is computed in SQL as the latest `occurred_at` per deal, not read off a roll-up property,
 so "quiet for N days" is a query anyone can read. With deals in HubSpot, Salesforce or Attio, the
 models are swapped for connector-backed ones and the agent does not change (`crm-backed` below).
@@ -91,7 +91,7 @@ is enough.
    happened — start at step 2.** On a CLI too old to have `add`, copy this folder in as a sibling of
    what is there by hand; everything below is unchanged.
 2. **Reconcile it with what is already declared.** If the project already has a Slack or Anthropic
-   connector, or `deals`, `accounts` or `activities` models, rewire the imports to the existing one
+   connector, or `deals`, `companies` or `activities` models, rewire the imports to the existing one
    and drop the copy; two resources with one slug is a collision at deploy. If the deals live in a
    CRM, apply `crm-backed` now, before the first deploy.
 3. **Point Slack at your channel and name the owners.** Authorize the Slack connector if the
@@ -174,7 +174,7 @@ Checked before moving on, not after the deploy:
 ## Done when
 
 - `node --import tsx evals/contract.mjs` passes
-- `cargo-ai cdk plan` reports the agent, the `deals`, `accounts`, `activities` and `deal_nudges`
+- `cargo-ai cdk plan` reports the agent, the `deals`, `companies`, `activities` and `deal_nudges`
   models, the two connectors and the two folders
 - the hand-run selection returned only open deals whose latest activity is older than `QUIET_DAYS`
 - the first run posted exactly one digest per owner with stalled deals, in the `references/digest.md`

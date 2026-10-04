@@ -1600,7 +1600,7 @@
       ],
       "doneWhen": [
         "`node --import tsx evals/contract.mjs` passes",
-        "`cargo-ai cdk plan` reports the agent, the `deals`, `accounts`, `activities` and `deal_nudges` models, the two connectors and the two folders",
+        "`cargo-ai cdk plan` reports the agent, the `deals`, `companies`, `activities` and `deal_nudges` models, the two connectors and the two folders",
         "the hand-run selection returned only open deals whose latest activity is older than `QUIET_DAYS`",
         "the first run posted exactly one digest per owner with stalled deals, in the `references/digest.md` shape, and wrote one `deal_nudges` row per deal with the digest's Slack `ts`",
         "a second run the same Monday posted nothing and added no row",

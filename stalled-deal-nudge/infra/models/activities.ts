@@ -21,7 +21,7 @@ export const activities = defineModel("activities", {
   extractSlug: "defineCustom",
   config: {
     columns: [
-      // accounts.id
+      // companies.id
       { slug: "account_id", type: "string" },
       // deals.id, or empty when the activity is not tied to a deal.
       { slug: "deal_id", type: "string" },

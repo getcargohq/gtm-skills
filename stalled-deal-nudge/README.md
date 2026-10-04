@@ -24,7 +24,7 @@ Adds 9 resources.
 | `infra/agents/nudger.ts`        | `defineAgent`                   | the Monday cron, the model reads, the locked Slack post         |
 | `infra/agents/nudger.prompt.ts` | (not a resource)                | the SQL rule, the owner map, research, digest, ledger           |
 | `infra/models/deals.ts`         | `defineModel` (native deal)     | the pipeline: stage, amount, close date, owner, is_closed       |
-| `infra/models/accounts.ts`      | `defineModel` (native account)  | the company name each deal belongs to                           |
+| `infra/models/companies.ts`      | `defineModel` (native account)  | the company name each deal belongs to                           |
 | `infra/models/activities.ts`    | `defineModel` (native custom)   | one row per logged email, meeting, call or note                 |
 | `infra/models/deal-nudges.ts`   | `defineModel` (native)          | the ledger: one row per deal nudged per week                    |
 | `infra/connectors/slack.ts`     | `defineConnector` (`slack`)     | the post path                                                   |

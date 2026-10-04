@@ -4,7 +4,7 @@ import { nudgerPrompt } from "./nudger.prompt";
 import { anthropic } from "../connectors/anthropic";
 import { slack } from "../connectors/slack";
 import { agentsFolder } from "../folders";
-import { accounts } from "../models/accounts";
+import { companies } from "../models/companies";
 import { activities } from "../models/activities";
 import { deals } from "../models/deals";
 import { dealNudges } from "../models/deal-nudges";
@@ -24,7 +24,7 @@ import { dealNudges } from "../models/deal-nudges";
 // connector-backed models (SKILL.md, `crm-backed`); this file does not change.
 //
 // What it may touch:
-//   - `deals`, `accounts`, `activities`, read-only.
+//   - `deals`, `companies`, `activities`, read-only.
 //   - `deal_nudges`, writable: the weekly ledger, the only thing it writes.
 //   - `slack.postMessage` with the channel locked.
 // A nudge that could move a stage would change the forecast from a guess.
@@ -46,7 +46,7 @@ export const nudger = defineAgent("stalled_deal_nudger", {
   ],
   uses: [
     { ref: deals, readOnly: true },
-    { ref: accounts, readOnly: true },
+    { ref: companies, readOnly: true },
     { ref: activities, readOnly: true },
     { ref: dealNudges, readOnly: false },
     {

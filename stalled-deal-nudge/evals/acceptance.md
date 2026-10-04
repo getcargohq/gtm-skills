@@ -5,7 +5,7 @@ Walk every line. A checked template without an evidence-backed consumer adaptati
 ## Before deploy
 
 - `node --import tsx evals/contract.mjs` passes against the adapted graph: no CRM connector in the
-  example, `deals`, `accounts` and `activities` read-only to the agent, `deal_nudges` writable, no
+  example, `deals`, `companies` and `activities` read-only to the agent, `deal_nudges` writable, no
   connector action but `postMessage` with `channelId` locked, no Slack read, a weekly cron.
 - `cargo-ai connection connector list` shows authorized Slack and Anthropic connectors, and
   `languageModel` names a model the Anthropic one can reach.
