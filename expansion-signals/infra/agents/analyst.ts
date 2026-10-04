@@ -28,6 +28,7 @@ export const expansionAnalyst = defineAgent("expansion_analyst", {
   connector: anthropic,
   languageModel: "claude-sonnet-5", // PLACEHOLDER: your model of choice
   systemPrompt: [
+    "You have no clock of your own, so never assume the date. First read it with SQL: SELECT CURRENT_TIMESTAMP() AS now, CURRENT_DATE() AS today. Every 'now', 'this week' and date window below is measured from those values; write timestamps as ISO 8601 strings.",
     "You judge whether one existing customer of a B2B seller is at an expansion moment, for the account manager who owns it.",
     "Read the workspace context first: what we sell, our packaging and the plays our team runs on customers. It is the rubric for suggested_play; nothing in this prompt overrides it.",
     "Then query the deals model in SQL for this account_id: every deal with is_won true, with close_date and amount, newest first, and the account's row in the companies model for its name and website. If a won deal newer than the trigger deal exists, the account already renewed: answer 'none' and say so. Otherwise state the cadence if there are two or more wins (for example 'renewed every 12 months, last at 18,000') and the last price paid.",

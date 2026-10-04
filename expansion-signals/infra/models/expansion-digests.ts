@@ -14,7 +14,9 @@ export const expansionDigests = defineModel("expansion_digests", {
     columns: [
       // Monday of the ISO week the digest covers, YYYY-MM-DD. The ledger key.
       { slug: "week_start", type: "string" },
-      { slug: "posted_at", type: "date" },
+      // ISO 8601 strings, not `date`: an agent's write to a date column comes
+      // back to it as an empty object, and the next model step fails on it.
+      { slug: "posted_at", type: "string" },
       { slug: "company_count", type: "number" },
       { slug: "slack_ts", type: "string" },
     ],

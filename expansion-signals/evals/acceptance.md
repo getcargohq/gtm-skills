@@ -18,20 +18,21 @@ Walk every line. A checked template without an evidence-backed consumer adaptati
 ## Seed
 
 After the deploy, read the two model uuids (`cargo-ai storage model list`) and load fictional
-records on the `.example` TLD:
+records on the `.example` TLD. Cargo generates every record id (passing an `id` is rejected), so
+create the companies first and put each returned `id` into its deals' `account_id`:
 
 ```bash
-cargo-ai storage record create-bulk --model-uuid <accounts-uuid> --records '[
-  {"data":{"id":"acc-fabrikam","name":"Fabrikam","website":"fabrikam.example","owner_id":"4402"}},
-  {"data":{"id":"acc-contoso","name":"Contoso","website":"contoso.example","owner_id":"4419"}},
-  {"data":{"id":"acc-litware","name":"Litware","website":"litware.example","owner_id":"4411"}}
+cargo-ai storage record create-bulk --model-uuid <companies-uuid> --records '[
+  {"data":{"name":"Fabrikam","website":"fabrikam.example","owner_id":"4402"}},
+  {"data":{"name":"Contoso","website":"contoso.example","owner_id":"4419"}},
+  {"data":{"name":"Litware","website":"litware.example","owner_id":"4411"}}
 ]'
 cargo-ai storage record create-bulk --model-uuid <deals-uuid> --records '[
-  {"data":{"id":"deal-fab-1","name":"Fabrikam annual","account_id":"acc-fabrikam","amount":38000,"stage_name":"Closed won","close_date":"<11 months ago>","is_closed":true,"is_won":true}},
-  {"data":{"id":"deal-con-1","name":"Contoso H1","account_id":"acc-contoso","amount":9500,"stage_name":"Closed won","close_date":"<17 months ago>","is_closed":true,"is_won":true}},
-  {"data":{"id":"deal-con-2","name":"Contoso H2","account_id":"acc-contoso","amount":9500,"stage_name":"Closed won","close_date":"<11 months ago>","is_closed":true,"is_won":true}},
-  {"data":{"id":"deal-lit-1","name":"Litware annual","account_id":"acc-litware","amount":12000,"stage_name":"Closed won","close_date":"<11 months ago>","is_closed":true,"is_won":true}},
-  {"data":{"id":"deal-lit-2","name":"Litware renewal","account_id":"acc-litware","amount":13000,"stage_name":"Closed won","close_date":"<1 month ago>","is_closed":true,"is_won":true}}
+  {"data":{"name":"Fabrikam annual","account_id":"<fabrikam id>","amount":38000,"stage_name":"Closed won","close_date":"<11 months ago>","is_closed":true,"is_won":true}},
+  {"data":{"name":"Contoso H1","account_id":"<contoso id>","amount":9500,"stage_name":"Closed won","close_date":"<17 months ago>","is_closed":true,"is_won":true}},
+  {"data":{"name":"Contoso H2","account_id":"<contoso id>","amount":9500,"stage_name":"Closed won","close_date":"<11 months ago>","is_closed":true,"is_won":true}},
+  {"data":{"name":"Litware annual","account_id":"<litware id>","amount":12000,"stage_name":"Closed won","close_date":"<11 months ago>","is_closed":true,"is_won":true}},
+  {"data":{"name":"Litware renewal","account_id":"<litware id>","amount":13000,"stage_name":"Closed won","close_date":"<1 month ago>","is_closed":true,"is_won":true}}
 ]'
 ```
 
