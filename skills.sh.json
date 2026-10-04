@@ -81,6 +81,7 @@
       "title": "Engagement",
       "description": "Deployed pipelines that hold the conversation: every demo request answered on the page, and an agent answering every lead who replies.",
       "skills": [
+        "inbound-research",
         "inbound-qualification",
         "agentic-engagement"
       ]

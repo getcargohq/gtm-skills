@@ -88,5 +88,11 @@
     "chain": 15,
     "demoWorkspace": "2026-10-04",
     "implementations": []
+  },
+  "inbound-research": {
+    "state": "to-be-approved",
+    "chain": 19,
+    "demoWorkspace": null,
+    "implementations": []
   }
 }

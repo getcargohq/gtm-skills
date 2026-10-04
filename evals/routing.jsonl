@@ -62,7 +62,7 @@
 
 // --- one-off / deployed seam -------------------------------------------------------
 // tam-building, account-scoring, crm-enrichment, crm-deduplication,
-// call-capture, agentic-engagement, standup, weekly-planning, ask-cargo,
+// call-capture, inbound-research, agentic-engagement, standup, weekly-planning, ask-cargo,
 // new-hire-detection, web-capture and win-loss-review are worked CDK examples
 // that deploy a pipeline.
 // build-tam-list, score-leads and research-account are one-offs: the same
@@ -163,3 +163,8 @@
 {"prompt": "Add a demo request form to our website that qualifies inbound leads", "expect": "inbound-qualification"}
 {"prompt": "Route our website contact form submissions to Slack and our accounts", "expect": "inbound-qualification"}
 {"prompt": "Handle inbound demo requests from our site and send qualified ones a booking link", "expect": "inbound-qualification"}
+{"prompt": "Research every inbound lead as it lands and tell the owner", "expect": "inbound-research", "why": "Every lead, as it lands: the standing tell."}
+{"prompt": "When a demo request comes in, write a brief and a tier onto the contact", "expect": "inbound-research"}
+{"prompt": "Tier new inbound contacts against our ICP automatically", "expect": "inbound-research"}
+{"prompt": "Research this one inbound lead from Fabrikam for me now", "expect": "research-account", "why": "One company, now, in this chat: the one-off."}
+{"prompt": "Score the 30 companies in this inbound CSV against our ICP", "expect": "score-leads", "why": "A list held once and scored once, nothing deployed."}
