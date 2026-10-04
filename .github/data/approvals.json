@@ -77,9 +77,15 @@
     "demoWorkspace": null,
     "implementations": []
   },
-  "inbound-qualification": {
+  "visitor-identification": {
     "state": "approved",
     "chain": 14,
+    "demoWorkspace": "2026-10-04",
+    "implementations": []
+  },
+  "inbound-qualification": {
+    "state": "approved",
+    "chain": 15,
     "demoWorkspace": "2026-10-04",
     "implementations": []
   }
