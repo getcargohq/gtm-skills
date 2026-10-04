@@ -1,8 +1,8 @@
 ---
 name: expansion-signals
-description: 'Every week the CRM customers coming up on renewal are judged for an expansion moment — purchase cadence, last price paid, and dated outside events such as funding, hiring or a new leader — and the signal and its reason are written onto the HubSpot company, then posted as one digest for the customer team. Triggers: "flag customers ready to expand", "which customers should we upsell this quarter", "renewal and expansion signals every week", "tell account managers which accounts to call before renewal", "find expansion opportunities in our customer base", "at-risk renewals digest in slack". Cargo CDK, HubSpot companies and deals, fetchRecords, updateRecords, definePlay, defineAgent, webSearch, workspace context, Slack postMessage. Skip when: you want to know who raised money across a list of prospects, which is track-funding-rounds; or you want to watch target accounts for buying signals before they are customers, which is monitor-buying-signals.'
+description: 'Every week the customers coming up on renewal are judged for an expansion moment — purchase cadence and last price paid from won deals, plus dated outside events such as funding, hiring or a new leader — and the signal and its reason are written onto the account, then posted as one digest for the customer team. Triggers: "flag customers ready to expand", "which customers should we upsell this quarter", "renewal and expansion signals every week", "tell account managers which accounts to call before renewal", "find expansion opportunities in our customer base", "at-risk renewals digest in slack". Cargo CDK, native accounts and deals models, definePlay, defineAgent, modelCustomColumn, webSearch, workspace context, Slack postMessage; adapts to HubSpot, Salesforce or Attio. Skip when: you want to know who raised money across a list of prospects, which is track-funding-rounds; or you want to watch target accounts for buying signals before they are customers, which is monitor-buying-signals.'
 version: "0.1.0"
-compatibility: "Requires @cargo-ai/cli with @cargo-ai/cdk 1.0.92 or later, a Cargo workspace, authorized HubSpot, Slack and Anthropic connectors, and three custom HubSpot company properties (`cargo_expansion_signal`, `cargo_expansion_reason`, `cargo_expansion_signal_at`). Reads the workspace context when the project declares one."
+compatibility: "Requires @cargo-ai/cli with @cargo-ai/cdk 1.0.92 or later, a Cargo workspace, and authorized Slack and Anthropic connectors. The worked example runs on native accounts and deals models, so no CRM connector is needed; the crm-backed variation swaps in HubSpot, Salesforce or Attio. Reads the workspace context when the project declares one."
 homepage: https://github.com/getcargohq/gtm-skills/tree/main/expansion-signals
 metadata:
   author: getcargo
@@ -32,22 +32,24 @@ for this skill until it is approved.
 
 The renewal stops being the first time anyone looks at a customer. Every Monday:
 
-1. **A play selects the customers in their renewal window** from a HubSpot company model:
-   `lifecyclestage` is `customer`, the most recent deal closed ten to twelve months ago, and the
-   account has not been judged in the last sixty days.
-2. **An agent judges each one.** It reads the company's deal history (cadence, last price paid),
-   your expansion plays from the workspace context, and up to three web searches for dated public
-   events. It answers `renewal`, `expansion`, `repeat_purchase`, `at_risk` or `none`, with a reason
-   of at most three sentences, the play to run, and every URL it relied on.
-3. **The play writes the judgment onto the HubSpot company**, matched on `hs_object_id`:
-   `cargo_expansion_signal`, `cargo_expansion_reason` and a `cargo_expansion_signal_at` stamp. It
-   writes nothing else: no deal, no contact, no owner.
-4. **One digest lands in Slack** that afternoon, once the hourly sync has carried the writes back:
-   at-risk accounts first, then expansion, repeat purchase and plain renewal, each with the reason
-   as written on the record and its owner. A ledger keeps it to one post a week.
+1. **A play picks up each won deal entering its renewal window** from a native `deals` model: the
+   deal is won, has an account, and closed ten to twelve months ago. A deal enters that window once,
+   so each renewal is judged once.
+2. **An agent judges the account.** In SQL over `deals` it reads the account's purchase history:
+   whether a newer win already renewed it, the cadence across its wins, the last price paid. It
+   reads your expansion plays from the workspace context and runs up to three web searches for
+   dated public events. It answers `renewal`, `expansion`, `repeat_purchase`, `at_risk` or `none`,
+   with a reason of at most three sentences, the play to run, and every URL it relied on.
+3. **The play writes the judgment onto the account record by its id**: `cargo_expansion_signal`,
+   `cargo_expansion_reason` and a `cargo_expansion_signal_at` stamp. It writes nothing else: no
+   deal, no contact, no owner.
+4. **One digest lands in Slack** that afternoon: at-risk accounts first, then expansion, repeat
+   purchase and plain renewal, each with the reason as written on the account and its owner. A
+   ledger keeps it to one post a week.
 
-The account manager reads the same words in Slack and on the CRM record, and every claim carries
-its source.
+The worked example runs on Cargo's native accounts and deals models, so it deploys with no CRM
+connector. Customers who live in HubSpot, Salesforce or Attio take the `crm-backed` variation: the
+same play, with connector-backed models and the write going back to the CRM record.
 
 ## Example
 
@@ -72,8 +74,8 @@ _6 accounts in their renewal window: 1 at risk, 2 ready to expand._
 *Litware* (litware.example) · renewal · No outside event. · owner 4411
 ```
 
-Six customers were judged and six HubSpot companies carry the signal and reason; a seventh, judged
-three weeks ago, was skipped by the sixty-day rule.
+Six won deals entered their renewal window this week, so six accounts carry a signal and a reason; a
+seventh account had already renewed early and was written `none`.
 
 ## Put it in your project
 
@@ -88,13 +90,13 @@ is enough.
    `cargo-ai cdk init <dir> --cookbook expansion-signals && cd <dir> && npm install` does both.
    **If you are reading this from the project's `.claude/skills/`, the install already happened —
    start at step 2.**
-2. **Reconcile it with what is already declared.** If the project already has a HubSpot, Slack or
-   Anthropic connector, or a HubSpot companies or deals model (`crm-enrichment` declares one), rewire
-   the imports to the existing one and drop the copy; two resources with one slug is a collision at
-   deploy.
-3. **Create the three HubSpot properties** on companies: `cargo_expansion_signal` (single-line
-   text), `cargo_expansion_reason` (multi-line text) and `cargo_expansion_signal_at` (date). A write
-   to a property that does not exist fails every row.
+2. **Reconcile it with what is already declared.** If the project already has a Slack or Anthropic
+   connector, or an `accounts` or `deals` model, rewire the imports to the existing one and drop the
+   copy; two resources with one slug is a collision at deploy. If the customer book lives in a CRM,
+   take the `crm-backed` variation now, before the first deploy.
+3. **Fill the models.** A native model starts empty. Load accounts, then won deals with their
+   `account_id`, with `cargo-ai storage record create-bulk --model-uuid <uuid> --records '[{"data":{…}}]'`,
+   or point a sync at them. A won deal with no account is never judged.
 4. **Write your expansion plays** into the workspace context. `references/expansion-plays.md` is the
    example; copy it to `context/expansion-plays.md` and rewrite it for what you sell.
 5. **Adapt.** Work the sections below in order: _What should not change_ is what you argue back
@@ -104,78 +106,78 @@ is enough.
 6. **Check, then plan.** `node --import tsx evals/contract.mjs` from this skill's folder, then
    `npm run check && cargo-ai cdk plan` from the project root. Show the diff, and deploy only on an
    explicit yes. The play ships disabled.
-7. **Pilot.** Run the play by hand on five companies from the window, read each written reason
-   against its sources, then enable the play and let the digest post the next Monday.
+7. **Pilot.** Run the play by hand on five deals from the window, read each written reason against
+   its sources, then enable the play, execute it once (an `added` play does not backfill), and let
+   the digest post the next Monday.
 
 ## What you will be asked
 
 **Derive before you ask.** An input with a lookup is looked up, not asked.
 
-| Input                                     | Kind    | How it is answered                                                                                                                                                                  | Why it matters                                                                                                                                         |
-| ----------------------------------------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| HubSpot connector                          | value   | **derived**: `cargo-ai connection connector list`. `default: true` binds it.                                                                                                         | It is both the source and the only write path.                                                                                                         |
-| what marks a customer                      | derived | Count companies by `lifecyclestage` in `crm_companies` after the first sync. Most portals use `customer`; some mark it with a custom property or a closed-won deal only.             | A filter on a value nobody sets selects nothing, and an empty Monday reads as a quiet week.                                                             |
-| the renewal window                         | asked   | the contract length most customers sign. Annual is the default: last deal closed ten to twelve months ago.                                                                          | A monthly book judged on an annual window is judged once a year; a two-year book is judged a year early.                                                |
-| the three HubSpot properties               | derived | `listObjectProperties` on companies shows whether they exist; create them if not.                                                                                                    | A write to a missing property fails every row.                                                                                                         |
-| the expansion plays                        | asked   | what you sell into an existing customer and which play answers which signal. Written once into the context.                                                                        | Without it, `suggested_play` is generic advice. With it, the digest tells the account manager what to do.                                               |
-| `channelId` on the digest                  | asked   | the Slack channel id (`C…`) from the connector's channel autocomplete. Invite the bot.                                                                                               | The digest names customers and their renewal risk. Locked so it never lands in a customer shared channel.                                               |
+| Input                         | Kind    | How it is answered                                                                                                                                      | Why it matters                                                                                                         |
+| ----------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| where the customer book lives | derived | `cargo-ai storage model list` and `cargo-ai connection connector list`. Native models with rows: the default. A CRM with the deals: `crm-backed`.         | Judging an empty native model while the deals sit in HubSpot is a pipeline that runs green and flags nothing.           |
+| the renewal window            | asked   | the contract length most customers sign. Annual is the default: a won deal ten to twelve months old.                                                     | A monthly book judged on an annual window is judged once a year; a two-year book is judged a year early.                |
+| the expansion plays           | asked   | what you sell into an existing customer and which play answers which signal. Written once into the context.                                             | Without it, `suggested_play` is generic advice. With it, the digest tells the account manager what to do.              |
+| `channelId` on the digest     | asked   | the Slack channel id (`C…`) from the connector's channel autocomplete. Invite the bot.                                                                   | The digest names customers and their renewal risk. Locked so it never lands in a customer shared channel.              |
+| LLM connector and model       | value   | **derived**: `cargo-ai connection connector list`. `languageModel` is a placeholder on both agents.                                                      | It is what every judgment is billed against.                                                                           |
 
 ## What you can change
 
-| Variation         | When it is right                                                    | How                                                                                                         | What it costs                                                                                                           |
-| ----------------- | ------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
-| `window`          | Contracts are not annual                                            | Change the two `recent_deal_close_date` values in `infra/plays/flag-expansion.ts`, and the sixty-day rule with them | A window longer than the re-judge rule judges an account twice per renewal.                                              |
-| `renewal-date`    | The CRM holds a real renewal date property                          | Filter on that property instead of `recent_deal_close_date`                                                 | Accounts without the property drop out silently. Count them first.                                                     |
-| `whole-book`      | You want every customer judged, not only those near renewal         | Drop the two `recent_deal_close_date` conditions                                                             | Every customer is judged every sixty days. That is the whole book's worth of agent runs and searches each cycle.         |
-| `no-web`          | Compliance does not allow web research on customers                 | Drop `webSearch` from the analyst and its search sentence                                                    | Only `renewal`, `repeat_purchase` and `none` remain reachable from the CRM alone.                                        |
-| `per-owner-dm`    | Account managers want their own list                                | Replace the locked `channelId` with one `postMessage` use per owner channel, and split the post by owner      | More locked uses to keep in sync with the team. An owner with no use gets nothing.                                      |
+| Variation      | When it is right                                                   | How                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 | What it costs                                                                                                                                                         |
+| -------------- | ------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `crm-backed`   | The customers and deals live in HubSpot, Salesforce or Attio        | Add a `defineConnector` for the CRM (`default: true`). Replace both native models with connector-backed ones: `extractSlug: "fetchRecords"`, `config: { objectType: "companies" }` and `"deals"`, `columnSelectionMode: "all"`, an hourly `schedule`, and never a filter. Run the play on the deals model with the CRM's won flag and close date (HubSpot: `hs_is_closed_won`, `closedate`; or put it on companies and filter the `recent_deal_close_date` roll-up). Create three custom company properties (`cargo_expansion_signal` text, `cargo_expansion_reason` multi-line text, `cargo_expansion_signal_at` date) and replace `model.customColumn` with the CRM's `updateRecords` on `companies`, matched on the record id (`hs_object_id` of the deal's associated company), with those three mappings. | A write to a property that does not exist fails every row, so create them first. Never sit a unify step between the play and the write: it reports success and nothing lands. |
+| `window`       | Contracts are not annual                                           | Change the two `close_date` values in `infra/plays/flag-expansion.ts`                                                                                                                                                                                                                                                                                                                                                                                                                                               | A window that overlaps the next renewal judges the same account twice.                                                                                                 |
+| `whole-book`   | You want every customer judged on a cadence, not only near renewal  | Move the play to `accounts`, filter on `custom__cargo_expansion_signal_at` being empty or older than ninety days, and let the analyst decide in SQL whether the account has a win at all                                                                                                                                                                                                                                                                                                                              | Every account in the book is judged each cycle, customers or not, at one agent run and up to three searches each.                                                      |
+| `no-web`       | Compliance does not allow web research on customers                 | Drop `webSearch` from the analyst and its search sentence                                                                                                                                                                                                                                                                                                                                                                                                                                                           | Only `renewal`, `repeat_purchase` and `none` remain reachable from the deal history alone.                                                                             |
+| `per-owner-dm` | Account managers want their own list                               | Replace the locked `channelId` with one `postMessage` use per owner channel, and split the post by owner                                                                                                                                                                                                                                                                                                                                                                                                            | More locked uses to keep in sync with the team. An owner with no use gets nothing.                                                                                     |
 
 ## What should not change
 
-- **The models pull everything.** (`infra/models/`) Who is a customer and who is in the window is
-  the play's filter. A filter in the extractor is a second place that question is asked, invisible
-  from the play, and changing it means a re-extraction.
-- **The play writes the company record id, and only Cargo's three properties.**
-  (`infra/plays/flag-expansion.ts`) A unify step between the play and the write reports success
-  while nothing lands. A write to a deal or owner turns a judgment into a forecast change nobody
-  approved. The contract fails on either.
+- **Customer status is computed from won deals, not kept as a flag.** (`infra/agents/analyst.ts`) A
+  hand-kept "customer" column is a second answer to the question the deals already answer, and it
+  drifts: an account that renewed early would be judged as if it had not.
+- **The play writes the account by its id, and only the three expansion columns.**
+  (`infra/plays/flag-expansion.ts`) A write to a deal or owner turns a judgment into a forecast
+  change nobody approved. In the `crm-backed` shape, a unify step between the play and the write
+  reports success while nothing lands. The contract fails on either.
+- **Bare column slugs on the write.** The read side calls them `custom__cargo_expansion_signal`;
+  the write takes `cargo_expansion_signal`. A prefixed slug is silently dropped while the node still
+  reports success.
 - **The analyst reads, never writes.** (`infra/agents/analyst.ts`) An agent that can write decides
   its own routing, and a missing signal could then be a failed run, a skip or a choice.
-- **The sixty-day rule stays at least as long as the window.** Without it the same renewal is
-  judged and re-written every Monday, and each judgment overwrites the last reason.
-- **The digest re-judges nothing.** (`infra/agents/digest.ts`) It reads the reason the record
-  carries. A second judgment in Slack is how the CRM and the channel disagree about the same
-  account.
+- **`changeKinds: ["added"]` stays.** It is what judges each renewal once. Without it every won deal
+  in the window is re-judged every Monday for two months, and each run overwrites the last reason.
+- **The digest re-judges nothing.** (`infra/agents/digest.ts`) It reads the reason the account
+  carries. A second judgment in Slack is how the record and the channel disagree about one account.
 - **The ledger, not Slack history, is the digest's dedupe.** A deleted post or another bot's
   message would otherwise read as "already sent" and drop a week in silence.
 
 ## Done when
 
 - `node --import tsx evals/contract.mjs` passes
-- `cargo-ai cdk plan` reports the two HubSpot models, the ledger, the two agents, the play, three
-  connectors and three folders, with the play disabled
-- the first sync of `crm_companies` carries `lifecyclestage`, `recent_deal_close_date` and the three
-  `cargo_expansion_*` columns
-- a hand run on five companies in the window wrote a signal, a reason and a stamp onto each HubSpot
-  company, and every event named in a reason has a dated source in it
-- a second hand run the same week judged none of them again
-- the digest posted once in the locked channel, listed exactly the companies stamped that week with
+- `cargo-ai cdk plan` reports the `accounts`, `deals` and `expansion_digests` models, the two
+  agents, the play, two connectors and three folders, with the play disabled and no CRM connector
+- seeded accounts and won deals, with two deals inside the window, produced two analyst runs and
+  two accounts carrying a signal, a reason and a stamp; every event named in a reason has a dated
+  source in it
+- an account whose newer win already renewed it was written `none` with that reason
+- a second play execution the same week judged neither deal again
+- the digest posted once in the locked channel, listed exactly the accounts stamped that week with
   a signal other than `none`, and a re-run that week posted nothing
-- no deal, contact or owner changed in HubSpot
+- no deal or contact record changed
 
 ## What it costs
 
-The CRM sync and write are HubSpot API calls. The research is web search inside the analyst, at most
-three per company. Immediately before the plan, read the live price of each action:
+The model writes are native and the research is web search inside the analyst, at most three per
+account. Immediately before the plan, read the live price of the one connector action:
 
-- `cargo-ai orchestration action list updateRecords --kind connector --integration-slug hubspot`
 - `cargo-ai orchestration action list postMessage --kind connector --integration-slug slack`
 
-Say each number out loud. The recurring cost is one analyst run per company in the window each
-week, plus one digest run, billed as LLM tokens through the Anthropic connector. It scales with how
-many customers are near renewal, not with the size of the book, and the sixty-day rule keeps any
-one company to one judgment per window. Count the window before enabling:
-`SELECT count(*)` over `crm_companies` with the play's filter.
+Say it out loud. The recurring cost is one analyst run per won deal entering its window each week,
+plus one digest run, billed as LLM tokens through the Anthropic connector. It scales with how many
+customers are near renewal, not with the size of the book. Count the window before enabling: a
+`SELECT count(*)` over `deals` with `is_won` true and `close_date` ten to twelve months back.
 
 ## Composes into
 

@@ -17,22 +17,21 @@ const findOne = (nodes, predicate, message) => {
   return matches[0];
 };
 
-// Both CRM models pull everything: which companies are judged is the play's
-// filter, not a second question hidden in the extractor.
-for (const [id, objectType] of [
-  ["model:crm_companies", "companies"],
-  ["model:crm_deals", "deals"],
+// No CRM in the worked example: native models only, so it deploys with no
+// connector key. A CRM swap is the `crm-backed` variation, not the default.
+assert.equal(byId.has("connector:hubspot"), false, "the worked example has no HubSpot connector");
+for (const [id, extractor] of [
+  ["model:accounts", "defineAccount"],
+  ["model:deals", "defineDeal"],
 ]) {
   const model = byId.get(id);
   assert.ok(model, `${id} must exist`);
-  const config = JSON.stringify(model.spec);
-  assert.ok(config.includes(`"objectType":"${objectType}"`), `${id} extracts ${objectType}`);
-  assert.ok(config.includes('"columnSelectionMode":"all"'), `${id} must pull every column`);
-  assert.ok(!/"filter"/.test(config), `${id} must not filter in its config`);
+  assert.equal(model.spec.datasetUuid, "native", `${id} is a native model`);
+  assert.equal(model.spec.extractorSlug, extractor, `${id} uses ${extractor}`);
 }
 
-// The play: one agent judgment, one CRM write on the company id, three
-// Cargo-owned properties, and nothing else written anywhere.
+// The play: one agent judgment, one write onto the account record by id, the
+// three expansion columns, and nothing else written anywhere.
 const play = byId.get("play:flag_expansion");
 assert.ok(play, "play:flag_expansion must exist");
 assert.equal(play.spec.isEnabled, false, "the play ships disabled until the pilot is approved");
@@ -42,20 +41,27 @@ findOne(
   (node) => node.kind === "agent" && node.agentUuid?.resourceId === "agent:expansion_analyst",
   "flag_expansion must call the analyst once",
 );
-const writes = nodes.filter((node) => node.kind === "connector");
-assert.equal(writes.length, 1, "flag_expansion must own exactly one connector call: the company write");
-const [write] = writes;
-assert.equal(write.actionSlug, "updateRecords");
-assert.equal(write.config.objectType, "companies", "only the company record is written, never a deal or contact");
 assert.equal(
-  write.config.matchingPropertyName,
-  "hs_object_id",
-  "the write matches the CRM record id directly, with no unify step in between",
+  nodes.filter((node) => node.kind === "connector").length,
+  0,
+  "flag_expansion calls no connector: no CRM write, no unify",
 );
+const writes = nodes.filter(
+  (node) => node.kind === "native" && /^model/.test(node.actionSlug ?? ""),
+);
+assert.equal(writes.length, 1, "flag_expansion must own exactly one model write");
+const [write] = writes;
+assert.equal(write.actionSlug, "modelCustomColumn", "the write sets custom columns on one record by id");
+assert.equal(
+  write.config.modelUuid?.resourceId,
+  "model:accounts",
+  "only the account is written, never a deal or a contact",
+);
+assert.match(write.config.id?.expression ?? "", /account_id/, "the write targets the deal's account id");
 assert.deepEqual(
-  new Set(write.config.mappings.map((mapping) => mapping.propertyName)),
+  new Set(write.config.mappings.map((mapping) => mapping.columnSlug)),
   new Set(["cargo_expansion_signal", "cargo_expansion_reason", "cargo_expansion_signal_at"]),
-  "the play writes only Cargo's three expansion properties",
+  "the play writes only the three expansion columns, by bare slug",
 );
 
 // The analyst reads, never writes.
@@ -84,7 +90,7 @@ assert.notEqual(post.config.channelId, "", "channelId must not be empty");
 assert.equal(
   digestActions.length,
   1,
-  "the digest has no CRM action and no Slack read: the ledger is the dedupe",
+  "the digest has no other action and no Slack read: the ledger is the dedupe",
 );
 const digestModels = digest.spec.models ?? [];
 assert.equal(
@@ -92,7 +98,7 @@ assert.equal(
   false,
 );
 assert.equal(
-  findOne(digestModels, (m) => m.uuid?.resourceId === "model:crm_companies", "the digest reads crm_companies").readOnly,
+  findOne(digestModels, (m) => m.uuid?.resourceId === "model:accounts", "the digest reads accounts").readOnly,
   true,
 );
 findOne(

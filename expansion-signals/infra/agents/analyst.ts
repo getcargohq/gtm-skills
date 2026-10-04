@@ -2,17 +2,20 @@ import { defineAgent } from "@cargo-ai/cdk";
 
 import { anthropic } from "../connectors/anthropic";
 import { agentsFolder } from "../folders";
-import { crmDeals } from "../models/crm-deals";
+import { accounts } from "../models/accounts";
+import { deals } from "../models/deals";
 
-// The analyst: one judgment per customer in its renewal window.
+// The analyst: one judgment per account whose won deal just entered its
+// renewal window.
 //
-// The play has already decided this company is a customer whose last deal
-// closed ten to twelve months ago. What no CRM column holds is whether this is
-// the moment to grow the account: did they buy on a cadence, what did they pay
-// last time, and is anything outside (a funding round, a hiring push, a new
-// product, a new leader) giving the account manager a reason to call now.
+// The play hands it a won deal ten to twelve months old. The rest is SQL over
+// the deals model: is this still the account's latest win (or did a newer one
+// already renew it), what is the cadence across its wins, what did it pay
+// last time. Then the question no column holds: is anything outside (a
+// funding round, a hiring push, a new product, a new leader) giving the
+// account manager a reason to call now.
 //
-// It reads, it never writes. The deal history is a read-only model, the
+// It reads, it never writes. Both models are read-only here, the
 // playbook for what counts as an expansion moment is in the workspace context,
 // and web search settles the outside signals. The play persists the judgment;
 // an agent that could write would decide its own routing, and a missing
@@ -27,7 +30,7 @@ export const expansionAnalyst = defineAgent("expansion_analyst", {
   systemPrompt: [
     "You judge whether one existing customer of a B2B seller is at an expansion moment, for the account manager who owns it.",
     "Read the workspace context first: what we sell, our packaging and the plays our team runs on customers. It is the rubric for suggested_play; nothing in this prompt overrides it.",
-    "Then read this company's deals from the crm_deals model: every closed-won deal with its close date and amount. State the cadence if there are two or more (for example 'renewed every 12 months, last at 18,000') and the last price paid.",
+    "Then query the deals model in SQL for this account_id: every deal with is_won true, with close_date and amount, newest first, and the account's row in the accounts model for its name and website. If a won deal newer than the trigger deal exists, the account already renewed: answer 'none' and say so. Otherwise state the cadence if there are two or more wins (for example 'renewed every 12 months, last at 18,000') and the last price paid.",
     "Then use web search, at most three times, for public events in the last 120 days: funding, a hiring push in the team that uses our product, a new product or market, a leadership change. Keep only events with a dated source.",
     "Signal is one of: 'renewal' (the contract anniversary is the moment and nothing more), 'expansion' (an outside event or usage pattern says they need more), 'repeat_purchase' (a cadence says the next order is due), 'at_risk' (an event says the renewal itself is in doubt, such as layoffs or a new leader who buys from a competitor), or 'none'.",
     "Never invent a deal, an amount, an event or a URL. An absent fact is absent; say so in the reason.",
@@ -57,7 +60,7 @@ export const expansionAnalyst = defineAgent("expansion_analyst", {
           type: "array",
           items: { type: "string" },
           description:
-            "Every page the judgment relied on. Empty when the CRM alone decided it.",
+            "Every page the judgment relied on. Empty when the deal history alone decided it.",
         },
       },
       required: ["signal", "reason", "suggested_play", "evidence_urls"],
@@ -70,10 +73,13 @@ export const expansionAnalyst = defineAgent("expansion_analyst", {
     "webSearch",
     { slug: "context", config: { isReadOnly: true } },
   ],
-  uses: [{ ref: crmDeals, readOnly: true }],
+  uses: [
+    { ref: deals, readOnly: true },
+    { ref: accounts, readOnly: true },
+  ],
   evaluator: {
     rubric:
-      "Does the reason name the real purchase history from crm_deals and, for any signal other than 'renewal' or 'none', a dated outside event with a URL in evidence_urls? Is suggested_play taken from the workspace context?",
+      "Does the reason name the real purchase history from the deals model and, for any signal other than 'renewal' or 'none', a dated outside event with a URL in evidence_urls? Is suggested_play taken from the workspace context?",
     threshold: 0.8,
   },
   folder: agentsFolder,

@@ -2,72 +2,75 @@ import { definePlay, defineWorkflow } from "@cargo-ai/cdk";
 import { z } from "zod";
 
 import { expansionAnalyst } from "../agents/analyst";
-import { hubspot } from "../connectors/hubspot";
 import { playsFolder } from "../folders";
-import { crmCompanies } from "../models/crm-companies";
+import { accounts } from "../models/accounts";
+import { deals } from "../models/deals";
 
-// One customer in, one CRM write out. The analyst decides what moment the
-// account is at; this workflow decides what may be written about it.
-const flagCompany = defineWorkflow(
-  "flag_expansion_company",
+// One won deal entering its renewal window in, one judgment written onto its
+// account out. The analyst decides what moment the account is at; this
+// workflow is the only thing that persists, so a missing signal is always a
+// failed run and never a silent skip.
+const flagAccount = defineWorkflow(
+  "flag_expansion_account",
   {
     input: z.object({
-      hs_object_id: z.string(),
+      id: z.string(),
+      account_id: z.string(),
       name: z.string().optional(),
-      domain: z.string().optional(),
-      recent_deal_close_date: z.any(),
-      recent_deal_amount: z.any(),
-      num_associated_deals: z.any(),
+      amount: z.any(),
+      close_date: z.any(),
     }),
-    output: z.object({
-      status: z.literal("written"),
-      signal: z.string(),
-    }),
-    uses: { expansionAnalyst, hubspot },
+    output: z.object({ signal: z.string() }),
+    uses: { expansionAnalyst },
+    // The body is parsed from source, not executed: `accounts` has to be
+    // handed to the parser here, or its uuid is a name nothing resolves.
+    imports: { accounts },
   },
-  ({ input, uses }) => {
+  ({ input, uses, model }) => {
     const judgment = uses.expansionAnalyst({
-      prompt: `Judge the expansion moment for customer ${input.name} (${input.domain}), HubSpot company id ${input.hs_object_id}. Its most recent deal closed on ${input.recent_deal_close_date} for ${input.recent_deal_amount}; it has ${input.num_associated_deals} associated deals.`,
+      prompt: `Judge the expansion moment for account ${input.account_id}. The trigger is won deal ${input.id} (${input.name}), closed on ${input.close_date} for ${input.amount}, now in its renewal window.`,
     });
 
-    // The only CRM write in the pipeline, on the company record id itself, and
-    // only on Cargo's own three properties. The signal and the reason are the
-    // judgment; the stamp is bookkeeping that keeps the play from re-judging
-    // the same renewal window. No deal, contact or owner is touched.
-    uses.hubspot.updateRecords({
-      objectType: "companies",
-      matchingPropertyName: "hs_object_id",
-      matchingValue: input.hs_object_id,
+    // The only write in the pipeline: three custom columns on the account
+    // record, by its id. No deal, contact or owner is touched. Bare slugs, not
+    // the `custom__` read alias: a prefixed slug is silently dropped while the
+    // node still reports success.
+    model.customColumn({
+      modelUuid: accounts.uuid,
+      id: input.account_id,
       mappings: [
+        { columnSlug: "cargo_expansion_signal", value: judgment.answer.signal },
         {
-          propertyName: "cargo_expansion_signal",
-          value: judgment.answer.signal,
-        },
-        {
-          propertyName: "cargo_expansion_reason",
+          columnSlug: "cargo_expansion_reason",
           value: `${judgment.answer.reason} Play: ${judgment.answer.suggested_play} Sources: ${judgment.answer.evidence_urls}`,
         },
-        { propertyName: "cargo_expansion_signal_at", value: new Date() },
+        { columnSlug: "cargo_expansion_signal_at", value: new Date() },
       ],
     });
 
-    return { status: "written" as const, signal: judgment.answer.signal };
+    return { signal: judgment.answer.signal };
   },
 );
 
-// Who is judged, asked here and nowhere else:
-//   - a customer (`lifecyclestage` is `customer`),
-//   - whose most recent deal closed between ten and twelve months ago, which
-//     for an annual contract is the sixty days before the renewal,
-//   - and who has not been flagged in the last sixty days, so one renewal
-//     window produces one judgment, not eight weekly ones.
+// Who is judged, asked here and nowhere else: a won deal whose close date is
+// ten to twelve months old, which for an annual contract is the sixty days
+// before the renewal.
 //
-// The window is the one number most teams change: a monthly or two-year
-// contract moves both dates. Disabled until the pilot is approved.
+// `changeKinds: ["added"]` is the idempotency. A deal enters this window once
+// per renewal, so each renewal is judged once, not once a week for two
+// months. Whether the account is still a customer, and whether a newer win
+// already renewed it, is the analyst's SQL over `deals`, not a hand-kept flag
+// on the account.
+//
+// The window is the number most teams change: monthly or two-year contracts
+// move both dates. Ships disabled; enable, then execute once, since `added`
+// does not backfill deals that entered while the play was off.
 export const flagExpansion = definePlay("flag_expansion", {
+  description:
+    "Per won deal entering its renewal window: the analyst judges the account and the play writes signal, reason and stamp onto it.",
   folder: playsFolder,
-  model: crmCompanies,
-  workflow: flagCompany,
+  model: deals,
+  workflow: flagAccount,
   filter: {
     conjonction: "and",
     groups: [
@@ -75,38 +78,26 @@ export const flagExpansion = definePlay("flag_expansion", {
         conjonction: "and",
         conditions: [
           {
+            kind: "boolean",
+            columnSlug: deals.columns.is_won,
+            operator: "isTrue",
+          },
+          {
             kind: "string",
-            columnSlug: crmCompanies.columns.lifecyclestage,
-            operator: "is",
-            values: ["customer"],
+            columnSlug: deals.columns.account_id,
+            operator: "isNotEmpty",
           },
           {
             kind: "date",
-            columnSlug: crmCompanies.columns.recent_deal_close_date,
+            columnSlug: deals.columns.close_date,
             operator: "lowerThan",
             value: "10 months",
           },
           {
             kind: "date",
-            columnSlug: crmCompanies.columns.recent_deal_close_date,
+            columnSlug: deals.columns.close_date,
             operator: "greaterThan",
             value: "12 months",
-          },
-        ],
-      },
-      {
-        conjonction: "or",
-        conditions: [
-          {
-            kind: "date",
-            columnSlug: crmCompanies.columns.cargo_expansion_signal_at,
-            operator: "isNull",
-          },
-          {
-            kind: "date",
-            columnSlug: crmCompanies.columns.cargo_expansion_signal_at,
-            operator: "lowerThan",
-            value: "60 days",
           },
         ],
       },
