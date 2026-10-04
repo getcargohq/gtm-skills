@@ -26,7 +26,7 @@ A commenter is a warm engager when their headline matches an ICP persona and doe
 
 ## 5. Post the digest, once
 
-If surfaced_posts already has a row with post_urn "digest-<today's date>", this week's digest went out: stop without posting. Otherwise one Slack postMessage, in this shape:
+If surfaced_posts already has a row with post_urn "digest-<today's date>", this week's digest went out: stop without posting. Read surfaced_posts by searching its records, never by SQL: a SQL read can lag a fresh write by minutes, and a lagging read posts the digest twice. Otherwise one Slack postMessage, in this shape:
 
 :ear: *What the market said this week*
 _<one line: the theme across the picks, or "Quiet week: nothing worth joining" when nothing was picked>_

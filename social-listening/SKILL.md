@@ -24,7 +24,11 @@ metadata:
 
 # Social listening
 
-**State: to-be-approved.** Deploy-verified against a live workspace: not yet. Treat `Done when`
+**State: to-be-approved.** Deploy-verified against a live workspace: yes, on 2026-10-04: a
+`limit: 20` search landed 21 posts from the past week, the listener surfaced 3 of them in one Slack
+digest, read no comments because none of the picked posts had any, called no engagement action,
+and wrote 4 ledger rows (3 posts and the week's digest row); a re-run the same day found the digest
+row and posted nothing. Treat `Done when`
 below as the acceptance test and review `cargo-ai cdk plan` before deploying. Make no outcome claim
 for this skill until it is approved.
 
@@ -174,7 +178,10 @@ Read the live price of each paid step immediately before the plan, and say each 
 
 The weekly cost is one search capped by `limit`, comment reads on at most five posts each capped by
 the prompt's comment limit, one Slack post, and the agent run billed as LLM tokens through the
-Anthropic connector.
+Anthropic connector. On the live run the agent run, not the search, was most of the bill: it reads
+the ICP, personas, objections and insights before it judges a post. A re-run that stops at the
+ledger costs a small fraction of a full run. Read the run's usage after the first week
+(`cargo-ai ai message get`) before you widen `limit`.
 
 ## Composes into
 
