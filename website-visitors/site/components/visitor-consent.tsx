@@ -67,7 +67,8 @@ function loadSnitcher(settings: VisitorTracking["settings"]): void {
   const { namespace } = settings;
   const existing = snitcherGlobal(namespace);
   if (existing !== undefined && existing._loaded === true) return;
-  const queue: SnitcherQueue = [];
+  // An array with the API's methods on it, the shape the provider expects.
+  const queue = [] as unknown[] as SnitcherQueue;
   queue._loaded = true;
   for (const method of QUEUED_METHODS) {
     queue[method] = (...args: unknown[]) => {
