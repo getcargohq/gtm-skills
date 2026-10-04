@@ -44,7 +44,7 @@ files it draws on. A claim with no file behind it is cut. A customer without ref
 described, never named.
 
 The drafts land as `cadence/content/<week>.md` in one pull request, `[linkedin-content] <week>`. A
-re-run that week rewrites the same file on the same branch; it never opens a second pull request.
+re-run that week finds that pull request by its title, links it and stops; it never opens a second one. To redraft, close the pull request and run it again.
 The agent has no LinkedIn action at all: publishing is the author's act, done by hand, after review.
 
 ## Example
@@ -126,7 +126,7 @@ Checked before moving on, not after the deploy:
 | Variation            | When it is right                                                    | How                                                                                                                                                                                    | What it costs                                                                                                                                                                                                                    |
 | -------------------- | ------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `more-or-fewer`      | The author posts daily, or once every two weeks                     | Change `POSTS_PER_WEEK` in `infra/agents/content-writer.prompt.ts`                                                                                                                     | Past three or four a week the drafts start repeating proof points; the eight-week look-back in §2 only partly holds that off.                                                                                                     |
-| `two-authors`        | A founder and a head of sales both post                             | A second agent with its own slug, `CONTENT_AUTHOR` and branch prefix                                                                                                                   | Two writers read the same context and can draft the same proof point the same week. Give each a different first kind in §3.                                                                                                     |
+| `two-authors`        | A founder and a head of sales both post                             | A second agent with its own slug, `CONTENT_AUTHOR` and pull request title prefix                                                                                                                   | Two writers read the same context and can draft the same proof point the same week. Give each a different first kind in §3.                                                                                                     |
 | `performance-report` | The author wants to know which posts landed before drafting the next | Add LinkedIn's `extractProfilePostActivity` to `uses` with the author's profile URL locked in `config`, and a §2 step that reads last week's posts and writes their reactions into the file | It is a paid action, billed per run (read its live price first), and it needs a LinkedIn connector. It is read-only; never add a write action to get it. Not the default because most teams want drafts before they want analytics. |
 | `slack-heads-up`     | The author lives in Slack, not in pull requests                     | Add `slack.actions.postMessage` with a locked `channelId` and a closing step that posts the hooks and the pull request link                                                            | One more connector and one post a week. The drafts still land only in the pull request.                                                                                                                                          |
 | `another-day`        | The team reviews on Fridays                                         | Change `cron` in `infra/agents/content-writer.ts`                                                                                                                                      | A run before `web-capture`'s Monday run drafts from last week's web findings.                                                                                                                                                    |
@@ -157,7 +157,7 @@ Checked before moving on, not after the deploy:
   `cadence/content/<week>.md` in the `references/post.md` shape
 - every draft lists its sources, and every number, customer and quote in it appears in one of them
 - no customer whose `client/` file lacks reference permission is named
-- a second run the same week pushed to the same branch and opened no second pull request
+- a second run the same week linked the open pull request, opened no second one and changed nothing
 - nothing was posted to LinkedIn or anywhere else
 
 ## What it costs

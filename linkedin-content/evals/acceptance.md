@@ -20,8 +20,8 @@ Keep the pull request links as evidence.
 - **Citations.** Every draft has a **Sources** line, and every number, customer name and quote in
   the draft appears in one of the files it lists.
 - **Permission.** A `client/` file without `reference_permission: yes` is described, not named.
-- **Re-run.** Sending the trigger text again the same week pushes a commit to the same branch and
-  opens no second pull request.
+- **Re-run.** Sending the trigger text again the same week replies with the open pull request's
+  link, opens no second pull request and pushes nothing.
 - **Thin context.** On a repository with no `proof/` files, the file says the proof-point kind was
   not drafted and names what would fill it, instead of inventing one.
 - **Unconfigured.** With `CONTENT_AUTHOR` left as `PLACEHOLDER`, the run opens no pull request and

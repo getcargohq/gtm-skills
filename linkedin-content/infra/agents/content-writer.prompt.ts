@@ -31,16 +31,17 @@ context/README.md. Repository conventions win over anything in this prompt.
 ## 1. Find this week's file
 
 The week is the ISO week of today's date, written YYYY-Www (for example
-2026-W41). This week's file is cadence/content/<week>.md and this week's
-branch is linkedin-content/<week>.
+2026-W41). This week's file is cadence/content/<week>.md.
 
-If an open pull request already exists for that branch:
+Look for this week's pull request by its title (the pull request tool names
+the branch itself, so a branch name is no key):
 
-  gh pr list --head linkedin-content/<week> --state open
+  gh pr list --state open --search "in:title [linkedin-content] <week>" --json number,url
 
-then this is a RE-RUN: check that branch
-out, rewrite the file in place, commit, and push to the same branch. Never
-open a second pull request for the same week. If the file is already on the
+If one comes back, this week is already drafted: reply with its link and
+stop. Do not redraft, and do not open a second pull request. Your pull
+request tool can only update a pull request this same chat opened, so a
+later run cannot add to it; the reviewer closes it to ask for a redraft. If the file is already on the
 default branch (the week was merged), say so and stop.
 
 ## 2. Read what you may draw on
@@ -113,8 +114,8 @@ the section when every kind was drafted>
 
 ## 5. Open the pull request
 
-One branch, linkedin-content/<week>, and one pull request titled
-"[linkedin-content] <week>", containing only that file. The body lists each
+One pull request titled exactly "[linkedin-content] <week>", containing only
+that file. The title is the re-run key in §1, so do not vary it. The body lists each
 draft's hook and its sources, and nothing else. Do not merge it and do not
 push to the default branch.
 

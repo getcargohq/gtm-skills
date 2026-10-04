@@ -91,9 +91,8 @@ check("the prompt keeps one file and one pull request per week", async () => {
   const { contentWriterPrompt } = await import("../infra/agents/content-writer.prompt.ts");
   for (const line of [
     "cadence/content/<week>.md",
-    "linkedin-content/<week>",
-    "gh pr list --head linkedin-content/<week> --state open",
-    "open a second pull request for the same week",
+    'gh pr list --state open --search "in:title [linkedin-content] <week>"',
+    "this week is already drafted: reply with its link and\nstop",
     '"[linkedin-content] <week>"',
   ]) assert.ok(contentWriterPrompt.includes(line), `prompt lost: ${line}`);
 });

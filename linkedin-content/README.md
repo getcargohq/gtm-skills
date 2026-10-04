@@ -11,8 +11,8 @@ and the cadence log in its checkout and never publishes anything.
 - Drafts three posts, one per kind: a proof point, an answer to an objection, and this week's lesson.
 - Cites the files behind every draft, cuts any claim it cannot cite, and never names a customer
   without reference permission.
-- Writes `cadence/content/<week>.md` and opens one pull request. A re-run that week updates the same
-  branch instead of opening another.
+- Writes `cadence/content/<week>.md` and opens one pull request. A re-run that week finds that pull
+  request by its title and stops; close it to ask for a redraft.
 
 ## What's inside
 
