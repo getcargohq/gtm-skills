@@ -17,7 +17,7 @@ import { modelsFolder } from "../folders";
 //
 // Running a CRM instead? The `crm-backed` variation in SKILL.md swaps this for
 // a connector-backed model and writes back by CRM record id.
-export const contacts = defineModel("contacts", {
+export const people = defineModel("people", {
   kind: "native",
   extractSlug: "defineContact",
   folder: modelsFolder,

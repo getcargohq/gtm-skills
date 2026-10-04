@@ -29,12 +29,12 @@ assert.equal(
   "the worked example runs on native models: no CRM connector",
 );
 
-const contacts = byId.get("model:contacts");
-assert.ok(contacts, "defineModel(contacts) must exist");
-assert.equal(contacts.spec.extractorSlug, "defineContact");
+const people = byId.get("model:people");
+assert.ok(people, "defineModel(people) must exist");
+assert.equal(people.spec.extractorSlug, "defineContact");
 assert.ok(
-  byId.get("model:accounts"),
-  "defineModel(accounts) must exist",
+  byId.get("model:companies"),
+  "defineModel(companies) must exist",
 );
 
 // The agent judges and writes nothing.
@@ -73,7 +73,7 @@ assert.ok(
       c.columnSlug === "custom__cargo_inbound_researched_at" &&
       c.operator === "isNull",
   ),
-  "the play must skip contacts already researched",
+  "the play must skip people already researched",
 );
 assert.ok(
   conditions.some((c) => c.columnSlug === "lead_source" && c.operator === "is"),

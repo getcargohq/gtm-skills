@@ -4,8 +4,8 @@ import { z } from "zod";
 import { researcher } from "../agents/researcher";
 import { slack } from "../connectors/slack";
 import { playsFolder } from "../folders";
-import { accounts } from "../models/accounts";
-import { contacts } from "../models/contacts";
+import { companies } from "../models/companies";
+import { people } from "../models/people";
 
 // PLACEHOLDER: the Slack channel every inbound note lands in, as a channel id
 // (C…) read from the connector's channel autocomplete. Fixed here so no run
@@ -56,7 +56,7 @@ const researchInbound = defineWorkflow(
     uses: { slack, researcher },
     // The body is parsed from source, not executed: model handles and
     // constants it names must be listed here or the parser cannot resolve them.
-    imports: { contacts, accounts, slackChannelId, ownerSlackIds },
+    imports: { people, companies, slackChannelId, ownerSlackIds },
   },
   ({ input, uses, model }) => {
     if (!input.email) {
@@ -66,7 +66,7 @@ const researchInbound = defineWorkflow(
     // What is already known about the company, if the contact is linked to
     // one. Empty for a contact that arrived without an account.
     const account = model.search({
-      modelUuid: accounts.uuid,
+      modelUuid: companies.uuid,
       filter: {
         conjonction: "and",
         groups: [
@@ -93,7 +93,7 @@ const researchInbound = defineWorkflow(
     // The judgment and the stamp land on one node, so a contact is never
     // marked researched without carrying the research.
     model.customColumn({
-      modelUuid: contacts.uuid,
+      modelUuid: people.uuid,
       id: input.id,
       mappings: [
         { columnSlug: "cargo_inbound_tier", value: verdict.answer.tier },
@@ -110,7 +110,7 @@ const researchInbound = defineWorkflow(
     // evidence than one inbound lead carries.
     if (account.length > 0 && !account[0].custom__cargo_tier) {
       model.customColumn({
-        modelUuid: accounts.uuid,
+        modelUuid: companies.uuid,
         id: account[0].id,
         mappings: [
           { columnSlug: "cargo_tier", value: verdict.answer.tier },
@@ -154,7 +154,7 @@ export const researchInboundContacts = definePlay("research_inbound_contacts", {
   description:
     "Researches each new inbound contact, writes a tier and a brief onto the record, and posts a note to Slack.",
   folder: playsFolder,
-  model: contacts,
+  model: people,
   workflow: researchInbound,
   filter: {
     conjonction: "and",
@@ -164,12 +164,12 @@ export const researchInboundContacts = definePlay("research_inbound_contacts", {
         conditions: [
           {
             kind: "string",
-            columnSlug: contacts.columns.email,
+            columnSlug: people.columns.email,
             operator: "isNotEmpty",
           },
           {
             kind: "string",
-            columnSlug: contacts.columns.lead_source,
+            columnSlug: people.columns.lead_source,
             operator: "is",
             values: ["inbound", "website", "demo_request"],
           },
@@ -180,7 +180,7 @@ export const researchInboundContacts = definePlay("research_inbound_contacts", {
         conditions: [
           {
             kind: "date",
-            columnSlug: contacts.columns.custom__cargo_inbound_researched_at,
+            columnSlug: people.columns.custom__cargo_inbound_researched_at,
             operator: "isNull",
           },
         ],
