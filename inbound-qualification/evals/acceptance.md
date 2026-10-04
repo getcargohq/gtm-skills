@@ -27,3 +27,13 @@
   `website`, `inbound_status`, the UTMs, `marketing_consent`) and posts once to the channel.
 - A second submission from the same email updates the contact instead of adding one.
 - A submission from a preview URL is refused with 403; one sent before `minFillMillis` is refused.
+
+## Deep research
+
+- `research_qualified_leads` is deployed disabled. Run by hand on one contact with
+  `inbound_status` `qualified`, it writes `inbound_tier`, `inbound_brief`, `inbound_rationale` and
+  `inbound_researched_at` onto that contact and posts one note to the channel; the run ends in
+  success.
+- A second manual run on the same contact creates no run: `inbound_researched_at` is set.
+- A `not_qualified` contact is never picked up.
+- Every fact in the brief traces to the contact, the company row or a listed source.

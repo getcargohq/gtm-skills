@@ -181,3 +181,5 @@
 {"prompt": "Every week, flag which customers coming up on renewal are ready to expand", "expect": "expansion-signals", "why": "Existing customers, every week: the standing tell."}
 {"prompt": "Tell our account managers which customers to call before their renewal", "expect": "expansion-signals"}
 {"prompt": "Post an at-risk renewals digest to the CS channel every Monday", "expect": "expansion-signals"}
+{"prompt": "Give every inbound lead a tier and a brief as it lands, and tell the team", "expect": "inbound-qualification", "why": "Every lead, as it lands: the deep research runs after the form qualifies it."}
+{"prompt": "When a demo request comes in, write a brief and a tier onto the contact", "expect": "inbound-qualification"}

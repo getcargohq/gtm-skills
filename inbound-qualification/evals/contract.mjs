@@ -126,4 +126,96 @@ const fields = tool.spec.formFields.map((field) => field.slug ?? field.name);
 for (const field of ["email", "first_name", "last_name", "consent"])
   assert.ok(fields.includes(field), `the form asks for ${field}`);
 
+// The deep research: after the page has answered, never on the submission
+// path. The form's workflow calls no agent, so the page answer pays for no
+// model call and waits on no research.
+assert.equal(
+  tool.spec.nodes.filter((node) => node.kind === "agent").length,
+  0,
+  "the form's workflow must not call an agent: deep research runs in the play, after the page answers",
+);
+
+const research = byId("play:research_qualified_leads");
+assert.ok(research, "definePlay(research_qualified_leads) must exist");
+assert.equal(
+  research.spec.isEnabled,
+  false,
+  "the research play ships disabled: enabling it is the last yes after a pilot",
+);
+assert.deepEqual(
+  research.spec.changeKinds,
+  ["added"],
+  "the research play runs on rows entering the filter, not the whole table",
+);
+assert.equal(
+  research.spec.modelUuid?.resourceId,
+  contacts.id,
+  "the research play runs on gtm_contacts",
+);
+const researchFilter = JSON.stringify(research.spec.filter);
+assert.match(
+  researchFilter,
+  /"columnSlug":"custom__inbound_status","operator":"is","values":\["qualified"\]/,
+  "only contacts the form qualified are researched",
+);
+assert.match(
+  researchFilter,
+  /"columnSlug":"custom__inbound_researched_at","operator":"isNull"/,
+  "a contact already researched is never researched twice",
+);
+const researchActions = research.spec.nodes.filter(
+  (node) => node.actionSlug !== undefined && !flow.has(node.actionSlug),
+);
+assert.deepEqual(
+  researchActions.map((node) => node.actionSlug).sort(),
+  ["modelCustomColumn", "postMessage"],
+  "the research play writes the contact's columns and posts one note, nothing else",
+);
+const researchWrite = researchActions.find(
+  (node) => node.actionSlug === "modelCustomColumn",
+);
+assert.equal(
+  researchWrite.config.modelUuid?.resourceId,
+  contacts.id,
+  "the research lands on gtm_contacts",
+);
+assert.deepEqual(
+  researchWrite.config.mappings.map((m) => m.columnSlug).sort(),
+  [
+    "inbound_brief",
+    "inbound_rationale",
+    "inbound_researched_at",
+    "inbound_tier",
+  ],
+  "the research writes exactly its four columns, by bare slug",
+);
+
+const researcher = byId("agent:inbound_lead_researcher");
+assert.ok(researcher, "defineAgent(inbound_lead_researcher) must exist");
+assert.equal(
+  (researcher.spec.models ?? []).length +
+    (researcher.spec.connectorActions ?? []).length,
+  0,
+  "the researcher is a judge: no model and no connector action in reach, the play persists",
+);
+
+// The play's body is parsed like the tool's, and it failed a live run on a
+// construct check and plan accept (optional chaining). Every compiled
+// expression is valid JavaScript and uses none of `?.`, `??`.
+const researchExpressions = [
+  ...JSON.stringify(research.spec.nodes).matchAll(/\{\{(.*?)\}\}/g),
+].map((match) => JSON.parse(`"${match[1]}"`));
+for (const expression of researchExpressions) {
+  assert.doesNotMatch(
+    expression,
+    /\?\.|\?\?/,
+    `no optional chaining or nullish fallback in a workflow body: ${expression.slice(0, 120)}`,
+  );
+  const code = expression.replace(/nodes\.[A-Za-z0-9_]+/g, "nodes");
+  assert.doesNotThrow(
+    () => new Function("nodes", `return (${code});`),
+    `compiled expression is not valid JavaScript: ${expression.slice(0, 120)}`,
+  );
+}
+
 console.log("ok: inbound-qualification contract");

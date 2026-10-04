@@ -126,7 +126,7 @@ Deployed pipelines that hold the conversation: every demo request answered on th
 
 | Skill | Does | Try saying |
 | --- | --- | --- |
-| [`inbound-qualification`](inbound-qualification/SKILL.md) | Turn the website's demo form into qualified inbound: each submission runs a Cargo tool that identifies the company from the work email, qualifies it against the ICP, lands the account and contact in the shared GTM models, posts it to Slack, and answers on the page with a booking link or a thank-you. | “Add a demo form to www.fabrikam.example: qualified companies get our booking link, the rest a thank-you, and the sales channel hears about every request.” |
+| [`inbound-qualification`](inbound-qualification/SKILL.md) | Turn the website's demo form into qualified inbound: each submission runs a Cargo tool that identifies the company by work email, qualifies it against the ICP, lands account and contact in the shared GTM models, posts it to Slack, and answers on the page with a booking link or a thank-you; an optional play then tiers and summarises each qualified contact. | “Add a demo form to www.fabrikam.example: qualified companies get our booking link, the rest a thank-you, and the sales channel hears about every request.” |
 | [`agentic-engagement`](agentic-engagement/SKILL.md) | Deploy an agent that holds email conversations with leads: a sending domain, a mailbox, native sendEmail and listEmailEvents on the agent, a native email trigger on reply and unsubscribe, and a heartbeat that checks thread status when nothing inbound happened. | “Give our jordan@ mailbox an agent that answers leads who reply to my first emails, and checks quiet threads once for a single follow-up.” |
 
 ### Operations

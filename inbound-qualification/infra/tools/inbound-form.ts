@@ -6,6 +6,7 @@ import { slack } from "../connectors/slack";
 import { toolsFolder } from "../folders";
 import { gtmAccounts } from "../models/gtm-accounts";
 import { gtmContacts } from "../models/gtm-contacts";
+import { slackChannelId } from "../settings";
 
 // PLACEHOLDER: the qualification rules, taken from the ICP in context/. They
 // read LinkedIn's company data: `employee_count` is a number (use it, not
@@ -18,11 +19,6 @@ const icpCountries = ["US", "GB", "FR", "DE"];
 
 // PLACEHOLDER: the scheduling page a qualified visitor is sent to.
 const bookingUrl = "https://cal.com/example/demo";
-
-// PLACEHOLDER: the Slack channel every submission is posted to. A channel id
-// (C…), not a name: names collide, and the connector's autocomplete resolves
-// the id. Locked here so no submission can post anywhere else.
-const slackChannelId = "PLACEHOLDER_SLACK_CHANNEL_ID";
 
 // A demo form asks for a work email: the domain is how the company is found.
 // Accepting these is the `accept-personal-email` variation.

@@ -9,6 +9,11 @@ visitor submits /contact/ (headless form SDK, the site's own markup)
   -> tool inbound_form: personal email? -> company from LinkedIn -> ICP rules
        -> gtm_accounts + gtm_contacts -> Slack
   <- booking link or thank-you, when the run finishes (async: the SDK polls)
+
+later, for each contact marked qualified (play research_qualified_leads, ships disabled)
+  -> agent: ICP + tiering rubric from context, web research -> tier, brief
+  -> inbound_tier / inbound_brief / inbound_rationale / inbound_researched_at on the contact
+  -> one note to the same Slack channel
 ```
 
 ## Why it is built this way
@@ -27,6 +32,10 @@ comes before any write. The company is enriched, never the person.
 **Rules, not a model call.** Headcount band and countries from the ICP: free, explainable, the
 same answer twice. An agent judgement is a variation.
 
+**Research after the answer.** The deep research is a separate play on the contact row, never
+part of the form's workflow, so the visitor never waits on a model call. It ships disabled and
+runs once per qualified contact.
+
 **The SDK loads after hydration.** Its load time is what the server's minimum fill time counts
 from, so it loads when the form becomes usable. It sets its id cookie only on submit, so a visitor
 who never submits gets none.
@@ -35,7 +44,8 @@ who never submits gets none.
 
 1. **ICP rules**: `icpMinEmployees`, `icpMaxEmployees`, `icpCountries` in `infra/tools/inbound-form.ts`.
 2. **Booking link**: `bookingUrl`.
-3. **Slack channel**: `slackChannelId`.
+3. **Slack channel**: `slackChannelId` in `infra/settings.ts`, shared by the form and the research
+   note.
 4. **Origin**: `publicForm.allowedOrigins`, the site's canonical origin.
 
 ## Files
@@ -43,6 +53,10 @@ who never submits gets none.
 | Path                               | What it is                                              |
 | ---------------------------------- | ------------------------------------------------------- |
 | `infra/tools/inbound-form.ts`      | The tool, its workflow and its public form              |
+| `infra/plays/research-qualified-leads.ts` | The deep-research play, shipped disabled         |
+| `infra/agents/lead-researcher.ts`  | The research agent: tier and brief, as JSON             |
+| `infra/settings.ts`                | The Slack channel both post to                          |
+| `infra/connectors/anthropic.ts`    | The model the research agent runs on                    |
 | `infra/models/gtm-accounts.ts`     | The shared GTM accounts model                           |
 | `infra/models/gtm-contacts.ts`     | The shared GTM contacts model, with the inbound columns |
 | `infra/connectors/linkedin.ts`     | LinkedIn company data on Cargo's credits                |
