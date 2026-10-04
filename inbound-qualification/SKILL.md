@@ -1,9 +1,9 @@
 ---
-name: website-forms
-description: 'Turn the website''s demo form into qualified inbound: each submission runs a Cargo tool that identifies the company from the work email, qualifies it against the ICP, lands the account and contact in the shared GTM models, posts it to Slack, and answers on the page with a booking link or a thank-you. Triggers: "add a demo form to our website", "handle inbound leads", "route website form submissions", "qualify inbound demo requests", "contact form that books meetings", "inbound lead flow", "Cargo public form". Cargo CDK, defineTool, publicForm, @cargo-ai/form-sdk, gtm_accounts, gtm_contacts. Skip when: you want to know which companies visit without them filling anything in, which is website-visitors; the site itself does not exist yet, which is website-building first; or the leads come from a list rather than the website, which is find-b2b-leads.'
+name: inbound-qualification
+description: 'Turn the website''s demo form into qualified inbound: each submission runs a Cargo tool that identifies the company from the work email, qualifies it against the ICP, lands the account and contact in the shared GTM models, posts it to Slack, and answers on the page with a booking link or a thank-you. Triggers: "add a demo form to our website", "handle inbound leads", "route website form submissions", "qualify inbound demo requests", "contact form that books meetings", "inbound lead flow", "Cargo public form". Cargo CDK, defineTool, publicForm, @cargo-ai/form-sdk, gtm_accounts, gtm_contacts. Skip when: you want to know which companies visit without them filling anything in, which is visitor-identification; the site itself does not exist yet, which is website-building first; or the leads come from a list rather than the website, which is find-b2b-leads.'
 version: "0.1.0"
 compatibility: "Requires @cargo-ai/cli with @cargo-ai/cdk 1.0.98 or later (token-valued app env), @cargo-ai/form-sdk 1.0.2 or later in the website app, a website on Cargo Hosting (website-building), Node.js 22.18 or later, and a Cargo workspace."
-homepage: https://github.com/getcargohq/gtm-skills/tree/main/website-forms
+homepage: https://github.com/getcargohq/gtm-skills/tree/main/inbound-qualification
 metadata:
   author: getcargo
   source: cookbook
@@ -23,11 +23,7 @@ metadata:
     homepage: https://github.com/getcargohq/gtm-skills
 ---
 
-# Website forms
-
-**State: to-be-approved.** Deploy-verified against a live workspace: not yet. Treat `Done when`
-below as the acceptance test and review `cargo-ai cdk plan` before deploying. Make no outcome claim
-for this skill until it is approved.
+# Inbound qualification
 
 ## The outcome
 
@@ -79,9 +75,10 @@ adapting. If the `cargo-project` skill is in your session it carries the long fo
 not, this is enough.
 
 1. **Install it: the CLI does the copy.** From inside the CDK project,
-   `cargo-ai cdk add cookbook/website-forms` writes the tool and models to `infra/website-forms/`
-   and this procedure, with the `site/` files, to `.claude/skills/website-forms/`. No project yet?
-   `cargo-ai cdk init <dir> --cookbook website-forms && cd <dir> && npm install`.
+   `cargo-ai cdk add cookbook/inbound-qualification` writes the tool and models to
+   `infra/inbound-qualification/` and this procedure, with the `site/` files, to
+   `.claude/skills/inbound-qualification/`. No project yet?
+   `cargo-ai cdk init <dir> --cookbook inbound-qualification && cd <dir> && npm install`.
    **If you are reading this from the project's `.claude/skills/`, the install already happened;
    start at step 2.**
 2. **Reconcile it with what is already declared.** The website must already be declared, usually
@@ -179,6 +176,6 @@ the Slack post add nothing.
 
 ## Composes into
 
-`website-building` (the site the form sits on), `website-visitors` (the companies that read the
-site without filling the form in), `score-leads` (inbound contacts scored against the ICP before
+`website-building` (the site the form sits on), `visitor-identification` (the companies that read
+the site without filling the form in), `score-leads` (inbound contacts scored against the ICP before
 a rep calls), and `agentic-engagement` (a follow-up to a contact who ticked the consent box).

@@ -7,12 +7,12 @@ import { defineFolder } from "@cargo-ai/cdk";
 //
 // Folders are per-kind: one tool, and the two shared models when this is the
 // first pipeline in the project to declare them.
-export const toolsFolder = defineFolder("website_forms_tools", {
+export const toolsFolder = defineFolder("inbound_qualification_tools", {
   kind: "tool",
-  name: "Website forms",
+  name: "Inbound qualification",
 });
 
-export const modelsFolder = defineFolder("website_forms_models", {
+export const modelsFolder = defineFolder("inbound_qualification_models", {
   kind: "model",
-  name: "Website forms",
+  name: "Inbound qualification",
 });

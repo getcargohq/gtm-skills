@@ -1,4 +1,4 @@
-# Website forms
+# Inbound qualification
 
 The website's demo form, wired to a Cargo tool: each submission is qualified, lands in the shared
 GTM accounts and contacts, is posted to Slack, and is answered on the page.
@@ -56,5 +56,5 @@ who never submits gets none.
 ## Verify
 
 ```sh
-node --import tsx website-forms/evals/contract.mjs
+node --import tsx inbound-qualification/evals/contract.mjs
 ```

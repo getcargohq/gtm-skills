@@ -24,7 +24,7 @@ The page uses `pageMetadata` from `lib/site.ts` and the app's `Button`, both fro
 In the app's `defineApp` (`infra/website-building/apps/website.ts`):
 
 ```ts
-import { inboundForm } from "../../website-forms/tools/inbound-form";
+import { inboundForm } from "../../inbound-qualification/tools/inbound-form";
 
 env: {
   NEXT_PUBLIC_CARGO_FORM: inboundForm.uuid,

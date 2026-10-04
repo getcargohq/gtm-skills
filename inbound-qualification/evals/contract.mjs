@@ -50,8 +50,8 @@ const tool = byId("tool:inbound_form");
 assert.ok(tool, "defineTool(inbound_form) must exist");
 assert.equal(
   tool.spec.folderUuid?.resourceId,
-  "folder:website_forms_tools",
-  "the tool must be filed in the website_forms_tools folder",
+  "folder:inbound_qualification_tools",
+  "the tool must be filed in the inbound_qualification_tools folder",
 );
 
 // The public form: on, for exactly the site's origin, no secret in code.
@@ -126,4 +126,4 @@ const fields = tool.spec.formFields.map((field) => field.slug ?? field.name);
 for (const field of ["email", "first_name", "last_name", "consent"])
   assert.ok(fields.includes(field), `the form asks for ${field}`);
 
-console.log("ok: website-forms contract");
+console.log("ok: inbound-qualification contract");

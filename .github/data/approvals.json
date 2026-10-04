@@ -77,10 +77,10 @@
     "demoWorkspace": null,
     "implementations": []
   },
-  "website-forms": {
-    "state": "to-be-approved",
+  "inbound-qualification": {
+    "state": "approved",
     "chain": 14,
-    "demoWorkspace": null,
+    "demoWorkspace": "2026-10-04",
     "implementations": []
   }
 }
