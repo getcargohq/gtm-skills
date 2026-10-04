@@ -27,8 +27,9 @@ comes before any write. The company is enriched, never the person.
 **Rules, not a model call.** Headcount band and countries from the ICP: free, explainable, the
 same answer twice. An agent judgement is a variation.
 
-**The SDK loads on first focus.** It sets a first-party id cookie and captures UTMs when it loads;
-a visitor who never touches the form gets neither, and the time-trap counts real filling time.
+**The SDK loads after hydration.** Its load time is what the server's minimum fill time counts
+from, so it loads when the form becomes usable. It sets its id cookie only on submit, so a visitor
+who never submits gets none.
 
 ## Placeholders (edit before deploy)
 
@@ -46,7 +47,7 @@ a visitor who never touches the form gets neither, and the time-trap counts real
 | `infra/models/gtm-contacts.ts`     | The shared GTM contacts model, with the inbound columns    |
 | `infra/connectors/linkedin.ts`     | LinkedIn company data on Cargo's credits                   |
 | `infra/connectors/slack.ts`        | The Slack workspace the inbound channel lives in           |
-| `site/components/inbound-form.tsx` | The form, headless, loading the SDK on first focus         |
+| `site/components/inbound-form.tsx` | The form, headless, loading the SDK after hydration        |
 | `site/app/contact/page.tsx`        | The page that holds it                                     |
 | `references/form.md`               | Wiring the site, the spam checks, privacy                  |
 | `references/data.md`               | The rows, querying, the `crm-backed` mapping               |

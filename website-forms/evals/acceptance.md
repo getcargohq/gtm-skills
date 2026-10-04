@@ -5,7 +5,7 @@
 - The website exists on Cargo Hosting, and `publicForm.allowedOrigins` is exactly its canonical
   origin (no trailing slash).
 - The ICP rules in `infra/tools/inbound-form.ts` match `context/`, and one live
-  `enrichCompanyFromDomain` on a known customer returned the country spelling they use.
+  `enrichCompanyFromDomain` on a known customer returned the ISO country codes they use.
 - `slackChannelId` is a channel id the Slack connector resolves, and `bookingUrl` is the team's
   scheduling page.
 - A `gtm_accounts` or `gtm_contacts` another pipeline declares is imported, not duplicated.
@@ -18,8 +18,8 @@
 
 ## After deploy
 
-- `/contact/` in a private window sets no `cargo_anon_id` cookie and calls nothing until a field
-  is focused.
+- `/contact/` in a private window sets no `cargo_anon_id` cookie until a submission, and its one
+  call before then is the form schema.
 - A personal-email submission shows "Please use your work email"; the run makes no enrichment call
   and writes no row.
 - A work-email submission from a company that fits shows the booking link; one that does not

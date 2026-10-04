@@ -1942,7 +1942,7 @@
         "**The company is enriched, never the person.** No person lookup, no personal email or phone search on a submitter.",
         "**The shared models stay shared.** `gtm_accounts` and `gtm_contacts` keep their exact definition; what only inbound needs is an added column under a plain name.",
         "**No CAPTCHA secret in the repository.** It goes through `env()`.",
-        "**The SDK loads on first interaction, not with the page.** (`site/components/inbound-form.tsx`) Otherwise every visitor gets its id cookie and UTM capture whether they fill the form or not.",
+        "**The SDK loads once the page has hydrated.** (`site/components/inbound-form.tsx`) Its load time is what the minimum fill time counts from. Loaded on a focus event, a focus before hydration is lost and the visitor's submission is refused as a bot. Its id cookie is set only on submit.",
         "**Marketing email only with the box ticked.** `marketing_consent` is recorded per contact; a demo request alone is not consent to a newsletter."
       ],
       "doneWhen": [
@@ -1951,7 +1951,7 @@
         "a work-email submission on the live site returns the right answer on the page, upserts the account and the contact (with `account_id`, `lead_source` `website`, `inbound_status`), and posts once to the Slack channel",
         "a personal-email submission is refused on the page, with no enrichment call and no row written",
         "a submission from another origin is refused with 403, and one sent faster than the minimum fill time is refused",
-        "loading the contact page sets no `cargo_anon_id` cookie until the form is focused",
+        "loading the contact page sets no `cargo_anon_id` cookie until a submission",
         "the privacy page has a contact form section the operator reviewed"
       ],
       "cost": "Each submission from a work email pays for one LinkedIn company enrichment; a refused personal\nemail pays nothing. Read the live price from the integration (`cargo-ai connection integration get\nlinkedin`) and say it per submission. The server's rate limit caps a single address at ten\nsubmissions a minute, and the origin allow-list keeps other sites from spending it. The models and\nthe Slack post add nothing.",

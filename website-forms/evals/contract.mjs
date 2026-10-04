@@ -20,7 +20,9 @@ const resourceFiles = (dir) =>
 
 resetRegistry();
 const stamp = Date.now();
-for (const file of resourceFiles(fileURLToPath(new URL("../infra", import.meta.url))))
+for (const file of resourceFiles(
+  fileURLToPath(new URL("../infra", import.meta.url)),
+))
   await import(`${pathToFileURL(file).href}?contract=${stamp}`);
 
 const all = resources();
@@ -29,7 +31,10 @@ const byId = (id) => all.find((resource) => resource.id === id);
 // The shared models, exactly as every pipeline declares them.
 const accounts = byId("model:gtm_accounts");
 const contacts = byId("model:gtm_contacts");
-assert.ok(accounts && contacts, "gtm_accounts and gtm_contacts must be declared");
+assert.ok(
+  accounts && contacts,
+  "gtm_accounts and gtm_contacts must be declared",
+);
 assert.equal(accounts.spec.extractorSlug, "defineAccount");
 assert.equal(accounts.spec.name, "GTM accounts");
 assert.equal(contacts.spec.extractorSlug, "defineContact");
@@ -52,14 +57,19 @@ assert.equal(
 // The public form: on, for exactly the site's origin, no secret in code.
 const form = tool.spec.publicForm;
 assert.equal(form?.isEnabled, true, "the public form must be enabled");
-assert.equal(form.allowedOrigins.length, 1, "exactly one allowed origin: the site's");
+assert.equal(
+  form.allowedOrigins.length,
+  1,
+  "exactly one allowed origin: the site's",
+);
 assert.match(
   form.allowedOrigins[0],
   /^https:\/\/[a-z0-9.-]+$/i,
   "the allowed origin is the site's HTTPS origin, no path, no trailing slash, never *",
 );
 assert.ok(
-  form.spam.captchaSecret === null || /^\$\{[A-Z0-9_]+\}$/.test(form.spam.captchaSecret),
+  form.spam.captchaSecret === null ||
+    /^\$\{[A-Z0-9_]+\}$/.test(form.spam.captchaSecret),
   "a CAPTCHA secret comes from env(), never a literal in the repository",
 );
 assert.ok(form.spam.minFillMillis > 0, "the time-trap stays on");
@@ -68,7 +78,12 @@ assert.ok(form.spam.minFillMillis > 0, "the time-trap stays on");
 // that looks a person up, and no write anywhere else.
 const actions = tool.spec.nodes.filter((node) => node.actionSlug !== undefined);
 const flow = new Set(["start", "end", "branch"]);
-const allowed = new Set(["enrichCompanyFromDomain", "modelUpsert", "postMessage", ...flow]);
+const allowed = new Set([
+  "enrichCompanyFromDomain",
+  "modelUpsert",
+  "postMessage",
+  ...flow,
+]);
 for (const node of actions)
   assert.ok(
     allowed.has(node.actionSlug),
@@ -80,12 +95,31 @@ assert.deepEqual(
   [accounts.id, contacts.id],
   "the workflow writes exactly gtm_accounts and gtm_contacts",
 );
-const contactUpsert = upserts.find((node) => node.config.modelUuid.resourceId === contacts.id);
+const contactUpsert = upserts.find(
+  (node) => node.config.modelUuid.resourceId === contacts.id,
+);
 assert.match(
-  JSON.stringify(contactUpsert.config.mappings.find((m) => m.columnSlug === "account_id")),
+  JSON.stringify(
+    contactUpsert.config.mappings.find((m) => m.columnSlug === "account_id"),
+  ),
   /modelUpsert/,
   "the contact's account_id is read back from the account upsert, never invented",
 );
+
+// Every compiled expression is valid JavaScript. The body is parsed when the
+// file loads but the expressions only run on a submission, so a construct the
+// printer mangles (an index on a call result, `.split("@")[1]`, prints as
+// `.1`) passes the typecheck and fails the first real submission.
+const expressions = [
+  ...JSON.stringify(tool.spec.nodes).matchAll(/\{\{(.*?)\}\}/g),
+].map((match) => JSON.parse(`"${match[1]}"`));
+for (const expression of expressions) {
+  const code = expression.replace(/nodes\.[A-Za-z0-9_]+/g, "nodes");
+  assert.doesNotThrow(
+    () => new Function("nodes", `return (${code});`),
+    `compiled expression is not valid JavaScript: ${expression.slice(0, 120)}`,
+  );
+}
 
 // The form's fields are the workflow's input.
 const fields = tool.spec.formFields.map((field) => field.slug ?? field.name);

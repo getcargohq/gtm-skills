@@ -8,12 +8,13 @@ import { gtmAccounts } from "../models/gtm-accounts";
 import { gtmContacts } from "../models/gtm-contacts";
 
 // PLACEHOLDER: the qualification rules, taken from the ICP in context/. They
-// read LinkedIn's company data: `employee_count` is a number, `hq_country` a
-// country name. Confirm the country spelling with one live call on a known
+// read LinkedIn's company data: `employee_count` is a number (use it, not
+// `employee_range`, which can disagree with it), and `hq_country` is an ISO
+// 3166 alpha-2 code ("US", "GB"). Confirm both with one live call on a known
 // customer before deploying.
 const icpMinEmployees = 50;
 const icpMaxEmployees = 5000;
-const icpCountries = ["United States", "United Kingdom", "France", "Germany"];
+const icpCountries = ["US", "GB", "FR", "DE"];
 
 // PLACEHOLDER: the scheduling page a qualified visitor is sent to.
 const bookingUrl = "https://cal.com/example/demo";
@@ -88,7 +89,9 @@ const inboundSubmission = defineWorkflow(
     },
   },
   ({ input, uses, model }) => {
-    const domain = input.email.toLowerCase().split("@")[1];
+    const domain = input.email
+      .toLowerCase()
+      .slice(input.email.indexOf("@") + 1);
 
     // Refused before any paid call or write: the page asks again.
     if (freeMailDomains.includes(domain)) {
@@ -167,8 +170,8 @@ const inboundSubmission = defineWorkflow(
 // the form to accept submissions; a deploy publishes it.
 //
 // Spam: the SDK's honeypot and render timestamp, the server's per-IP rate
-// limit, and `minFillMillis`, counted from when the visitor first focused the
-// form (the site loads the SDK then). A CAPTCHA is the `turnstile` variation;
+// limit, and `minFillMillis`, counted from when the form became usable (the
+// site loads the SDK once the page has hydrated). A CAPTCHA is the `turnstile` variation;
 // its secret goes through `env()`, never into this file.
 export const inboundForm = defineTool("inbound_form", {
   folder: toolsFolder,

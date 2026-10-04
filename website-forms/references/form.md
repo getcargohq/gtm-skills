@@ -47,17 +47,17 @@ In order, each one refusing the request:
 
 1. **Origin**: not in `allowedOrigins`, 403.
 2. **Honeypot**: a hidden field the SDK injects; a bot that fills it is dropped.
-3. **Time-trap**: submitted sooner than `minFillMillis` after the SDK loaded. The site loads it on
-   first focus, so the timer starts when filling starts.
+3. **Time-trap**: submitted sooner than `minFillMillis` after the SDK loaded. The site loads it once
+   the page has hydrated, so the timer starts when the form becomes usable.
 4. **Rate limit**: ten submissions a minute per address, always on.
 5. **CAPTCHA**, only with the `turnstile` variation.
 6. **The workflow's own check**: a personal email domain is refused before any paid call.
 
 ## Privacy
 
-- The SDK sets a first-party `cargo_anon_id` cookie and captures the page's UTMs, `page_url` and
-  `referrer` when it loads (not under Global Privacy Control or Do Not Track). The component loads
-  it on the form's first focus, so a visitor who never touches the form gets neither.
+- The SDK reads the page's UTMs, `page_url` and `referrer` into memory when it loads, and sets its
+  first-party `cargo_anon_id` cookie only when a visitor submits (neither under Global Privacy
+  Control or Do Not Track). A visitor who never submits leaves with no cookie.
 - A submission is personal data the person chose to send. It is used for their request; marketing
   email only when they ticked the box, recorded as `marketing_consent`.
 - Add a "Contact form" section to the privacy page: what the form collects, that the company is
@@ -73,9 +73,9 @@ them as visible inputs. Keep headless, or move those fields out of the schema be
 
 ## Checking it
 
-1. Open `/contact/` in a private window: no `cargo_anon_id` cookie, no request to
-   `api.getcargo.io`.
-2. Focus a field: the SDK loads (one schema request).
+1. Open `/contact/` in a private window: the SDK loads after hydration (one schema request) and
+   no `cargo_anon_id` cookie is set.
+2. Wait a few seconds before submitting: a submission sooner than `minFillMillis` is refused.
 3. Submit with a personal email: "Please use your work email", and no run spends credits.
 4. Submit with a work email: the answer shows, the account and contact appear in the models, the
    Slack channel gets one message.

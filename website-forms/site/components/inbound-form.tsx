@@ -1,7 +1,7 @@
 "use client";
 
 import type { FormInstance } from "@cargo-ai/form-sdk";
-import { type FormEvent, useRef, useState } from "react";
+import { type FormEvent, useEffect, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 
@@ -10,11 +10,12 @@ import { Button } from "@/components/ui/button";
 // workflow, and the answer (a booking link or a thank-you) comes back in the
 // same request.
 //
-// The SDK loads on the visitor's first focus, not with the page: it sets a
-// first-party id cookie and captures the page's UTMs when it loads, and a
-// visitor who never touches the form should leave with neither. It also starts
-// the server's minimum-fill timer from that moment, which is when filling
-// actually starts.
+// The SDK loads once the page has hydrated, in its own chunk: loading stamps
+// the time the server's minimum-fill check counts from, so it has to happen
+// when the form becomes usable, not on a focus event that can fire before
+// hydration and be lost (a submission would then stamp and send in the same
+// millisecond, and be refused as a bot). Loading reads the page's UTMs into
+// memory; the SDK's first-party id cookie is only set when a visitor submits.
 //
 // NEXT_PUBLIC_CARGO_FORM is the tool's uuid, the app env token
 // `inboundForm.uuid`. It is public: the form API only accepts the origins the
@@ -36,11 +37,8 @@ export function InboundForm() {
   const form = useRef<Promise<FormInstance> | null>(null);
   const [answer, setAnswer] = useState<Answer>({ kind: "idle" });
 
-  if (toolUuid === undefined || toolUuid === "") {
-    return null;
-  }
-
-  const load = (): Promise<FormInstance> => {
+  const load = (): Promise<FormInstance> | null => {
+    if (toolUuid === undefined || toolUuid === "") return null;
     if (form.current === null) {
       form.current = import("@cargo-ai/form-sdk").then(({ loadForm }) =>
         loadForm(toolUuid, { render: "headless", mode: "sync" }),
@@ -49,12 +47,23 @@ export function InboundForm() {
     return form.current;
   };
 
+  // Once, on mount: `load` only depends on the build-time tool uuid.
+  useEffect(() => {
+    void load();
+  }, []);
+
+  if (toolUuid === undefined || toolUuid === "") {
+    return null;
+  }
+
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const data = new FormData(event.currentTarget);
     setAnswer({ kind: "sending" });
     try {
-      const instance = await load();
+      const pending = load();
+      if (pending === null) return;
+      const instance = await pending;
       instance.setValues({
         email: String(data.get("email")),
         first_name: String(data.get("first_name")),
@@ -112,12 +121,7 @@ export function InboundForm() {
   }
 
   return (
-    <form
-      onSubmit={submit}
-      onFocus={() => void load()}
-      className="max-w-xl space-y-4"
-      noValidate={false}
-    >
+    <form onSubmit={submit} className="max-w-xl space-y-4" noValidate={false}>
       <div className="grid gap-4 sm:grid-cols-2">
         <label className="space-y-1 text-sm">
           <span>First name</span>

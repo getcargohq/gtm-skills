@@ -47,12 +47,13 @@ Four pieces make it:
 3. **The shared GTM models.** `gtm_accounts` and `gtm_contacts`, declared exactly as every pipeline
    declares them, so whatever else the project installs reads the same inbound contacts.
 4. **The form on the site.** Rendered with the site's own markup and run headless through
-   `@cargo-ai/form-sdk`, which loads on the visitor's first focus. The tool's uuid arrives as the
+   `@cargo-ai/form-sdk`, loaded once the page has hydrated. The tool's uuid arrives as the
    app env token `inboundForm.uuid`.
 
 **Two things worth knowing before you start.** The company is enriched, never the person: the
-person already said who they are. And the SDK sets a first-party id cookie and captures UTMs when
-it loads, which is why the site loads it on first focus, not with the page.
+person already said who they are. And the server's minimum fill time counts from when the SDK
+loaded, which is why the site loads it once the page has hydrated: a form loaded on a lost focus
+event would stamp and submit in the same moment and be refused as a bot.
 
 ## Example
 
@@ -105,7 +106,7 @@ not, this is enough.
 
 | Input                                                       | Kind    | How it is answered                                                                                           | Why it matters                                                                                                 |
 | ----------------------------------------------------------- | ------- | ------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------- |
-| ICP rules (`infra/tools/inbound-form.ts`)                   | derived | the ICP in `context/`: headcount band and countries; confirm the spellings with one live enrichment          | Decides who sees the booking link. Rules nobody can read back are the reason inbound stops being trusted.      |
+| ICP rules (`infra/tools/inbound-form.ts`)                   | derived | the ICP in `context/`: headcount band and ISO country codes, confirmed with one live enrichment          | Decides who sees the booking link. Rules nobody can read back are the reason inbound stops being trusted.      |
 | site origin (`publicForm.allowedOrigins`)                   | derived | the website app's `site.json` `canonicalUrl`, without the trailing slash                                     | Every other origin is refused with 403. A missing origin is a form that never submits.                          |
 | Slack channel (`slackChannelId`)                            | asked   | the channel's id, resolved through the Slack connector's autocomplete                                        | Every submission is posted there and only there.                                                               |
 | booking link (`bookingUrl`)                                 | asked   | the team's scheduling page                                                                                   | What a qualified visitor is sent to, on the page, in the same request.                                         |
@@ -114,7 +115,7 @@ not, this is enough.
 Checked before moving on, not after the deploy:
 
 - the ICP rules match `context/`, and one live `enrichCompanyFromDomain` on a known customer
-  returned the country spelling the rules use
+  returned the ISO country code the rules use
 - `allowedOrigins` is exactly the canonical origin
 - the Slack channel id resolves through the connector
 - `node --import tsx evals/contract.mjs` passes against the adapted graph
@@ -146,8 +147,9 @@ it if you still want it, and records why under `## Decisions` in your copy of th
 - **The shared models stay shared.** `gtm_accounts` and `gtm_contacts` keep their exact definition;
   what only inbound needs is an added column under a plain name.
 - **No CAPTCHA secret in the repository.** It goes through `env()`.
-- **The SDK loads on first interaction, not with the page.** (`site/components/inbound-form.tsx`)
-  Otherwise every visitor gets its id cookie and UTM capture whether they fill the form or not.
+- **The SDK loads once the page has hydrated.** (`site/components/inbound-form.tsx`) Its load
+  time is what the minimum fill time counts from. Loaded on a focus event, a focus before hydration
+  is lost and the visitor's submission is refused as a bot. Its id cookie is set only on submit.
 - **Marketing email only with the box ticked.** `marketing_consent` is recorded per contact; a
   demo request alone is not consent to a newsletter.
 
@@ -164,7 +166,7 @@ it if you still want it, and records why under `## Decisions` in your copy of th
 - a personal-email submission is refused on the page, with no enrichment call and no row written
 - a submission from another origin is refused with 403, and one sent faster than the minimum fill
   time is refused
-- loading the contact page sets no `cargo_anon_id` cookie until the form is focused
+- loading the contact page sets no `cargo_anon_id` cookie until a submission
 - the privacy page has a contact form section the operator reviewed
 
 ## What it costs
