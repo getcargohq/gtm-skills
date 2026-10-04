@@ -2,10 +2,11 @@ import { defineAgent } from "@cargo-ai/cdk";
 
 import { nudgerPrompt } from "./nudger.prompt";
 import { anthropic } from "../connectors/anthropic";
-import { hubspot } from "../connectors/hubspot";
 import { slack } from "../connectors/slack";
 import { agentsFolder } from "../folders";
-import { crmDeals } from "../models/crm-deals";
+import { accounts } from "../models/accounts";
+import { activities } from "../models/activities";
+import { deals } from "../models/deals";
 import { dealNudges } from "../models/deal-nudges";
 
 // The nudger: every Monday, one Slack digest per owner listing the open deals
@@ -15,17 +16,18 @@ import { dealNudges } from "../models/deal-nudges";
 // digest grouped by owner, and grouping is a judgment over the whole list: a
 // play enrolls deals one by one and would need a second step to gather them
 // back into one post per owner. The agent selects the stalled deals itself, in
-// SQL over a model that holds every deal, so the "quiet for N days" rule is a
+// SQL over the deal and activity models, so the "quiet for N days" rule is a
 // query anyone can read in `nudger.prompt.ts`, not a segment filter.
 //
+// The example runs on Cargo native models and needs no CRM connector. With
+// deals in HubSpot, Salesforce or Attio, swap `deals` and `activities` for
+// connector-backed models (SKILL.md, `crm-backed`); this file does not change.
+//
 // What it may touch:
-//   - `crm_deals`, read-only: every deal, every column, synced daily.
-//   - `searchRecords` and `getRecord`, read-only: the last note, meeting or
-//     call on a deal, so the draft picks up from something real.
+//   - `deals`, `accounts`, `activities`, read-only.
 //   - `deal_nudges`, writable: the weekly ledger, the only thing it writes.
 //   - `slack.postMessage` with the channel locked.
-// No CRM write action is on `uses`. A nudge that could move a stage would
-// change the forecast from a guess.
+// A nudge that could move a stage would change the forecast from a guess.
 export const nudger = defineAgent("stalled_deal_nudger", {
   name: "Stalled-deal nudger",
   description:
@@ -33,8 +35,8 @@ export const nudger = defineAgent("stalled_deal_nudger", {
   color: "yellow",
   connector: anthropic,
   languageModel: "claude-sonnet-5", // PLACEHOLDER: your model of choice
-  // Per-run ceiling. A Monday of twenty stalled deals at two reads each plus
-  // one post per owner fits; a backlog bigger than that posts what it has, and
+  // Per-run ceiling. A Monday of twenty stalled deals at a read or two each
+  // plus one post per owner fits; a backlog bigger than that posts what it has, and
   // the ledger lets the next run pick up the rest.
   maxSteps: 80,
   capabilities: [
@@ -43,10 +45,10 @@ export const nudger = defineAgent("stalled_deal_nudger", {
     { slug: "context", config: { isReadOnly: true } },
   ],
   uses: [
-    { ref: crmDeals, readOnly: true },
+    { ref: deals, readOnly: true },
+    { ref: accounts, readOnly: true },
+    { ref: activities, readOnly: true },
     { ref: dealNudges, readOnly: false },
-    hubspot.actions.searchRecords,
-    hubspot.actions.getRecord,
     {
       ref: slack.actions.postMessage,
       config: {
@@ -63,8 +65,8 @@ export const nudger = defineAgent("stalled_deal_nudger", {
     {
       type: "cron",
       name: "monday_morning",
-      // 15:00 UTC on Mondays: 8am PT during PDT, 7am PT during PST. After the
-      // daily deal sync, before the pipeline meeting. Move it and the timezone
+      // 15:00 UTC on Mondays: 8am PT during PDT, 7am PT during PST. Before the
+      // pipeline meeting. Move it and the timezone
       // in `text` together.
       cron: "0 15 * * 1",
       text: "Post this week's stalled-deal digests. Today is the current date in America/Los_Angeles. Follow your system prompt exactly: select in SQL, dedupe against deal_nudges for this ISO week, research, post one digest per owner, record each post.",
@@ -74,7 +76,7 @@ export const nudger = defineAgent("stalled_deal_nudger", {
   // The QA gate on every run.
   evaluator: {
     rubric:
-      "Was there at most one digest per owner, none repeating a deal already in deal_nudges for this week? Is every quoted line and date traceable to a CRM record? Does each draft pick up from the deal's own last activity rather than a generic check-in?",
+      "Was there at most one digest per owner, none repeating a deal already in deal_nudges for this week? Is every quoted line and date traceable to a row in activities? Does each draft pick up from the deal's own last activity rather than a generic check-in?",
     threshold: 0.8,
   },
   folder: agentsFolder,

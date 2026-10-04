@@ -24,25 +24,18 @@ const agent = byId.get("agent:stalled_deal_nudger");
 assert.ok(agent, "defineAgent(stalled_deal_nudger) must exist");
 assert.ok(agent.spec.connectorUuid, "the nudger must bind an LLM connector");
 
-// The deals model pulls everything. "Stalled" is asked in the agent's SQL,
-// never in the extractor's config.
-const deals = byId.get("model:crm_deals");
-assert.ok(deals, "defineModel(crm_deals) must exist");
+// The worked example runs on Cargo native models: no CRM connector, no key.
+// A CRM-backed adaptation swaps the models (SKILL.md, `crm-backed`) and drops
+// this assertion with a line under ## Decisions.
 assert.equal(
-  deals.spec.config?.objectType,
-  "deals",
-  "crm_deals must extract the deals object",
+  byId.has("connector:hubspot"),
+  false,
+  "the example needs no CRM connector: deals and activities are native models",
 );
-assert.equal(
-  deals.spec.config?.columnSelectionMode,
-  "all",
-  "crm_deals must extract every column: narrow in SQL, not in config",
-);
-assert.equal(
-  deals.spec.config?.filter ?? null,
-  null,
-  "crm_deals must not filter in config: the quiet-days rule lives in the prompt's SQL",
-);
+for (const slug of ["deals", "accounts", "activities"]) {
+  const model = byId.get(`model:${slug}`);
+  assert.ok(model, `defineModel(${slug}) must exist`);
+}
 
 const modelUse = (slug) =>
   findOne(
@@ -50,11 +43,13 @@ const modelUse = (slug) =>
     (model) => model.uuid?.resourceId === `model:${slug}`,
     `${slug} must be on the nudger's uses`,
   );
-assert.equal(
-  modelUse("crm_deals").readOnly,
-  true,
-  "crm_deals must be read-only to the agent",
-);
+for (const slug of ["deals", "accounts", "activities"]) {
+  assert.equal(
+    modelUse(slug).readOnly,
+    true,
+    `${slug} must be read-only to the agent: a nudge never changes a deal`,
+  );
+}
 assert.ok(byId.get("model:deal_nudges"), "defineModel(deal_nudges) must exist");
 assert.equal(
   modelUse("deal_nudges").readOnly,
@@ -63,15 +58,11 @@ assert.equal(
 );
 
 const actions = agent.spec.connectorActions ?? [];
-const crmWrites = actions.filter(
-  (action) =>
-    action.integration === "hubspot" &&
-    !["searchRecords", "getRecord"].includes(action.actionSlug),
-);
+const nonSlack = actions.filter((action) => action.integration !== "slack");
 assert.equal(
-  crmWrites.length,
+  nonSlack.length,
   0,
-  `the nudger reads the CRM and never writes it; found ${crmWrites.map((a) => a.actionSlug).join(", ")}`,
+  `the nudger reads models, not connectors; found ${nonSlack.map((a) => `${a.integration}.${a.actionSlug}`).join(", ")}`,
 );
 
 const post = findOne(

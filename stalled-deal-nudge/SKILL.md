@@ -1,8 +1,8 @@
 ---
 name: stalled-deal-nudge
-description: 'Every Monday each owner gets one Slack digest of their open deals that went quiet: how long since the last logged activity, the line that activity left off on, why the deal is worth a touch now, and a follow-up drafted for them to send. Triggers: "flag deals that went quiet", "weekly stalled deal report in slack", "nudge reps on deals with no activity", "which open deals have gone cold", "remind owners to follow up on stuck opportunities", "draft follow-ups for stalled deals every week". Cargo CDK, defineAgent, defineModel, HubSpot deals, fetchRecords, searchRecords, Slack postMessage, workspace context, ledger model. Skip when: you want the week''s GTM work ranked against initiatives, which is weekly-planning; or you want one account researched now, which is research-account.'
+description: 'Every Monday each owner gets one Slack digest of their open deals that went quiet: how long since the last logged activity, the line that activity left off on, why the deal is worth a touch now, and a follow-up drafted for them to send. Triggers: "flag deals that went quiet", "weekly stalled deal report in slack", "nudge reps on deals with no activity", "which open deals have gone cold", "remind owners to follow up on stuck opportunities", "draft follow-ups for stalled deals every week". Cargo CDK, defineAgent, native deal, account and activity models, SQL, Slack postMessage, workspace context, ledger model; adapts to HubSpot, Salesforce or Attio. Skip when: you want the week''s GTM work ranked against initiatives, which is weekly-planning; or you want one account researched now, which is research-account.'
 version: "0.1.0"
-compatibility: "Requires @cargo-ai/cli with @cargo-ai/cdk 1.0.92 or later, a Cargo workspace, and authorized HubSpot, Slack and Anthropic connectors. Reads the workspace context when the project declares one."
+compatibility: "Requires @cargo-ai/cli with @cargo-ai/cdk 1.0.92 or later, a Cargo workspace, and authorized Slack and Anthropic connectors. No CRM connector: the example runs on Cargo native models. Reads the workspace context when the project declares one."
 homepage: https://github.com/getcargohq/gtm-skills/tree/main/stalled-deal-nudge
 metadata:
   author: getcargo
@@ -43,10 +43,13 @@ For each deal:
 - **Draft**: a follow-up of at most four sentences that picks up from the quoted line, for the owner
   to send. The agent never sends it.
 
-The deals come from a model that extracts every HubSpot deal and every column, synced daily, and the
-agent selects the stalled ones in SQL, so "quiet for N days" is a query anyone can read. A ledger
-records each deal nudged per ISO week: a re-run the same Monday posts nothing, and a failed post is
-retried the next run. The agent reads the CRM and never writes it.
+The worked example runs on Cargo native models, with no CRM connector: `deals` (the standard deal
+schema), `accounts`, and `activities`, one row per logged email, meeting, call or note. Last
+activity is computed in SQL as the latest `occurred_at` per deal, not read off a roll-up property,
+so "quiet for N days" is a query anyone can read. With deals in HubSpot, Salesforce or Attio, the
+models are swapped for connector-backed ones and the agent does not change (`crm-backed` below).
+A ledger records each deal nudged per ISO week: a re-run the same Monday posts nothing, and a failed
+post is retried the next run. The agent reads the deal models and never writes them.
 
 ## Example
 
@@ -87,15 +90,15 @@ is enough.
    does both. **If you are reading this from the project's `.claude/skills/`, the install already
    happened — start at step 2.** On a CLI too old to have `add`, copy this folder in as a sibling of
    what is there by hand; everything below is unchanged.
-2. **Reconcile it with what is already declared.** If the project already has a HubSpot, Slack or
-   Anthropic connector, or a model extracting HubSpot deals, rewire the imports to the existing one
-   and drop the copy; two resources with one slug is a collision at deploy, and two deal extracts
-   double the sync.
+2. **Reconcile it with what is already declared.** If the project already has a Slack or Anthropic
+   connector, or `deals`, `accounts` or `activities` models, rewire the imports to the existing one
+   and drop the copy; two resources with one slug is a collision at deploy. If the deals live in a
+   CRM, apply `crm-backed` now, before the first deploy.
 3. **Point Slack at your channel and name the owners.** Authorize the Slack connector if the
    workspace does not have one (`cargo-ai cdk add connector/slack`). Set `channelId` in
    `infra/agents/nudger.ts` to a channel id (`C…`) from that connector's channel autocomplete, and
-   invite the bot. Fill `OWNERS` in `infra/agents/nudger.prompt.ts` from the HubSpot connector's
-   user list. `references/digest.md` (installed beside this file) is the digest shape.
+   invite the bot. Fill `OWNERS` in `infra/agents/nudger.prompt.ts` from the distinct `owner_id`
+   values on open deals. `references/digest.md` (installed beside this file) is the digest shape.
 4. **Adapt.** Work the sections below in order: _What should not change_ is what you argue back
    about (say what breaks, then do it if they still want it); _What you can change_ is what you
    offer unprompted; _What you will be asked_ is the floor, and you derive before you ask. If you
@@ -104,8 +107,9 @@ is enough.
 5. **Check, then plan.** `node --import tsx evals/contract.mjs` from this skill's folder, then
    `npm run check && cargo-ai cdk plan` from the project root. Show the diff, and deploy only on an
    explicit yes: `cargo-ai cdk deploy`. Never `cdk init --force` into a non-empty directory.
-6. **Verify.** After the first sync of `crm_deals`, run the prompt's selection by hand
-   (`cargo-ai storage` SQL over the model) and compare it with what a rep would call stalled. Then
+6. **Verify.** With the models filled (or seeded with test rows,
+   `cargo-ai storage record create-bulk`), run the prompt's selection by hand (`cargo-ai storage`
+   SQL over the models) and compare it with what a rep would call stalled. Then
    send the agent its trigger text once (`cargo-ai ai message create`), walk _Done when_ line by line
    with evidence, and send it again: the second run must post nothing.
 
@@ -116,16 +120,16 @@ _asked_ genuinely live in the operator's head.
 
 | Input                                                     | Kind    | How it is answered                                                                                                                                                                    | Why it matters                                                                                                                                           |
 | --------------------------------------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| HubSpot connector (`infra/connectors/hubspot.ts`)         | value   | **derived**: `cargo-ai connection connector list` shows whether one is authorized. `default: true` binds it.                                                                          | It is where the deals are. Without it the model syncs nothing and every Monday is silent, which reads as "no stalled deals".                            |
-| activity and closed columns                               | derived | Read the synced `crm_deals` columns once. HubSpot carries `hs_is_closed`, `notes_last_updated` and `hs_last_sales_activity_timestamp` on deals; a portal without them needs the SQL adapted. | The whole selection rests on these. A missing activity column makes every deal look quiet; a missing closed flag nudges reps on deals already lost. |
+| where deals and activities come from                       | asked   | the native models in this folder, filled by whatever the team already runs (a sync, call-capture, a sequencer), or a CRM via `crm-backed`. Check what fills them before anything else.                     | An empty `activities` model makes every open deal look quiet, and the first digest flags the whole pipeline.                                               |
+| deal and activity columns                                  | derived | Read the models' columns once. The native `defineDeal` schema carries `is_closed`, `owner_id`, `stage_name`, `close_date`; `activities` carries `deal_id` and `occurred_at`.                              | The selection rests on these. A CRM-backed swap renames them, and the prompt's SQL has to follow.                                                          |
 | `QUIET_DAYS` (`infra/agents/nudger.prompt.ts`)            | asked   | the number of days without logged activity after which the team agrees a deal is stalled. Default fourteen.                                                                         | Too short and the digest is noise reps mute; too long and it reports deals already lost.                                                                 |
-| `OWNERS` (`infra/agents/nudger.prompt.ts`)                | derived | from the HubSpot connector's `listUsers` autocomplete: owner id to the name the digest prints.                                                                                         | An owner missing from the map lands under "Unassigned or unmapped owner", which nobody reads as theirs.                                                  |
+| `OWNERS` (`infra/agents/nudger.prompt.ts`)                | derived | `SELECT DISTINCT owner_id` over open deals, then the name the digest prints for each.                                                                                                 | An owner missing from the map lands under "Unassigned or unmapped owner", which nobody reads as theirs.                                                  |
 | `channelId` (`infra/agents/nudger.ts`)                    | asked   | the Slack channel id (`C…`) the digests may land in, read from the connector's channel autocomplete. Invite the bot.                                                                 | Digests quote deal amounts and prospect lines. Locked so they never land in a customer shared channel.                                                   |
 | LLM connector and model (`infra/connectors/anthropic.ts`) | value   | **derived**: `cargo-ai connection connector list`. `languageModel` is a placeholder to set.                                                                                           | It is what every Monday is billed against.                                                                                                               |
 
 Checked before moving on, not after the deploy:
 
-- `crm_deals` synced, and its row count matches the deal count HubSpot shows
+- `deals` and `activities` hold rows, and every open deal's activities carry its `deal_id`
 - the selection SQL run by hand returned deals a rep agrees are stalled, and none that are closed
 - `channelId` is a `C…` id the Slack connector can see, and the bot is in that channel
 - `node --import tsx evals/contract.mjs` passes
@@ -138,13 +142,17 @@ Checked before moving on, not after the deploy:
 | `per-rep-dm`     | Reps want their own digest, not a shared channel                    | Replace the locked `channelId` with one `postMessage` use per rep                                                                  | One use per rep to maintain. Dropping the lock instead lets the agent pick the destination, which is how a digest reaches the wrong person. |
 | `min-amount`     | Small deals flood the digest                                        | Add `amount >= <floor>` to the §1 SQL                                                                                              | Small deals that matter (a land for a big expansion) go unflagged.                                                                       |
 | `manager-rollup` | Leadership wants one view of every stalled deal                     | Add a final post to the same channel: one line per owner with their count and total amount                                         | One more post. It turns a nudge into a scoreboard, which changes how reps read the digest above it.                                       |
+| `crm-backed`     | The deals already live in HubSpot, Salesforce or Attio                                     | Replace `deals` and `activities` with connector-backed models that extract every record and every column (`fetchRecords`, `columnSelectionMode: "all"`, no filter): HubSpot `deals` plus `notes`, `meetings`, `calls` and `emails`, or Salesforce `Opportunity` plus `Task` and `Event`. Last activity maps to the latest engagement timestamp (`hs_timestamp`, `ActivityDate`), or to the deal roll-up (`notes_last_updated`, `LastActivityDate`) if you extract only deals. Adapt the column names in §1 of the prompt; drop the no-connector assertion in the contract | One connector to authorize and a sync to schedule. A roll-up property is only as fresh as the CRM keeps it; engagement rows are what actually happened. |
 | `no-drafts`      | Reps prefer to write their own follow-ups                           | Drop the Draft line from §3 and §4 of the prompt                                                                                   | The digest says what is stuck but not how to unstick it; the cheapest follow-up is the one already written.                              |
 
 ## What should not change
 
-- **The model pulls every deal and every column.** (`infra/models/crm-deals.ts`) The quiet-days rule
-  is asked in the agent's SQL. Put it in the extractor's config and it becomes invisible to anyone
-  reading the query, and changing N means a redeploy and a re-extraction instead of an edited line.
+- **"Stalled" is asked in SQL, over every deal.** (`infra/agents/nudger.prompt.ts` §1) Neither the
+  models nor a CRM-backed extractor filter. Put the rule in an extractor's config and it becomes
+  invisible to anyone reading the query, and changing N means a redeploy and a re-extraction instead
+  of an edited line.
+- **Last activity is computed from activity rows.** (`infra/agents/nudger.prompt.ts` §1) A roll-up
+  property a sync forgets to refresh makes every deal look quiet.
 - **The ledger is checked before research and written after the post.**
   (`infra/agents/nudger.prompt.ts` §2 and §5) Check after and every re-run pays for the research
   again. Write before and a failed post is recorded as sent, so the owner hears nothing and the
@@ -154,9 +162,8 @@ Checked before moving on, not after the deploy:
   Slack read sits on `uses`.
 - **`channelId` is locked on `postMessage`.** (`infra/agents/nudger.ts`) Digests carry deal amounts
   and quoted prospect lines.
-- **The CRM is read, never written.** (`infra/agents/nudger.ts`) A nudge that could move a stage or
-  close a deal changes the forecast from a guess. Only `searchRecords` and `getRecord` are on
-  `uses`.
+- **The deal models are read, never written.** (`infra/agents/nudger.ts`) A nudge that could move a
+  stage or close a deal changes the forecast from a guess. The only writable model is the ledger.
 - **The draft is never sent.** (`infra/agents/nudger.prompt.ts`) The owner knows things the CRM does
   not, such as a call last week nobody logged. A sent draft is how a prospect gets a "just checking
   in" the day after they signed.
@@ -167,30 +174,27 @@ Checked before moving on, not after the deploy:
 ## Done when
 
 - `node --import tsx evals/contract.mjs` passes
-- `cargo-ai cdk plan` reports the agent, the `crm_deals` and `deal_nudges` models, the three
-  connectors and the two folders
-- `crm_deals` synced every deal, and the hand-run selection returned only open deals quiet for at
-  least `QUIET_DAYS`
+- `cargo-ai cdk plan` reports the agent, the `deals`, `accounts`, `activities` and `deal_nudges`
+  models, the two connectors and the two folders
+- the hand-run selection returned only open deals whose latest activity is older than `QUIET_DAYS`
 - the first run posted exactly one digest per owner with stalled deals, in the `references/digest.md`
   shape, and wrote one `deal_nudges` row per deal with the digest's Slack `ts`
 - a second run the same Monday posted nothing and added no row
-- every `Last:` quote exists in the CRM record it came from, with that date
-- no draft was sent and no CRM record changed (`cargo-ai orchestration run list` shows no HubSpot
-  write)
+- every `Last:` quote exists in the `activities` row it came from, with that date
+- no draft was sent and no deal, account or activity row changed
 
 ## What it costs
 
-There is no enrichment provider and no per-record fan-out: the deal extract is a HubSpot sync, and
-the research is a couple of CRM reads per stalled deal. Immediately before the plan, read the live
-price of each action on `uses` and of the extract:
+There is no enrichment provider, no CRM connector and no per-record fan-out: the selection and the
+last-activity reads are SQL over the workspace's own models. The one connector action is the Slack
+post. Immediately before the plan, read its live price:
 
-- `cargo-ai orchestration action list searchRecords --kind connector --integration-slug hubspot`
 - `cargo-ai orchestration action list postMessage --kind connector --integration-slug slack`
-- `cargo-ai connection integration get hubspot` for the `fetchRecords` extractor
 
-Say each number out loud. The recurring cost is the agent run, once a week, billed as LLM tokens
-through the Anthropic connector. It scales with the number of stalled deals that week, and
-`maxSteps` caps it per run.
+Say the number out loud; the run posts once per owner with stalled deals. The recurring cost is the
+agent run, once a week, billed as LLM tokens through the Anthropic connector. It scales with the
+number of stalled deals that week, and `maxSteps` caps it per run. A `crm-backed` adaptation adds
+the CRM extract: read its price with `cargo-ai connection integration get <crm>`.
 
 ## Composes into
 

@@ -18,7 +18,7 @@ export const dealNudges = defineModel("deal_nudges", {
   extractSlug: "defineCustom",
   config: {
     columns: [
-      // The CRM deal record id.
+      // The deal id (deals.id).
       { slug: "deal_id", type: "string" },
       // ISO week the nudge belongs to, e.g. 2026-W41.
       { slug: "week", type: "string" },

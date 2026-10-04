@@ -11,7 +11,7 @@ _<count> open deals with no logged activity in <QUIET_DAYS>+ days._
 Last: <date> "<quoted line from the last note, meeting or call>"
 Why now: <one sentence>
 Draft: > <at most four sentences, for the owner to send>
-<HubSpot deal link>
+<deal id>
 ```
 
 ## Rules for each line
