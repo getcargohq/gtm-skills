@@ -86,9 +86,10 @@
     },
     {
       "title": "Operations",
-      "description": "Deployed pipelines that run the team: the daily recap, the weekly plan, and one agent everyone can ask.",
+      "description": "Deployed pipelines that run the team: the daily recap, a weekly nudge on deals gone quiet, the weekly plan, and one agent everyone can ask.",
       "skills": [
         "standup",
+        "stalled-deal-nudge",
         "weekly-planning",
         "ask-cargo"
       ]
@@ -1497,6 +1498,117 @@
         "Re-scoring after the criteria change costs nothing, because the enrichment is already stored. Say so, because users assume otherwise and under-ask as a result.",
         "Richer firmographics exist at a higher tier if a criterion genuinely needs them. Reach for one only when a stated criterion cannot be answered from the fields above, never by default."
       ]
+    },
+    {
+      "name": "stalled-deal-nudge",
+      "kind": "cookbook",
+      "job": "Every Monday each rep gets one Slack digest of their open deals that went quiet: how long since the last logged activity, the line that activity left off on, why the deal is worth a touch now, and a follow-up drafted for them to send.",
+      "description": "Every Monday each rep gets one Slack digest of their open deals that went quiet: how long since the last logged activity, the line that activity left off on, why the deal is worth a touch now, and a follow-up drafted for them to send. Triggers: \"flag deals that went quiet\", \"weekly stalled deal report in slack\", \"nudge reps on deals with no activity\", \"which open deals have gone cold\", \"remind reps to follow up on stuck opportunities\", \"draft follow-ups for stalled deals weekly\". Cargo CDK, defineAgent, native deal, account and activity models, SQL, Slack postMessage, workspace context, ledger model; adapts to HubSpot, Salesforce or Attio. Skip when: you want the week's GTM work ranked against initiatives, which is weekly-planning; or you want one account researched now, which is research-account.",
+      "version": "0.1.0",
+      "homepage": "https://github.com/getcargohq/gtm-skills/tree/main/stalled-deal-nudge",
+      "group": "Operations",
+      "install": "cargo-ai cdk add cookbook/stalled-deal-nudge",
+      "partOf": [],
+      "personas": [
+        "account-executive",
+        "sales-leadership",
+        "revops"
+      ],
+      "integrations": [
+        "anthropic",
+        "slack"
+      ],
+      "example": {
+        "prompt": "Every Monday, tell each rep which of their open deals went quiet and draft the follow-up.",
+        "output": "```text\n:hourglass: *Stalled deals · Dana Ruiz · 2026-W41*\n_2 open deals with no logged activity in 14+ days._\n\n*Fabrikam — Platform* — Proposal, $64,000, closes Oct 31 · quiet 19 days, flagged 1 Monday running\nLast: Sep 17 \"Send the security questionnaire and we'll take it to procurement.\"\nWhy now: The close date is three weeks out and the questionnaire that unblocks procurement never went.\nDraft: > Hi Lee, attaching the completed security questionnaire you asked for on the 17th.\n       > If procurement needs anything else to keep the Oct 31 date, send it my way today.\n\n*Northwind — Expansion* — Discovery, $22,000, closes Nov 20 · quiet 16 days\nLast: Sep 20 \"Let's regroup once the Q4 budget is set.\"\nWhy now: Q4 budgets were due Oct 1, so the regroup they asked for is now.\nDraft: > Hi Priya, you mentioned regrouping once Q4 budget was set. Is this week good?\n```\n\nFive owners had stalled deals, so five digests landed and eleven rows were added to `deal_nudges`; a\nsecond run that Monday posted nothing."
+      },
+      "state": "to-be-approved",
+      "chain": 16,
+      "resources": [
+        "agents",
+        "connectors",
+        "folders",
+        "models"
+      ],
+      "asked": [
+        {
+          "input": "QUIET_DAYS` (`infra/agents/nudger.prompt.ts`)",
+          "kind": "asked",
+          "how": "the number of days without logged activity after which the team agrees a deal is stalled. Default fourteen.",
+          "why": "Too short and the digest is noise reps mute; too long and it reports deals already lost."
+        },
+        {
+          "input": "OWNERS` (`infra/agents/nudger.prompt.ts`)",
+          "kind": "derived",
+          "how": "SELECT DISTINCT owner_id` over open deals, then the name the digest prints for each.",
+          "why": "An owner missing from the map lands under \"Unassigned or unmapped owner\", which nobody reads as theirs."
+        },
+        {
+          "input": "channelId` (`infra/agents/nudger.ts`)",
+          "kind": "asked",
+          "how": "the Slack channel id (`C…`) the digests may land in, read from the connector's channel autocomplete. Invite the bot.",
+          "why": "Digests quote deal amounts and prospect lines. Locked so they never land in a customer shared channel."
+        }
+      ],
+      "canChange": [
+        {
+          "id": "quiet-by-stage",
+          "when": "Late-stage deals should be flagged sooner than early ones",
+          "how": "Replace the single `QUIET_DAYS` condition in §1 of the prompt with a `CASE` on `dealstage",
+          "cost": "The rule gets harder to read in one glance. Keep the table of stage to days in the prompt, not in someone's head."
+        },
+        {
+          "id": "per-rep-dm",
+          "when": "Reps want their own digest, not a shared channel",
+          "how": "Replace the locked `channelId` with one `postMessage` use per rep",
+          "cost": "One use per rep to maintain. Dropping the lock instead lets the agent pick the destination, which is how a digest reaches the wrong person."
+        },
+        {
+          "id": "min-amount",
+          "when": "Small deals flood the digest",
+          "how": "Add `amount >= <floor>` to the §1 SQL",
+          "cost": "Small deals that matter (a land for a big expansion) go unflagged."
+        },
+        {
+          "id": "manager-rollup",
+          "when": "Leadership wants one view of every stalled deal",
+          "how": "Add a final post to the same channel: one line per owner with their count and total amount",
+          "cost": "One more post. It turns a nudge into a scoreboard, which changes how reps read the digest above it."
+        },
+        {
+          "id": "crm-backed",
+          "when": "The deals already live in HubSpot, Salesforce or Attio",
+          "how": "Replace `gtm_opportunities` and `gtm_activities` with connector-backed models of the same slugs that extract every record and every column (`fetchRecords`, `columnSelectionMode: \"all\"`, no filter): HubSpot `deals` plus `notes`, `meetings`, `calls` and `emails`, or Salesforce `Opportunity` plus `Task` and `Event`. Last activity maps to the latest engagement timestamp (`hs_timestamp`, `ActivityDate`), or to the deal roll-up (`notes_last_updated`, `LastActivityDate`) if you extract only deals. Adapt the column names in §1 of the prompt; drop the no-connector assertion in the contract",
+          "cost": "One connector to authorize and a sync to schedule. A roll-up property is only as fresh as the CRM keeps it; engagement rows are what actually happened."
+        },
+        {
+          "id": "no-drafts",
+          "when": "Reps prefer to write their own follow-ups",
+          "how": "Drop the Draft line from §3 and §4 of the prompt",
+          "cost": "The digest says what is stuck but not how to unstick it; the cheapest follow-up is the one already written."
+        }
+      ],
+      "shouldNotChange": [
+        "**\"Stalled\" is asked in SQL, over every deal.** (`infra/agents/nudger.prompt.ts` §1) Neither the models nor a CRM-backed extractor filter. Put the rule in an extractor's config and it becomes invisible to anyone reading the query, and changing N means a redeploy and a re-extraction instead of an edited line.",
+        "**Last activity is computed from activity rows.** (`infra/agents/nudger.prompt.ts` §1) A roll-up property a sync forgets to refresh makes every deal look quiet.",
+        "**The ledger is checked before research and written after the post.** (`infra/agents/nudger.prompt.ts` §2 and §5) Check after and every re-run pays for the research again. Write before and a failed post is recorded as sent, so the owner hears nothing and the deal is skipped all week.",
+        "**The ledger, not Slack history, is the dedupe.** (`infra/agents/nudger.ts`) Reading the channel back treats a deleted digest or another bot's post as \"already nudged\". The contract fails if a Slack read sits on `uses`.",
+        "**`channelId` is locked on `postMessage`.** (`infra/agents/nudger.ts`) Digests carry deal amounts and quoted prospect lines.",
+        "**The deal models are read, never written.** (`infra/agents/nudger.ts`) A nudge that could move a stage or close a deal changes the forecast from a guess. The only writable model is the ledger.",
+        "**The draft is never sent.** (`infra/agents/nudger.prompt.ts`) The owner knows things the CRM does not, such as a call last week nobody logged. A sent draft is how a prospect gets a \"just checking in\" the day after they signed.",
+        "**Weekly.** (`infra/agents/nudger.ts`) The ledger keys on the ISO week. A daily cron would post Monday's digest and then nothing for six days, which reads as broken; to nudge daily, change the ledger key with it."
+      ],
+      "doneWhen": [
+        "`node --import tsx evals/contract.mjs` passes",
+        "`cargo-ai cdk plan` reports the agent, the `gtm_opportunities`, `gtm_accounts`, `gtm_activities` and `deal_nudges` models, the two connectors and the two folders",
+        "the hand-run selection returned only open deals whose latest activity is older than `QUIET_DAYS`",
+        "the first run posted exactly one digest per owner with stalled deals, in the `references/digest.md` shape, and wrote one `deal_nudges` row per deal with the digest's Slack `ts`",
+        "a second run the same Monday, once the first run's ledger rows read back through SQL, posted nothing and added no row",
+        "every `Last:` quote exists in the `gtm_activities` row it came from, with that date",
+        "no draft was sent and no deal, account or activity row changed"
+      ],
+      "cost": "There is no enrichment provider, no CRM connector and no per-record fan-out: the selection and the\nlast-activity reads are SQL over the workspace's own models. The one connector action is the Slack\npost. Immediately before the plan, read its live price:\n\n- `cargo-ai orchestration action list postMessage --kind connector --integration-slug slack`\n\nSay the number out loud; the run posts once per owner with stalled deals. The recurring cost is the\nagent run, once a week, billed as LLM tokens through the Anthropic connector. It scales with the\nnumber of stalled deals that week, and `maxSteps` caps it per run. A `crm-backed` adaptation adds\nthe CRM extract: read its price with `cargo-ai connection integration get <crm>`.",
+      "composesInto": "`call-capture` (logged calls are the activity that keeps a deal off the list), `meeting-prep` (the\nmeeting the nudge books gets a card), and `weekly-planning` (the stalled count is a line in the\nweek's plan)."
     },
     {
       "name": "standup",
