@@ -2,7 +2,7 @@
 name: inbound-qualification
 description: 'Turn the website''s demo form into qualified inbound: each submission runs a Cargo tool that identifies the company from the work email, qualifies it against the ICP, lands the account and contact in the shared GTM models, posts it to Slack, and answers on the page with a booking link or a thank-you. Triggers: "add a demo form to our website", "handle inbound leads", "route website form submissions", "qualify inbound demo requests", "contact form that books meetings", "inbound lead flow", "Cargo public form". Cargo CDK, defineTool, publicForm, @cargo-ai/form-sdk, gtm_accounts, gtm_contacts. Skip when: you want to know which companies visit without them filling anything in, which is visitor-identification; the site itself does not exist yet, which is website-building first; or the leads come from a list rather than the website, which is find-b2b-leads.'
 version: "0.1.0"
-compatibility: "Requires @cargo-ai/cli with @cargo-ai/cdk 1.0.98 or later (token-valued app env), @cargo-ai/form-sdk 1.0.2 or later in the website app, a website on Cargo Hosting (website-building), Node.js 22.18 or later, and a Cargo workspace."
+compatibility: "Requires @cargo-ai/cli with @cargo-ai/cdk 1.0.98 or later (token-valued app env), @cargo-ai/form-sdk 1.0.3 or later in the website app, a website on Cargo Hosting (website-building), Node.js 22.18 or later, and a Cargo workspace."
 homepage: https://github.com/getcargohq/gtm-skills/tree/main/inbound-qualification
 metadata:
   author: getcargo
