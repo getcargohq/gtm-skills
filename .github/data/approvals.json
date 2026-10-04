@@ -94,5 +94,11 @@
     "chain": 16,
     "demoWorkspace": null,
     "implementations": []
+  },
+  "social-listening": {
+    "state": "to-be-approved",
+    "chain": 18,
+    "demoWorkspace": null,
+    "implementations": []
   }
 }

@@ -70,9 +70,10 @@
     },
     {
       "title": "Signals",
-      "description": "Deployed pipelines that watch the market for the moment to reach out: who just took a role you sell to.",
+      "description": "Deployed pipelines that watch the market for the moment to reach out: who just took a role you sell to, and which public conversations are worth joining.",
       "skills": [
         "new-hire-detection",
+        "social-listening",
         "visitor-identification"
       ]
     },
@@ -1498,6 +1499,111 @@
         "Re-scoring after the criteria change costs nothing, because the enrichment is already stored. Say so, because users assume otherwise and under-ask as a result.",
         "Richer firmographics exist at a higher tier if a criterion genuinely needs them. Reach for one only when a stated criterion cannot be answered from the fields above, never by default."
       ]
+    },
+    {
+      "name": "social-listening",
+      "kind": "cookbook",
+      "job": "Every Monday the week's public LinkedIn posts about the problem you solve are searched, judged against your ICP, and posted to Slack as one digest: the conversations worth joining, and the commenters in them who look like buyers, each quoted with a link.",
+      "description": "Every Monday the week's public LinkedIn posts about the problem you solve are searched, judged against your ICP, and posted to Slack as one digest: the conversations worth joining, and the commenters in them who look like buyers, each quoted with a link. Triggers: \"tell me which linkedin posts we should comment on\", \"watch linkedin for people talking about our problem\", \"social listening on linkedin\", \"weekly digest of linkedin conversations in our space\", \"who is engaging with posts about our category\", \"monitor linkedin posts mentioning our competitors\". Cargo CDK, LinkedIn fetchPosts, searchPostComments, defineModel, defineAgent, Slack postMessage. Skip when: you want named target accounts checked for hiring, news or detection-feed events, once, which is monitor-buying-signals; or you want people who just took a role you sell to, which is new-hire-detection.",
+      "version": "0.1.0",
+      "homepage": "https://github.com/getcargohq/gtm-skills/tree/main/social-listening",
+      "group": "Signals",
+      "install": "cargo-ai cdk add cookbook/social-listening",
+      "partOf": [],
+      "personas": [
+        "marketing",
+        "sales-development"
+      ],
+      "integrations": [
+        "anthropic",
+        "linkedin",
+        "slack"
+      ],
+      "example": {
+        "prompt": "Every Monday, tell #gtm-signals which LinkedIn conversations about lead routing are worth joining.",
+        "output": "```text\n:ear: *What the market said this week*\n_Routing breakage after CRM migrations came up three times._\n\n*Worth joining*\n• Dana Ruiz, VP RevOps at Fabrikam: \"Our Salesforce migration broke every\n  routing rule we had\" — ICP persona, pain \"routing breaks on field changes\"\n  (linkedin.com/posts/dana-ruiz_fab…) · 41 comments\n• Wingtip Toys Engineering: a teardown of hand-built lead routing — category\n  term \"speed to lead\" (linkedin.com/posts/wingtip…) · 12 comments\n\n*Warm engagers*\n• Sam Okafor, Head of Revenue Operations at Contoso, on Dana's post:\n  \"We rebuilt ours three times this year.\" (linkedin.com/in/sam-okafor)\n\n_Searched: \"lead routing\" OR \"speed to lead\" · 40 posts read, 3 already surfaced_\n```\n\nForty posts were read; two were picked and recorded in `surfaced_posts`, one commenter matched an ICP\npersona, and nothing was sent to anyone."
+      },
+      "state": "to-be-approved",
+      "chain": 18,
+      "resources": [
+        "agents",
+        "connectors",
+        "folders",
+        "models"
+      ],
+      "asked": [
+        {
+          "input": "searchKeywords` (`infra/models/linkedin-posts.ts`)",
+          "kind": "derived",
+          "how": "From the ICP pains, category term and competitors in the workspace context, confirmed against one manual search. Asked only when the context has none.",
+          "why": "It is what you buy each week. Positioning copy as keywords returns vendors talking to each other; buyer language returns buyers."
+        },
+        {
+          "input": "limit` (`infra/models/linkedin-posts.ts`)",
+          "kind": "asked",
+          "how": "20 to 100 in steps of 20. Price it from the live per-post cost before you pick.",
+          "why": "It is the weekly spend ceiling on the search."
+        },
+        {
+          "input": "channelId` (`infra/agents/listener.ts`)",
+          "kind": "asked",
+          "how": "The Slack channel id (`C…`) from the connector's autocomplete. Invite the bot.",
+          "why": "The digest names people. Locked so it never lands in a customer shared channel."
+        }
+      ],
+      "canChange": [
+        {
+          "id": "two-searches",
+          "when": "Pain language and competitor names return different crowds",
+          "how": "Add a second `fetchPosts` model with its own keywords and give the listener read access to both",
+          "cost": "Two searches billed each week. The ledger still dedupes a post that matches both."
+        },
+        {
+          "id": "with-reactions",
+          "when": "Comments are rare in your niche and reactions are the only signal",
+          "how": "Add `linkedin.actions.searchPostReactions` to `uses` and a §4 line to read them on picked posts",
+          "cost": "Billed per reactor, often hundreds a post, and a reaction carries no words to quote. Cap it in the prompt."
+        },
+        {
+          "id": "with-tiers",
+          "when": "account-scoring` is installed and you want engagers at A/B accounts first",
+          "how": "Add the tiered companies model to `uses` read-only, and in §4 match the headline's stated employer by name",
+          "cost": "Name matching misses on abbreviations. Only a headline that states the employer can match; never look it up."
+        },
+        {
+          "id": "daily",
+          "when": "The category moves fast and a weekly digest is stale",
+          "how": "datePosted: \"Past 24 hours\"`, a daily cron on both the model and the agent",
+          "cost": "Seven searches a week instead of one, and a digest most days will be quiet."
+        },
+        {
+          "id": "competitor-only",
+          "when": "You only want to hear when a competitor is discussed",
+          "how": "Keywords become competitor names only",
+          "cost": "You lose the buyers who describe the pain without naming any vendor, which is most of them."
+        }
+      ],
+      "shouldNotChange": [
+        "**No engagement action on `uses`.** (`infra/agents/listener.ts`) Liking, commenting, connecting or messaging from an agent is automated outreach to people who never asked. The contract fails on any of them.",
+        "**The ledger stores posts, never people.** (`infra/models/surfaced-posts.ts`) A standing list of everyone who commented on a topic is a scraped list. The digest names engagers that week, quoted from a public comment, for a human to read.",
+        "**The search is the spend, so it stays in the model's config and capped.** (`infra/models/linkedin-posts.ts`) Removing `limit` or widening `datePosted` re-buys last week's posts every Monday; the sync replaces the rows, so nothing is gained.",
+        "**The ledger is checked before comments are read, and written after the post.** (`infra/agents/listener.prompt.ts` §2, §5, §6) Check late and every re-run re-pays for comments. Write early and a failed post marks posts as surfaced that nobody saw.",
+        "**Comments are read only on picked posts, under the cap.** (`infra/agents/listener.prompt.ts` §4) The comment read bills per comment returned; reading every post's comments is the bill that grows without anyone choosing it.",
+        "**No invented employer.** (`infra/agents/listener.prompt.ts` §4) An engager's company is what their headline states, or nothing. Looking people up elsewhere turns a digest into a dossier.",
+        "**`channelId` is locked.** (`infra/agents/listener.ts`) The digest quotes people by name."
+      ],
+      "doneWhen": [
+        "`node --import tsx evals/contract.mjs` passes",
+        "`cargo-ai cdk plan` reports the agent, the two models, the three connectors and the two folders",
+        "the first sync landed rows in `linkedin_posts`, all from the past week, no more than `limit`",
+        "one digest landed in the locked channel in the `references/digest.md` shape, every pick citing a context line and linking its post",
+        "`surfaced_posts` has one row per pick plus one `digest-<date>` row, and no column holding a person",
+        "a second run the same day posted nothing and read no comments",
+        "the run transcript shows no LinkedIn action other than `searchPostComments`, and only on picks",
+        "every quoted comment exists on the linked post, and every employer shown is in the commenter's own headline"
+      ],
+      "cost": "Read the live price of each paid step immediately before the plan, and say each one out loud:\n\n- `cargo-ai connection integration get linkedin`: the `fetchPosts` extractor (per post returned, so\n  the weekly ceiling is `limit` times that price) and `searchPostComments` (per comment returned).\n- `cargo-ai orchestration action list postMessage --kind connector --integration-slug slack`.\n\nThe weekly cost is one search capped by `limit`, comment reads on at most five posts each capped by\nthe prompt's comment limit, one Slack post, and the agent run billed as LLM tokens through the\nAnthropic connector.",
+      "composesInto": "`account-scoring` (the `with-tiers` variation puts engagers at A and B accounts first),\n`web-capture` (what the market says next to what competitors publish), and `find-linkedin-url` /\n`enrich-linkedin-profile` when a human decides one engager is worth a closer look."
     },
     {
       "name": "stalled-deal-nudge",
