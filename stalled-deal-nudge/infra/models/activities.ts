@@ -2,28 +2,36 @@ import { defineModel } from "@cargo-ai/cdk";
 
 import { modelsFolder } from "../folders";
 
-// Every logged touch on a deal: one row per email, meeting, call or note.
+// Logged activity: one row per meeting, call, email, note or task, against an
+// account and, when there is one, a deal. Read-only for every agent that uses
+// it.
 //
-// Last activity is computed from these rows in SQL, max(occurred_at) per deal,
-// not read off a roll-up property somebody else maintains. A roll-up that a
-// sync forgets to refresh makes every deal look quiet; a row that exists is a
-// touch that happened. The same rows hold the line the draft picks up from.
+// The same slug and columns ship in every pipeline that reads activity
+// (meeting-prep, next-step-tracker, stalled-deal-nudge), so a project that
+// installs several keeps one model: rewire the imports to the first copy and
+// drop the others. Change a column here and change it in all of them.
 //
-// Native and custom, so it deploys with no connector. Fill it from whatever
-// logs your touches: a CRM engagement extract, call-capture, or a sequencer.
+// A native custom model, so the worked example deploys with no CRM. Whatever
+// logs your activity fills it: call-capture's scribe, a sequencer or recorder
+// webhook, a play, a CSV, or `cargo-ai storage record create-bulk`. On a CRM,
+// swap it for a connector-backed model of the CRM's engagements and map their
+// columns onto these (`crm-backed` in SKILL.md).
 export const activities = defineModel("activities", {
   kind: "native",
   extractSlug: "defineCustom",
   config: {
     columns: [
-      { slug: "deal_id", type: "string" },
+      // accounts.id
       { slug: "account_id", type: "string" },
+      // deals.id, or empty when the activity is not tied to a deal.
+      { slug: "deal_id", type: "string" },
       { slug: "occurred_at", type: "date" },
-      // email | meeting | call | note
+      // meeting | call | email | note | task
       { slug: "kind", type: "string" },
       { slug: "subject", type: "string" },
       { slug: "body", type: "string" },
-      { slug: "owner", type: "string" },
+      // Who on our side did it.
+      { slug: "owner_email", type: "string" },
     ],
   },
   folder: modelsFolder,
