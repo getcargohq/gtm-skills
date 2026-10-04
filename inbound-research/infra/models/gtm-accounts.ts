@@ -9,7 +9,12 @@ import { modelsFolder } from "../folders";
 // The play reads the account to hand the researcher what is already known,
 // and seeds `tier` only when it is blank: account-scoring or a rep may
 // have set it on more evidence than one inbound lead carries.
-export const companies = defineModel("companies", {
+//
+// `gtm_accounts` is a shared native model (scripts/native-models.json): every
+// pipeline that needs accounts declares it under this slug, so a project that
+// installs several keeps one, with each pipeline's added columns merged.
+export const gtmAccounts = defineModel("gtm_accounts", {
+  name: "GTM accounts",
   kind: "native",
   extractSlug: "defineAccount",
   folder: modelsFolder,

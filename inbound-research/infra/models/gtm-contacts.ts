@@ -17,7 +17,12 @@ import { modelsFolder } from "../folders";
 //
 // Running a CRM instead? The `crm-backed` variation in SKILL.md swaps this for
 // a connector-backed model and writes back by CRM record id.
-export const people = defineModel("people", {
+//
+// `gtm_contacts` is a shared native model (scripts/native-models.json): every
+// pipeline that needs contacts declares it under this slug, so a project that
+// installs several keeps one, with each pipeline's added columns merged.
+export const gtmContacts = defineModel("gtm_contacts", {
+  name: "GTM contacts",
   kind: "native",
   extractSlug: "defineContact",
   folder: modelsFolder,
