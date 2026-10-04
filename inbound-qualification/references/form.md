@@ -65,6 +65,15 @@ In order, each one refusing the request:
   channel), how long it is kept, and how to ask for it to be removed. Never generate the legal
   text.
 
+## How long the page waits
+
+The form submits in async mode: the API accepts the submission at once and the SDK polls the run.
+A run usually takes well under 30 seconds, most of it the company lookup, but a slow lookup or a
+busy queue can take minutes. `pollTimeoutMs: 30_000` in `components/inbound-form.tsx` is how long
+the visitor waits for the booking link; after that they get the thank-you. The run still finishes,
+so the account, the contact and the Slack post land late, never lost. Raise it only if a qualified
+visitor missing the link on the page costs more than a longer wait.
+
 ## The SDK's own render mode
 
 The workflow's input schema is the form's field list, so the hidden `utm_*`, `page_url` and

@@ -10,7 +10,8 @@ import { Button } from "@/components/ui/button";
 // workflow. It submits in async mode: the API accepts the submission at once
 // and the SDK polls the run, so no request is held open while the company is
 // looked up; the answer (a booking link or a thank-you) shows when the run
-// finishes. If polling gives up first, the visitor gets the thank-you.
+// finishes. After 30 seconds the SDK stops waiting and the visitor gets the
+// thank-you; the run still finishes, so the record and the Slack post land.
 //
 // The SDK loads once the page has hydrated, in its own chunk: loading stamps
 // the time the server's minimum-fill check counts from, so it has to happen
@@ -43,7 +44,11 @@ export function InboundForm() {
     if (toolUuid === undefined || toolUuid === "") return null;
     if (form.current === null) {
       form.current = import("@cargo-ai/form-sdk").then(({ loadForm }) =>
-        loadForm(toolUuid, { render: "headless", mode: "async" }),
+        loadForm(toolUuid, {
+          render: "headless",
+          mode: "async",
+          pollTimeoutMs: 30_000,
+        }),
       );
     }
     return form.current;
