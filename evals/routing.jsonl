@@ -177,3 +177,7 @@
 {"prompt": "Turn our customer wins and insights into weekly LinkedIn drafts for the CEO", "expect": "linkedin-content"}
 {"prompt": "Keep a LinkedIn content pipeline that opens a pull request with drafts each Monday", "expect": "linkedin-content"}
 {"prompt": "Every Monday, read our website and competitors' pages into context", "expect": "web-capture", "why": "Reading the web into context/ is web-capture; linkedin-content only drafts from what context/ already holds."}
+// new-hire-detection, web-capture, win-loss-review and expansion-signals are worked CDK examples
+{"prompt": "Every week, flag which customers coming up on renewal are ready to expand", "expect": "expansion-signals", "why": "Existing customers, every week: the standing tell."}
+{"prompt": "Tell our account managers which customers to call before their renewal", "expect": "expansion-signals"}
+{"prompt": "Post an at-risk renewals digest to the CS channel every Monday", "expect": "expansion-signals"}
