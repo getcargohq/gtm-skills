@@ -60,7 +60,7 @@ assert.equal(
 assert.match(write.config.id?.expression ?? "", /account_id/, "the write targets the deal's account id");
 assert.deepEqual(
   new Set(write.config.mappings.map((mapping) => mapping.columnSlug)),
-  new Set(["cargo_expansion_signal", "cargo_expansion_reason", "cargo_expansion_signal_at"]),
+  new Set(["expansion_signal", "expansion_reason", "expansion_signal_at"]),
   "the play writes only the three expansion columns, by bare slug",
 );
 

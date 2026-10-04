@@ -23,7 +23,7 @@ export const companies = defineModel("companies", {
   additionalColumns: [
     {
       kind: "custom",
-      slug: "cargo_expansion_signal",
+      slug: "expansion_signal",
       type: "string",
       label: "Expansion signal",
       description:
@@ -31,7 +31,7 @@ export const companies = defineModel("companies", {
     },
     {
       kind: "custom",
-      slug: "cargo_expansion_reason",
+      slug: "expansion_reason",
       type: "string",
       label: "Expansion reason",
       description:
@@ -39,7 +39,7 @@ export const companies = defineModel("companies", {
     },
     {
       kind: "custom",
-      slug: "cargo_expansion_signal_at",
+      slug: "expansion_signal_at",
       type: "date",
       label: "Expansion judged at",
       description:

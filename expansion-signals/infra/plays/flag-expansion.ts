@@ -39,12 +39,12 @@ const flagAccount = defineWorkflow(
       modelUuid: companies.uuid,
       id: input.account_id,
       mappings: [
-        { columnSlug: "cargo_expansion_signal", value: judgment.answer.signal },
+        { columnSlug: "expansion_signal", value: judgment.answer.signal },
         {
-          columnSlug: "cargo_expansion_reason",
+          columnSlug: "expansion_reason",
           value: `${judgment.answer.reason} Play: ${judgment.answer.suggested_play} Sources: ${judgment.answer.evidence_urls}`,
         },
-        { columnSlug: "cargo_expansion_signal_at", value: new Date() },
+        { columnSlug: "expansion_signal_at", value: new Date() },
       ],
     });
 

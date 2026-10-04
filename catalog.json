@@ -1069,7 +1069,7 @@
         {
           "id": "crm-backed",
           "when": "The customers and deals live in HubSpot, Salesforce or Attio",
-          "how": "Add a `defineConnector` for the CRM (`default: true`). Replace both native models with connector-backed ones: `extractSlug: \"fetchRecords\"`, `config: { objectType: \"companies\" }` and `\"deals\"`, `columnSelectionMode: \"all\"`, an hourly `schedule`, and never a filter. Run the play on the deals model with the CRM's won flag and close date (HubSpot: `hs_is_closed_won`, `closedate`; or put it on companies and filter the `recent_deal_close_date` roll-up). Create three custom company properties (`cargo_expansion_signal` text, `cargo_expansion_reason` multi-line text, `cargo_expansion_signal_at` date) and replace `model.customColumn` with the CRM's `updateRecords` on `companies`, matched on the record id (`hs_object_id` of the deal's associated company), with those three mappings.",
+          "how": "Add a `defineConnector` for the CRM (`default: true`). Replace both native models with connector-backed ones: `extractSlug: \"fetchRecords\"`, `config: { objectType: \"companies\" }` and `\"deals\"`, `columnSelectionMode: \"all\"`, an hourly `schedule`, and never a filter. Run the play on the deals model with the CRM's won flag and close date (HubSpot: `hs_is_closed_won`, `closedate`; or put it on companies and filter the `recent_deal_close_date` roll-up). Create three custom company properties (`expansion_signal` text, `expansion_reason` multi-line text, `expansion_signal_at` date) and replace `model.customColumn` with the CRM's `updateRecords` on `companies`, matched on the record id (`hs_object_id` of the deal's associated company), with those three mappings.",
           "cost": "A write to a property that does not exist fails every row, so create them first. Never sit a unify step between the play and the write: it reports success and nothing lands."
         },
         {
@@ -1081,7 +1081,7 @@
         {
           "id": "whole-book",
           "when": "You want every customer judged on a cadence, not only near renewal",
-          "how": "Move the play to `companies`, filter on `custom__cargo_expansion_signal_at` being empty or older than ninety days, and let the analyst decide in SQL whether the account has a win at all",
+          "how": "Move the play to `companies`, filter on `custom__expansion_signal_at` being empty or older than ninety days, and let the analyst decide in SQL whether the account has a win at all",
           "cost": "Every account in the book is judged each cycle, customers or not, at one agent run and up to three searches each."
         },
         {
@@ -1100,7 +1100,7 @@
       "shouldNotChange": [
         "**Customer status is computed from won deals, not kept as a flag.** (`infra/agents/analyst.ts`) A hand-kept \"customer\" column is a second answer to the question the deals already answer, and it drifts: an account that renewed early would be judged as if it had not.",
         "**The play writes the account by its id, and only the three expansion columns.** (`infra/plays/flag-expansion.ts`) A write to a deal or owner turns a judgment into a forecast change nobody approved. In the `crm-backed` shape, a unify step between the play and the write reports success while nothing lands. The contract fails on either.",
-        "**Bare column slugs on the write.** The read side calls them `custom__cargo_expansion_signal`; the write takes `cargo_expansion_signal`. A prefixed slug is silently dropped while the node still reports success.",
+        "**Bare column slugs on the write.** The read side calls them `custom__expansion_signal`; the write takes `expansion_signal`. A prefixed slug is silently dropped while the node still reports success.",
         "**The analyst reads, never writes.** (`infra/agents/analyst.ts`) An agent that can write decides its own routing, and a missing signal could then be a failed run, a skip or a choice.",
         "**`changeKinds: [\"added\"]` stays.** It is what judges each renewal once. Without it every won deal in the window is re-judged every Monday for two months, and each run overwrites the last reason.",
         "**The digest re-judges nothing.** (`infra/agents/digest.ts`) It reads the reason the account carries. A second judgment in Slack is how the record and the channel disagree about one account.",

@@ -12,8 +12,8 @@ Salesforce and Attio are the `crm-backed` variation in `SKILL.md`.
 - An agent judges the account from its won deals in SQL (a newer win, the cadence, the last price),
   your expansion plays in the workspace context, and dated public events: `renewal`, `expansion`,
   `repeat_purchase`, `at_risk` or `none`, with a reason, a play and its sources.
-- The play writes `cargo_expansion_signal`, `cargo_expansion_reason` and
-  `cargo_expansion_signal_at` onto the account record by id, and nothing else.
+- The play writes `expansion_signal`, `expansion_reason` and
+  `expansion_signal_at` onto the account record by id, and nothing else.
 - A digest agent posts one Slack message that afternoon, at-risk first, and records the week in a
   ledger so a re-run posts nothing.
 
