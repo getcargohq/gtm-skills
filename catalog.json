@@ -77,8 +77,9 @@
     },
     {
       "title": "Engagement",
-      "description": "Deployed pipelines that hold the conversation: an agent answering every lead who replies.",
+      "description": "Deployed pipelines that hold the conversation: every demo request answered on the page, and an agent answering every lead who replies.",
       "skills": [
+        "website-forms",
         "agentic-engagement"
       ]
     },
@@ -1870,6 +1871,91 @@
       ],
       "cost": "Each merge is one deployment of a static app; read the workspace's current hosting usage before\nthe first deploy, and say what you found. Adopting a domain the workspace owns adds no charge.\nRegistering one (`register-domain`) charges workspace credits once and is **not refundable**: read\nthe current price and the credit balance before proposing it, and quote both with the plan. A\nworking form adds whatever its backend costs. Nothing in the workspace runs on a schedule; your\ncoding agent's usage is the rest.",
       "composesInto": "Nothing in particular comes after it. It reads the positioning and customer language in\n`context/`, so the pages get better as that context does."
+    },
+    {
+      "name": "website-forms",
+      "kind": "cookbook",
+      "job": "Turn the website's demo form into qualified inbound: each submission runs a Cargo tool that identifies the company from the work email, qualifies it against the ICP, lands the account and contact in the shared GTM models, posts it to Slack, and answers on the page with a booking link or a thank-you.",
+      "description": "Turn the website's demo form into qualified inbound: each submission runs a Cargo tool that identifies the company from the work email, qualifies it against the ICP, lands the account and contact in the shared GTM models, posts it to Slack, and answers on the page with a booking link or a thank-you. Triggers: \"add a demo form to our website\", \"handle inbound leads\", \"route website form submissions\", \"qualify inbound demo requests\", \"contact form that books meetings\", \"inbound lead flow\", \"Cargo public form\". Cargo CDK, defineTool, publicForm, @cargo-ai/form-sdk, gtm_accounts, gtm_contacts. Skip when: you want to know which companies visit without them filling anything in, which is website-visitors; the site itself does not exist yet, which is website-building first; or the leads come from a list rather than the website, which is find-b2b-leads.",
+      "version": "0.1.0",
+      "homepage": "https://github.com/getcargohq/gtm-skills/tree/main/website-forms",
+      "group": "Engagement",
+      "install": "cargo-ai cdk add cookbook/website-forms",
+      "partOf": [],
+      "personas": [
+        "marketing",
+        "sales-development",
+        "gtm-engineering"
+      ],
+      "integrations": [
+        "linkedin",
+        "slack"
+      ],
+      "example": {
+        "prompt": "Add a demo form to www.fabrikam.example: qualified companies get our booking link, the rest a thank-you, and the sales channel hears about every request.",
+        "output": "```text\ntool:inbound_form        deployed   public form on https://www.fabrikam.example\nPOST /contact            ada@northwind.example    -> qualified      (320 employees, United States)\n  gtm_accounts           northwind.example        upserted\n  gtm_contacts           ada@northwind.example    lead_source website, inbound_status qualified\n  #inbound               \"New inbound, qualified from Ada Lovelace at Northwind\"\n  page                   \"Thanks, let's find a time.\"  [Book a demo]\nPOST /contact            sam@gmail.com            -> work_email_required   (nothing paid or written)\n```"
+      },
+      "state": "to-be-approved",
+      "chain": 14,
+      "resources": [
+        "connectors",
+        "folders",
+        "models",
+        "tools"
+      ],
+      "asked": [],
+      "canChange": [
+        {
+          "id": "crm-backed",
+          "when": "Contacts belong in HubSpot, Salesforce or Attio",
+          "how": "Replace the two `model.upsert` calls with the CRM connector's upsert (matched on domain and email), same fields ([data](references/data.md))",
+          "cost": "The worked example no longer deploys on a bare workspace; CRM properties must exist first."
+        },
+        {
+          "id": "agent-qualification",
+          "when": "The ICP does not reduce to headcount and country",
+          "how": "Replace the rules with an agent that reads the ICP from `context/` and returns a verdict and a reason",
+          "cost": "Each submission pays for a model call, and the answer is less predictable."
+        },
+        {
+          "id": "owner-routing",
+          "when": "More than one rep takes inbound",
+          "how": "Assign `owner_id` on the contact by territory or round robin before the Slack post, and mention the owner",
+          "cost": "An owner table to keep current, and a fallback when nobody matches."
+        },
+        {
+          "id": "turnstile",
+          "when": "Spam gets through the honeypot, time-trap and rate limit",
+          "how": "publicForm.spam.captchaProvider: \"turnstile\"`, the site key, `captchaSecret: env(\"TURNSTILE_SECRET\")`, the widget on the page",
+          "cost": "A third-party script on the page, with its own privacy disclosure."
+        },
+        {
+          "id": "accept-personal-email",
+          "when": "A form that is not about the company (newsletter, events)",
+          "how": "Drop the free-mail refusal, skip enrichment for those domains",
+          "cost": "No company to qualify or route; those contacts arrive without an account."
+        }
+      ],
+      "shouldNotChange": [
+        "**The public form allows only the site's origin.** (`infra/tools/inbound-form.ts`) `*` lets any page on the internet submit into the workspace and spend its credits.",
+        "**Nothing is paid or written before the cheap checks.** A personal email is refused before the enrichment call; the paid call comes before any write.",
+        "**The company is enriched, never the person.** No person lookup, no personal email or phone search on a submitter.",
+        "**The shared models stay shared.** `gtm_accounts` and `gtm_contacts` keep their exact definition; what only inbound needs is an added column under a plain name.",
+        "**No CAPTCHA secret in the repository.** It goes through `env()`.",
+        "**The SDK loads on first interaction, not with the page.** (`site/components/inbound-form.tsx`) Otherwise every visitor gets its id cookie and UTM capture whether they fill the form or not.",
+        "**Marketing email only with the box ticked.** `marketing_consent` is recorded per contact; a demo request alone is not consent to a newsletter."
+      ],
+      "doneWhen": [
+        "`node --import tsx evals/contract.mjs` passes: one tool whose public form is enabled for exactly the canonical origin with no CAPTCHA secret in code, a workflow that refuses personal email before the enrichment call and writes only `gtm_accounts` and `gtm_contacts`, both models matching the shared definitions",
+        "the plan shows the tool, the models and the connectors, and the app update with the env token",
+        "a work-email submission on the live site returns the right answer on the page, upserts the account and the contact (with `account_id`, `lead_source` `website`, `inbound_status`), and posts once to the Slack channel",
+        "a personal-email submission is refused on the page, with no enrichment call and no row written",
+        "a submission from another origin is refused with 403, and one sent faster than the minimum fill time is refused",
+        "loading the contact page sets no `cargo_anon_id` cookie until the form is focused",
+        "the privacy page has a contact form section the operator reviewed"
+      ],
+      "cost": "Each submission from a work email pays for one LinkedIn company enrichment; a refused personal\nemail pays nothing. Read the live price from the integration (`cargo-ai connection integration get\nlinkedin`) and say it per submission. The server's rate limit caps a single address at ten\nsubmissions a minute, and the origin allow-list keeps other sites from spending it. The models and\nthe Slack post add nothing.",
+      "composesInto": "`website-building` (the site the form sits on), `website-visitors` (the companies that read the\nsite without filling the form in), `score-leads` (inbound contacts scored against the ICP before\na rep calls), and `agentic-engagement` (a follow-up to a contact who ticked the consent box)."
     },
     {
       "name": "weekly-planning",
