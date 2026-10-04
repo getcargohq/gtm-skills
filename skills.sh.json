@@ -71,9 +71,10 @@
     },
     {
       "title": "Signals",
-      "description": "Deployed pipelines that watch the market for the moment to reach out: who just took a role you sell to.",
+      "description": "Deployed pipelines that watch the market for the moment to reach out: who just took a role you sell to, and which public conversations are worth joining.",
       "skills": [
         "new-hire-detection",
+        "social-listening",
         "visitor-identification"
       ]
     },

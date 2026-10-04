@@ -168,3 +168,7 @@
 {"prompt": "Flag opportunities with no activity in two weeks and draft the follow-up", "expect": "stalled-deal-nudge"}
 {"prompt": "Weekly stalled deal report in Slack", "expect": "stalled-deal-nudge"}
 {"prompt": "Rank last week's GTM work against our initiatives and say what to do next", "expect": "weekly-planning", "why": "Initiatives and next moves are weekly-planning; stalled-deal-nudge only lists quiet open deals per owner."}
+// new-hire-detection, social-listening, web-capture and win-loss-review are worked CDK examples
+{"prompt": "Every week tell me which LinkedIn posts about our problem we should comment on", "expect": "social-listening", "why": "Every week, public posts, worth joining: the standing tell."}
+{"prompt": "Set up social listening on LinkedIn for lead routing and our competitors", "expect": "social-listening"}
+{"prompt": "Who is engaging with LinkedIn posts in our category, as a weekly digest in Slack", "expect": "social-listening"}
