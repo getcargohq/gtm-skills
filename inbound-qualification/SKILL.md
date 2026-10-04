@@ -1,7 +1,7 @@
 ---
 name: inbound-qualification
-description: 'Turn the website''s demo form into qualified inbound: each submission runs a Cargo tool that identifies the company from the work email, qualifies it against the ICP, lands the account and contact in the shared GTM models, posts it to Slack, and answers on the page with a booking link or a thank-you. Triggers: "add a demo form to our website", "handle inbound leads", "route website form submissions", "qualify inbound demo requests", "contact form that books meetings", "inbound lead flow", "Cargo public form". Cargo CDK, defineTool, publicForm, @cargo-ai/form-sdk, gtm_accounts, gtm_contacts. Skip when: you want to know which companies visit without them filling anything in, which is visitor-identification; the site itself does not exist yet, which is website-building first; or the leads come from a list rather than the website, which is find-b2b-leads.'
-version: "0.1.0"
+description: 'Turn the website''s demo form into qualified inbound: each submission runs a Cargo tool that identifies the company from the work email, qualifies it against the ICP, lands the account and contact in the shared GTM models, posts it to Slack, and answers on the page with a booking link or a thank-you; after the page has answered, a play can research each qualified lead in depth and write a tier and a brief onto the contact. Triggers: "add a demo form to our website", "handle inbound leads", "route website form submissions", "qualify inbound demo requests", "contact form that books meetings", "inbound lead flow", "Cargo public form", "research every inbound lead as it lands", "write a brief and a tier onto each demo request". Cargo CDK, defineTool, publicForm, @cargo-ai/form-sdk, definePlay, defineAgent, gtm_accounts, gtm_contacts. Skip when: you want to know which companies visit without them filling anything in, which is visitor-identification; the site itself does not exist yet, which is website-building first; or the leads come from a list rather than the website, which is find-b2b-leads.'
+version: "0.2.0"
 compatibility: "Requires @cargo-ai/cli with @cargo-ai/cdk 1.0.98 or later (token-valued app env), @cargo-ai/form-sdk 1.0.3 or later in the website app, a website on Cargo Hosting (website-building), Node.js 22.18 or later, and a Cargo workspace."
 homepage: https://github.com/getcargohq/gtm-skills/tree/main/inbound-qualification
 metadata:
@@ -32,7 +32,7 @@ qualified, they land in the workspace's accounts and contacts, the team hears ab
 and the page answers them: a booking link if they fit, a thank-you otherwise. There is no backend
 to run and no form vendor: the form is a Cargo tool.
 
-Four pieces make it:
+Five pieces make it:
 
 1. **A tool with a public form.** `defineTool("inbound_form", { workflow, publicForm })`. The
    workflow's input is the form's fields; `publicForm` allows only the site's origin and sets the
@@ -45,6 +45,13 @@ Four pieces make it:
 4. **The form on the site.** Rendered with the site's own markup and run headless through
    `@cargo-ai/form-sdk`, loaded once the page has hydrated. The tool's uuid arrives as the
    app env token `inboundForm.uuid`.
+5. **Deep research, after the page has answered.** A play on `gtm_contacts`, shipped disabled,
+   runs once for each contact the form marked `qualified`: an agent reads the ICP and the tiering
+   rubric from the workspace context, researches the company and the person's role with web
+   search, and returns a tier and a three-sentence brief. The play writes `inbound_tier`,
+   `inbound_brief`, `inbound_rationale` and `inbound_researched_at` onto the contact and posts a
+   short note to the same channel. It never runs on the submission path, so the visitor never
+   waits on it.
 
 **Two things worth knowing before you start.** The company is enriched, never the person: the
 person already said who they are. And the server's minimum fill time counts from when the SDK
@@ -64,6 +71,9 @@ POST /contact            ada@northwind.example    -> qualified      (320 employe
   gtm_contacts           ada@northwind.example    lead_source website, inbound_status qualified
   #inbound               "New inbound, qualified from Ada Lovelace at Northwind"
   page                   "Thanks, let's find a time."  [Book a demo]
+play research_qualified_leads (minutes later, once enabled)
+  gtm_contacts           ada@northwind.example    inbound_tier A, inbound_brief written
+  #inbound               ":mag: Ada Lovelace: tier A. Head of RevOps at Northwind, ..."
 POST /contact            sam@gmail.com            -> work_email_required   (nothing paid or written)
 ```
 
@@ -105,9 +115,11 @@ not, this is enough.
 | ----------------------------------------- | ------- | ----------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
 | ICP rules (`infra/tools/inbound-form.ts`) | derived | the ICP in `context/`: headcount band and ISO country codes, confirmed with one live enrichment | Decides who sees the booking link. Rules nobody can read back are the reason inbound stops being trusted. |
 | site origin (`publicForm.allowedOrigins`) | derived | the website app's `site.json` `canonicalUrl`, without the trailing slash                        | Every other origin is refused with 403. A missing origin is a form that never submits.                    |
-| Slack channel (`slackChannelId`)          | asked   | the channel's id, resolved through the Slack connector's autocomplete                           | Every submission is posted there and only there.                                                          |
+| Slack channel (`infra/settings.ts`)      | asked   | the channel's id, resolved through the Slack connector's autocomplete                           | Every submission and every research note is posted there and only there.                                  |
 | booking link (`bookingUrl`)               | asked   | the team's scheduling page                                                                      | What a qualified visitor is sent to, on the page, while they are still on it.                             |
 | privacy disclosure                        | asked   | the operator's reviewed page, with a contact form section                                       | The form collects personal data. This skill never writes legal text.                                      |
+| tiering rubric (deep research)            | derived | the ICP and the account tiering rubric in `context/` (account-scoring's, when installed)        | What the research agent tiers against. With no rubric it tiers on the ICP alone and says so.              |
+| enable the research play                  | asked   | after a pilot: run `research_qualified_leads` by hand on one qualified contact, read the note   | Each run pays for an agent call. It ships disabled, and `added` does not backfill while it was off.       |
 
 Checked before moving on, not after the deploy:
 
@@ -129,6 +141,8 @@ waiting to be asked. Every one costs something.
 | `owner-routing`         | More than one rep takes inbound                           | Assign `owner_id` on the contact by territory or round robin before the Slack post, and mention the owner                                    | An owner table to keep current, and a fallback when nobody matches.                        |
 | `turnstile`             | Spam gets through the honeypot, time-trap and rate limit  | `publicForm.spam.captchaProvider: "turnstile"`, the site key, `captchaSecret: env("TURNSTILE_SECRET")`, the widget on the page               | A third-party script on the page, with its own privacy disclosure.                         |
 | `accept-personal-email` | A form that is not about the company (newsletter, events) | Drop the free-mail refusal, skip enrichment for those domains                                                                                | No company to qualify or route; those contacts arrive without an account.                  |
+| `no-deep-research`      | The form's rules and the Slack post are enough            | Delete `infra/plays/research-qualified-leads.ts`, `infra/agents/lead-researcher.ts` and the Anthropic connector                              | No tier or brief on the contact; the team researches by hand.                              |
+| `research-every-submitter` | Not-qualified leads are worth a look too               | Drop the `inbound_status` condition from the research play's filter                                                                         | An agent call per submission, including the ones the rules already turned away.            |
 
 ## What should not change
 
@@ -147,6 +161,14 @@ it if you still want it, and records why under `## Decisions` in your copy of th
 - **The SDK loads once the page has hydrated.** (`site/components/inbound-form.tsx`) Its load
   time is what the minimum fill time counts from. Loaded on a focus event, a focus before hydration
   is lost and the visitor's submission is refused as a bot. Its id cookie is set only on submit.
+- **Research never runs on the submission path.** (`infra/plays/research-qualified-leads.ts`) The
+  form's workflow calls no agent; the research is a separate play on the contact row. Inside the
+  form's workflow it would hold the page answer for as long as the research takes, and a slow
+  search would show the visitor a spinner instead of a booking link.
+- **Workflow bodies stay plain.** Calls, writes and template strings. A body is parsed from source,
+  and optional chaining (`?.`) passed check and plan, then failed a live run with
+  `OptionalMemberExpression … got "MemberExpression"`. The contract rejects `?.` and `??` in the
+  research play's compiled expressions.
 - **Marketing email only with the box ticked.** `marketing_consent` is recorded per contact; a
   demo request alone is not consent to a newsletter.
 
@@ -165,6 +187,10 @@ it if you still want it, and records why under `## Decisions` in your copy of th
   time is refused
 - loading the contact page sets no `cargo_anon_id` cookie until a submission
 - the privacy page has a contact form section the operator reviewed
+- the research play, run by hand on one qualified contact, wrote `inbound_tier`, `inbound_brief`,
+  `inbound_rationale` and `inbound_researched_at` onto it and posted one note; a second manual run
+  on the same contact did nothing
+- every fact in the brief traces to the record or a listed source
 
 ## What it costs
 
@@ -172,10 +198,13 @@ Each submission from a work email pays for one LinkedIn company enrichment; a re
 email pays nothing. Read the live price from the integration (`cargo-ai connection integration get
 linkedin`) and say it per submission. The server's rate limit caps a single address at ten
 submissions a minute, and the origin allow-list keeps other sites from spending it. The models and
-the Slack post add nothing.
+the Slack post add nothing. The deep research, once enabled, adds one agent run per qualified
+contact (LLM tokens on the Anthropic connector plus up to four web searches); a not-qualified or
+personal-email submission never reaches it.
 
 ## Composes into
 
 `website-building` (the site the form sits on), `visitor-identification` (the companies that read
-the site without filling the form in), `score-leads` (inbound contacts scored against the ICP before
-a rep calls), and `agentic-engagement` (a follow-up to a contact who ticked the consent box).
+the site without filling the form in), `account-scoring` (its tiering rubric is the one the research
+tiers against, so an inbound lead and a sourced account are tiered alike), `score-leads` (inbound
+contacts scored against the ICP before a rep calls), and `agentic-engagement` (a follow-up to a contact who ticked the consent box).

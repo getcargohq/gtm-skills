@@ -1287,9 +1287,9 @@
     {
       "name": "inbound-qualification",
       "kind": "cookbook",
-      "job": "Turn the website's demo form into qualified inbound: each submission runs a Cargo tool that identifies the company from the work email, qualifies it against the ICP, lands the account and contact in the shared GTM models, posts it to Slack, and answers on the page with a booking link or a thank-you.",
-      "description": "Turn the website's demo form into qualified inbound: each submission runs a Cargo tool that identifies the company from the work email, qualifies it against the ICP, lands the account and contact in the shared GTM models, posts it to Slack, and answers on the page with a booking link or a thank-you. Triggers: \"add a demo form to our website\", \"handle inbound leads\", \"route website form submissions\", \"qualify inbound demo requests\", \"contact form that books meetings\", \"inbound lead flow\", \"Cargo public form\". Cargo CDK, defineTool, publicForm, @cargo-ai/form-sdk, gtm_accounts, gtm_contacts. Skip when: you want to know which companies visit without them filling anything in, which is visitor-identification; the site itself does not exist yet, which is website-building first; or the leads come from a list rather than the website, which is find-b2b-leads.",
-      "version": "0.1.0",
+      "job": "Turn the website's demo form into qualified inbound: each submission runs a Cargo tool that identifies the company from the work email, qualifies it against the ICP, lands the account and contact in the shared GTM models, posts it to Slack, and answers on the page with a booking link or a thank-you; after the page has answered, a play can research each qualified lead in depth and write a tier and a brief onto the contact.",
+      "description": "Turn the website's demo form into qualified inbound: each submission runs a Cargo tool that identifies the company from the work email, qualifies it against the ICP, lands the account and contact in the shared GTM models, posts it to Slack, and answers on the page with a booking link or a thank-you; after the page has answered, a play can research each qualified lead in depth and write a tier and a brief onto the contact. Triggers: \"add a demo form to our website\", \"handle inbound leads\", \"route website form submissions\", \"qualify inbound demo requests\", \"contact form that books meetings\", \"inbound lead flow\", \"Cargo public form\", \"research every inbound lead as it lands\", \"write a brief and a tier onto each demo request\". Cargo CDK, defineTool, publicForm, @cargo-ai/form-sdk, definePlay, defineAgent, gtm_accounts, gtm_contacts. Skip when: you want to know which companies visit without them filling anything in, which is visitor-identification; the site itself does not exist yet, which is website-building first; or the leads come from a list rather than the website, which is find-b2b-leads.",
+      "version": "0.2.0",
       "homepage": "https://github.com/getcargohq/gtm-skills/tree/main/inbound-qualification",
       "group": "Engagement",
       "install": "cargo-ai cdk add cookbook/inbound-qualification",
@@ -1300,19 +1300,22 @@
         "gtm-engineering"
       ],
       "integrations": [
+        "anthropic",
         "linkedin",
         "slack"
       ],
       "example": {
         "prompt": "Add a demo form to www.fabrikam.example: qualified companies get our booking link, the rest a thank-you, and the sales channel hears about every request.",
-        "output": "```text\ntool:inbound_form        deployed   public form on https://www.fabrikam.example\nPOST /contact            ada@northwind.example    -> qualified      (320 employees, United States)\n  gtm_accounts           northwind.example        upserted\n  gtm_contacts           ada@northwind.example    lead_source website, inbound_status qualified\n  #inbound               \"New inbound, qualified from Ada Lovelace at Northwind\"\n  page                   \"Thanks, let's find a time.\"  [Book a demo]\nPOST /contact            sam@gmail.com            -> work_email_required   (nothing paid or written)\n```"
+        "output": "```text\ntool:inbound_form        deployed   public form on https://www.fabrikam.example\nPOST /contact            ada@northwind.example    -> qualified      (320 employees, United States)\n  gtm_accounts           northwind.example        upserted\n  gtm_contacts           ada@northwind.example    lead_source website, inbound_status qualified\n  #inbound               \"New inbound, qualified from Ada Lovelace at Northwind\"\n  page                   \"Thanks, let's find a time.\"  [Book a demo]\nplay research_qualified_leads (minutes later, once enabled)\n  gtm_contacts           ada@northwind.example    inbound_tier A, inbound_brief written\n  #inbound               \":mag: Ada Lovelace: tier A. Head of RevOps at Northwind, ...\"\nPOST /contact            sam@gmail.com            -> work_email_required   (nothing paid or written)\n```"
       },
       "state": "approved",
       "chain": 15,
       "resources": [
+        "agents",
         "connectors",
         "folders",
         "models",
+        "plays",
         "tools"
       ],
       "asked": [],
@@ -1346,6 +1349,18 @@
           "when": "A form that is not about the company (newsletter, events)",
           "how": "Drop the free-mail refusal, skip enrichment for those domains",
           "cost": "No company to qualify or route; those contacts arrive without an account."
+        },
+        {
+          "id": "no-deep-research",
+          "when": "The form's rules and the Slack post are enough",
+          "how": "Delete `infra/plays/research-qualified-leads.ts`, `infra/agents/lead-researcher.ts` and the Anthropic connector",
+          "cost": "No tier or brief on the contact; the team researches by hand."
+        },
+        {
+          "id": "research-every-submitter",
+          "when": "Not-qualified leads are worth a look too",
+          "how": "Drop the `inbound_status` condition from the research play's filter",
+          "cost": "An agent call per submission, including the ones the rules already turned away."
         }
       ],
       "shouldNotChange": [
@@ -1355,6 +1370,8 @@
         "**The shared models stay shared.** `gtm_accounts` and `gtm_contacts` keep their exact definition; what only inbound needs is an added column under a plain name.",
         "**No CAPTCHA secret in the repository.** It goes through `env()`.",
         "**The SDK loads once the page has hydrated.** (`site/components/inbound-form.tsx`) Its load time is what the minimum fill time counts from. Loaded on a focus event, a focus before hydration is lost and the visitor's submission is refused as a bot. Its id cookie is set only on submit.",
+        "**Research never runs on the submission path.** (`infra/plays/research-qualified-leads.ts`) The form's workflow calls no agent; the research is a separate play on the contact row. Inside the form's workflow it would hold the page answer for as long as the research takes, and a slow search would show the visitor a spinner instead of a booking link.",
+        "**Workflow bodies stay plain.** Calls, writes and template strings. A body is parsed from source, and optional chaining (`?.`) passed check and plan, then failed a live run with `OptionalMemberExpression … got \"MemberExpression\"`. The contract rejects `?.` and `??` in the research play's compiled expressions.",
         "**Marketing email only with the box ticked.** `marketing_consent` is recorded per contact; a demo request alone is not consent to a newsletter."
       ],
       "doneWhen": [
@@ -1364,10 +1381,12 @@
         "a personal-email submission is refused on the page, with no enrichment call and no row written",
         "a submission from another origin is refused with 403, and one sent faster than the minimum fill time is refused",
         "loading the contact page sets no `cargo_anon_id` cookie until a submission",
-        "the privacy page has a contact form section the operator reviewed"
+        "the privacy page has a contact form section the operator reviewed",
+        "the research play, run by hand on one qualified contact, wrote `inbound_tier`, `inbound_brief`, `inbound_rationale` and `inbound_researched_at` onto it and posted one note; a second manual run on the same contact did nothing",
+        "every fact in the brief traces to the record or a listed source"
       ],
-      "cost": "Each submission from a work email pays for one LinkedIn company enrichment; a refused personal\nemail pays nothing. Read the live price from the integration (`cargo-ai connection integration get\nlinkedin`) and say it per submission. The server's rate limit caps a single address at ten\nsubmissions a minute, and the origin allow-list keeps other sites from spending it. The models and\nthe Slack post add nothing.",
-      "composesInto": "`website-building` (the site the form sits on), `visitor-identification` (the companies that read\nthe site without filling the form in), `score-leads` (inbound contacts scored against the ICP before\na rep calls), and `agentic-engagement` (a follow-up to a contact who ticked the consent box)."
+      "cost": "Each submission from a work email pays for one LinkedIn company enrichment; a refused personal\nemail pays nothing. Read the live price from the integration (`cargo-ai connection integration get\nlinkedin`) and say it per submission. The server's rate limit caps a single address at ten\nsubmissions a minute, and the origin allow-list keeps other sites from spending it. The models and\nthe Slack post add nothing. The deep research, once enabled, adds one agent run per qualified\ncontact (LLM tokens on the Anthropic connector plus up to four web searches); a not-qualified or\npersonal-email submission never reaches it.",
+      "composesInto": "`website-building` (the site the form sits on), `visitor-identification` (the companies that read\nthe site without filling the form in), `account-scoring` (its tiering rubric is the one the research\ntiers against, so an inbound lead and a sourced account are tiered alike), `score-leads` (inbound\ncontacts scored against the ICP before a rep calls), and `agentic-engagement` (a follow-up to a contact who ticked the consent box)."
     },
     {
       "name": "linkedin-content",

@@ -60,5 +60,38 @@ export const gtmContacts = defineModel("gtm_contacts", {
       description:
         "Whether the submitter ticked the box to receive product news by email.",
     },
+    // Written by the deep-research play, after the page has answered.
+    {
+      kind: "custom",
+      slug: "inbound_tier",
+      type: "string",
+      label: "Inbound tier",
+      description:
+        "A, B, C or disqualified, from the tiering rubric in the workspace context.",
+    },
+    {
+      kind: "custom",
+      slug: "inbound_brief",
+      type: "string",
+      label: "Inbound brief",
+      description:
+        "At most three sentences: who they are, what the company does, why they might be talking to us now.",
+    },
+    {
+      kind: "custom",
+      slug: "inbound_rationale",
+      type: "string",
+      label: "Inbound rationale",
+      description:
+        "The rubric lines that decided the tier, the evidence behind them, and the pages relied on.",
+    },
+    {
+      kind: "custom",
+      slug: "inbound_researched_at",
+      type: "date",
+      label: "Inbound researched at",
+      description:
+        "When the deep research was written. Blank until then: the play's once-only key.",
+    },
   ],
 });
