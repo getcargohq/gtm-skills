@@ -77,6 +77,11 @@ exception, because there the search is the data source rather than a filter
 on it: `aiArk.fetchCompanies` or a Sales Navigator search bills per returned
 record, so its query in `config` is what decides what you buy.
 
+**Native models first.** A worked example runs on Cargo native models, not a CRM connector, so it
+deploys on a bare workspace. When the outcome needs accounts, contacts, opportunities or activity,
+declare the shared `gtm_*` models exactly as `references/native-models.md` defines them;
+`scripts/check-native-models.mjs` fails on drift. The CRM is the `crm-backed` variation.
+
 ## 2. Description (the only text before load)
 
 Four parts, in order:
@@ -161,9 +166,12 @@ record, the play runs on that CRM extract and matches the CRM record id.
 Do not sit a native `unifyAccounts` / `ids` map between the play and the
 write — the run looks successful and nothing lands.
 
-**One CRM shape in the file.** HubSpot as the checked example; Salesforce
-and Attio adapt that file (connector, extractor, record-id, write action,
-fill-blank guard). No parallel branches.
+**One shape in the file.** A new pipeline's checked example runs on the
+shared `gtm_*` native models (`references/native-models.md`); its
+`crm-backed` variation names the HubSpot swap, and Salesforce and Attio adapt
+that (connector, extractor, record-id, write action, fill-blank guard). A
+pipeline whose whole job is a CRM (crm-enrichment, crm-deduplication) keeps
+HubSpot as its checked example. No parallel branches.
 
 CDK workflow bodies must compile. These fail `cargo-cdk check` / `plan`:
 `undefined`/`void`, comma / SequenceExpression, `Date#getTime()`.

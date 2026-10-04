@@ -1,0 +1,58 @@
+{
+  "$comment": "The shared native models every pipeline declares under these slugs. scripts/check-native-models.mjs fails when a pipeline's copy drifts. The prose is .agents/skills/create-gtm-skill/references/native-models.md.",
+  "models": {
+    "gtm_accounts": {
+      "name": "GTM accounts",
+      "extractorSlug": "defineAccount"
+    },
+    "gtm_contacts": {
+      "name": "GTM contacts",
+      "extractorSlug": "defineContact"
+    },
+    "gtm_opportunities": {
+      "name": "GTM opportunities",
+      "extractorSlug": "defineDeal"
+    },
+    "gtm_activities": {
+      "name": "GTM activities",
+      "extractorSlug": "defineCustom",
+      "columns": [
+        {
+          "slug": "account_id",
+          "type": "string"
+        },
+        {
+          "slug": "opportunity_id",
+          "type": "string"
+        },
+        {
+          "slug": "contact_id",
+          "type": "string"
+        },
+        {
+          "slug": "occurred_at",
+          "type": "date"
+        },
+        {
+          "slug": "kind",
+          "type": "string"
+        },
+        {
+          "slug": "subject",
+          "type": "string"
+        },
+        {
+          "slug": "body",
+          "type": "string"
+        },
+        {
+          "slug": "owner_email",
+          "type": "string"
+        }
+      ]
+    }
+  },
+  "knownCollisions": {
+    "account-scoring": "Its native `accounts` model predates this check and is removed by the account-scoring tiering rework; delete this entry when that lands."
+  }
+}
