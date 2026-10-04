@@ -9,7 +9,7 @@ import { modelsFolder } from "../folders";
 // The play reads the account to hand the researcher what is already known,
 // and seeds `cargo_tier` only when it is blank: account-scoring or a rep may
 // have set it on more evidence than one inbound lead carries.
-export const accounts = defineModel("inbound_accounts", {
+export const accounts = defineModel("accounts", {
   kind: "native",
   extractSlug: "defineAccount",
   folder: modelsFolder,

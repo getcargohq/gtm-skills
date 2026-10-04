@@ -29,12 +29,12 @@ assert.equal(
   "the worked example runs on native models: no CRM connector",
 );
 
-const contacts = byId.get("model:inbound_contacts");
-assert.ok(contacts, "defineModel(inbound_contacts) must exist");
+const contacts = byId.get("model:contacts");
+assert.ok(contacts, "defineModel(contacts) must exist");
 assert.equal(contacts.spec.extractorSlug, "defineContact");
 assert.ok(
-  byId.get("model:inbound_accounts"),
-  "defineModel(inbound_accounts) must exist",
+  byId.get("model:accounts"),
+  "defineModel(accounts) must exist",
 );
 
 // The agent judges and writes nothing.
