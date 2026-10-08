@@ -1,7 +1,7 @@
 ---
 name: ask-cargo
-description: 'One agent the whole team @mentions in Slack, sitting on top of your GTM repo and workspace: it answers from context, cadence and live runs, turns change requests into pull requests, and hands work to the other deployed agents only after a go in the thread. Triggers: "let the team ask our GTM agent from slack", "one agent on top of all the others", "a slack bot that knows our repo", "ask cargo from slack", "multiplayer GTM agent in slack", "orchestrator agent for our GTM stack", "let anyone open a PR from slack". Cargo CDK, defineAgent, harness claudeCode, Slack connector trigger, GitHub, cargo-ai CLI, ai message create. Skip when: you want the day recapped and posted to Slack on a schedule, which is standup; or you want an answer in this chat right now with nothing deployed.'
-version: "0.1.1"
+description: 'One agent the whole team @mentions in Slack, sitting on top of your GTM repo and workspace: it answers from context, cadence and live runs, turns change requests into pull requests, captures a thread worth keeping into the cadence log and context, and hands work to the other deployed agents only after a go in the thread. Triggers: "let the team ask our GTM agent from slack", "one agent on top of all the others", "a slack bot that knows our repo", "ask cargo from slack", "orchestrator agent for our GTM stack", "let anyone open a PR from slack", "capture this slack thread into our context". Cargo CDK, defineAgent, harness claudeCode, Slack connector trigger, GitHub, cargo-ai CLI. Skip when: you want the day recapped and posted to Slack on a schedule, which is standup; or you want an answer in this chat right now with nothing deployed.'
+version: "0.2.1"
 compatibility: "Requires @cargo-ai/cli with @cargo-ai/cdk 1.0.67 or later — 1.0.66 brought `harness` and the harness repository spec, 1.0.67 roots the agent at the package.json that declares the CDK rather than at `infra/`. On 1.0.66, declare `rootDirectory: \".\"` yourself. Also needs a Cargo workspace, an authenticated LLM connector (the harness runs against Cargo's proxy), a GTM repository (the shape `cargo-ai cdk init` scaffolds), and authorized GitHub and Slack connectors."
 homepage: https://github.com/getcargohq/gtm-skills/tree/main/ask-cargo
 metadata:
@@ -25,15 +25,18 @@ metadata:
 
 # Ask Cargo
 
-**State: to-be-approved.** Deploy-verified against a live workspace: not yet. Treat `Done when`
-below as the acceptance test and review `cargo-ai cdk plan` before deploying. Make no outcome claim
-for this skill until it is approved.
+**State: to-be-approved.** Deploy-verified against a live workspace: yes for capture, on
+2026-10-08. An @mention in a test thread read the thread from the trigger's channel and thread ts,
+opened one pull request with the raw thread and its log entry, promoted nothing on a first
+occurrence, and replied once without mentioning itself; a second mention with no new reply wrote
+nothing. Treat `Done when` below as the acceptance test and review `cargo-ai cdk plan` before
+deploying. Make no outcome claim for this skill until it is approved.
 
 ## The outcome
 
 Anyone on the team types `@Cargo` in a Slack channel and gets the agent that knows the whole GTM
 repo and the workspace behind it. One thread is one conversation, and anyone in the thread can steer
-it. Three kinds of request land:
+it. Four kinds of request land:
 
 1. **Questions.** "What is our ICP for fintech?", "did the scorer run last night?", "what did we
    spend on enrichment this week?". It answers from `context/`, `cadence/`, `infra/` and read-only
@@ -45,6 +48,14 @@ it. Three kinds of request land:
    what will run, over how many records, at what live price, and does nothing until someone replies
    `@Cargo go`. When a deployed agent owns the job (the scorer, the planner, the standup) it hands
    the request to that agent with `cargo-ai ai message create` instead of redoing it.
+4. **Captures.** "@Cargo capture this" in a thread worth keeping (what a customer said, a deal
+   decision, a competitor sighting). It reads that one thread, writes a raw capture and a log entry
+   under `cadence/log/slack/`, and promotes a claim into `context/` only once it repeats across
+   calls and threads, on the thread's pull request. Shared channels and DMs are refused.
+   `references/capture-entry.md` is the shape. The thread's channel id and parent ts come from the
+   first line of the message the Slack trigger delivers (`[Slack channel: … | thread ts: … |
+   message ts: …]`); on a platform that does not send that line yet, the agent asks once for the
+   thread's permalink and stops.
 
 This is not the workspace's built-in Master Agent. That one answers from context and models with no
 checkout and cannot change anything. Ask Cargo exists for what needs the repository: reading what is
@@ -57,7 +68,9 @@ How Slack reaches it, which shapes the rules (verified against the platform, not
   answered. A mention sent while it is still working is dropped, not queued. So every reply that
   needs an answer says exactly what to type next.
 - **The platform posts the reply.** The agent's final text streams into the thread. There is no
-  `postMessage` on the agent, and the prompt forbids the Slack tools the trigger adds on its own.
+  `postMessage` on the agent, and the prompt forbids the Slack tools the trigger adds on its own,
+  except `getThread`, `listUsers` and `addReaction` on the summoning thread during a capture: a new
+  chat receives only the mention and the thread's first message, not the replies in between.
 - **It does not know who wrote a message.** The Slack user id stays in trigger metadata the model
   never sees, so a pull request quotes the request and does not name the requester.
 
@@ -148,6 +161,7 @@ waiting to be asked. Every one costs something.
 | `master-agent-slack`  | You only need questions answered, no repo and no pull requests                                       | Skip this cookbook. Put a Slack trigger on the workspace's built-in Master Agent in the UI.                                                                                                          | No checkout: it cannot read `infra/` or `cadence/`, and it cannot change anything. Cheaper and faster per question, because there is no sandbox to start.                                                                           |
 | `no-handoff`          | No other agents are deployed yet                                                                     | Delete §4 of the prompt and `references/roster.md`                                                                                                                                                   | Every job is redone by this agent from scratch, without the owning agent's rules. Add §4 back the day the first pipeline deploys.                                                                                                    |
 | `higher-sample-bar`   | Your runs are expensive per record, or touch people                                                  | Lower the 25-record threshold and the 5-record sample in §3 of the prompt                                                                                                                            | More round trips in the thread for every batch, and each one needs another `@Cargo go`.                                                                                                                                            |
+| `no-capture`          | Nobody should write the cadence log or context from Slack                                            | Delete §5 of `infra/agents/ask-cargo.prompt.ts` and its exception in the Slack-tools paragraph | Threads worth keeping are lost to Slack search. A change request still edits `context/` through §2, with no repetition bar. |
 
 ## What should not change
 
@@ -169,9 +183,19 @@ it if you still want it, and records why under `## Decisions` in your copy of th
 - **Changes are one pull request per thread, never a merge, never a deploy.**
   (`infra/agents/ask-cargo.prompt.ts`) The merge is the approval. An agent that deploys from Slack
   turns a mistyped message into a production change with no diff anyone read.
-- **The agent never calls the Slack tools.** (`infra/agents/ask-cargo.prompt.ts`) The trigger hands
-  it `postMessage` with no channel lock, plus history and search. A reply is its final text, in the
-  thread it was asked in; anything else is how an internal answer lands in the wrong channel.
+- **The agent never posts with the Slack tools.** (`infra/agents/ask-cargo.prompt.ts`) The trigger
+  hands it `postMessage` with no channel lock, plus history. A reply is its final text, in the
+  thread it was asked in; anything else is how an internal answer lands in the wrong channel. A
+  capture reads only the thread it was mentioned in (`getThread`), never another channel.
+- **A reply never contains a Slack user mention.** (`infra/agents/ask-cargo.prompt.ts`, How Slack
+  reaches you) Slack delivers a message that names the app as a new mention, so a reply quoting
+  `<@…>` wakes the agent on its own words; a live test answered one mention five times that way.
+  The reply says "mention me again with go" in plain words instead.
+- **A capture promotes only what repeats, and never edits the archive.**
+  (`infra/agents/ask-cargo.prompt.ts` §5) A claim written to `context/` on one Slack message becomes
+  what every agent believes; the bar is two independent first-hand occurrences across calls and
+  threads. Raw captures are never edited, and a shared-channel thread is refused: it is the
+  customer's conversation as much as ours.
 - **It hands work to the owning agent instead of redoing it.** (`infra/agents/ask-cargo.prompt.ts`)
   A scorer's rules live in the scorer's prompt. Redoing the job here produces a second score with
   none of those rules, and the two disagree in the CRM.
@@ -194,6 +218,11 @@ it if you still want it, and records why under `## Decisions` in your copy of th
 - a request an installed agent owns was handed to it with `cargo-ai ai message create`, and the reply
   names the chat or pull request it produced
 - a mention in a channel another agent lists got that agent's reply, not this one's
+- "@Cargo capture this" in an internal thread wrote `cadence/log/raw/slack/` and
+  `cadence/log/slack/` files with the thread's `source:` line on the thread's pull request, reacted
+  :white_check_mark:, and replied with the entry path and the pull request; a second mention with
+  no new replies wrote nothing; the same request in a shared channel was refused
+- every mention produced exactly one reply, and no reply contains a `<@…>` mention
 
 ## What it costs
 

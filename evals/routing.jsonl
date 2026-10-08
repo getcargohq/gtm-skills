@@ -188,3 +188,6 @@
 {"prompt": "What did the customer commit to on last week's calls that has not happened", "expect": "next-step-tracker"}
 {"prompt": "Turn every recorded call into a log entry in the repo", "expect": "call-capture", "why": "Writing the call log is call-capture; the tracker only reads it for promises."}
 {"prompt": "Post an evening recap of everything that moved today", "expect": "standup", "why": "The whole day recapped is standup; the tracker posts only commitments that are due."}
+{"prompt": "Let anyone capture a slack thread into our context by mentioning the bot", "expect": "ask-cargo", "why": "Capture is a mode of ask-cargo: one agent answers @mentions."}
+{"prompt": "Log this slack thread to the repo when someone tags the bot", "expect": "ask-cargo"}
+{"prompt": "Scribe every recorded customer call into context each morning", "expect": "call-capture", "why": "Recorded calls on a schedule are call-capture; a Slack thread kept on demand is ask-cargo."}
