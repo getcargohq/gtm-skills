@@ -1,10 +1,10 @@
 # Cargo GTM Skills
 
 [![cargo-ai cli](https://img.shields.io/npm/v/@cargo-ai/cli?label=cargo-ai%20cli&color=black)](https://www.npmjs.com/package/@cargo-ai/cli)
-[![skills.sh](https://img.shields.io/badge/skills.sh-38%20skills-black)](https://www.skills.sh)
+[![skills.sh](https://img.shields.io/badge/skills.sh-39%20skills-black)](https://www.skills.sh)
 [![License](https://img.shields.io/github/license/getcargohq/gtm-skills?color=black)](LICENSE)
 
-38 agent skills for B2B go-to-market work, each with one routed job. Some run once, in a turn:
+39 agent skills for B2B go-to-market work, each with one routed job. Some run once, in a turn:
 find the emails, score the list, brief me on this account. Others deploy a pipeline that keeps
 doing that job after the session ends.
 
@@ -16,7 +16,7 @@ doing that job after the session ends.
   that supports the [skills.sh](https://skills.sh) standard.
 
 ```bash
-npx skills add getcargohq/gtm-skills --all              # all 38
+npx skills add getcargohq/gtm-skills --all              # all 39
 npx skills add getcargohq/gtm-skills/<skill-name>       # exactly one
 cargo-ai cdk add cookbook/<skill-name>                  # a pipeline, into your Cargo project
 ```
@@ -131,11 +131,12 @@ Deployed pipelines that hold the conversation: every demo request answered on th
 
 ### Operations
 
-Deployed pipelines that run the team: the daily recap, a weekly nudge on deals gone quiet, the weekly plan, the week's LinkedIn drafts, and one agent everyone can ask.
+Deployed pipelines that run the team: the daily recap, every promise made on a call, a weekly nudge on deals gone quiet, the weekly plan, the week's LinkedIn drafts, and one agent everyone can ask.
 
 | Skill | Does | Try saying |
 | --- | --- | --- |
 | [`standup`](standup/SKILL.md) | Every evening the GTM day is recapped into the cadence log and a digest is posted to Slack, as one reviewable pull request against your GTM repo. | “Every weekday at 6pm, recap what moved on our GTM initiatives into the repo and post the digest to #gtm-daily.” |
+| [`next-step-tracker`](next-step-tracker/SKILL.md) | Every weekday morning each promise made on a recorded call, by your team or the customer, is read from the call log, recorded once, closed when the activity log shows it was kept, and flagged in Slack once it falls due or goes overdue. | “Every weekday morning, tell #deal-desk which promises from our calls are due or overdue.” |
 | [`stalled-deal-nudge`](stalled-deal-nudge/SKILL.md) | Every Monday each rep gets one Slack digest of their open deals that went quiet: how long since the last logged activity, the line that activity left off on, why the deal is worth a touch now, and a follow-up drafted for them to send. | “Every Monday, tell each rep which of their open deals went quiet and draft the follow-up.” |
 | [`weekly-planning`](weekly-planning/SKILL.md) | Every Monday last week's GTM work is ranked against active initiatives, declared infra, and live runs, as one reviewable pull request per initiative — or one workspace pull request when there are none. | “Every Monday morning, check last week's runs against our initiatives and open one pull request per initiative saying what to do next.” |
 | [`linkedin-content`](linkedin-content/SKILL.md) | Every Monday three LinkedIn post drafts for one author land in the GTM repo as one pull request, built only from what context/ and the cadence log already say, each with its hook and the files it draws on; nothing is ever published. | “Every Monday, draft three LinkedIn posts for our CEO, Dana Ruiz, from what's in context/.” |
@@ -153,10 +154,10 @@ Deployed pipelines that keep an existing CRM in step with the engine: records fi
 
 ### By role
 
-- **Sales development:** [`agentic-engagement`](agentic-engagement/SKILL.md), [`enrich-linkedin-profile`](enrich-linkedin-profile/SKILL.md), [`find-b2b-leads`](find-b2b-leads/SKILL.md), [`find-companies-using-tech`](find-companies-using-tech/SKILL.md), [`find-linkedin-url`](find-linkedin-url/SKILL.md), [`find-work-email`](find-work-email/SKILL.md); also [`enrich-company-data`](enrich-company-data/SKILL.md), [`find-portfolio-companies`](find-portfolio-companies/SKILL.md), [`find-stakeholders`](find-stakeholders/SKILL.md), [`inbound-qualification`](inbound-qualification/SKILL.md), [`monitor-buying-signals`](monitor-buying-signals/SKILL.md), [`new-hire-detection`](new-hire-detection/SKILL.md), [`research-account`](research-account/SKILL.md), [`score-leads`](score-leads/SKILL.md), [`social-listening`](social-listening/SKILL.md), [`track-funding-rounds`](track-funding-rounds/SKILL.md), [`track-job-changes`](track-job-changes/SKILL.md), [`verify-email-list`](verify-email-list/SKILL.md), [`visitor-identification`](visitor-identification/SKILL.md)
-- **Account executives:** [`find-portfolio-companies`](find-portfolio-companies/SKILL.md), [`find-stakeholders`](find-stakeholders/SKILL.md), [`monitor-buying-signals`](monitor-buying-signals/SKILL.md), [`research-account`](research-account/SKILL.md), [`stalled-deal-nudge`](stalled-deal-nudge/SKILL.md), [`track-funding-rounds`](track-funding-rounds/SKILL.md), [`track-job-changes`](track-job-changes/SKILL.md); also [`call-capture`](call-capture/SKILL.md), [`enrich-linkedin-profile`](enrich-linkedin-profile/SKILL.md), [`expansion-signals`](expansion-signals/SKILL.md)
+- **Sales development:** [`agentic-engagement`](agentic-engagement/SKILL.md), [`enrich-linkedin-profile`](enrich-linkedin-profile/SKILL.md), [`find-b2b-leads`](find-b2b-leads/SKILL.md), [`find-companies-using-tech`](find-companies-using-tech/SKILL.md), [`find-linkedin-url`](find-linkedin-url/SKILL.md), [`find-work-email`](find-work-email/SKILL.md); also [`enrich-company-data`](enrich-company-data/SKILL.md), [`find-portfolio-companies`](find-portfolio-companies/SKILL.md), [`find-stakeholders`](find-stakeholders/SKILL.md), [`inbound-qualification`](inbound-qualification/SKILL.md), [`monitor-buying-signals`](monitor-buying-signals/SKILL.md), [`new-hire-detection`](new-hire-detection/SKILL.md), [`next-step-tracker`](next-step-tracker/SKILL.md), [`research-account`](research-account/SKILL.md), [`score-leads`](score-leads/SKILL.md), [`social-listening`](social-listening/SKILL.md), [`track-funding-rounds`](track-funding-rounds/SKILL.md), [`track-job-changes`](track-job-changes/SKILL.md), [`verify-email-list`](verify-email-list/SKILL.md), [`visitor-identification`](visitor-identification/SKILL.md)
+- **Account executives:** [`find-portfolio-companies`](find-portfolio-companies/SKILL.md), [`find-stakeholders`](find-stakeholders/SKILL.md), [`monitor-buying-signals`](monitor-buying-signals/SKILL.md), [`next-step-tracker`](next-step-tracker/SKILL.md), [`research-account`](research-account/SKILL.md), [`stalled-deal-nudge`](stalled-deal-nudge/SKILL.md), [`track-funding-rounds`](track-funding-rounds/SKILL.md), [`track-job-changes`](track-job-changes/SKILL.md); also [`call-capture`](call-capture/SKILL.md), [`enrich-linkedin-profile`](enrich-linkedin-profile/SKILL.md), [`expansion-signals`](expansion-signals/SKILL.md)
 - **RevOps:** [`account-scoring`](account-scoring/SKILL.md), [`apollo-to-cargo`](apollo-to-cargo/SKILL.md), [`ask-cargo`](ask-cargo/SKILL.md), [`build-tam-list`](build-tam-list/SKILL.md), [`crm-deduplication`](crm-deduplication/SKILL.md), [`crm-enrichment`](crm-enrichment/SKILL.md), [`enrich-company-data`](enrich-company-data/SKILL.md), [`expansion-signals`](expansion-signals/SKILL.md), [`new-hire-detection`](new-hire-detection/SKILL.md), [`score-leads`](score-leads/SKILL.md), [`tam-building`](tam-building/SKILL.md), [`waterfall-enrichment`](waterfall-enrichment/SKILL.md), [`win-loss-review`](win-loss-review/SKILL.md), [`zoominfo-to-cargo`](zoominfo-to-cargo/SKILL.md); also [`call-capture`](call-capture/SKILL.md), [`clay-to-cargo`](clay-to-cargo/SKILL.md), [`find-linkedin-url`](find-linkedin-url/SKILL.md), [`find-work-email`](find-work-email/SKILL.md), [`stalled-deal-nudge`](stalled-deal-nudge/SKILL.md), [`standup`](standup/SKILL.md), [`verify-email-list`](verify-email-list/SKILL.md), [`web-capture`](web-capture/SKILL.md), [`weekly-planning`](weekly-planning/SKILL.md)
-- **Sales leadership:** [`call-capture`](call-capture/SKILL.md), [`standup`](standup/SKILL.md), [`weekly-planning`](weekly-planning/SKILL.md); also [`account-scoring`](account-scoring/SKILL.md), [`ask-cargo`](ask-cargo/SKILL.md), [`build-tam-list`](build-tam-list/SKILL.md), [`linkedin-content`](linkedin-content/SKILL.md), [`stalled-deal-nudge`](stalled-deal-nudge/SKILL.md), [`tam-building`](tam-building/SKILL.md), [`win-loss-review`](win-loss-review/SKILL.md), [`zoominfo-to-cargo`](zoominfo-to-cargo/SKILL.md)
+- **Sales leadership:** [`call-capture`](call-capture/SKILL.md), [`standup`](standup/SKILL.md), [`weekly-planning`](weekly-planning/SKILL.md); also [`account-scoring`](account-scoring/SKILL.md), [`ask-cargo`](ask-cargo/SKILL.md), [`build-tam-list`](build-tam-list/SKILL.md), [`linkedin-content`](linkedin-content/SKILL.md), [`next-step-tracker`](next-step-tracker/SKILL.md), [`stalled-deal-nudge`](stalled-deal-nudge/SKILL.md), [`tam-building`](tam-building/SKILL.md), [`win-loss-review`](win-loss-review/SKILL.md), [`zoominfo-to-cargo`](zoominfo-to-cargo/SKILL.md)
 - **Marketing:** [`inbound-qualification`](inbound-qualification/SKILL.md), [`linkedin-content`](linkedin-content/SKILL.md), [`social-listening`](social-listening/SKILL.md), [`verify-email-list`](verify-email-list/SKILL.md), [`visitor-identification`](visitor-identification/SKILL.md), [`website-building`](website-building/SKILL.md); also [`find-companies-using-tech`](find-companies-using-tech/SKILL.md), [`web-capture`](web-capture/SKILL.md)
 - **GTM engineering:** [`clay-to-cargo`](clay-to-cargo/SKILL.md), [`web-capture`](web-capture/SKILL.md); also [`account-scoring`](account-scoring/SKILL.md), [`agentic-engagement`](agentic-engagement/SKILL.md), [`apollo-to-cargo`](apollo-to-cargo/SKILL.md), [`ask-cargo`](ask-cargo/SKILL.md), [`crm-deduplication`](crm-deduplication/SKILL.md), [`crm-enrichment`](crm-enrichment/SKILL.md), [`inbound-qualification`](inbound-qualification/SKILL.md), [`new-hire-detection`](new-hire-detection/SKILL.md), [`tam-building`](tam-building/SKILL.md), [`visitor-identification`](visitor-identification/SKILL.md), [`waterfall-enrichment`](waterfall-enrichment/SKILL.md), [`website-building`](website-building/SKILL.md), [`win-loss-review`](win-loss-review/SKILL.md)
 
@@ -168,7 +169,7 @@ reconciles it with whatever your project already declares. More are coming (`con
 
 ## As an agent plugin: Claude Code, Codex, Cursor
 
-The same 38 skills also install as one native plugin. Take this route when you want all of them
+The same 39 skills also install as one native plugin. Take this route when you want all of them
 and two things `skills add` cannot give you:
 
 - **Fewer prompts, same guardrails.** An approval hook ([`hooks/approve-cli.sh`](hooks/approve-cli.sh))

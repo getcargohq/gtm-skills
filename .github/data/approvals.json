@@ -112,5 +112,11 @@
     "chain": 21,
     "demoWorkspace": null,
     "implementations": []
+  },
+  "next-step-tracker": {
+    "state": "to-be-approved",
+    "chain": 22,
+    "demoWorkspace": null,
+    "implementations": []
   }
 }

@@ -183,3 +183,8 @@
 {"prompt": "Post an at-risk renewals digest to the CS channel every Monday", "expect": "expansion-signals"}
 {"prompt": "Give every inbound lead a tier and a brief as it lands, and tell the team", "expect": "inbound-qualification", "why": "Every lead, as it lands: the deep research runs after the form qualifies it."}
 {"prompt": "When a demo request comes in, write a brief and a tier onto the contact", "expect": "inbound-qualification"}
+{"prompt": "Track the next steps we promise on calls and remind us when they are overdue", "expect": "next-step-tracker", "why": "Promises from calls, chased when due: the standing tell."}
+{"prompt": "Flag overdue follow-ups we agreed on with customers in Slack every morning", "expect": "next-step-tracker"}
+{"prompt": "What did the customer commit to on last week's calls that has not happened", "expect": "next-step-tracker"}
+{"prompt": "Turn every recorded call into a log entry in the repo", "expect": "call-capture", "why": "Writing the call log is call-capture; the tracker only reads it for promises."}
+{"prompt": "Post an evening recap of everything that moved today", "expect": "standup", "why": "The whole day recapped is standup; the tracker posts only commitments that are due."}
