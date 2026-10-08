@@ -13,6 +13,10 @@ A Claude Code harness agent with a Slack connector trigger; nothing else is depl
   pull request; a follow-up adds a commit. It never merges and never deploys.
 - **Runs, on a go.** Proposes what will run, over how many records, at the live price, and waits for
   `@Cargo go` in the thread. Batches over 25 records run a sample of 5 first.
+- **Captures.** "@Cargo capture this" turns the thread into a raw capture and a log entry under
+  `cadence/log/slack/`, and promotes a claim into `context/` only once it repeats across calls and
+  threads, on the thread's pull request. It reads only that thread (`getThread`), and refuses shared
+  channels and DMs.
 - **Hands off.** When a deployed agent owns the job (standup, weekly planning, the account scorer), it
   messages that agent with `cargo-ai ai message create` instead of redoing the work.
 
@@ -38,6 +42,7 @@ Adds 5 resources.
 | `infra/connectors/anthropic.ts`    | `defineConnector` (`anthropic`) | the model the harness runs on, billed and metered            |
 | `infra/folders/index.ts`           | `defineFolder`                  | the workspace folder this cookbook's agent is filed in       |
 | `references/roster.md`             | (not a resource)                | which deployed agent owns which job                          |
+| `references/capture-entry.md`      | (not a resource)                | what a capture writes, and how a re-mention is handled       |
 
 ## Why a trigger and not a Slack bot
 
@@ -52,8 +57,10 @@ shaped around those gaps:
 - **The model is not told who wrote a message.** Multiplayer means anyone in the thread can steer
   and approve; it does not mean the agent knows who they are. Pull requests quote the request and
   name no one.
-- **The trigger adds Slack tools with no channel lock** (`postMessage`, history, search). The prompt
-  forbids them: the reply is the final text, in the thread it was asked in.
+- **The trigger adds Slack tools with no channel lock** (`postMessage`, history, thread, reactions).
+  The prompt forbids them, except reading and reacting to the summoning thread during a capture: a
+  new chat only receives the mention and the thread's first message, so a capture has to read the
+  replies itself. The reply is still the final text, in the thread it was asked in.
 
 ## Why the CLI for handoffs, not `uses`
 

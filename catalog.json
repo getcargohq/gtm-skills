@@ -357,9 +357,9 @@
     {
       "name": "ask-cargo",
       "kind": "cookbook",
-      "job": "One agent the whole team @mentions in Slack, sitting on top of your GTM repo and workspace: it answers from context, cadence and live runs, turns change requests into pull requests, and hands work to the other deployed agents only after a go in the thread.",
-      "description": "One agent the whole team @mentions in Slack, sitting on top of your GTM repo and workspace: it answers from context, cadence and live runs, turns change requests into pull requests, and hands work to the other deployed agents only after a go in the thread. Triggers: \"let the team ask our GTM agent from slack\", \"one agent on top of all the others\", \"a slack bot that knows our repo\", \"ask cargo from slack\", \"multiplayer GTM agent in slack\", \"orchestrator agent for our GTM stack\", \"let anyone open a PR from slack\". Cargo CDK, defineAgent, harness claudeCode, Slack connector trigger, GitHub, cargo-ai CLI, ai message create. Skip when: you want the day recapped and posted to Slack on a schedule, which is standup; or you want an answer in this chat right now with nothing deployed.",
-      "version": "0.1.1",
+      "job": "One agent the whole team @mentions in Slack, sitting on top of your GTM repo and workspace: it answers from context, cadence and live runs, turns change requests into pull requests, captures a thread worth keeping into the cadence log and context, and hands work to the other deployed agents only after a go in the thread.",
+      "description": "One agent the whole team @mentions in Slack, sitting on top of your GTM repo and workspace: it answers from context, cadence and live runs, turns change requests into pull requests, captures a thread worth keeping into the cadence log and context, and hands work to the other deployed agents only after a go in the thread. Triggers: \"let the team ask our GTM agent from slack\", \"one agent on top of all the others\", \"a slack bot that knows our repo\", \"ask cargo from slack\", \"orchestrator agent for our GTM stack\", \"let anyone open a PR from slack\", \"capture this slack thread into our context\". Cargo CDK, defineAgent, harness claudeCode, Slack connector trigger, GitHub, cargo-ai CLI. Skip when: you want the day recapped and posted to Slack on a schedule, which is standup; or you want an answer in this chat right now with nothing deployed.",
+      "version": "0.2.1",
       "homepage": "https://github.com/getcargohq/gtm-skills/tree/main/ask-cargo",
       "group": "Operations",
       "install": "cargo-ai cdk add cookbook/ask-cargo",
@@ -422,6 +422,12 @@
           "when": "Your runs are expensive per record, or touch people",
           "how": "Lower the 25-record threshold and the 5-record sample in §3 of the prompt",
           "cost": "More round trips in the thread for every batch, and each one needs another `@Cargo go`."
+        },
+        {
+          "id": "no-capture",
+          "when": "Nobody should write the cadence log or context from Slack",
+          "how": "Delete §5 of `infra/agents/ask-cargo.prompt.ts` and its exception in the Slack-tools paragraph",
+          "cost": "Threads worth keeping are lost to Slack search. A change request still edits `context/` through §2, with no repetition bar."
         }
       ],
       "shouldNotChange": [
@@ -429,7 +435,9 @@
         "**Nothing on `uses`.** (`infra/agents/ask-cargo.ts`) The trigger replies by itself, so a `postMessage` use is a second way to post, to any channel. A sub-agent or tool on `uses` is a path that skips the go in the thread, and a sub-agent handle imports another cookbook's file. The contract fails on any of the four.",
         "**Spend, sends and handoffs wait for a go in the thread.** (`infra/agents/ask-cargo.prompt.ts`) Anyone in the channel can @mention it. Without the gate, a half-typed \"enrich everything\" runs a batch over the whole model, and the only record of who approved it is a Slack thread nobody reread. The go approves the proposal as written, never more records or a higher cost.",
         "**Changes are one pull request per thread, never a merge, never a deploy.** (`infra/agents/ask-cargo.prompt.ts`) The merge is the approval. An agent that deploys from Slack turns a mistyped message into a production change with no diff anyone read.",
-        "**The agent never calls the Slack tools.** (`infra/agents/ask-cargo.prompt.ts`) The trigger hands it `postMessage` with no channel lock, plus history and search. A reply is its final text, in the thread it was asked in; anything else is how an internal answer lands in the wrong channel.",
+        "**The agent never posts with the Slack tools.** (`infra/agents/ask-cargo.prompt.ts`) The trigger hands it `postMessage` with no channel lock, plus history. A reply is its final text, in the thread it was asked in; anything else is how an internal answer lands in the wrong channel. A capture reads only the thread it was mentioned in (`getThread`), never another channel.",
+        "**A reply never contains a Slack user mention.** (`infra/agents/ask-cargo.prompt.ts`, How Slack reaches you) Slack delivers a message that names the app as a new mention, so a reply quoting `<@…>` wakes the agent on its own words; a live test answered one mention five times that way. The reply says \"mention me again with go\" in plain words instead.",
+        "**A capture promotes only what repeats, and never edits the archive.** (`infra/agents/ask-cargo.prompt.ts` §5) A claim written to `context/` on one Slack message becomes what every agent believes; the bar is two independent first-hand occurrences across calls and threads. Raw captures are never edited, and a shared-channel thread is refused: it is the customer's conversation as much as ours.",
         "**It hands work to the owning agent instead of redoing it.** (`infra/agents/ask-cargo.prompt.ts`) A scorer's rules live in the scorer's prompt. Redoing the job here produces a second score with none of those rules, and the two disagree in the CRM.",
         "**It does not claim to know who asked.** (`infra/agents/ask-cargo.prompt.ts`) The model is not told. A pull request that names a requester names a guess."
       ],
@@ -441,7 +449,9 @@
         "a change request opened exactly one unmerged pull request, and a follow-up in the same thread added a commit to it rather than opening a second",
         "a request that spends replied with a proposal and a live price and ran nothing; the same request ran only after `@Cargo go`",
         "a request an installed agent owns was handed to it with `cargo-ai ai message create`, and the reply names the chat or pull request it produced",
-        "a mention in a channel another agent lists got that agent's reply, not this one's"
+        "a mention in a channel another agent lists got that agent's reply, not this one's",
+        "\"@Cargo capture this\" in an internal thread wrote `cadence/log/raw/slack/` and `cadence/log/slack/` files with the thread's `source:` line on the thread's pull request, reacted :white_check_mark:, and replied with the entry path and the pull request; a second mention with no new replies wrote nothing; the same request in a shared channel was refused",
+        "every mention produced exactly one reply, and no reply contains a `<@…>` mention"
       ],
       "cost": "Every turn is a harness run: a sandbox, a clone of the repository, and LLM tokens billed through the\nbound Anthropic connector. A turn that only answers a question costs tokens and nothing else. The\nread-only `cargo-ai` calls are API calls, not connector actions, and bill nothing.\n\nWhat spends is what someone approves with a go: the connector actions, batches and agent handoffs in\n§3 of the prompt. The agent reads each price live (`cargo-ai connection integration get <slug>`) and\nsays the total before it asks for the go, so the proposal is the cost line. Nothing runs on a\nschedule.",
       "composesInto": "Nothing in particular comes after it: it is the on-demand layer over whatever else is deployed, so\nit gets more useful with every pipeline that writes logs, calls or scores it can read."
