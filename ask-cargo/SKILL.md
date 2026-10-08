@@ -25,9 +25,12 @@ metadata:
 
 # Ask Cargo
 
-**State: to-be-approved.** Deploy-verified against a live workspace: not yet. Treat `Done when`
-below as the acceptance test and review `cargo-ai cdk plan` before deploying. Make no outcome claim
-for this skill until it is approved.
+**State: to-be-approved.** Deploy-verified against a live workspace: yes for capture, on
+2026-10-08. An @mention in a test thread read the thread from the trigger's channel and thread ts,
+opened one pull request with the raw thread and its log entry, promoted nothing on a first
+occurrence, and replied once without mentioning itself; a second mention with no new reply wrote
+nothing. Treat `Done when` below as the acceptance test and review `cargo-ai cdk plan` before
+deploying. Make no outcome claim for this skill until it is approved.
 
 ## The outcome
 
