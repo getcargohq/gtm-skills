@@ -87,9 +87,10 @@
     },
     {
       "title": "Operations",
-      "description": "Deployed pipelines that run the team: the daily recap, a weekly nudge on deals gone quiet, the weekly plan, the week's LinkedIn drafts, and one agent everyone can ask.",
+      "description": "Deployed pipelines that run the team: the daily recap, every promise made on a call, a weekly nudge on deals gone quiet, the weekly plan, the week's LinkedIn drafts, and one agent everyone can ask.",
       "skills": [
         "standup",
+        "next-step-tracker",
         "stalled-deal-nudge",
         "weekly-planning",
         "linkedin-content",
@@ -1639,6 +1640,112 @@
       ],
       "cost": "Fetch live prices before every estimate: `cargo-ai connection integration get salesNavigator`,\n`linkedin`, and the LLM connector's model. Quote the lookup time with the estimate.\n\n**Extraction is the main spend, and it repeats.** `fetchLeadSearch` bills per extracted lead, and\nit is not incremental: every sync extracts the whole search again, including the people already in\nthe model. \"Changed jobs\" spans roughly the last 90 days, so a sync every two weeks re-pays for most\nof the previous sync to find the ones who are new. One sync costs the counted search (capped at\n`limit` per URL) times the per-lead price; a month costs that times the number of syncs.\n\n**Qualifying is per new person, and only new people.** Each run pays one company enrichment, and\neach company with a domain adds one qualifier call. The Slack post carries no per-call price of its\nown. The CRM variations add their own lookups and, on `crm_routing`, an email lookup per person.\n\n**Counting is cheap and comes first.** One `searchPersonMetrics` call per candidate URL tells you\nwhat a sync will extract before anything is extracted.",
       "composesInto": "`find-work-email` or `enrich-linkedin-profile` for the people the team decides to contact, and\n`agentic-engagement` to hold the conversation once a person reads the post and the team writes\nfirst.\n`track-job-changes` is the sibling for people already in your CRM."
+    },
+    {
+      "name": "next-step-tracker",
+      "kind": "cookbook",
+      "job": "Every weekday morning each promise made on a recorded call, by your team or the customer, is read from the call log, recorded once, closed when the activity log shows it was kept, and flagged in Slack once it falls due or goes overdue.",
+      "description": "Every weekday morning each promise made on a recorded call, by your team or the customer, is read from the call log, recorded once, closed when the activity log shows it was kept, and flagged in Slack once it falls due or goes overdue. Triggers: \"track the next steps from our calls\", \"remind me when I promised something on a call\", \"what did we commit to and not do\", \"chase customer follow-ups we agreed on\", \"commitment tracker for sales calls\", \"flag overdue next steps in slack\". Cargo CDK, defineAgent, harness claudeCode, call-capture entries, native models, Slack postMessage, ledger model; HubSpot, Salesforce or Attio as an adaptation. Skip when: you want calls written into the repository, which is call-capture; or a digest of everything that moved, which is standup.",
+      "version": "0.1.0",
+      "homepage": "https://github.com/getcargohq/gtm-skills/tree/main/next-step-tracker",
+      "group": "Operations",
+      "install": "cargo-ai cdk add cookbook/next-step-tracker",
+      "partOf": [],
+      "personas": [
+        "account-executive",
+        "sales-leadership",
+        "sales-development"
+      ],
+      "integrations": [
+        "anthropic",
+        "github",
+        "slack"
+      ],
+      "example": {
+        "prompt": "Every weekday morning, tell #deal-desk which promises from our calls are due or overdue.",
+        "output": "```text\n:hourglass: *Next steps due — Thu Oct 8*\n*Dana Ruiz*\n• Fabrikam: \"Send the Globex migration one-pager to Priya\" — you promised on Oct 1,\n  due Oct 6 (2 days overdue). An email to Priya with the one-pager closes it.\n• Northwind: \"Legal will review the MSA by Friday\" — they promised on Oct 2, due today.\n  Follow up with Sam; nothing to do for them.\n*Lee Park*\n• Contoso: \"Share the SOC 2 report\" — you promised on Oct 6, due today. An email with\n  the report attached closes it.\n_Sources: cadence/log/calls/2026-10-01-fabrikam.md · cadence/log/calls/2026-10-02-northwind.md ·\ncadence/log/calls/2026-10-06-contoso.md_\n```\n\nEleven commitments were open; four closed overnight on logged activity, three were due and posted, and a\nsecond run that morning posted nothing."
+      },
+      "state": "to-be-approved",
+      "chain": 22,
+      "resources": [
+        "agents",
+        "connectors",
+        "folders",
+        "models"
+      ],
+      "asked": [
+        {
+          "input": "channelId` (`infra/agents/tracker.ts`)",
+          "kind": "asked",
+          "how": "the Slack channel id (`C…`) the nudges may land in, read from the connector's channel autocomplete. Invite the bot.",
+          "why": "Nudges quote what customers said on calls. Locked so they never land in a customer shared channel."
+        },
+        {
+          "input": "TRACKER_TIMEZONE` and the cron (`infra/agents/tracker.ts`)",
+          "kind": "asked",
+          "how": "the team's morning. Keep the cron after call-capture's, so yesterday's calls are in the log when the tracker reads it.",
+          "why": "A timezone that disagrees with the cron makes \"due today\" yesterday's list."
+        }
+      ],
+      "canChange": [
+        {
+          "id": "ours-only",
+          "when": "The team only wants to see what it promised",
+          "how": "In §1 of `infra/agents/tracker.prompt.ts`, record only commitments with `promised_by` \"us\"",
+          "cost": "A customer's \"legal will review by Friday\" is the commitment most often lost, and it is the one a rep has to chase. Dropping it hides stalled deals."
+        },
+        {
+          "id": "default-windows",
+          "when": "Your team's follow-up rhythm is not seven days for us, fourteen for them",
+          "how": "Change the two fallbacks in §1 of the prompt",
+          "cost": "Only promises with no date said on the call use them. Too short and the post fills with things that were never late."
+        },
+        {
+          "id": "quiet-day-line",
+          "when": "Silence on a clear day reads as a missed run",
+          "how": "In §3 of the prompt, post one \"Nothing due today\" line instead of nothing",
+          "cost": "One more message a day in the channel. The default is silence because a nudge channel nobody needs to read is the one that gets muted."
+        },
+        {
+          "id": "per-rep-dm",
+          "when": "Each rep wants their own list",
+          "how": "One `postMessage` use per rep with its channel locked, and a map from owner to use in §3",
+          "cost": "Every rep added is a deploy. Never unlock the channel to let the agent find a DM itself."
+        },
+        {
+          "id": "crm-backed",
+          "when": "The emails, meetings, notes and tasks already live in HubSpot, Salesforce or Attio",
+          "how": "Replace `infra/models/gtm-activities.ts` and `gtm-accounts.ts` with connector-backed models (`fetchRecords`, every column, scheduled sync) of the CRM's engagements and companies, keep the slugs, and map the CRM's columns onto `account_id`, `opportunity_id`, `contact_id`, `occurred_at`, `kind`, `subject`, `body` and `owner_email` in the prompt's §2 query. Keep both read-only on `uses",
+          "cost": "One more connector and a sync on a schedule. Evidence is as fresh as the last sync, so schedule it before the tracker's cron or a promise kept yesterday afternoon is nudged this morning. Never add CRM actions to the agent instead"
+        },
+        {
+          "id": "reach-back",
+          "when": "The log has more than 30 days of open promises worth chasing",
+          "how": "Widen the window in §1",
+          "cost": "Backfilled promises arrive overdue all at once. Prefer letting call-capture's STALE-CHECK prefix keep old ones out."
+        }
+      ],
+      "shouldNotChange": [
+        "**A commitment closes only on cited evidence.** (`infra/agents/tracker.prompt.ts` §2) A row closed on a guess vanishes from the post and from everyone's mind, and nobody finds out until the customer asks. \"Probably sent\" stays open.",
+        "**The ledger is the memory, and it is written after the post.** (`infra/agents/tracker.prompt.ts` §1 and §3) `commitment_id` is the entry path plus the promise, so an entry is never re-extracted; `last_nudged_on` is set after the post succeeds, so a failed post is retried and a re-run posts nothing.",
+        "**The repository is read, never written.** (`infra/agents/tracker.prompt.ts`, Rules) Ticking checkboxes in the call entries would rewrite call-capture's record and open a pull request every morning that someone has to merge for the tracker's own state. State that changes daily belongs in a model.",
+        "**The evidence is read-only.** (`infra/agents/tracker.ts`) `gtm_activities` and `gtm_accounts` are on `uses` with `readOnly: true`. A tracker that can write the evidence can close its own commitments, and a CRM write action added for \"convenience\" creates tasks a rep spends the morning deleting.",
+        "**`channelId` is locked on `postMessage`.** (`infra/agents/tracker.ts`) The post quotes customers. A channel the agent picks is how one quote lands in front of the customer who said it.",
+        "**Promises are quoted, not paraphrased.** (`infra/agents/tracker.prompt.ts` §1) A paraphrase is how a rep gets chased for something nobody promised."
+      ],
+      "doneWhen": [
+        "`node --import tsx evals/contract.mjs` passes",
+        "`cargo-ai cdk plan` reports the agent, the `commitments`, `gtm_activities` and `gtm_accounts` models, the three connectors and the two folders",
+        "the first run recorded one row per unchecked action in the last 30 days of call entries, each with a quoted promise, a due date and its source entry",
+        "to test without a CRM, seed `gtm_activities` (and a `gtm_accounts` row per test account) with `cargo-ai storage record create-bulk --model-uuid <uuid> --records '[{\"data\":{…}}]'`, the model uuid read from `cargo-ai storage model list`",
+        "every row it closed cites a `gtm_activities` row or a later call entry that plainly matches the promise, and a seeded activity that does not match closed nothing",
+        "one message landed in the locked channel listing only open rows due today or earlier, grouped by owner, with every source entry on the last line",
+        "a second run the same morning added no row and posted nothing",
+        "a promise the customer made is phrased as a follow-up to chase, not a task to do",
+        "`git log` on the default branch shows no commit and no pull request from the tracker"
+      ],
+      "cost": "The evidence reads are SQL over workspace models and bill nothing. The post is `slack.postMessage`\non the bound connector; immediately before the plan, run\n`cargo-ai orchestration action list postMessage --kind connector --integration-slug slack` and read\nthe current cost out loud. The recurring cost is the harness run itself, once each weekday, billed as\nLLM tokens through the Anthropic connector. It scales with the number of call entries in the window\nand open commitments to check, not with the size of the activity log, and the run posts at most once.",
+      "composesInto": "`call-capture` (the call log it reads), and `standup` (the evening recap can cite what closed today)."
     },
     {
       "name": "research-account",
