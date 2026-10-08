@@ -25,9 +25,11 @@ metadata:
 
 # Next-step tracker
 
-**State: to-be-approved.** Deploy-verified against a live workspace: not yet. Treat `Done when`
-below as the acceptance test and review `cargo-ai cdk plan` before deploying. Make no outcome claim
-for this skill until it is approved.
+**State: to-be-approved.** Deploy-verified against a live workspace: yes, on 2026-10-08. The
+scheduled run read two call entries, recorded three commitments (two ours, one theirs), posted one
+nudge for the two overdue ones and marked only those nudged; a manual re-run the same day added no
+row and posted nothing. Treat `Done when` below as the acceptance test and review
+`cargo-ai cdk plan` before deploying. Make no outcome claim for this skill until it is approved.
 
 ## The outcome
 
