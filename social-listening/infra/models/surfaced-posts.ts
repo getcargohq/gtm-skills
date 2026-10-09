@@ -20,8 +20,6 @@ export const surfacedPosts = defineModel("surfaced_posts", {
       // The LinkedIn post urn. The ledger key: one row per post.
       { slug: "post_urn", type: "string" },
       { slug: "post_url", type: "string" },
-      // ISO 8601 strings, not `date`: an agent's write to a date column comes
-      // back to it as an empty object, and the next model step fails on it.
       { slug: "surfaced_at", type: "string" },
       // Why it made the digest, in one line, so a reader of the ledger sees
       // the judgment without the Slack thread.

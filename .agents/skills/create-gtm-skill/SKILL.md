@@ -175,6 +175,24 @@ HubSpot as its checked example. No parallel branches.
 
 CDK workflow bodies must compile. These fail `cargo-cdk check` / `plan`:
 `undefined`/`void`, comma / SequenceExpression, `Date#getTime()`.
+Optional chaining (`?.`) and `??` are worse: they pass `check` and `plan`, then
+fail at run time (`OptionalMemberExpression`), after an agent step has already
+been paid for. Write the explicit check instead.
+
+Seed native records without an `id`: Cargo generates it and rejects one you
+pass. Create parents first and read the id back from the create.
+
+**TypeScript in a cookbook.** Keep it plain enough to adapt:
+
+- early-return `if` over ternaries, especially nested ones;
+- no comments on types or schema fields, and docblocks of a sentence or two;
+- names that say what the value is: `…Result` for an outcome union,
+  `raw…` for an API object not yet reshaped, predicates that name their
+  subject (`hasEventEnded`), numbers that name their unit
+  (`…Timestamp`, `…Ms`);
+- precise return types (`string[]`, not `(string | undefined)[]`);
+- no `now` parameter: read the clock where it is needed, and pin it in tests
+  with fake timers.
 
 Register: `skills.sh.json` (its stage, at its place in the order: the order is
 what an agent suggests next), `hooks/skill-loads.sh`,

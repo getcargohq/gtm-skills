@@ -22,8 +22,6 @@ export const dealNudges = defineModel("deal_nudges", {
       { slug: "opportunity_id", type: "string" },
       // ISO week the nudge belongs to, e.g. 2026-W41.
       { slug: "week", type: "string" },
-      // ISO 8601 strings, not `date`: an agent's write to a date column comes
-      // back to it as an empty object, and the next model step fails on it.
       { slug: "nudged_at", type: "string" },
       { slug: "owner_id", type: "string" },
       { slug: "deal_name", type: "string" },

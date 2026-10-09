@@ -31,8 +31,6 @@ export const commitments = defineModel("commitments", {
       { slug: "promised_by", type: "string" },
       // The promise, quoted from the entry's Actions or transcript.
       { slug: "promise", type: "string" },
-      // ISO 8601 strings, not `date`: an agent's write to a date column comes
-      // back to it as an empty object, and the next model step fails on it.
       { slug: "due_date", type: "string" },
       // cadence/log/calls/<date>-<account>.md
       { slug: "source_entry", type: "string" },

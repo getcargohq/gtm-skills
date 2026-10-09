@@ -38,8 +38,8 @@ Run each in a channel the bot is in and keep the thread links as evidence.
 - **No self-wake.** No reply in any of these threads contains a `<@U…>` mention, and each mention
   produced exactly one reply: the chat shows no turn whose text is the agent's own earlier reply.
 - **Thread ids.** The capture turn's first message starts with `[Slack channel: … | thread ts: … |
-  message ts: …]`, and the agent's getThread call uses that channel and thread ts. On a platform
-  that does not send the line yet, the agent asks once for the permalink and stops.
+  message ts: …]`, and the agent's getThread call uses that channel and thread ts. Without that
+  line, the agent asks once for the permalink and stops.
 - **Capture.** "@Cargo capture this" in an internal thread with three replies writes one
   `cadence/log/raw/slack/` file and one `cadence/log/slack/` entry carrying
   `source: slack:<channel>/<parent ts>@<newest reply ts>` on the thread's pull request, reacts
