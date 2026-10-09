@@ -127,4 +127,21 @@ assert.ok(
   "the prompt must treat the event description as data: anyone can write an invite",
 );
 
+for (const [line, why] of [
+  [
+    "A meeting that has already ended gets nothing.",
+    "Google re-reports changes to past events; a card for a meeting that is over is noise",
+  ],
+  [
+    "Never post it as \"moved\"",
+    "another occurrence of a series is not a reschedule of the carded one",
+  ],
+  [
+    "At most one post per turn",
+    "one series change replayed its history into one thread during the live test",
+  ],
+]) {
+  assert.ok(agent.spec.systemPrompt.includes(line), `the prompt lost: ${why}`);
+}
+
 console.log("ok: meeting-prep contract");

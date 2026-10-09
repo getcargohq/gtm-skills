@@ -27,7 +27,13 @@ title changed.
 :x: Cancelled
 ```
 
-A description edit, a room change, an internal attendee or an RSVP posts nothing.
+A description edit, a room change, an internal attendee, an RSVP or a time-zone label that
+changed while the actual time did not posts nothing.
+
+Nothing is posted for a meeting that has already ended. For a recurring meeting, "Moved" is only
+for the same occurrence: another occurrence of the series is never posted as a move. Once the
+carded occurrence has passed, the next upcoming one may get one new card. At most one post per
+turn.
 
 ## Rules for each line
 

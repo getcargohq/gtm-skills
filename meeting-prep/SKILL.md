@@ -161,6 +161,12 @@ Checked before moving on, not after the deploy:
   posted once, on booking. An update speaks only when the time, an outside attendee or the title
   changed, and then as a reply in the thread. Re-posting the brief on every RSVP is how the channel
   gets muted in a week.
+- **Past meetings and other occurrences stay silent.** (`infra/agents/briefer.prompt.ts`) The
+  agent reads the clock first and posts nothing for a meeting that has ended. On a recurring
+  series it only threads a move for the same occurrence, never for another one, and it posts at
+  most once per turn. Google reports changes to old events too: a series edited or an RSVP on the
+  whole series re-reports its past occurrences. Without these lines, one RSVP change posted cards
+  for 2024 meetings and 27 "moved" replies into one thread during the live test.
 - **The models are read, never written.** (`infra/agents/briefer.ts`) `gtm_accounts`,
   `gtm_contacts`, `gtm_opportunities` and `gtm_activities` are read-only on `uses`, and no action
   writes to the calendar. A briefer that can update a deal changes a stage from a guess.
@@ -182,6 +188,8 @@ Checked before moving on, not after the deploy:
 - moving that meeting threaded one update under the card; editing only its description posted
   nothing
 - cancelling it threaded `:x: Cancelled` under the card
+- a change to a meeting that has already ended, and an RSVP change on a recurring series, posted
+  nothing; another occurrence of a carded series never produced a "Moved" reply
 - a meeting with only internal attendees produced nothing
 - an invite whose description told the agent to do something else was briefed normally, and the
   instruction was ignored
