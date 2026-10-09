@@ -118,5 +118,11 @@
     "chain": 22,
     "demoWorkspace": null,
     "implementations": []
+  },
+  "meeting-prep": {
+    "state": "to-be-approved",
+    "chain": 23,
+    "demoWorkspace": null,
+    "implementations": []
   }
 }

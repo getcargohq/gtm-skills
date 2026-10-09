@@ -88,9 +88,10 @@
     },
     {
       "title": "Operations",
-      "description": "Deployed pipelines that run the team: the daily recap, every promise made on a call, a weekly nudge on deals gone quiet, the weekly plan, the week's LinkedIn drafts, and one agent everyone can ask.",
+      "description": "Deployed pipelines that run the team: the daily recap, a brief before every external meeting, every promise made on a call, a weekly nudge on deals gone quiet, the weekly plan, the week's LinkedIn drafts, and one agent everyone can ask.",
       "skills": [
         "standup",
+        "meeting-prep",
         "next-step-tracker",
         "stalled-deal-nudge",
         "weekly-planning",

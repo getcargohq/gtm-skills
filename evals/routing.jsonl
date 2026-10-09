@@ -62,7 +62,7 @@
 
 // --- one-off / deployed seam -------------------------------------------------------
 // tam-building, account-scoring, crm-enrichment, crm-deduplication,
-// call-capture, agentic-engagement, standup, stalled-deal-nudge, weekly-planning, ask-cargo,
+// call-capture, agentic-engagement, standup, meeting-prep, stalled-deal-nudge, weekly-planning, ask-cargo,
 // new-hire-detection, web-capture and win-loss-review are worked CDK examples
 // that deploy a pipeline.
 // build-tam-list, score-leads and research-account are one-offs: the same
@@ -191,3 +191,6 @@
 {"prompt": "Let anyone capture a slack thread into our context by mentioning the bot", "expect": "ask-cargo", "why": "Capture is a mode of ask-cargo: one agent answers @mentions."}
 {"prompt": "Log this slack thread to the repo when someone tags the bot", "expect": "ask-cargo"}
 {"prompt": "Scribe every recorded customer call into context each morning", "expect": "call-capture", "why": "Recorded calls on a schedule are call-capture; a Slack thread kept on demand is ask-cargo."}
+{"prompt": "Brief me in Slack whenever someone books a call with a prospect", "expect": "meeting-prep", "why": "Every booking, standing: the tell. One account now is research-account."}
+{"prompt": "Post a prep card to #sales-prep for every external meeting on our calendars", "expect": "meeting-prep"}
+{"prompt": "Set up a discovery call briefer on our Google Calendar", "expect": "meeting-prep"}
