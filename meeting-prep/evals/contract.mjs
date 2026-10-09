@@ -50,7 +50,7 @@ assert.equal(
 );
 for (const kind of ["created", "updated", "cancelled"]) {
   assert.ok(
-    (calendarTrigger.config?.events ?? []).includes(kind),
+    (calendarTrigger.config?.changes ?? []).includes(kind),
     `the trigger must listen to ${kind}: a reschedule and a cancellation thread under the card`,
   );
 }

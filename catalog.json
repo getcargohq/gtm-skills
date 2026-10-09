@@ -1538,7 +1538,7 @@
         {
           "id": "sales-team-only",
           "when": "The Workspace has people whose external meetings are not sales",
-          "how": "Replace `users: \"all\"` with the list of emails on the trigger",
+          "how": "Set `userScope: \"selected\"` and `users` to the list of emails on the trigger",
           "cost": "A new rep is not briefed until someone adds them."
         },
         {

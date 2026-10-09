@@ -75,9 +75,10 @@ export const briefer = defineAgent("meeting_briefer", {
       name: "meeting_changes",
       config: {
         // Every user the connector can read: with domain-wide delegation that
-        // is the whole Workspace. A list of emails narrows it to a team.
-        users: "all",
-        events: ["created", "updated", "cancelled"],
+        // is the whole Workspace. `userScope: "selected"` plus `users` (a list
+        // of emails) narrows it to a team.
+        userScope: "all",
+        changes: ["created", "updated", "cancelled"],
         // Only meetings with someone outside the company. Internal 1:1s never
         // wake the agent.
         externalOnly: true,

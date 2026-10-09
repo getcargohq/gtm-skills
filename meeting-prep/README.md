@@ -50,7 +50,7 @@ each. A team on HubSpot, Salesforce or Attio swaps them for connector-backed one
 ## Placeholders (edit before deploy)
 
 1. **The Google Calendar connector**: domain-wide delegation for the team, or OAuth for one person.
-2. **`users`** on the trigger: `"all"`, or the sales team's emails.
+2. **`userScope`** on the trigger: `"all"`, or `"selected"` with the sales team's emails in `users`.
 3. **`channelId`** in `infra/agents/briefer.ts`: the Slack channel id the cards land in.
 4. **`languageModel`**: any Anthropic model the workspace's connector can reach.
 
