@@ -62,9 +62,14 @@ export const gtmActivities = defineModel("gtm_activities", {
   model is shared. Renaming or retyping a shared column breaks every other pipeline that reads it.
 - **Read-only unless it is yours.** An agent gets a shared model read-only on `uses`. Its writable
   state lives in its own ledger model (`meeting_briefs`, `commitments`), named for the pipeline.
-- **Ledger times are strings.** An agent writing a native `date` column gets the value back as an
-  empty object, and its next model step fails. A ledger an agent writes stores timestamps as ISO
-  8601 strings. Columns a play or a sync writes can stay `date`.
+- **Ledger times are strings.** A ledger an agent writes stores timestamps as ISO 8601 strings.
+  The original cause, an agent's `date` write breaking its next model step, is fixed in the
+  platform, but agent-written `date` columns have not been re-verified live, so keep strings until
+  they are. Columns a play or a sync writes can stay `date`.
+- **Writes are read back late.** A native write can take minutes to show in SQL and in record
+  search (up to about 13 minutes for custom columns on a live run). A re-run inside that window can
+  repeat work. Check a ledger by record search, which caught up sooner than SQL on live runs but
+  is not immediate either, and say in the skill that a same-hour re-run may duplicate.
 - **An agent reads the clock with SQL.** A plain agent has no clock. It reads
   `SELECT CURRENT_TIMESTAMP() AS now, CURRENT_DATE('<timezone>') AS today` before anything that
   depends on the date. A harness agent can run `date`.

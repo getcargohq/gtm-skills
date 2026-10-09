@@ -54,8 +54,8 @@ it. Four kinds of request land:
    calls and threads, on the thread's pull request. Shared channels and DMs are refused.
    `references/capture-entry.md` is the shape. The thread's channel id and parent ts come from the
    first line of the message the Slack trigger delivers (`[Slack channel: … | thread ts: … |
-   message ts: …]`); on a platform that does not send that line yet, the agent asks once for the
-   thread's permalink and stops.
+   message ts: …]`); if that line is missing, the agent asks once for the thread's permalink and
+   stops.
 
 This is not the workspace's built-in Master Agent. That one answers from context and models with no
 checkout and cannot change anything. Ask Cargo exists for what needs the repository: reading what is
