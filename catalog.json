@@ -1512,7 +1512,7 @@
         "prompt": "Brief the team in #sales-prep whenever anyone books a meeting with someone outside the company.",
         "output": "```text\n:calendar: *Tue Oct 6, 10:00 PT · Discovery* with *Fabrikam* — @dana\n*Company* — Freight-audit software for mid-market shippers; 240 employees; tier A\n*Deal* — Discovery, $38,000, closes Dec 12, next step: confirm data-team owner\n*Who's joining* — Priya Shah, VP Revenue Operations, linkedin.com/in/priya-shah-fab\n                  Sam Okafor, Data Engineer, no profile on file (not answered)\n*Last time* — Sep 18: \"Our routing breaks every time Salesforce changes a field.\"\n*Recent* — Hired a Head of Data on Sep 30 (fabrikam.example/news/head-of-data)\n*Call tip* — Their pain is schema drift, which is where we win against hand-built\n  routing. Lead with the field-change story. Ask: \"Who gets paged when a routing\n  rule silently stops matching?\"\n_Sources: calendar event · fabrikam.example/news/head-of-data_\n\n  ↳ :arrows_counterclockwise: Moved: Tue Oct 6 10:00 → Wed Oct 7 14:00 PT\n```\n\nThe card landed within a minute of the booking; the next day's reschedule threaded under it, and an\nagenda edit in between posted nothing."
       },
-      "state": "to-be-approved",
+      "state": "approved",
       "chain": 23,
       "resources": [
         "agents",

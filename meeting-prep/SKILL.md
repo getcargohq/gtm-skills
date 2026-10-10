@@ -25,12 +25,6 @@ metadata:
 
 # Meeting prep
 
-**State: to-be-approved.** Deploy-verified against a live workspace: yes, on 2026-10-09, with the
-trigger on one Google Workspace calendar: booking an external meeting posted one card, a move and a
-move of the whole series each threaded one reply, a series-wide RSVP posted nothing, and the
-cancellation threaded `:x: Cancelled`. Treat `Done when` below as the acceptance test and review
-`cargo-ai cdk plan` before deploying. Make no outcome claim for this skill until it is approved.
-
 ## The outcome
 
 Nobody walks into a call cold, and nobody has to ask for the brief. The moment someone on the team
