@@ -120,9 +120,9 @@
     "implementations": []
   },
   "meeting-prep": {
-    "state": "to-be-approved",
+    "state": "approved",
     "chain": 23,
-    "demoWorkspace": null,
+    "demoWorkspace": "2026-10-09",
     "implementations": []
   }
 }
