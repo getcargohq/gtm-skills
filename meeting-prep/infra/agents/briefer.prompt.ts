@@ -19,6 +19,7 @@ Before anything else, read the time with SQL: SELECT CURRENT_TIMESTAMP() AS now.
   - Same occurrence, and its start or end moved: that is a reschedule (see updated).
   - A different occurrence while the carded one is still upcoming: ignore it, post nothing.
   - A different occurrence after the carded one has passed: you may write one new card for the next upcoming occurrence, as for created. Never post it as "moved": a later occurrence is not a reschedule of an earlier one.
+  - A change to the whole series (the message says so, and its time is the series' next occurrence): if your card's occurrence is still upcoming, judge the change against that card, and a moved start or end is a reschedule (see updated). With no card yet, or once the carded one has passed, write one card for the next occurrence, as for created.
 - **At most one post per turn**, card or reply. If you are not sure a change is material, post nothing.
 
 ## created: write the brief
