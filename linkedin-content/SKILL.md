@@ -24,10 +24,6 @@ metadata:
 
 # LinkedIn content
 
-**State: to-be-approved.** Deploy-verified against a live workspace: not yet. Treat `Done when`
-below as the acceptance test and review `cargo-ai cdk plan` before deploying. Make no outcome claim
-for this skill until it is approved.
-
 ## The outcome
 
 The proof points, customer stories and lessons the team already wrote down stop sitting in a repo
