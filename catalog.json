@@ -379,7 +379,7 @@
         "prompt": "Put one agent in our #gtm Slack channel that answers from this repo, opens a pull request for any edit, and runs nothing until someone says go.",
         "output": "```text\n#gtm\nDana:   @Cargo add Globex to our competitors, they keep showing up in fintech deals\nCargo:  Opened https://github.com/northwind-example/gtm/pull/212 on branch ask-cargo/add-globex-competitor.\n        • Adds Globex to context/ competitors with the fintech positioning from this thread\n        • `cargo-ai cdk check` passes; nothing under infra/ changed\n        Want a battlecard section too? Reply @Cargo with what to add.\nDana:   @Cargo also note they undercut on price for teams under 50 seats\nCargo:  Pushed a second commit to the same pull request (#212): pricing note added.\n        Review and merge it when it reads right; I never merge.\n```\n\nOne thread became one reviewable pull request with two commits; a request that spends, such as\nre-scoring an account, would instead get a proposal with its live price and wait for `@Cargo go`."
       },
-      "state": "to-be-approved",
+      "state": "approved",
       "chain": 9,
       "resources": [
         "agents",
@@ -1060,7 +1060,7 @@
         "prompt": "Every Monday, flag which customers near renewal are ready to expand and post the digest to #cs-weekly.",
         "output": "```text\n:seedling: *Expansion signals, week of 2026-10-05*\n_6 accounts in their renewal window: 1 at risk, 2 ready to expand._\n\n*Tailspin Logistics* (tailspin.example) · at_risk · New CDO joined Sep 22 from a\n  competitor's customer; renewed every 12 months, last at 24,000. Play: executive\n  check-in. Sources: tailspin.example/news/new-cdo · owner 4411\n*Fabrikam* (fabrikam.example) · expansion · Raised a Series B on Sep 9 and posted\n  four data-engineer roles; renewed every 12 months, last at 38,000. Play: annual\n  prepay offer. Sources: fabrikam.example/press/series-b · owner 4402\n*Northwind Traders* (northwind.example) · expansion · Hired a Head of Compliance on\n  Sep 30. Play: governance add-on demo. Sources: northwind.example/team · owner 4402\n*Contoso* (contoso.example) · repeat_purchase · Ordered every 6 months, last at\n  9,500 on Apr 2. Play: renewal call at the last price. · owner 4419\n*Litware* (litware.example) · renewal · No outside event. · owner 4411\n```\n\nSix won deals entered their renewal window this week, so six accounts carry a signal and a reason; a\nseventh account had already renewed early and was written `none`."
       },
-      "state": "to-be-approved",
+      "state": "approved",
       "chain": 21,
       "resources": [
         "agents",
@@ -1422,7 +1422,7 @@
         "prompt": "Every Monday, draft three LinkedIn posts for our CEO, Dana Ruiz, from what's in context/.",
         "output": "```text"
       },
-      "state": "to-be-approved",
+      "state": "approved",
       "chain": 20,
       "resources": [
         "agents",
@@ -1777,7 +1777,7 @@
         "prompt": "Every weekday morning, tell #deal-desk which promises from our calls are due or overdue.",
         "output": "```text\n:hourglass: *Next steps due — Thu Oct 8*\n*Dana Ruiz*\n• Fabrikam: \"Send the Globex migration one-pager to Priya\" — you promised on Oct 1,\n  due Oct 6 (2 days overdue). An email to Priya with the one-pager closes it.\n• Northwind: \"Legal will review the MSA by Friday\" — they promised on Oct 2, due today.\n  Follow up with Sam; nothing to do for them.\n*Lee Park*\n• Contoso: \"Share the SOC 2 report\" — you promised on Oct 6, due today. An email with\n  the report attached closes it.\n_Sources: cadence/log/calls/2026-10-01-fabrikam.md · cadence/log/calls/2026-10-02-northwind.md ·\ncadence/log/calls/2026-10-06-contoso.md_\n```\n\nEleven commitments were open; four closed overnight on logged activity, three were due and posted, and a\nsecond run that morning posted nothing."
       },
-      "state": "to-be-approved",
+      "state": "approved",
       "chain": 22,
       "resources": [
         "agents",
@@ -2048,7 +2048,7 @@
         "prompt": "Every Monday, tell each rep which of their open deals went quiet and draft the follow-up.",
         "output": "```text\n:hourglass: *Stalled deals · Dana Ruiz · 2026-W41*\n_2 open deals with no logged activity in 14+ days._\n\n*Fabrikam — Platform* — Proposal, $64,000, closes Oct 31 · quiet 19 days, flagged 1 Monday running\nLast: Sep 17 \"Send the security questionnaire and we'll take it to procurement.\"\nWhy now: The close date is three weeks out and the questionnaire that unblocks procurement never went.\nDraft: > Hi Lee, attaching the completed security questionnaire you asked for on the 17th.\n       > If procurement needs anything else to keep the Oct 31 date, send it my way today.\n\n*Northwind — Expansion* — Discovery, $22,000, closes Nov 20 · quiet 16 days\nLast: Sep 20 \"Let's regroup once the Q4 budget is set.\"\nWhy now: Q4 budgets were due Oct 1, so the regroup they asked for is now.\nDraft: > Hi Priya, you mentioned regrouping once Q4 budget was set. Is this week good?\n```\n\nFive owners had stalled deals, so five digests landed and eleven rows were added to `deal_nudges`; a\nsecond run that Monday posted nothing."
       },
-      "state": "to-be-approved",
+      "state": "approved",
       "chain": 16,
       "resources": [
         "agents",

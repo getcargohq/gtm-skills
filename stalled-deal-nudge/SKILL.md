@@ -25,14 +25,6 @@ metadata:
 
 # Stalled-deal nudge
 
-**State: to-be-approved.** Deploy-verified against a live workspace: yes, on 2026-10-04, on native
-models seeded with five deals (four open, one closed) and four activities: the selection returned
-the two deals quiet 24 and 33 days plus the one never touched, and excluded the deal touched the day
-before and the closed one; one digest per owner landed in Slack with one `deal_nudges` row per deal
-carrying its `ts`; a re-run once the ledger was readable posted nothing and wrote nothing. Treat `Done when`
-below as the acceptance test and review `cargo-ai cdk plan` before deploying. Make no outcome claim
-for this skill until it is approved.
-
 ## The outcome
 
 An open deal stops dying in silence. Every Monday morning one agent finds the open deals with no

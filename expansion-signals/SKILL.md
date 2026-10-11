@@ -24,15 +24,6 @@ metadata:
 
 # Expansion signals
 
-**State: to-be-approved.** Deploy-verified against a live workspace: yes, on 2026-10-04, on native
-models seeded with six won deals across three accounts: the play's filter picked exactly the four
-won ten to twelve months back; the analyst wrote `renewal` onto the account with one win, `none` onto
-the account that renewed ten months later, and, after a fix found by this run, `repeat_purchase`
-onto the account with a six-month cadence; the digest posted once and a re-run, once its ledger read
-back, posted nothing. Treat `Done when`
-below as the acceptance test and review `cargo-ai cdk plan` before deploying. Make no outcome claim
-for this skill until it is approved.
-
 ## The outcome
 
 The renewal stops being the first time anyone looks at a customer. Every Monday:
