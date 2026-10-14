@@ -35,8 +35,9 @@ export const listener = defineAgent("social_listener", {
   color: "yellow",
   connector: anthropic,
   languageModel: "claude-sonnet-5", // PLACEHOLDER: your model of choice
-  // Reads, at most five comment pulls, one post and a few ledger rows.
-  maxSteps: 30,
+  // Context and post reads, at most five comment pulls, one post and a few
+  // ledger rows, with room left over so the post always fits.
+  maxSteps: 40,
   capabilities: [
     // Read-only: the ICP, the pains in the buyer's words, competitors. The
     // rubric for "worth joining" and "looks like a buyer".

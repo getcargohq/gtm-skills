@@ -72,7 +72,7 @@ _Routing breakage after CRM migrations came up three times._
 • Sam Okafor, Head of Revenue Operations at Contoso, on Dana's post:
   "We rebuilt ours three times this year." (linkedin.com/in/sam-okafor)
 
-_Searched: "lead routing" OR "speed to lead" · 40 posts read, 3 already surfaced_
+_Searched: 40 posts read, 3 already surfaced_
 ```
 
 Forty posts were read; two were picked and recorded in `surfaced_posts`, one commenter matched an ICP
