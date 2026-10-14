@@ -433,6 +433,7 @@
       ],
       "shouldNotChange": [
         "**The bot is kept out of customer shared channels.** (`infra/agents/ask-cargo.ts`) The trigger is `allChannels`, so where the bot is invited is where the agent answers. A shared channel the bot joined for something else is a channel where the first question reads the ICP and the pipeline to the customer. Remove the bot there, or list the channel on the agent that owns it.",
+        "**The sandbox runs as a viewer service user.** (`infra/users/index.ts`) Its `cargo-ai` session is what anyone in the channel can steer. With a write role, a message that talks the agent past its prompt can deploy or edit a resource; with no `runAs`, every workspace read fails. The contract fails on either.",
         "**Nothing on `uses`.** (`infra/agents/ask-cargo.ts`) The trigger replies by itself, so a `postMessage` use is a second way to post, to any channel. A sub-agent or tool on `uses` is a path that skips the go in the thread, and a sub-agent handle imports another cookbook's file. The contract fails on any of the four.",
         "**Spend, sends and handoffs wait for a go in the thread.** (`infra/agents/ask-cargo.prompt.ts`) Anyone in the channel can @mention it. Without the gate, a half-typed \"enrich everything\" runs a batch over the whole model, and the only record of who approved it is a Slack thread nobody reread. The go approves the proposal as written, never more records or a higher cost.",
         "**Changes are one pull request per thread, never a merge, never a deploy.** (`infra/agents/ask-cargo.prompt.ts`) The merge is the approval. An agent that deploys from Slack turns a mistyped message into a production change with no diff anyone read.",
@@ -443,10 +444,10 @@
         "**It does not claim to know who asked.** (`infra/agents/ask-cargo.prompt.ts`) The model is not told. A pull request that names a requester names a guess."
       ],
       "doneWhen": [
-        "`node --import tsx evals/contract.mjs` passes: harness is `claudeCode` on an Anthropic connector, one Slack trigger on `allChannels`, nothing on `uses`, no capability",
-        "`cargo-ai cdk plan` reports the agent, the three connectors and the folder",
+        "`node --import tsx evals/contract.mjs` passes: harness is `claudeCode` on an Anthropic connector, one Slack trigger on `allChannels`, nothing on `uses`, no capability, `runAs` a viewer service user",
+        "`cargo-ai cdk plan` reports the agent, the three connectors, the folder, the `ask_cargo` user and the adopted `viewer` role",
         "a question in a channel the bot is in (\"what is our ICP?\") got an answer in the thread that cites a file under `context/`",
-        "a question about the workspace (\"what failed yesterday?\") cites the `cargo-ai` command it ran; a read that errored says so instead of a number",
+        "a question about the workspace (\"what failed yesterday?\") cites the `cargo-ai` command it ran; a read that errored says so instead of a number. `cargo-ai whoami` in the sandbox names the `ask_cargo` service user",
         "a change request opened exactly one unmerged pull request, and a follow-up in the same thread added a commit to it rather than opening a second",
         "a request that spends replied with a proposal and a live price and ran nothing; the same request ran only after `@Cargo go`",
         "a request an installed agent owns was handed to it with `cargo-ai ai message create`, and the reply names the chat or pull request it produced",
