@@ -78,7 +78,9 @@ grep -q '"cargo@gtm"' ~/.claude/plugins/installed_plugins.json 2>/dev/null ||
 | Split levers     | industry → geography → headcount growth → followers          | geography → seniority → years in role → function → company size → job title     |
 | Dedup key        | `sales_navigator_company_id`                                 | `linkedin_profile_id`                                                           |
 
-Split below the cap, not at it: the same search can count ~15% differently a few days later.
+Split below the cap, not at it: the same search can count ~15% differently a few days later. A people
+search counting 2,494 fits under 2,500 today and silently loses its overflow the day it counts 2,600, so
+it gets split anyway.
 
 ## Do the job
 
@@ -196,9 +198,16 @@ the first rows you see are a 25-row preview, the rest land when the run finishes
 ### 6. Check what landed, then dedupe
 
 `cargo-ai storage run list --model-uuid <uuid>` until each run is `success`, then count rows per model
-with `cargo-ai storage query execute`. Expect ~95% of what the counts promised: Sales Navigator serves
-slightly fewer rows than it counts. Dedupe across models on the dedup key; band edges and overlapping
-seniority put some records in two searches.
+with `cargo-ai storage query execute`. Sales Navigator returns fewer records than it counts, and the gap
+differs by mode:
+
+- **Accounts:** ~95% of the count (54,146 extracted of 56,516 counted, across 81 searches).
+- **People:** ~75–80% of the count, at any size. Measured: 3,149 extracted from a 4,052-person search
+  split three ways, 153 from a 204-person search. Splitting smaller does not raise it, so do not split
+  past the cap chasing the gap; tell the user to expect it up front.
+
+Dedupe across models on the dedup key; band edges and overlapping seniority put some records in two
+searches.
 
 ## Example
 
