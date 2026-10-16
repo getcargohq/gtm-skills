@@ -4,6 +4,7 @@ import { askCargoPrompt } from "./ask-cargo.prompt";
 import { anthropic } from "../connectors/anthropic";
 import { slack } from "../connectors/slack";
 import { agentsFolder } from "../folders";
+import { askCargoUser } from "../users";
 
 // Ask Cargo: one agent the whole team @mentions in Slack, sitting on top of the
 // GTM repository and the workspace it deploys.
@@ -32,7 +33,8 @@ import { agentsFolder } from "../folders";
 // No `capabilities`, for the same reason standup has none: the workspace is
 // read with Cargo's own CLI, which the harness already has, and only the
 // prompt can say which commands need a "go" in the thread first. The rules
-// are in `ask-cargo.prompt.ts`.
+// are in `ask-cargo.prompt.ts`. The CLI is signed in as the `ask_cargo`
+// service user (`repository.runAs`), a viewer: see `../users`.
 export const askCargo = defineAgent("ask_cargo", {
   name: "Ask Cargo",
   description:
@@ -41,16 +43,18 @@ export const askCargo = defineAgent("ask_cargo", {
   harness: "claudeCode",
   connector: anthropic,
   languageModel: "claude-sonnet-5", // PLACEHOLDER — your model of choice
-  // No `repository`, on purpose. Omitted, plan and deploy bind the project's
-  // own repository: they read the git origin of the checkout they run in and
-  // fill the repo, default branch and root directory, taking the connector
-  // from the project's GitHub `defineConnector`. (`null` is the opposite: an
-  // unbound agent with no clone.) `cargo-ai cdk check` prints what it
-  // resolved; verify it names the repository root and not `infra/`.
+  // Only `runAs` in `repository`, on purpose. Plan and deploy fill the rest
+  // from the project's own repository: they read the git origin of the
+  // checkout they run in and fill the repo, default branch and root
+  // directory, taking the connector from the project's GitHub
+  // `defineConnector`. (`null` is the opposite: an unbound agent with no
+  // clone.) `cargo-ai cdk check` prints what it resolved; verify it names the
+  // repository root and not `infra/`.
   //
   // Nor an `env` to hold one: the one value a reply needs — the bot's own
   // mention, so it can say what to type to confirm — arrives in every message
   // that wakes the agent as Slack's raw `<@U…>` token, which the prompt reuses.
+  repository: { runAs: askCargoUser },
   triggers: [
     agentConnectorTrigger({
       connector: slack,

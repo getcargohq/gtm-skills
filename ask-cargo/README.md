@@ -41,6 +41,7 @@ Adds 5 resources.
 | `infra/connectors/git.ts`          | `defineConnector` (`github`)    | the clone, branch, push and pull request path                |
 | `infra/connectors/anthropic.ts`    | `defineConnector` (`anthropic`) | the model the harness runs on, billed and metered            |
 | `infra/folders/index.ts`           | `defineFolder`                  | the workspace folder this cookbook's agent is filed in       |
+| `infra/users/index.ts`             | `defineUser`, `defineRole`      | the viewer service user every turn's `cargo-ai` runs as      |
 | `references/roster.md`             | (not a resource)                | which deployed agent owns which job                          |
 | `references/capture-entry.md`      | (not a resource)                | what a capture writes, and how a re-mention is handled       |
 
