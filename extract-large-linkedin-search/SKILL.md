@@ -192,10 +192,22 @@ cargo-ai storage model create --slug large_search_part_01 --name "Large search �
   --config '{"urls":["https://www.linkedin.com/sales/search/company?query=...","..."],"limit":1000}'
 ```
 
-People: `--extractor-slug fetchLeadSearch`, `"limit":2500`, and **always a Sales Navigator seat**:
-`"identityIds":["<seat id>"]` in the config (list seats with `cargo-ai connection connector autocomplete
---connector-uuid <your salesNavigator connector> --slug listIdentityIds`). Without one the extraction
-runs on a narrower LinkedIn view and returns 12–25% fewer people, differently on every run. Creating the model starts the extraction;
+People: `--extractor-slug fetchLeadSearch` and `"limit":2500`. Extraction runs **cookieless** by
+default: no LinkedIn account, cookie or seat. Keep it that way unless the user asks otherwise. A
+cookie-based option exists (`"identityIds":["<seat id>"]`, seats listed by `cargo-ai connection
+connector autocomplete --connector-uuid <your salesNavigator connector> --slug listIdentityIds`): it runs
+the extraction through that person's own LinkedIn account. **Never add it yourself; offer it and let the
+user decide.**
+
+**People models run three times.** Cookieless, each run returns a different 75–88% of the search, and a
+model keeps the rows from earlier runs, so two forced re-runs after creation close the gap:
+
+```bash
+cargo-ai storage run create --model-uuid <uuid> --is-force true   # after the first run finishes; twice
+```
+
+Measured: 154 → 198 → 203 on a 204-person search, and 3,149 → 4,082 → 4,388 unique people on a search
+counted at 4,052 (three overlapping searches). Creating the model starts the extraction;
 the first rows you see are a 25-row preview, the rest land when the run finishes.
 
 ### 6. Check what landed, then dedupe
@@ -205,13 +217,12 @@ with `cargo-ai storage query execute`. Sales Navigator returns fewer records tha
 differs by mode:
 
 - **Accounts:** ~95% of the count (54,146 extracted of 56,516 counted, across 81 searches).
-- **People, with a seat in `identityIds`:** ~100%. Measured: 204 of 204, and 4,273 unique people from a
-  search counted at 4,052 (two searches, 1,750 + 2,494).
-- **People, without a seat:** 75–88% of the count, and a different subset each run (153, then 179, of the
-  same 204). This is the gap to watch for; splitting smaller does not close it, the seat does.
-- Each seat sees a slightly different set (the seatless run above found ~200 people the seat run did
-  not). When coverage matters more than credits, extract once with a second seat and union on the dedup
-  key.
+- **People, cookieless (the default):** one run returns 75–88% of the count, a **different subset each
+  run** (153, then 179, of the same 204); after the three runs of step 5, ~99–100% (203 of 204; 4,388 from a 4,052 count). Splitting
+  smaller does not close the gap; re-running does. If a model holds well under the count, re-run it
+  again before anything else.
+- **People, cookie-based (only if the user opts in):** ~100% (204 of 204; 4,273 unique from a search
+  counted at 4,052).
 
 Dedupe across models on the dedup key; band edges and overlapping seniority put some records in two
 searches.
@@ -242,7 +253,7 @@ Illustrative output, fictional records:
 | --- | --- |
 | `salesNavigator.searchCompanyMetrics` | 0.25 |
 | `salesNavigator.searchPersonMetrics` | 0.25 |
-| Extraction through `fetchAccountSearch` or `fetchLeadSearch`, per row | 0.2 |
+| Extraction through `fetchAccountSearch` or `fetchLeadSearch`, per row returned (people models run three times) | 0.2 |
 
 Counting is cheap; extraction is the bill. A 50,000-account market costs a few hundred count calls
 and ~10,000 credits of extraction.
