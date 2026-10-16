@@ -72,15 +72,15 @@ grep -q '"cargo@gtm"' ~/.claude/plugins/installed_plugins.json 2>/dev/null ||
 | ---------------- | ------------------------------------------------------------ | ------------------------------------------------------------------------------- |
 | Search URL       | `https://www.linkedin.com/sales/search/company?query=…`      | `https://www.linkedin.com/sales/search/people?query=…`                          |
 | Cap per search   | 1,000                                                        | 2,500                                                                           |
-| Split below      | ~950                                                         | ~2,300                                                                          |
+| Split below      | 1,000                                                        | 2,500                                                                           |
 | Counter          | `searchCompanyMetrics` → `total_results`                     | `searchPersonMetrics` → `total_leads`                                           |
 | Model extractor  | `fetchAccountSearch`, `limit` up to 1,000                    | `fetchLeadSearch`, `limit` up to 2,500                                          |
 | Split levers     | industry → geography → headcount growth → followers          | geography → seniority → years in role → function → company size → job title     |
 | Dedup key        | `sales_navigator_company_id`                                 | `linkedin_profile_id`                                                           |
 
-Split below the cap, not at it: the same search can count ~15% differently a few days later. A people
-search counting 2,494 fits under 2,500 today and silently loses its overflow the day it counts 2,600, so
-it gets split anyway.
+A search that fits under the cap goes as is, even at 2,494 of 2,500: counts drift (~15% over a few
+days), but a model you refresh picks up the people who join later, so re-count right before you extract
+rather than splitting to a margin.
 
 ## Do the job
 
@@ -169,8 +169,8 @@ differ in exactly **one** lever whose values can sit together in one URL.
 - **Growth ranges and title chains:** only neighbours (one `min..max` per URL; `A OR B` only if
   neither carries an exclusion).
 
-A merged search can never count more than the sum of its parts, so pack by sum up to the safe
-threshold (950 or 2,300), largest piece first, into the first search it fits. One account run went from
+A merged search can never count more than the sum of its parts, so pack by sum up to the cap
+(1,000 or 2,500), largest piece first, into the first search it fits. One account run went from
 261 searches to 81.
 
 ### 4. Count every merged search again
@@ -192,7 +192,10 @@ cargo-ai storage model create --slug large_search_part_01 --name "Large search �
   --config '{"urls":["https://www.linkedin.com/sales/search/company?query=...","..."],"limit":1000}'
 ```
 
-People: `--extractor-slug fetchLeadSearch` and `"limit":2500`. Creating the model starts the extraction;
+People: `--extractor-slug fetchLeadSearch`, `"limit":2500`, and **always a Sales Navigator seat**:
+`"identityIds":["<seat id>"]` in the config (list seats with `cargo-ai connection connector autocomplete
+--connector-uuid <your salesNavigator connector> --slug listIdentityIds`). Without one the extraction
+runs on a narrower LinkedIn view and returns 12–25% fewer people, differently on every run. Creating the model starts the extraction;
 the first rows you see are a 25-row preview, the rest land when the run finishes.
 
 ### 6. Check what landed, then dedupe
@@ -202,9 +205,13 @@ with `cargo-ai storage query execute`. Sales Navigator returns fewer records tha
 differs by mode:
 
 - **Accounts:** ~95% of the count (54,146 extracted of 56,516 counted, across 81 searches).
-- **People:** ~75–80% of the count, at any size. Measured: 3,149 extracted from a 4,052-person search
-  split three ways, 153 from a 204-person search. Splitting smaller does not raise it, so do not split
-  past the cap chasing the gap; tell the user to expect it up front.
+- **People, with a seat in `identityIds`:** ~100%. Measured: 204 of 204, and 4,273 unique people from a
+  search counted at 4,052 (two searches, 1,750 + 2,494).
+- **People, without a seat:** 75–88% of the count, and a different subset each run (153, then 179, of the
+  same 204). This is the gap to watch for; splitting smaller does not close it, the seat does.
+- Each seat sees a slightly different set (the seatless run above found ~200 people the seat run did
+  not). When coverage matters more than credits, extract once with a second seat and union on the dedup
+  key.
 
 Dedupe across models on the dedup key; band edges and overlapping seniority put some records in two
 searches.
