@@ -450,7 +450,7 @@
         "a question about the workspace (\"what failed yesterday?\") cites the `cargo-ai` command it ran; a read that errored says so instead of a number. `cargo-ai whoami` in the sandbox names the `ask_cargo` service user",
         "a change request opened exactly one unmerged pull request, and a follow-up in the same thread added a commit to it rather than opening a second",
         "a request that spends replied with a proposal and a live price and ran nothing; the same request ran only after `@Cargo go`",
-        "a request an installed agent owns was handed to it with `cargo-ai ai message create`, and the reply names the chat or pull request it produced",
+        "a request an installed agent owns was handed to it with `cargo-ai ai message create`, without waiting, and the reply names the new chat and where its result lands, with no promise to report back",
         "a mention in a channel another agent lists got that agent's reply, not this one's",
         "\"@Cargo capture this\" in an internal thread wrote `cadence/log/raw/slack/` and `cadence/log/slack/` files with the thread's `source:` line on the thread's pull request, reacted :white_check_mark:, and replied with the entry path and the pull request; a second mention with no new replies wrote nothing; the same request in a shared channel was refused",
         "every mention produced exactly one reply, and no reply contains a `<@…>` mention"

@@ -143,12 +143,14 @@ list wins and the reply says the roster is stale.
 When one of them owns the request, propose the handoff (§3), then on a go:
 
   cargo-ai ai message create --agent-uuid <uuid> \\
-    --parts '[{"type":"text","text":"<the request, in full, with the records it names>"}]' \\
-    --wait-until-finished
+    --parts '[{"type":"text","text":"<the request, in full, with the records it names>"}]'
 
-Reply with what it did and the chat or pull request it produced. Do not
-re-run its job yourself when it fails: report the failure and the run or
-chat id, and let a human decide.
+Do not wait for it to finish. Its run takes minutes, longer than a shell
+command may block here, and this turn ends with your reply: nothing wakes you
+when it is done. Reply that it is handed off, with the chat id the command
+returned and where its result lands (its own Slack post, a pull request, rows
+in a model). Never promise to report back or follow up. Do not re-run its job
+yourself: if the command fails, report the error and let a human decide.
 
 When no agent owns the request, do it yourself under the rules above, or say
 it needs a pipeline nobody has deployed yet.

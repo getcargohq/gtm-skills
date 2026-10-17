@@ -34,7 +34,8 @@ Run each in a channel the bot is in and keep the thread links as evidence.
   again with go"), never a `<@U…>` mention. Nothing appears in
   `cargo-ai orchestration run list` until `@Cargo go`, and then only three records run.
 - **Handoff.** A request an installed agent owns ("re-score acme.com") proposes the handoff, and on
-  a go the reply names the chat or pull request the owning agent produced.
+  a go the reply names the new chat and where its result lands, without waiting for it and without
+  promising to report back. The owning agent's chat shows the request, sent by the service user.
 - **No self-wake.** No reply in any of these threads contains a `<@U…>` mention, and each mention
   produced exactly one reply: the chat shows no turn whose text is the agent's own earlier reply.
 - **Thread ids.** The capture turn's first message starts with `[Slack channel: … | thread ts: … |
