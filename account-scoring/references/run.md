@@ -19,7 +19,8 @@ update says `No action needed` and names the next checkpoint.
 3. Confirm the plan shows `tam_companies` updated with the four tier columns
    (and no other change to it), the agent, the play with `isEnabled: false`,
    `runCreationRule: noConcurrency` and `changeKinds: ["added"]`, and the four
-   segments.
+   segments. With `crmWriteback` set, it also shows the `crm` connector bound
+   and an `updateRecords` node after the row write; with `none`, neither.
 4. Deploy only on the operator's yes. Then confirm the live column names:
    `cargo-ai storage column list --model-uuid <tamCompaniesUuid>`. Every
    column the workflow input names must be there.
@@ -56,6 +57,17 @@ Check by hand:
   you think it is
 - the evaluator results on the batch's runs, with one failing sample quoted if
   there is one
+- with `crmWriteback` set, one piloted company that the CRM holds, read back
+  from the CRM, carries the same tier, reason and scored-at date as its row.
+  The CRM node runs with `continueOnFailure`, so a miss, a misspelled field or
+  a lapsed connection all end the run green; this read is what tells them
+  apart. Read the `updateRecords` node of one run whose company the CRM
+  holds: it returns the records it updated, and an empty list is a miss. Then
+  open that company in the CRM and read the three fields.
+
+```sh
+cargo-ai orchestration run get <runUuid>
+```
 
 Cost: read actual credits for the batch (`cargo-ai billing usage get-metrics`
 for the day, LLM and search lines), divide by ten, and multiply by the
