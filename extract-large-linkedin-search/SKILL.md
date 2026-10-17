@@ -192,12 +192,19 @@ cargo-ai storage model create --slug large_search_part_01 --name "Large search �
   --config '{"urls":["https://www.linkedin.com/sales/search/company?query=...","..."],"limit":1000}'
 ```
 
-People: `--extractor-slug fetchLeadSearch` and `"limit":2500`. Extraction runs **cookieless** by
-default: no LinkedIn account, cookie or seat. Keep it that way unless the user asks otherwise. A
-cookie-based option exists (`"identityIds":["<seat id>"]`, seats listed by `cargo-ai connection
-connector autocomplete --connector-uuid <your salesNavigator connector> --slug listIdentityIds`): it runs
-the extraction through that person's own LinkedIn account. **Never add it yourself; offer it and let the
-user decide.**
+People: `--extractor-slug fetchLeadSearch` and `"limit":2500`.
+
+**Always cookieless.** No LinkedIn account, cookie or seat: never add `identityIds` to a model, count
+or search. Running through a person's own LinkedIn account puts that account at risk of being
+restricted, and nothing in this skill needs it.
+
+The one exception is a search built on filters that only exist from someone's own account: saved
+lead or account lists, saved leads and accounts, connection degree (1st / 2nd / 3rd), connections of,
+TeamLink, past colleagues, people who follow your company or viewed your profile. Those return
+nothing useful cookieless. If the user's search uses one, tell them it needs their own Sales Navigator
+seat and let them decide; only on their explicit yes, add `"identityIds":["<their seat id>"]` (list
+seats with `cargo-ai connection connector autocomplete --connector-uuid <your salesNavigator
+connector> --slug listIdentityIds`).
 
 **People models run three times.** Cookieless, each run returns a different 75–88% of the search, and a
 model keeps the rows from earlier runs, so two forced re-runs after creation close the gap:
@@ -217,12 +224,10 @@ with `cargo-ai storage query execute`. Sales Navigator returns fewer records tha
 differs by mode:
 
 - **Accounts:** ~95% of the count (54,146 extracted of 56,516 counted, across 81 searches).
-- **People, cookieless (the default):** one run returns 75–88% of the count, a **different subset each
+- **People:** one run returns 75–88% of the count, a **different subset each
   run** (153, then 179, of the same 204); after the three runs of step 5, ~99–100% (203 of 204; 4,388 from a 4,052 count). Splitting
   smaller does not close the gap; re-running does. If a model holds well under the count, re-run it
   again before anything else.
-- **People, cookie-based (only if the user opts in):** ~100% (204 of 204; 4,273 unique from a search
-  counted at 4,052).
 
 Dedupe across models on the dedup key; band edges and overlapping seniority put some records in two
 searches.
