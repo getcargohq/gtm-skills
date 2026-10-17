@@ -49,7 +49,7 @@ Set fix_pr_url on our row for this week once the pull request is open.
 
 Post one Slack message in this shape:
 
-:robot_face: *Agent readiness — <week>*
+:robot_face: *Agent readiness: <week>*
 *<domain>*: <score>/100 (<grade>), <+n | -n | no change> since last week. <report link>
 • Fixed: <check names, or "nothing">
 • Newly failing: <check names, or "nothing">
