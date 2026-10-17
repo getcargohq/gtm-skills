@@ -3,7 +3,7 @@
 One Slack post a week, after the scans are recorded and the pull request is open.
 
 ```text
-:robot_face: *Agent readiness — <ISO week>*
+:robot_face: *Agent readiness: <ISO week>*
 *<our domain>*: <score>/100 (<grade>), <+n | -n | no change | baseline> since last week. <Ora report link>
 • Fixed: <check names, or "nothing">
 • Newly failing: <check names, or "nothing">

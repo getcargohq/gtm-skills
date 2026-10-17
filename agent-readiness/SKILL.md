@@ -58,7 +58,7 @@ Ora. The next Monday's scan is the measurement of what the merged fix did.
 Illustrative output, fictional records:
 
 ```text
-:robot_face: *Agent readiness — 2026-W43*
+:robot_face: *Agent readiness: 2026-W43*
 *www.fabrikam.example*: 71/100 (C), +6 since last week. ora.ai/www.fabrikam.example
 • Fixed: llms.txt formatting, Markdown link alternate
 • Newly failing: Sitemap lastmod
@@ -83,11 +83,11 @@ to end up with the code your company would have written, in your project, and an
 adapting. If the `cargo-cdk` skill is in your session it carries the long form of this; if not, this
 is enough.
 
-1. **Install it — the CLI does the copy.** From inside the CDK project,
+1. **Install it: the CLI does the copy.** From inside the CDK project,
    `cargo-ai cdk add cookbook/agent-readiness` writes this example to `infra/agent-readiness/` and
    this procedure to `.claude/skills/agent-readiness/`. No project yet?
    `cargo-ai cdk init <dir> --cookbook agent-readiness && cd <dir> && npm install` does both. **If
-   you are reading this from the project's `.claude/skills/`, the install already happened — start
+   you are reading this from the project's `.claude/skills/`, the install already happened, so start
    at step 2.**
 2. **Reconcile it with what is already declared.** If the project already has a GitHub, Slack or
    Anthropic connector, rewire the imports to the existing one and drop the copy; two resources with
