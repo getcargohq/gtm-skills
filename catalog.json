@@ -463,7 +463,7 @@
       "kind": "one-off",
       "job": "Build a total addressable market list of companies filtered by industry, headcount, and geography.",
       "description": "Build a total addressable market list of companies filtered by industry, headcount, and geography, powered by Cargo. Triggers: \"build a TAM list\", \"how many companies match our ICP\", \"list every SaaS company in Europe under 200 employees\", \"size our addressable market\", \"find target accounts\", \"list building\", \"build a list of companies\". Providers: salesNavigator. Skip when: you want the people at those companies — use find-b2b-leads or find-stakeholders; or you want companies by tech stack — use find-companies-using-tech.",
-      "version": "1.2.0",
+      "version": "1.2.1",
       "homepage": "https://github.com/getcargohq/gtm-skills",
       "group": "Find the accounts and the people",
       "install": "npx skills add getcargohq/gtm-skills/build-tam-list",
@@ -483,8 +483,8 @@
       "worthKnowing": [
         "Not the cheapest company search in the catalog. `FullEnrich.searchCompanies` is **free** (0 credits) and takes plain-string filters — `industry`, `headcount` `{min,max}`, `headquarters`, `technologies`, `keywords` — up to 2,000 per run; `FullEnrich.fetchCompanies`, also free, pulls up to 10,000 straight into a Cargo model. `aiArk.searchCompanies` (0.01) is the cheapest paid option and takes lookalike seeds. Sales Navigator is the default when the list is defined by LinkedIn-native filters.",
         "`FullEnrich.lookupCompany` (free) returns one company's name, industry, headcount and LinkedIn URL from its domain.",
-        "Filters take LinkedIn's internal codes (`[43]`, `[\"B\",\"C\",\"D\"]`, `[103644278]`), not names like `\"fintech\"` or `\"50-200\"` — strings fail or silently mismatch. Look them up with `cargo-ai connection integration get salesNavigator`.",
-        "Billed per returned record: size the pool with `limit: 1` (the total match count comes back with it) before pulling the full scope.",
+        "Filters take LinkedIn's internal codes, **as strings**: `industryCodes: [\"43\"]` (Financial Services), `headquarterLocationIds: [\"103644278\"]` (United States), `companyHeadcounts: [\"D\",\"E\"]` (51-200, 201-500; `B` is 1-10 and `C` 11-50). Names like `\"fintech\"` or `\"50-200\"` silently match nothing, and bare numbers fail validation. Resolve a name to its code with `cargo-ai connection connector autocomplete --connector-uuid <uuid> --slug listIndustries --params '{}' --value fintech` (`listGeoCodes` for locations).",
+        "Billed per returned record, and the response carries the records only, not a total match count. Pull a small `limit` first, check the rows fit, then pull the approved scope.",
         "Size the market before you enrich it — a count is nearly free, a 5,000-company pull is ~1,000 credits."
       ]
     },
@@ -1017,7 +1017,7 @@
       "kind": "one-off",
       "job": "Turn a LinkedIn profile URL into a full person profile plus a verified work email in a single call.",
       "description": "Turn a LinkedIn profile URL into a full person profile plus a verified work email in a single call, powered by Cargo. Triggers: \"enrich these LinkedIn profiles\", \"get details from this LinkedIn URL\", \"I have LinkedIn URLs and need emails\", \"enrich LinkedIn data\", \"who is this person\", \"contact enrichment\", \"linkedin enrichment\", \"get their headline and tenure\", \"pull the whole biography\". Providers: aiArk. Skip when: you do not have the LinkedIn URL yet — use find-linkedin-url first; or you only have a name and domain — use find-work-email.",
-      "version": "1.1.1",
+      "version": "1.1.2",
       "homepage": "https://github.com/getcargohq/gtm-skills",
       "group": "Get the contact data",
       "install": "npx skills add getcargohq/gtm-skills/enrich-linkedin-profile",
@@ -1031,11 +1031,11 @@
       ],
       "example": {
         "prompt": "I have LinkedIn URLs for the 60 people who registered for our roundtable — get me their current role and a work email.",
-        "output": "| linkedinUrl | fullName | title | seniority | company | email |\n|---|---|---|---|---|---|\n| linkedin.com/in/priya-raman-example | Priya Raman | VP Data Platform | VP | Northwind | priya.raman@northwind.example |\n| linkedin.com/in/tomas-ferreira-example | Tomás Ferreira | Head of RevOps | Head | Fabrikam | tferreira@fabrikam.example |\n| linkedin.com/in/lena-voss-example | Lena Voss | Staff Engineer | Senior | Globex | |\n\n58 of 60 profiles returned and 51 of those with a verified email; the 7 without an email billed nothing, so 5.1 credits (51 × 0.1)."
+        "output": "| linkedinUrl | fullName | title | seniority | company | email |\n|---|---|---|---|---|---|\n| linkedin.com/in/priya-raman-example | Priya Raman | VP Data Platform | VP | Northwind | priya.raman@northwind.example |\n| linkedin.com/in/tomas-ferreira-example | Tomás Ferreira | Head of RevOps | Head | Fabrikam | tferreira@fabrikam.example |\n| linkedin.com/in/lena-voss-example | | | | | |\n\n51 of 60 returned a profile and a verified email; the 9 without an email came back empty and billed nothing, so 5.1 credits (51 × 0.1)."
       },
       "cost": "| Action | Credits |\n|---|---|\n| `aiArk.enrichPerson` | 0.1 |\n\n**Never run this across a full list on the first attempt.** Sample 10–20 records, report the\nobserved cost and hit-rate, then get the user to approve the full run — quoting the record count\nand the credit estimate. A batch fans out across every record in the source, and the bill scales\nwith it.",
       "worthKnowing": [
-        "Bills 0 when no email is found, so a miss is free.",
+        "Bills 0 when no email is found, so a miss is free. A miss also returns no profile: the row comes back empty, not profile-only, so a contact you need the role for but not the email belongs in a profile lookup such as `linkedin.enrichProfile` instead.",
         "The single best value in the catalog when you already hold LinkedIn URLs: profile and verified email together for less than a separate email lookup alone."
       ]
     },
@@ -1136,7 +1136,7 @@
       "kind": "one-off",
       "job": "Find B2B leads by job title, company, and keyword, and return them as a structured list.",
       "description": "Find B2B leads by job title, company, and keyword, and return them as a structured list, powered by Cargo. Triggers: \"find 50 VPs of Sales at fintech companies\", \"build me a list of leads\", \"who are the heads of engineering at Series B startups\", \"get me prospects matching this profile\", \"source leads for my outbound\", \"build a b2b lead list\", \"lead sourcing\". Providers: salesNavigator. Skip when: you need companies rather than people — use build-tam-list; or you already have the people and need contact details — use find-work-email.",
-      "version": "1.2.0",
+      "version": "1.2.1",
       "homepage": "https://github.com/getcargohq/gtm-skills",
       "group": "Find the accounts and the people",
       "install": "npx skills add getcargohq/gtm-skills/find-b2b-leads",
@@ -1155,6 +1155,7 @@
       "worthKnowing": [
         "The default for LinkedIn-native people sourcing (title, function, seniority, geo), but not the cheapest. `FullEnrich.searchPeople` is **free** (0 credits) with plain-string filters — `jobRole.title_or`, `jobRole.seniority_or`, `personLocation`, `skills`, `tenure`, and the employer's `industry` / `headcount` / `companyInfo.domain_or` — up to 2,000 per run; `FullEnrich.fetchPeople`, also free, pulls up to 10,000 into a Cargo model as contacts. `aiArk.searchPeople` (0.05) is the cheapest paid option.",
         "`FullEnrich.lookupPerson` (free) resolves one person from a LinkedIn URL, or from a full name plus company domain.",
+        "Filters take LinkedIn codes as strings: `personal.industryCodes` (`\"4\"` is Software Development), `personal.geoCodes` (`\"103644278\"` is the United States), `role.seniorityLevels` (`\"300\"` is Vice President, `\"310\"` CXO, `\"220\"` Director). Plain names, or keys outside the schema such as `company.industries` or `personal.locations`, are dropped without an error and the search runs unfiltered. Resolve names with `cargo-ai connection connector autocomplete --connector-uuid <uuid> --slug listIndustries --params '{}' --value software` (`listGeoCodes` for places).",
         "Pages come back in blocks of 25; ask for a `limit` in multiples of 25.",
         "Sourcing returns profiles, not emails. Pipe the LinkedIn URLs into `enrich-linkedin-profile` for verified emails."
       ]
@@ -1163,8 +1164,8 @@
       "name": "find-companies-using-tech",
       "kind": "one-off",
       "job": "Find companies by the technology they run or the roles they are hiring for.",
-      "description": "Find companies by the technology they run or the roles they are hiring for, powered by Cargo. Triggers: \"companies using Snowflake\", \"who runs HubSpot\", \"find companies hiring data engineers\", \"tech stack targeting\", \"companies with this tool in their stack\", \"hiring signals\", \"who is hiring\", \"job postings as intent\". Providers: theirStack. Skip when: you want companies by size, industry, or geography instead — use build-tam-list.",
-      "version": "1.1.1",
+      "description": "Find companies by the technology they run or the roles they are hiring for, powered by Cargo. Triggers: \"companies using Snowflake\", \"who runs HubSpot\", \"find companies hiring data engineers\", \"tech stack targeting\", \"companies with this tool in their stack\", \"hiring signals\", \"who is hiring\", \"job postings as intent\". Technographics, installed software, stack detection, hiring intent. Providers: theirStack. Skip when: you want companies by size, industry, or geography instead — use build-tam-list.",
+      "version": "1.1.2",
       "homepage": "https://github.com/getcargohq/gtm-skills",
       "group": "Watch for the moment to reach out",
       "install": "npx skills add getcargohq/gtm-skills/find-companies-using-tech",
@@ -1180,9 +1181,10 @@
         "prompt": "Which software companies run Snowflake and posted a Data Engineer role in the last 60 days?",
         "output": "| company | domain | technology | matchingJob | postedAt |\n|---|---|---|---|---|\n| Northwind | northwind.example | snowflake | Senior Data Engineer | 2026-09-12 |\n| Fabrikam | fabrikam.example | snowflake | Data Engineer, Platform | 2026-08-30 |\n| Contoso | contoso.example | snowflake | Analytics Data Engineer | 2026-08-04 |\n\n38 companies matched both filters, each with the job post that qualified it; 19 credits (38 × 0.5)."
       },
-      "cost": "| Action | Credits |\n|---|---|\n| `theirStack.searchCompanies` | 0.5 |\n\n**Never run this across a full list on the first attempt.** Sample 10–20 records, report the\nobserved cost and hit-rate, then get the user to approve the full run — quoting the record count\nand the credit estimate. A batch fans out across every record in the source, and the bill scales\nwith it.",
+      "cost": "| Action | Credits |\n|---|---|\n| `theirStack.searchCompanies` | 0.5 per company returned |\n\n**Never run this across a full list on the first attempt.** Sample 10–20 records, report the\nobserved cost and hit-rate, then get the user to approve the full run — quoting the record count\nand the credit estimate. A batch fans out across every record in the source, and the bill scales\nwith it.",
       "worthKnowing": [
         "Combines tech-stack and job-posting filters in one call — 'runs Snowflake AND is hiring analytics engineers' is a single query.",
+        "Filter keys are TheirStack's own: `fields.company_technology_slug_or` (technology slugs, lowercase), `fields.industry_id_or` (LinkedIn industry ids as strings, `\"4\"` is Software Development), `jobFields.job_title_or`. Unknown keys such as `technologies`, `job_titles` or `industries` are dropped without an error, so the query runs unfiltered and bills 0.5 for every company in the page.",
         "Hiring intent decays fast. A job posting is a signal for weeks, not quarters."
       ]
     },
@@ -1191,7 +1193,7 @@
       "kind": "one-off",
       "job": "Resolve a person's LinkedIn profile URL from their name and company, with an identity-validation gate that rejects wrong matches.",
       "description": "Resolve a person's LinkedIn profile URL from their name and company, with an identity-validation gate that rejects wrong matches, powered by Cargo. Triggers: \"find the LinkedIn for John Smith at Acme\", \"get LinkedIn URLs for these contacts\", \"what's this person's LinkedIn\", \"add LinkedIn profiles to my list\". Providers: linkedin. Skip when: you already have the LinkedIn URL and want the profile data — use enrich-linkedin-profile.",
-      "version": "1.0.1",
+      "version": "1.0.2",
       "homepage": "https://github.com/getcargohq/gtm-skills",
       "group": "Get the contact data",
       "install": "npx skills add getcargohq/gtm-skills/find-linkedin-url",
@@ -1209,6 +1211,7 @@
       },
       "cost": "| Action | Credits |\n|---|---|\n| `linkedin.findProfileUrl` | 0.25 |\n| `linkedin.enrichProfile` | 0.25 |\n\n**Never run this across a full list on the first attempt.** Sample 10–20 records, report the\nobserved cost and hit-rate, then get the user to approve the full run — quoting the record count\nand the credit estimate. A batch fans out across every record in the source, and the bill scales\nwith it.",
       "worthKnowing": [
+        "`findProfileUrl` returns the URL as `linkedin_profile_url` (with `company_name` and `current_title` beside it, which are the first things to check); `enrichProfile` takes it as `linkedinUrl`. The batch download prefixes every output column with `cargo_`.",
         "Step 2 is not optional. Unvalidated resolution runs ~50% accurate because of same-name collisions; validated it is ~80%.",
         "Reject rather than guess — never write back a low-confidence URL."
       ]
@@ -1217,8 +1220,8 @@
       "name": "find-portfolio-companies",
       "kind": "one-off",
       "job": "Find every portfolio company of an investor or accelerator, then the people inside them.",
-      "description": "Find every portfolio company of an investor or accelerator, then the people inside them, powered by Cargo. Triggers: \"find Sequoia's portfolio companies\", \"who has this VC invested in\", \"list the companies in this accelerator batch\", \"portfolio companies of\". Providers: peopleDataLabs. Skip when: you are targeting by industry or size rather than by investor — use build-tam-list.",
-      "version": "1.0.1",
+      "description": "Find every portfolio company of an investor or accelerator, then the people inside them, powered by Cargo. Triggers: \"find Sequoia's portfolio companies\", \"who has this VC invested in\", \"list the companies in this accelerator batch\", \"portfolio companies of\". Providers: theirStack. Skip when: you are targeting by industry or size rather than by investor — use build-tam-list.",
+      "version": "1.0.2",
       "homepage": "https://github.com/getcargohq/gtm-skills",
       "group": "Find the accounts and the people",
       "install": "npx skills add getcargohq/gtm-skills/find-portfolio-companies",
@@ -1228,17 +1231,19 @@
         "sales-development"
       ],
       "integrations": [
-        "peopleDataLabs"
+        "theirStack"
       ],
       "example": {
         "prompt": "Pull every portfolio company of Harbor Point Ventures so I can ask the partners for warm intros.",
-        "output": "| name | domain | industry | headcount | linkedinUrl |\n|---|---|---|---|---|\n| Northwind | northwind.example | Logistics software | 240 | linkedin.com/company/northwind-example |\n| Tailspin | tailspin.example | Travel tech | 85 | linkedin.com/company/tailspin-example |\n| Wingtip | | Fintech | 30 | linkedin.com/company/wingtip-example |\n\n20 portfolio companies on the first pull for 60 credits (20 × 3); 2 have no domain on record and are left empty for enrichment, and the full portfolio waits for your go."
+        "output": "| name | domain | industry | employee_count | linkedin_url |\n|---|---|---|---|---|\n| Northwind | northwind.example | Logistics software | 240 | linkedin.com/company/northwind-example |\n| Tailspin | tailspin.example | Travel tech | 85 | linkedin.com/company/tailspin-example |\n| Wingtip | | Fintech | 30 | linkedin.com/company/wingtip-example |\n\n20 portfolio companies on the first pull for 10 credits (20 × 0.5); 2 have no domain on record and are left empty for enrichment, and the full portfolio waits for your go."
       },
-      "cost": "| Action | Credits |\n|---|---|\n| `peopleDataLabs.queryCompanies` | 3 |\n\n**Never run this across a full list on the first attempt.** Sample 10–20 records, report the\nobserved cost and hit-rate, then get the user to approve the full run — quoting the record count\nand the credit estimate. A batch fans out across every record in the source, and the bill scales\nwith it.",
+      "cost": "| Action | Credits |\n|---|---|\n| `theirStack.searchCompanies` | 0.5 per company returned |\n\n**Never run this across a full list on the first attempt.** Sample 10–20 records, report the\nobserved cost and hit-rate, then get the user to approve the full run — quoting the record count\nand the credit estimate. A batch fans out across every record in the source, and the bill scales\nwith it.",
       "worthKnowing": [
-        "Investor membership needs SQL: `summary.investors LIKE %Name%` is not expressible in cargo's filter shape, which is why this uses PDL's SQL query rather than a cheaper structured search.",
-        "Accelerator batches work the same way — YC and similar are stored in `summary.investors` alongside VCs.",
-        "PDL bills per returned row: 3 credits a company, so a 140-company portfolio is 420 credits. `limit` caps the bill; an uncapped query is the expensive mistake.",
+        "`company_investors_partial_match_or` matches part of the investor name, so `\"Sequoia\"` catches \"Sequoia Capital\" and its regional funds. Use `company_investors_or` when you need the exact name only, and read each row's `investors` before reporting, since a short fragment can match an unrelated fund.",
+        "For Y Combinator there is a dedicated flag, `\"only_yc_companies\": true`, in the same `fields` object. Other accelerators go through the investor filter like any VC.",
+        "Narrow in the same call when the portfolio is large: `funding_stage_or`, `last_funding_round_date_gte`, `min_employee_count` and `company_country_code_or` all sit beside the investor filter in `fields`.",
+        "Billed per returned company: 0.5 credits each, so a 140-company portfolio is 70 credits. `limit` caps the bill (default 10, max 500).",
+        "Not People Data Labs: Cargo's PDL company schema carries no investor field (`summary` is the plain-text description), so an investor query there has nothing to match against.",
         "One warm investor intro beats fifty cold emails; pull the list, then ask the investor for the intro."
       ]
     },
@@ -1247,7 +1252,7 @@
       "kind": "one-off",
       "job": "Find the buying committee at a target account — every stakeholder matching a set of titles, seniorities, and departments.",
       "description": "Find the buying committee at a target account — every stakeholder matching a set of titles, seniorities, and departments, powered by Cargo. Triggers: \"find the buying committee at Acme\", \"who are the decision makers at this company\", \"find stakeholders\", \"multi-thread this account\", \"who else should I be talking to at this account\". Providers: aiArk. Skip when: you are sourcing across many companies rather than going deep on a few — use find-b2b-leads.",
-      "version": "1.0.1",
+      "version": "1.0.2",
       "homepage": "https://github.com/getcargohq/gtm-skills",
       "group": "Find the accounts and the people",
       "install": "npx skills add getcargohq/gtm-skills/find-stakeholders",
@@ -1261,11 +1266,12 @@
       ],
       "example": {
         "prompt": "Who's on the buying committee at northwind.example — VP and above in Sales, Marketing, Ops and Finance?",
-        "output": "| fullName | title | seniority | department |\n|---|---|---|---|\n| Priya Raman | Chief Revenue Officer | CXO | Sales |\n| Omar Haddad | VP Marketing | VP | Marketing |\n| Grace Lin | Director of Revenue Operations | Director | Operations |\n| Felix Brandt | VP Finance | VP | Finance |\n\n14 stakeholders returned for 0.7 credits (14 × 0.05); 3 are already in the CRM, so only the other 11 go on to enrichment."
+        "output": "| full_name | title | linkedin_url |\n|---|---|---|\n| Priya Raman | Chief Revenue Officer | linkedin.com/in/priya-raman-example |\n| Omar Haddad | VP Marketing | linkedin.com/in/omar-haddad-example |\n| Grace Lin | Director of Revenue Operations | linkedin.com/in/grace-lin-example |\n| Felix Brandt | VP Finance | linkedin.com/in/felix-brandt-example |\n\n14 stakeholders returned for 0.7 credits (14 × 0.05); 3 are already in the CRM, so only the other 11 go on to enrichment."
       },
       "cost": "| Action | Credits |\n|---|---|\n| `aiArk.searchPeople` | 0.05 per returned record |\n\n**Never run this across a full list on the first attempt.** Sample 10–20 records, report the\nobserved cost and hit-rate, then get the user to approve the full run — quoting the record count\nand the credit estimate. A batch fans out across every record in the source, and the bill scales\nwith it.",
       "worthKnowing": [
         "Filter-rich: title, seniority, department, tenure, past company, and firmographics all narrow the committee.",
+        "`seniority_or` and `department_or` are closed lowercase enums, and a value outside them fails the run. Seniority: `founder`, `owner`, `partner`, `c_suite`, `vp`, `director`, `head`, `manager`, `senior`, `mid-level`, `entry`, `intern`. Departments are snake_case functions (`sales`, `marketing`, `operations`, `finance`, `sales_operations`, `information_technology`, ...); `cargo-ai connection integration get aiArk` lists them all.",
         "Dedupe against contacts you already own before enriching — re-enriching a known contact is pure waste."
       ]
     },
@@ -1595,7 +1601,7 @@
       "kind": "one-off",
       "job": "Watch a list of target accounts for the public events that mean someone is in market — hiring for the role you sell into, saying something new, or turning up in a detection feed, each with a date and a link.",
       "description": "Watch a list of target accounts for the public events that mean someone is in market, powered by Cargo — hiring for the role you sell into, saying something new, or turning up in a detection feed, each with a date and a link. Triggers: \"tell me when these accounts do something\", \"what changed at my target accounts\", \"who is in market right now\", \"set up intent monitoring\", \"watch these companies for me\", \"any triggers on this list\". Intent, triggers, watchlist, timing, freshness. Skip when: you have no account list yet — use build-tam-list; or you want a verdict on fit rather than on timing — use score-leads.",
-      "version": "1.0.1",
+      "version": "1.0.2",
       "homepage": "https://github.com/getcargohq/gtm-skills",
       "group": "Watch for the moment to reach out",
       "install": "npx skills add getcargohq/gtm-skills/monitor-buying-signals",
@@ -1613,10 +1619,10 @@
         "prompt": "Watch our 20 open-opportunity accounts and tell me which started hiring RevOps in the last 30 days.",
         "output": "| account | signal | date | source | so_what |\n|---|---|---|---|---|\n| Northwind | Posted \"Head of Revenue Operations\" | 2026-09-21 | jobs.northwind.example/revops-head | The owner of our deal's process is about to change |\n| Fabrikam | CEO post on consolidating GTM tools | 2026-09-15 | x.com/fabrikam_example/status/1 | Budget is being cut elsewhere; lead with consolidation |\n| Tailspin | Posted \"RevOps Analyst\" | 2026-09-08 | jobs.tailspin.example/revops-analyst | A team is being built under our champion |\n\n3 of 20 accounts fired and the other 17 are not listed; 2.1 credits (sillage free on all 20, 4 job posts × 0.5, 5 X lookups × 0.02)."
       },
-      "cost": "| Action | Credits |\n|---|---|\n| `sillage.searchLeads` | 0 |\n| `theirStack.searchJobs` | 0.5 |\n| `x.getUserPosts` | 0.02 |\n\n**Never run this across a full list on the first attempt.** Sample 10–20 accounts, report the\nobserved cost and how many actually fired, then get the user to approve the full run — quoting the\naccount count and the credit estimate. A batch fans out across every record in the source, and the\nbill scales with it.\n\nThe fire rate from the sample is the number that matters more than the cost. If two accounts in\ntwenty fired, a weekly run over 500 accounts is worth it. If none did, the triggers from step 1 are\nwrong and running wider will not fix that.",
+      "cost": "| Action | Credits |\n|---|---|\n| `sillage.searchLeads` | 0 |\n| `theirStack.searchJobs` | 0.5 per job returned |\n| `x.getUserPosts` | 0.02 |\n\n**Never run this across a full list on the first attempt.** Sample 10–20 accounts, report the\nobserved cost and how many actually fired, then get the user to approve the full run — quoting the\naccount count and the credit estimate. A batch fans out across every record in the source, and the\nbill scales with it.\n\nThe fire rate from the sample is the number that matters more than the cost. If two accounts in\ntwenty fired, a weekly run over 500 accounts is worth it. If none did, the triggers from step 1 are\nwrong and running wider will not fix that.",
       "worthKnowing": [
         "**The free rung is not optional.** `sillage.searchLeads` costs 0, so running it first is a pure saving. It needs a `modelUuid`, which is a setup step rather than a retry if detections are not being delivered yet.",
-        "`theirStack.searchJobs` filters on `--data`, not `--records`. Domains go in `companyFields`; passing them as records returns an unfiltered page and bills for it.",
+        "`theirStack.searchJobs` takes domains as `companyFields.company_domain_or` and titles as `fields.job_title_or` (`job_title_pattern_or` for partial matches). Keys outside its schema (`company_domains`, `job_titles`, a top-level `domain`) are dropped without an error, so the search returns an unfiltered page and bills 0.5 for every job in it.",
         "**Confirm an X handle from the company's own site.** Squatted and parody handles resolve fine and return confident nonsense.",
         "Engagement lists (followers, likers, retweeters) are not part of this skill. People who engaged with a post did not ask to hear from you, and building a send list from them is the thing the basis test above exists to stop.",
         "Re-running on a schedule is where the cost lives. Gate on accounts whose last check is older than the interval, or every run re-bills accounts that did nothing."
@@ -1627,7 +1633,7 @@
       "kind": "cookbook",
       "job": "Watch your whole market for people who just took a role you sell to, qualify the company each one joined against your ICP, and post the ones that fit to Slack with verdict and links. A deployed pipeline on a Sales Navigator job-change search; CRM checks and writes are optional.",
       "description": "Watch your whole market for people who just took a role you sell to, qualify the company each one joined against your ICP, and post the ones that fit to Slack with verdict and links. A deployed pipeline on a Sales Navigator job-change search; CRM checks and writes are optional. Triggers: \"watch our market for new hires\", \"put new VPs of Sales in our market into HubSpot\", \"post in Slack when a new VP Sales joins a company in our ICP\", \"a decision-maker just joined a company in our market\", \"a new head of sales starts at an account\", \"new KDM detection\", \"route new hires into the CRM\", \"tell the deal owner when a new decision-maker lands mid-deal\", \"run our new-hire play on a schedule\". Cargo CDK, Sales Navigator, Slack, HubSpot, Salesforce, Attio. Skip when: your own CRM contacts may have moved jobs, which is track-job-changes; or you want a list of people once, which is find-b2b-leads.",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "homepage": "https://github.com/getcargohq/gtm-skills/tree/main/new-hire-detection",
       "group": "Signals",
       "install": "cargo-ai cdk add cookbook/new-hire-detection",
@@ -1865,7 +1871,7 @@
       "kind": "one-off",
       "job": "Research one company and its public website before a meeting and hand back a briefing — what it does, what it publicly says is hard right now, and who it names as competition, each line traceable to where it came from.",
       "description": "Research one company and its public website before a meeting and hand back a briefing, powered by Cargo — what it does, what it publicly says is hard right now, and who it names as competition, each line traceable to where it came from. Triggers: \"research this company\", \"brief me on this account\", \"prep me for this meeting\", \"what should I know about them\", \"write me a one-pager on\", \"what are they struggling with\", \"who do they compete with\". Meeting prep, briefing, dossier, talking points. Skip when: you want many companies filtered rather than one understood — use build-tam-list; or you want the people to contact there — use find-stakeholders.",
-      "version": "1.0.1",
+      "version": "1.0.2",
       "homepage": "https://github.com/getcargohq/gtm-skills",
       "group": "Decide who is worth the time",
       "install": "npx skills add getcargohq/gtm-skills/research-account",
@@ -1881,13 +1887,14 @@
       ],
       "example": {
         "prompt": "I have a discovery call with Fabrikam tomorrow — we sell data-pipeline monitoring. Brief me.",
-        "output": "```text\nFabrikam (fabrikam.example) — Industrial IoT, ~1,100 staff, Munich    [linkedin]\nWhat they do: sensor analytics for factory lines, sold to OEMs        [site]\nPriorities, last 12 months:\n  - Moving plant telemetry to a single cloud warehouse                [press, 2026-03]\n  - \"Fewer, better dashboards\" for plant managers                     [CEO talk, 2026-06]\nHiring: 6 data engineers, 1 Head of Data Reliability (posted 9 days)  [jobs]\nLikely: pipeline breakage is a live pain — rests on the reliability hire\nUnknown: current monitoring vendor; no public statement\nAsk them:\n  1. What broke the last time a plant's data went missing?\n  2. Who owns the warehouse migration, and when is it done?\n  3. What will the Head of Data Reliability be measured on?\n```\n\nOne briefing for 1.175 credits (0.5 + 2 × 0.025 + 0.125 + 0.5): every line sourced, one marked Likely:, one marked unknown."
+        "output": "```text\nFabrikam (fabrikam.example) — Industrial IoT, ~1,100 staff, Munich    [linkedin]\nWhat they do: sensor analytics for factory lines, sold to OEMs        [site]\nPriorities, last 12 months:\n  - Moving plant telemetry to a single cloud warehouse                [press, 2026-03]\n  - \"Fewer, better dashboards\" for plant managers                     [CEO talk, 2026-06]\nHiring: 6 data engineers, 1 Head of Data Reliability (posted 9 days)  [jobs]\nLikely: pipeline breakage is a live pain — rests on the reliability hire\nUnknown: current monitoring vendor; no public statement\nAsk them:\n  1. What broke the last time a plant's data went missing?\n  2. Who owns the warehouse migration, and when is it done?\n  3. What will the Head of Data Reliability be measured on?\n```\n\nOne briefing for 4.175 credits (0.5 + 2 × 0.025 + 0.125 + 7 jobs × 0.5): every line sourced, one marked Likely:, one marked unknown."
       },
-      "cost": "| Action | Credits |\n|---|---|\n| `linkedin.enrichCompanyFromDomain` | 0.5 |\n| `parallel.extract` | 0.025 |\n| `parallel.createTask` | 0.125 |\n| `theirStack.searchJobs` | 0.5 |\n\n**Never run this across a full list on the first attempt.** Sample 10–20 records, report the\nobserved cost and hit-rate, then get the user to approve the full run — quoting the record count\nand the credit estimate. A batch fans out across every record in the source, and the bill scales\nwith it.\n\nOne account is about 1.15 credits, so a single briefing is cheap and a hundred of\nthem is a decision. Say the total before running a list. `parallel.extract` bills\nper URL, so two pages is 0.05 and ten is 0.25.",
+      "cost": "| Action | Credits |\n|---|---|\n| `linkedin.enrichCompanyFromDomain` | 0.5 |\n| `parallel.extract` | 0.025 |\n| `parallel.createTask` | 0.125 |\n| `theirStack.searchJobs` | 0.5 per job returned |\n\n**Never run this across a full list on the first attempt.** Sample 10–20 records, report the\nobserved cost and hit-rate, then get the user to approve the full run — quoting the record count\nand the credit estimate. A batch fans out across every record in the source, and the bill scales\nwith it.\n\nOne account is about 0.675 credits plus 0.5 for every job posting returned, so\n`limit` sets the ceiling: 25 postings is 12.5 credits on top. A single briefing\nis cheap and a hundred of them is a decision. Say the total before running a\nlist. `parallel.extract` bills per URL, so two pages is 0.05 and ten is 0.25.",
       "worthKnowing": [
         "**Most of this reads public material**, so a private company with a thin web presence returns little. That is a real answer: report the gap rather than padding the page.",
-        "**`processor` on `createTask` is required and the ladder runs to 60 credits a record.** Pin `lite`. Escalate to `base` (0.25) on a specific hard target, never across a list.",
-        "`theirStack.searchJobs` filters on `--data`, not on `--records`. Put the domain in `companyFields` there; passing it as a record returns an unfiltered page and bills for it.",
+        "**`processor` on `createTask` defaults to `core` (0.625) and the ladder runs to 60 credits a record.** Pin `lite`. Escalate to `base` (0.25) on a specific hard target, never across a list.",
+        "`theirStack.searchJobs` takes the domain as `companyFields.company_domain_or`. Unknown keys (`company_domains`, a top-level `domain`) are stripped without an error, so the search runs unfiltered and bills 0.5 for every job in the page.",
+        "`execute-batch` takes its inputs in `--records`, one object per run, and has no `--data` flag; `--data` belongs to the single-run `execute`, which is why the job search above is an `execute`. Inputs inside the `--action` object's `config` are ignored.",
         "Ask for the domain, not the company name. Every call here keys off it.",
         "For a renewal, drop steps 2 and 3 and keep the baseline and the roles. The account team already knows the story; what they want is what changed."
       ]
@@ -2372,7 +2379,7 @@
       "kind": "one-off",
       "job": "Detect which of your contacts have changed jobs, and where they went.",
       "description": "Detect which of your contacts have changed jobs, and where they went, powered by Cargo. Triggers: \"who changed jobs\", \"track job changes in my CRM\", \"did any of my contacts move companies\", \"alert me when a champion leaves\", \"find people who recently started a new role\", \"job changes\", \"job change signals\". Providers: waterfall. Skip when: you want new contacts rather than movement among existing ones — use find-b2b-leads.",
-      "version": "1.1.1",
+      "version": "1.1.2",
       "homepage": "https://github.com/getcargohq/gtm-skills",
       "group": "Watch for the moment to reach out",
       "install": "npx skills add getcargohq/gtm-skills/track-job-changes",
@@ -2386,12 +2393,13 @@
       ],
       "example": {
         "prompt": "Check whether any of the 30 champions from last year's closed-won deals have changed jobs.",
-        "output": "| professional_email | status | newCompany | newTitle |\n|---|---|---|---|\n| priya.raman@northwind.example | MOVED | Contoso | VP Data Platform |\n| t.ferreira@fabrikam.example | NO_CHANGE | | |\n| hannah.okafor@globex.example | LEFT | | |\n| wei.zhang@initech.example | UNKNOWN | | |\n\n4 MOVED, 2 LEFT, 22 NO_CHANGE, 2 UNKNOWN across 30 contacts; 90 credits (30 × 3)."
+        "output": "| professional_email | job_change_status | person.company_name | person.title |\n|---|---|---|---|\n| priya.raman@northwind.example | moved | Contoso | VP Data Platform |\n| t.ferreira@fabrikam.example | no_change | | |\n| hannah.okafor@globex.example | left | | |\n| wei.zhang@initech.example | unknown | | |\n\n4 moved, 2 left, 22 no_change, 2 unknown across 30 contacts; 90 credits (30 × 3)."
       },
       "cost": "| Action | Credits |\n|---|---|\n| `waterfall.detectJobChange` | 3 |\n\n**Never run this across a full list on the first attempt.** Sample 10–20 records, report the\nobserved cost and hit-rate, then get the user to approve the full run — quoting the record count\nand the credit estimate. A batch fans out across every record in the source, and the bill scales\nwith it.",
       "worthKnowing": [
         "At 3 credits a contact this is the most expensive skill in this set — run it on a filtered segment, never your whole database.",
         "A champion who moved is the highest-intent signal in outbound: they already bought from you once.",
+        "Branch on the lowercase values. A filter written as `job_change_status == \"MOVED\"` matches nothing and reports that nobody moved.",
         "On a schedule, this re-bills every run. Monthly on a curated segment beats weekly on everything."
       ]
     },

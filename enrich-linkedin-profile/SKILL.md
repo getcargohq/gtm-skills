@@ -1,7 +1,7 @@
 ---
 name: enrich-linkedin-profile
 description: "Turn a LinkedIn profile URL into a full person profile plus a verified work email in a single call, powered by Cargo. Triggers: \"enrich these LinkedIn profiles\", \"get details from this LinkedIn URL\", \"I have LinkedIn URLs and need emails\", \"enrich LinkedIn data\", \"who is this person\", \"contact enrichment\", \"linkedin enrichment\", \"get their headline and tenure\", \"pull the whole biography\". Providers: aiArk. Skip when: you do not have the LinkedIn URL yet — use find-linkedin-url first; or you only have a name and domain — use find-work-email."
-version: "1.1.1"
+version: "1.1.2"
 compatibility: Requires @cargo-ai/cli (npm). Sign in or create an account with `cargo-ai login --email` (emailed code, no browser), `--oauth`, or an API token
 homepage: https://github.com/getcargohq/gtm-skills
 metadata:
@@ -87,9 +87,9 @@ Illustrative output, fictional records:
 |---|---|---|---|---|---|
 | linkedin.com/in/priya-raman-example | Priya Raman | VP Data Platform | VP | Northwind | priya.raman@northwind.example |
 | linkedin.com/in/tomas-ferreira-example | Tomás Ferreira | Head of RevOps | Head | Fabrikam | tferreira@fabrikam.example |
-| linkedin.com/in/lena-voss-example | Lena Voss | Staff Engineer | Senior | Globex | |
+| linkedin.com/in/lena-voss-example | | | | | |
 
-58 of 60 profiles returned and 51 of those with a verified email; the 7 without an email billed nothing, so 5.1 credits (51 × 0.1).
+51 of 60 returned a profile and a verified email; the 9 without an email came back empty and billed nothing, so 5.1 credits (51 × 0.1).
 
 ## What it costs
 
@@ -104,7 +104,7 @@ with it.
 
 ## Worth knowing
 
-- Bills 0 when no email is found, so a miss is free.
+- Bills 0 when no email is found, so a miss is free. A miss also returns no profile: the row comes back empty, not profile-only, so a contact you need the role for but not the email belongs in a profile lookup such as `linkedin.enrichProfile` instead.
 - The single best value in the catalog when you already hold LinkedIn URLs: profile and verified email together for less than a separate email lookup alone.
 
 ## Going further

@@ -1,7 +1,7 @@
 ---
 name: build-tam-list
 description: "Build a total addressable market list of companies filtered by industry, headcount, and geography, powered by Cargo. Triggers: \"build a TAM list\", \"how many companies match our ICP\", \"list every SaaS company in Europe under 200 employees\", \"size our addressable market\", \"find target accounts\", \"list building\", \"build a list of companies\". Providers: salesNavigator. Skip when: you want the people at those companies — use find-b2b-leads or find-stakeholders; or you want companies by tech stack — use find-companies-using-tech."
-version: "1.2.0"
+version: "1.2.1"
 compatibility: Requires @cargo-ai/cli (npm). Sign in or create an account with `cargo-ai login --email` (emailed code, no browser), `--oauth`, or an API token
 homepage: https://github.com/getcargohq/gtm-skills
 metadata:
@@ -68,9 +68,9 @@ grep -q '"cargo@gtm"' ~/.claude/plugins/installed_plugins.json 2>/dev/null ||
 cargo-ai orchestration action execute \
   --action '{"kind":"connector","integrationSlug":"salesNavigator","actionSlug":"searchAccounts","config":{}}' \
   --data '{
-    "companyHeadcounts": ["B", "C", "D"],
-    "industryCodes": [43],
-    "headquarterLocationIds": [103644278],
+    "companyHeadcounts": ["D", "E"],
+    "industryCodes": ["43"],
+    "headquarterLocationIds": ["103644278"],
     "limit": 100
   }' \
   --wait-until-finished
@@ -111,8 +111,8 @@ with it.
 
 - Not the cheapest company search in the catalog. `FullEnrich.searchCompanies` is **free** (0 credits) and takes plain-string filters — `industry`, `headcount` `{min,max}`, `headquarters`, `technologies`, `keywords` — up to 2,000 per run; `FullEnrich.fetchCompanies`, also free, pulls up to 10,000 straight into a Cargo model. `aiArk.searchCompanies` (0.01) is the cheapest paid option and takes lookalike seeds. Sales Navigator is the default when the list is defined by LinkedIn-native filters.
 - `FullEnrich.lookupCompany` (free) returns one company's name, industry, headcount and LinkedIn URL from its domain.
-- Filters take LinkedIn's internal codes (`[43]`, `["B","C","D"]`, `[103644278]`), not names like `"fintech"` or `"50-200"` — strings fail or silently mismatch. Look them up with `cargo-ai connection integration get salesNavigator`.
-- Billed per returned record: size the pool with `limit: 1` (the total match count comes back with it) before pulling the full scope.
+- Filters take LinkedIn's internal codes, **as strings**: `industryCodes: ["43"]` (Financial Services), `headquarterLocationIds: ["103644278"]` (United States), `companyHeadcounts: ["D","E"]` (51-200, 201-500; `B` is 1-10 and `C` 11-50). Names like `"fintech"` or `"50-200"` silently match nothing, and bare numbers fail validation. Resolve a name to its code with `cargo-ai connection connector autocomplete --connector-uuid <uuid> --slug listIndustries --params '{}' --value fintech` (`listGeoCodes` for locations).
+- Billed per returned record, and the response carries the records only, not a total match count. Pull a small `limit` first, check the rows fit, then pull the approved scope.
 - Size the market before you enrich it — a count is nearly free, a 5,000-company pull is ~1,000 credits.
 
 ## Going further
