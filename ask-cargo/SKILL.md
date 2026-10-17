@@ -215,8 +215,8 @@ it if you still want it, and records why under `## Decisions` in your copy of th
   added a commit to it rather than opening a second
 - a request that spends replied with a proposal and a live price and ran nothing; the same request
   ran only after `@Cargo go`
-- a request an installed agent owns was handed to it with `cargo-ai ai message create`, and the reply
-  names the chat or pull request it produced
+- a request an installed agent owns was handed to it with `cargo-ai ai message create`, without
+  waiting, and the reply names the new chat and where its result lands, with no promise to report back
 - a mention in a channel another agent lists got that agent's reply, not this one's
 - "@Cargo capture this" in an internal thread wrote `cadence/log/raw/slack/` and
   `cadence/log/slack/` files with the thread's `source:` line on the thread's pull request, reacted
