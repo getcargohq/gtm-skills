@@ -201,3 +201,7 @@
 {"prompt": "split a large LinkedIn search into pieces that each extract fully", "expect": "extract-sales-navigator-search"}
 {"prompt": "optimize my Sales Navigator search so nothing gets cut off", "expect": "extract-sales-navigator-search"}
 {"prompt": "pull every company in this Sales Nav search, it's about 12,000", "expect": "extract-sales-navigator-search"}
+{"prompt": "Every week, score how agent-ready our website is and open a PR with the fixes", "expect": "agent-readiness", "why": "Agents reading our own site, every week, fixed by pull request: the standing tell."}
+{"prompt": "Track our Ora score against our competitors in Slack", "expect": "agent-readiness"}
+{"prompt": "Make our website readable by AI agents: llms.txt, structured data, agent discovery files", "expect": "agent-readiness"}
+{"prompt": "Build our company website on Cargo and make it agent-ready from the start", "expect": "website-building", "why": "Building and hosting the site is website-building; agent-readiness audits and fixes a site that already exists."}
