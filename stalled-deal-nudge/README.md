@@ -1,11 +1,13 @@
-# Stalled-deal nudge
+# Stalled-deal nudge: flag stalled deals and draft the follow-up
 
-One Slack digest per owner every Monday, listing their open deals with no logged activity in the
-last fourteen days: the line the last activity left off on, why the deal is worth a touch now, and a
-follow-up drafted for them to send. The example runs on Cargo native deal, account and activity
-models with no CRM connector; one agent selects the quiet deals in SQL, and a ledger keeps each deal
-to one nudge per week. With deals in HubSpot, Salesforce or Attio, the models become connector-backed
-and the agent stays the same.
+To keep open deals from going cold, find the ones with no logged activity and put a ready follow-up
+in front of their owner. Every Monday this cookbook sends each rep one Slack digest of their open
+deals quiet for fourteen days or more, with the line the last activity left off on, why the deal is
+worth a touch now, and a follow-up drafted for them to send; it never sends anything to a prospect.
+
+```sh
+cargo-ai cdk add cookbook/stalled-deal-nudge
+```
 
 ## What it does
 

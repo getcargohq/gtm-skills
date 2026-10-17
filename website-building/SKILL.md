@@ -1,7 +1,7 @@
 ---
 name: website-building
-description: 'Build the company website on Cargo and serve it on your own domain: a statically exported Next.js app, one defineApp with its www hostname, and a defineDomain that publishes the records and forwards the apex, changed only through reviewed pull requests. Triggers: "build our company website", "recreate our website on Cargo", "host our marketing site on Cargo", "put our website on our own domain", "capture our design system for the website", "keep our website updated through pull requests". Cargo CDK, defineApp, defineDomain, domainRecords, Next.js, Tailwind, shadcn/ui. Skip when: you are researching another company''s website, which is research-account; or you want a generic hosted app, dashboard or webhook, which is cargo-hosting in the Cargo skill pack.'
-version: "0.1.0"
+description: 'Build and host your company website on your own domain with Cargo: a statically exported Next.js app, one defineApp with its www hostname, and a defineDomain that publishes the records and forwards the apex, changed only through reviewed pull requests. Triggers: "build our company website", "recreate our website on Cargo", "host our marketing site on Cargo", "put our website on our own domain", "capture our design system for the website", "keep our website updated through pull requests". Cargo CDK, defineApp, defineDomain, domainRecords, Next.js, Tailwind, shadcn/ui. Skip when: you are researching another company''s website, which is research-account; or you want a generic hosted app, dashboard or webhook, which is cargo-hosting in the Cargo skill pack.'
+version: "0.1.1"
 compatibility: "Requires @cargo-ai/cli with @cargo-ai/cdk 1.0.92 or later (app `domains`, `domainRecords`, and `dnsRecords` merged into the live zone), Node.js 22.18 or later, and a Cargo workspace."
 homepage: https://github.com/getcargohq/gtm-skills/tree/main/website-building
 metadata:

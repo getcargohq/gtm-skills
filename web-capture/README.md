@@ -1,7 +1,15 @@
-# Web capture
+# Web capture: keep your company context current from your website and competitors
 
-Keep the knowledge layer current from the one source every company has on day one: the web, about
-itself and its competitors. One Claude Code harness agent and its prompt, one pull request a week.
+To keep your positioning, ICP and competitor notes current, read your own site,
+your competitors' pages and recent news about both every week, and let git show
+what changed. This cookbook runs one Claude Code harness agent each Monday and
+lands the result in `context/` as one pull request: the first run seeds the
+files, and every later run adds a dated note of what changed and never edits an
+existing file.
+
+```sh
+cargo-ai cdk add cookbook/web-capture
+```
 
 ## What it does
 

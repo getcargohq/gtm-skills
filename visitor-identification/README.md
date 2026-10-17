@@ -1,7 +1,13 @@
-# Visitor identification
+# Visitor identification: identify which companies visit your website
 
-Which companies visit the website, and what they read, kept current in two Cargo models. The
-tracker loads only after a visitor accepts it.
+To see which companies visit your website and what they read, identify the organisation behind each
+visit with Snitcher and keep the results in two Cargo models, `website_visiting_companies` and
+`website_visitor_sessions`. The site loads the tracker only after a visitor accepts it, and it
+identifies companies, never named people.
+
+```sh
+cargo-ai cdk add cookbook/visitor-identification
+```
 
 ```text
 visitor accepts on the site

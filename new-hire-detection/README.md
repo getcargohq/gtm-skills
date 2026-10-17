@@ -1,8 +1,17 @@
-# New-hire detection
+# New-hire detection: get alerted when a decision-maker joins a company in your ICP
 
-A Sales Navigator job-change search over your market, and one play that qualifies the company each
-new person joined and posts the ones that fit to Slack. This file explains why the design is the way
-it is; [`SKILL.md`](SKILL.md) is the procedure.
+To hear when someone you sell to starts at a company that fits, watch your
+market with a Sales Navigator job-change search and qualify each new person's
+company before anyone is told. This cookbook runs that search, has an agent read
+`context/icp.md` to qualify the company each person joined, and posts the ones
+that fit to Slack with the verdict and links.
+
+```sh
+cargo-ai cdk add cookbook/new-hire-detection
+```
+
+This file explains why the design is the way it is; [`SKILL.md`](SKILL.md) is
+the procedure.
 
 ```mermaid
 flowchart TD

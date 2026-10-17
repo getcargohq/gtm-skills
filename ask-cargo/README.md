@@ -1,9 +1,14 @@
-# Ask Cargo
+# Ask Cargo: ask your go-to-market repo and workspace anything from Slack
 
-One agent the whole team @mentions in Slack, on top of the GTM repository and the workspace it
-deploys. It answers from what is written and what actually ran, turns change requests into pull
-requests, and hands work to the agents that own it, but only after someone in the thread says go.
-A Claude Code harness agent with a Slack connector trigger; nothing else is deployed.
+To give the whole team one place to ask about the go-to-market stack, deploy one agent they @mention
+in Slack, on top of your repository and the workspace it deploys. It answers from what is written
+and what actually ran, turns change requests into pull requests, and hands work to the agents that
+own it only after someone in the thread says go. A Claude Code harness agent with a Slack connector
+trigger; nothing else is deployed.
+
+```sh
+cargo-ai cdk add cookbook/ask-cargo
+```
 
 ## What it does
 

@@ -1,7 +1,13 @@
-# Inbound qualification
+# Inbound qualification: qualify and route demo requests from your website
 
-The website's demo form, wired to a Cargo tool: each submission is qualified, lands in the shared
-GTM accounts and contacts, is posted to Slack, and is answered on the page.
+To qualify inbound demo requests, wire the website's demo form to a Cargo tool: each submission is
+matched to its company by work email, checked against your ICP, landed in the shared go-to-market
+accounts and contacts, posted to Slack, and answered on the page with a booking link or a thank-you.
+A personal email address is refused on the page before anything is paid for or written.
+
+```sh
+cargo-ai cdk add cookbook/inbound-qualification
+```
 
 ```text
 visitor submits /contact/ (headless form SDK, the site's own markup)
