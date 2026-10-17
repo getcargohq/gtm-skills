@@ -1,9 +1,50 @@
-# Account scoring
+# Account scoring: score every account against your ICP, on a schedule
 
-Tier every company in your TAM A, B, C or disqualified, with the reason and the
-evidence written on the row. An agent reads your ICP and tiering rubric from
-the workspace context; a play writes its judgment back and keeps new companies
-tiered as they land.
+Score accounts against your ICP in three steps: get the accounts into a Cargo
+model, tier each one with an agent that reads your rubric, and write the tier
+back where reps work. This cookbook deploys the first two and the write onto
+the row; the CRM write is one node you add.
+
+```sh
+cargo-ai cdk add cookbook/account-scoring
+```
+
+1. **Accounts in.** The play reads a Cargo companies model: `tam_companies`,
+   which tam-building syncs, or your CRM's companies model: any model with an
+   id, a name and a domain, its columns mapped into the workflow input.
+2. **Scored.** An agent tiers each row A, B, C or disqualified against the ICP
+   and `tiering-rubric.md` in your workspace context, with a two-sentence reason
+   and the page that decided it.
+3. **Scores out.** The tier, reason, evidence URL and a `tiered_at` stamp are
+   written onto the row and land in four segments. To see the tier in your CRM,
+   add a CRM update node after that write, mapping the same four values to CRM
+   properties you create first (the `crm-accounts` variation in `SKILL.md`).
+
+## How often, and how many
+
+- **Schedule.** The play runs hourly and tiers only rows that enter its filter:
+  never tiered, or tiered more than six months ago. Re-judging the whole book
+  weekly means shortening that six-month window in
+  `infra/plays/tier-accounts.ts`, and re-bills every account each week.
+- **Volume.** The accounts already in the model are tiered by one backfill
+  batch ([references/run.md](references/run.md)); after that, only new and
+  stale rows. Cost is one agent run per company, so 100,000 accounts is 100,000
+  agent runs on the backfill. Pilot ten rows first and multiply:
+
+```sh
+cargo-ai orchestration batch create --workflow-uuid <tierAccountWorkflowUuid> \
+  --data '{"kind":"filter","modelUuid":"<tamCompaniesUuid>","limit":10}' \
+  --wait-until-finished
+```
+
+## Score a CSV of companies once
+
+"Which companies in this CSV are worth it?" is a one-time answer, not a
+pipeline: this cookbook scores a model, not a file. Use the one-off
+[`score-leads`](../score-leads/SKILL.md) skill
+(`npx skills add getcargohq/gtm-skills/score-leads`), which asks for your ICP
+criteria, enriches each domain in the CSV and returns a score, reason and tier
+per row. Install this cookbook when the same list should stay scored.
 
 ## What it does
 
@@ -17,8 +58,9 @@ tiered as they land.
 - **Hands downstream work four segments.** `tier_a_accounts` is what contact
   sourcing and engagement run on; `disqualified_accounts` is what they
   suppress.
-- **Needs no CRM.** It tiers `tam_companies` in Cargo. Writing the tier to a
-  CRM as well is a variation.
+- **Runs without a CRM, writes to one when you add it.** It tiers
+  `tam_companies` in Cargo by default; the CRM write is the one node described
+  above.
 
 ## How it works
 
