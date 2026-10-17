@@ -1,9 +1,13 @@
-# Social listening
+# Social listening: find the LinkedIn conversations worth joining each week
 
-A weekly digest of the LinkedIn conversations worth joining, and the commenters in them who look
-like buyers. A model buys one capped post search; an agent judges it against the ICP in the
-workspace context, reads comments only on the posts it picks, and posts one digest to a locked Slack
-channel. It never engages on anyone's behalf.
+To find the LinkedIn conversations about your problem worth joining, search the week's public posts
+for your buyers' own words and judge them against your ICP. Every Monday this cookbook syncs one
+capped post search, has an agent pick at most five posts and up to ten commenters who look like
+buyers, and posts one digest to a locked Slack channel. It never engages on anyone's behalf.
+
+```sh
+cargo-ai cdk add cookbook/social-listening
+```
 
 ## What it does
 

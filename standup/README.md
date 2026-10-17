@@ -1,9 +1,13 @@
-# Standup
+# Standup: post a daily go-to-market standup to Slack
 
-Turn the GTM day the team already lived into things a repository and a Slack channel can
-hold: a raw evidence dump, a log entry a teammate can read on Monday, and a digest posted
-through Cargo. Collected by a committed script, recapped by a Claude Code harness agent,
-delivered as one pull request plus one Slack post.
+To keep a daily record of the go-to-market work without anyone writing it, recap the day from what
+already happened (commits, pull requests, workspace runs) and post it. Every evening this cookbook's
+Claude Code harness agent writes the day into the cadence log as one reviewable pull request and
+posts a digest to Slack.
+
+```sh
+cargo-ai cdk add cookbook/standup
+```
 
 ## What it does
 

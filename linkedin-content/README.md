@@ -1,8 +1,13 @@
-# LinkedIn content
+# LinkedIn content: draft LinkedIn posts every week from your own proof points
 
-Three LinkedIn post drafts a week for one author, built only from what the GTM repository already
-says, landed as one pull request. A Claude Code harness agent on a Monday cron; it reads `context/`
-and the cadence log in its checkout and never publishes anything.
+To keep a LinkedIn author posting from real material, draft from what your go-to-market repository
+already says and let a person publish. Every Monday this cookbook's Claude Code harness agent writes
+three drafts for one author from `context/` and the cadence log, cites the files behind each, and
+opens one pull request; it never publishes anything.
+
+```sh
+cargo-ai cdk add cookbook/linkedin-content
+```
 
 ## What it does
 

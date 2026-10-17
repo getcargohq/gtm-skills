@@ -1,9 +1,14 @@
-# Meeting prep
+# Meeting prep: a Slack brief for every external meeting, the moment it is booked
 
-A briefing card in Slack the moment an external meeting is booked. Google Calendar wakes one plain
-agent for each meeting created, moved or cancelled; the agent researches it from the shared `gtm_`
-native models, the workspace context and the web, posts one card to a locked channel mentioning the
-organizer, and threads reschedules and cancellations under it.
+To prepare for every external meeting without anyone asking, let the booking itself start the
+research. Google Calendar wakes one agent for each external meeting created, moved or cancelled; it
+researches the meeting from the shared `gtm_` native models, the workspace context and the web,
+posts one card to a locked Slack channel mentioning the organizer, and threads reschedules and
+cancellations under it.
+
+```sh
+cargo-ai cdk add cookbook/meeting-prep
+```
 
 ## What it does
 

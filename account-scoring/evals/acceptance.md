@@ -28,6 +28,13 @@ adaptation is incomplete.
   (null or stale) and never on the tier, uses `changeKinds: ["added"]` and
   `noConcurrency`, and ships disabled.
 - One segment exists per tier the agent can emit.
+- `rescoreAfter` in `infra/settings.ts` is the window the operator chose
+  (`"6 months"` unless asked; `"7 days"` for weekly), and the play's stale
+  condition reads it.
+- `crmWriteback` is `none` unless the operator named a CRM. When set, the CRM
+  is connected, the three named properties exist on the company object, the
+  match property holds the row's domain (or record id on a CRM model), and the
+  play's one connector node is `updateRecords` after the row write.
 - This skill declares no `defineContext`.
 - `node --import tsx evals/contract.mjs`, `cargo-ai cdk types`,
   `cargo-ai cdk check` and `cargo-ai cdk plan` pass.
@@ -46,6 +53,8 @@ adaptation is incomplete.
 
 - The pilot tiered ten rows. One A, one C and one disqualified were checked
   against the rubric by hand, and the evaluator results were quoted.
+- With `crmWriteback` set, one piloted company was read back from the CRM and
+  carried the row's tier, reason and scored-at date.
 - The backfill estimate came from the pilot's actual credits, not from a
   written price.
 - Every row carries a tier, a rationale and a stamp, and the four segments'

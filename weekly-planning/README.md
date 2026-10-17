@@ -1,9 +1,13 @@
-# Weekly planning
+# Weekly planning: decide what the go-to-market team works on this week
 
-Turn last week's GTM work into recommendation files a reviewer can merge: ranked
-against active initiatives, declared infra, and live runs. Collected by a
-committed script, judged by a Claude Code harness agent, delivered as one pull
-request per initiative — or one workspace pull request when there are none.
+To decide what to work on this week, rank last week's go-to-market work against your active
+initiatives and against what is declared and actually running. Every Monday this cookbook's Claude
+Code harness agent does that ranking and delivers it as one reviewable pull request per initiative,
+or one workspace pull request when there are none.
+
+```sh
+cargo-ai cdk add cookbook/weekly-planning
+```
 
 ## What it does
 

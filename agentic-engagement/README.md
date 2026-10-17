@@ -1,9 +1,13 @@
-# Agentic engagement
+# Agentic engagement: an AI agent that holds email conversations with leads
 
-An agent that holds email conversations with leads from a mailbox the workspace
-owns. A sending domain, an inbox, native `sendEmail` and `listEmailEvents` on
-the agent, a native email trigger on reply and unsubscribe, and a heartbeat that
-checks thread status when nothing inbound happened — that is the loop.
+To let an agent carry email conversations with leads, give it a mailbox your workspace owns and wake
+it on every reply, unsubscribe or silence. This cookbook declares the sending domain, the mailbox,
+native `sendEmail` and `listEmailEvents` on the agent, a native email trigger on reply and
+unsubscribe, and a heartbeat that checks thread status when nothing inbound happened.
+
+```sh
+cargo-ai cdk add cookbook/agentic-engagement
+```
 
 ## What it does
 

@@ -1,9 +1,14 @@
-# Call capture
+# Call capture: turn recorded calls into your go-to-market knowledge base
 
-Turn the calls your team already records into things a repository can hold: a raw archive, an entry
-per call, and — once a claim has been heard twice — an update to the knowledge layer every other
-agent reads. Collected by a committed script, scribed by a Claude Code harness agent, delivered as
-one pull request.
+To make what is said on calls reusable, collect every recorded call each morning, scribe it into a
+log entry, and promote a claim into your context only once it has been heard twice. This cookbook
+does that with a committed collector script and a Claude Code harness agent, delivered as one
+reviewable pull request against your go-to-market repository. Nine call recorders ship; a tenth is
+one adapter file.
+
+```sh
+cargo-ai cdk add cookbook/call-capture
+```
 
 ## What it does
 

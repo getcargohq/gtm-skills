@@ -10,6 +10,9 @@ import { resetRegistry, resources } from "@cargo-ai/cdk";
 
 resetRegistry();
 const stamp = Date.now();
+const { crmWriteback, rescoreAfter } = await import(
+  `../infra/settings.ts?contract=${stamp}`
+);
 await import(`../infra/plays/tier-accounts.ts?contract=${stamp}`);
 await import(`../infra/segments/tiers.ts?contract=${stamp}`);
 
@@ -128,11 +131,6 @@ assert.equal(
   "the agent must be the play's first workflow node",
 );
 
-assert.equal(
-  playNodes.some((node) => node.kind === "connector"),
-  false,
-  "the play must contain no connector node: the agent does the looking up, and a lookup inside the play bills per row on top of it",
-);
 
 const write = findOne(
   playNodes,
@@ -174,6 +172,79 @@ for (const slug of written.keys()) {
 }
 
 // ---------------------------------------------------------------------------
+// The CRM write-back: absent unless settings.ts names a CRM, and then one
+// update of the named fields, after the row write, that never creates.
+// ---------------------------------------------------------------------------
+const connectorNodes = playNodes.filter((node) => node.kind === "connector");
+if (crmWriteback.crm === "none") {
+  assert.equal(
+    connectorNodes.length,
+    0,
+    "with crmWriteback.crm none the play must contain no connector node: the agent does the looking up, and a lookup inside the play bills per row on top of it",
+  );
+  assert.equal(
+    byId.has("connector:crm"),
+    false,
+    "with crmWriteback.crm none no CRM connector may be declared: binding one fails the deploy of a workspace that has no CRM connection",
+  );
+} else {
+  assert.equal(
+    connectorNodes.length,
+    1,
+    "the play must contain exactly one connector node, the CRM write-back: any other is a per-row lookup billed on top of the agent",
+  );
+  const crmWrite = connectorNodes[0];
+  assert.equal(
+    crmWrite.integrationSlug,
+    crmWriteback.crm,
+    "the CRM write-back must go to the CRM settings.ts names",
+  );
+  assert.equal(
+    crmWrite.connectorUuid?.resourceId,
+    "connector:crm",
+    "the CRM write-back must use the declared crm connector",
+  );
+  assert.equal(
+    crmWrite.actionSlug,
+    "updateRecords",
+    "the CRM write-back must be updateRecords: upsert or insert would create a CRM company from every TAM row the CRM does not hold",
+  );
+  assert.equal(
+    crmWrite.config.objectType,
+    crmWriteback.crm === "hubspot" ? "companies" : "Account",
+    "the CRM write-back must target the company object",
+  );
+  assert.equal(
+    crmWrite.config.matchingPropertyName,
+    crmWriteback.matchProperty,
+    "the CRM write-back must match on the property settings.ts names",
+  );
+  const crmFields = crmWrite.config.mappings.map(
+    (mapping) => mapping.propertyName,
+  );
+  assert.deepEqual(
+    [...crmFields].sort(),
+    Object.values(crmWriteback.fields).sort(),
+    "the CRM write-back must write exactly the fields settings.ts names: a field nobody named is a CRM value overwritten without a decision",
+  );
+  const guard = findOne(
+    playNodes,
+    (node) => node.kind === "native" && node.actionSlug === "branch",
+    "the CRM write-back must sit behind one guard on the match value",
+  );
+  assert.equal(
+    child(playNodes, write)?.uuid,
+    guard.uuid,
+    "the CRM write-back must come after the row write: the row is the record of the judgment whatever the CRM does",
+  );
+  assert.equal(
+    guard.childrenUuids.includes(crmWrite.uuid),
+    true,
+    "the guard must lead to the CRM write-back: an empty match value would ask the CRM for every company with an empty field",
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Eligibility is the stamp, and it lives in the play trigger.
 // ---------------------------------------------------------------------------
 const conditions = playResource.spec.filter.groups.flatMap(
@@ -186,6 +257,17 @@ assert.deepEqual(
   new Set(stampConditions.map((condition) => condition.operator)),
   new Set(["isNull", "lowerThan"]),
   "the play trigger must enrol never-tiered rows and rows whose stamp has gone stale",
+);
+assert.match(
+  rescoreAfter,
+  /^[1-9][0-9]* (day|month|year)s?$/,
+  'rescoreAfter must be a relative date the segment filter reads, "<n> days", "<n> months" or "<n> years": a week is written "7 days"',
+);
+assert.equal(
+  stampConditions.find((condition) => condition.operator === "lowerThan")
+    ?.value,
+  rescoreAfter,
+  "the stale condition must read rescoreAfter from settings.ts, so the documented cadence is the one the play runs",
 );
 assert.equal(
   conditions.some((condition) => condition.columnSlug === "custom__tier"),
