@@ -1,8 +1,15 @@
-# Win-loss review
+# Win-loss review: verify your ICP against won and lost deals every month
 
-Turn what the CRM says about won and lost deals into the knowledge layer every other agent reads.
-The platform extracts the CRM into models, a Claude Code harness agent audits them with fixed SQL
-once a month, and the result lands as one pull request and a five-line Slack digest.
+To learn who you should and should not sell to, audit your CRM's closed deals
+against each other: won versus lost by industry, size and country, and the lost
+reasons recorded on them. Once a month this cookbook has a Claude Code harness
+agent run fixed SQL over the CRM extracted into Cargo models, and lands the ICP
+check, dated insights and objections in `context/` as one pull request, with a
+five-line Slack digest.
+
+```sh
+cargo-ai cdk add cookbook/win-loss-review
+```
 
 ## What it does
 
