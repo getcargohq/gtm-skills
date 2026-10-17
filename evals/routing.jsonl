@@ -194,3 +194,7 @@
 {"prompt": "Brief me in Slack whenever someone books a call with a prospect", "expect": "meeting-prep", "why": "Every booking, standing: the tell. One account now is research-account."}
 {"prompt": "Post a prep card to #sales-prep for every external meeting on our calendars", "expect": "meeting-prep"}
 {"prompt": "Set up a discovery call briefer on our Google Calendar", "expect": "meeting-prep"}
+{"prompt": "Every week, score how agent-ready our website is and open a PR with the fixes", "expect": "agent-readiness", "why": "Agents reading our own site, every week, fixed by pull request: the standing tell."}
+{"prompt": "Track our Ora score against our competitors in Slack", "expect": "agent-readiness"}
+{"prompt": "Make our website readable by AI agents: llms.txt, structured data, agent discovery files", "expect": "agent-readiness"}
+{"prompt": "Build our company website on Cargo and make it agent-ready from the start", "expect": "website-building", "why": "Building and hosting the site is website-building; agent-readiness audits and fixes a site that already exists."}
