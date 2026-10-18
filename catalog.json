@@ -16,6 +16,7 @@
       "skills": [
         "find-b2b-leads",
         "build-tam-list",
+        "extract-sales-navigator-search",
         "find-stakeholders",
         "find-portfolio-companies"
       ]
@@ -1150,6 +1151,36 @@
       ],
       "cost": "The model writes are native and the research is web search inside the analyst, at most three per\naccount. Immediately before the plan, read the live price of the one connector action:\n\n- `cargo-ai orchestration action list postMessage --kind connector --integration-slug slack`\n\nSay it out loud. The recurring cost is one analyst run per won deal entering its window each week,\nplus one digest run, billed as LLM tokens through the Anthropic connector. It scales with how many\ncustomers are near renewal, not with the size of the book. Count the window before enabling: a\n`SELECT count(*)` over `gtm_opportunities` with `is_won` true and `close_date` ten to twelve months back.",
       "composesInto": "`crm-enrichment` (firmographics on the same company records), `win-loss-review` (what closed-won\nsays about who expands), and `track-job-changes` (a champion who left is the first at-risk signal)."
+    },
+    {
+      "name": "extract-sales-navigator-search",
+      "kind": "one-off",
+      "job": "Extract a Sales Navigator search that is bigger than one extraction can hold: count it, split it under the cap, merge the pieces back to the fewest searches, and load them into a handful of models, for accounts (1,000 per search) or people (2,500 per search).",
+      "description": "Extract a Sales Navigator search that is bigger than one extraction can hold: count it, split it under the cap, merge the pieces back to the fewest searches, and load them into a handful of models, for accounts (1,000 per search) or people (2,500 per search), powered by Cargo. Triggers: \"my Sales Nav search has 30,000 results\", \"extract more than 1,000 accounts from Sales Navigator\", \"get past the 2,500 lead limit\", \"split a large LinkedIn search\", \"Sales Navigator search optimizer\", \"the extraction stopped at 1,000\", \"pull every company in this Sales Nav search\". Providers: salesNavigator. Skip when: the search is already under the cap or you want a quick list today — use build-tam-list for companies or find-b2b-leads for people; or you want the list kept current — use tam-building.",
+      "version": "1.0.0",
+      "homepage": "https://github.com/getcargohq/gtm-skills",
+      "group": "Find the accounts and the people",
+      "install": "npx skills add getcargohq/gtm-skills/extract-sales-navigator-search",
+      "partOf": [],
+      "personas": [
+        "revops",
+        "gtm-engineering",
+        "sales-development"
+      ],
+      "integrations": [
+        "salesNavigator"
+      ],
+      "example": {
+        "prompt": "Extract every software company with 51–200 employees in the US from Sales Navigator.",
+        "output": "| Search after merging | Count |\n| --- | --- |\n| Software · 51–200 · California excl. San Francisco · growth -100..5 | 941 |\n| Software · 51–200 · California excl. San Francisco · growth 5..1000 | 702 |\n| Software · 51–200 · San Francisco | 873 |\n| Software · 51–200 · Texas, Florida, Georgia | 948 |\n| Software · 51–200 · New York, Massachusetts | 932 |\n| Software · 51–200 · Washington, Illinois, Pennsylvania, Virginia | 811 |\n| Software · 51–200 · rest of US · growth -100..0 | 908 |\n| Software · 51–200 · rest of US · growth 0..1000 | 726 |\n\n6,841 counted, 8 searches in one model, 6,567 rows extracted. 24 count calls (6 credits) and\n1,313.4 credits of extraction (6,567 × 0.2)."
+      },
+      "cost": "| Action | Credits |\n| --- | --- |\n| `salesNavigator.searchCompanyMetrics` | 0.25 |\n| `salesNavigator.searchPersonMetrics` | 0.25 |\n| Extraction through `fetchAccountSearch` or `fetchLeadSearch`, per row returned | 0.2 |\n\nCounting is cheap; extraction is the bill. A 50,000-account market costs a few hundred count calls\nand ~10,000 credits of extraction. People models run three times, and each run bills the rows it\nreturns, so budget up to three times the count for people until the sample below shows what a\nre-run actually bills.\n\n**Never run this across a full list on the first attempt.** Run steps 1–4 (counting only), then\nextract one small search (a few hundred rows) to confirm the URLs extract as counted. Show the user\nthe number of searches, models and expected rows with the credit estimate, and get the go before the\nfull step 5.",
+      "worthKnowing": [
+        "**Workspace limits are separate from the per-search cap.** A workspace has a rolling 24-hour allowance of Sales Navigator search requests, shared by counts and extraction pages (~25 rows a page). A model that hits it errors and keeps only its preview; a rerun starts over. Before a large run, estimate the requests (one per count, one per ~25 extracted rows, times three for people) and ask Cargo to confirm or raise the allowance.",
+        "**An error saves nothing.** Extraction is all or nothing per model run, so smaller models lose less when something breaks.",
+        "**`number_employees` on an extracted account is the page's own label**, not the headcount Sales Navigator filtered on. Re-measure size downstream if it matters.",
+        "**A union never exceeds its parts.** That is what makes packing by sum safe without re-counting every candidate merge; step 4 re-counts the winners."
+      ]
     },
     {
       "name": "find-b2b-leads",
