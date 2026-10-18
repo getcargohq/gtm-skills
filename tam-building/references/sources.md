@@ -70,14 +70,16 @@ countries.
   open an account. It has filters nothing else has: department headcount and
   its growth, spotlights, and Fortune ranking. Use it when the market is
   easier to describe in LinkedIn's terms than as firmographics.
-- **Against:** it needs a LinkedIn seat connected through the Cargo Chrome
-  extension (`identityIds`). It is the most expensive per record of the four.
+- **Against:** it is the most expensive per record of the four.
   Filters take LinkedIn's internal codes, not names. It returns **no domain**,
   so every later step that keys on a website pays to resolve one. The cap is
   5,000 per search, and a count (`searchCompanyMetrics`) costs a fixed fee
   rather than nothing. Use `fetchAccounts` with codes: `fetchAccountSearch`
   takes saved-search URLs, and the contract cannot see the three criteria
   inside a URL.
+- **No seat:** leave `identityIds` off. Searches run on Cargo's side without a
+  LinkedIn account, and running through someone's own account puts it at risk
+  of being restricted.
 
 ## Other sources, and why they are not the default
 
@@ -94,8 +96,7 @@ countries.
 - **Budget is the constraint, or you want a scheduled refresh:** FullEnrich.
   Accept the narrower filters.
 - **The market is defined by hiring or funding:** Apollo.
-- **The market is defined by LinkedIn facets, and you have a seat:** Sales
-  Navigator. Budget for the domain resolution that follows.
+- **The market is defined by LinkedIn facets:** Sales Navigator. Budget for the domain resolution that follows.
 
 Whichever you pick, the rest of the skill does not change. The ICP comes from
 `context/icp.md`, the three minimum criteria are confirmed first, the pool is
