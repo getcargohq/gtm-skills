@@ -59,7 +59,7 @@ Illustrative output, fictional records:
 
 ```text
 :robot_face: *Agent readiness: 2026-W43*
-*www.fabrikam.example*: 71/100 (C), +6 since last week. ora.ai/www.fabrikam.example
+*www.fabrikam.example*: 71/100 (C), +6 since last week. ora.ai/fabrikam.example
 • Fixed: llms.txt formatting, Markdown link alternate
 • Newly failing: Sitemap lastmod
 *Competitors*
@@ -96,9 +96,13 @@ is enough.
    folder the site builds from, relative to the repository root. `website-building` puts it at
    `infra/website-building/apps/website`, the default. Source in another repository is the
    `separate-site-repo` variation.
-4. **Name the domains.** `AUDIT_DOMAIN` is the hostname the site is served on. `COMPETITOR_DOMAINS`
-   is at most three competitors, read from the workspace context's competitor files. Score each once
-   by hand first (`curl -s https://ora.ai/api/score/<domain>`) so a typo is caught before the cron.
+4. **Name the domains.** `AUDIT_DOMAIN` is the hostname the site is served on. Ora scores the bare
+   domain whatever you pass it, so `curl -sI https://<bare domain>` must answer with the site or a
+   redirect to it: a site on `www.` whose apex has no record scores 0, and the digest says Ora could
+   not reach it. With `website-building`, set `redirectUrl` on the apex's `defineDomain`.
+   `COMPETITOR_DOMAINS` is at most three competitors, read from the workspace context's competitor
+   files. Score each once by hand first (`curl -s https://ora.ai/api/score/<domain>`) so a typo is
+   caught before the cron.
 5. **Point Slack at your channel.** Set `channelId` to a channel id (`C…`) from the Slack
    connector's channel autocomplete, and invite the bot. `references/digest.md` (installed beside
    this file) is the message shape.
@@ -120,7 +124,7 @@ is enough.
 
 | Input                                                        | Kind    | How it is answered                                                                                                                                                         | Why it matters                                                                                                                                       |
 | ------------------------------------------------------------ | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `AUDIT_DOMAIN` (`infra/agents/readiness-auditor.ts`)         | derived | From the website app's `domains` (`website-building`'s `infra/apps/website.ts`) or the context's company file. Asked only when neither names it.                              | It is the site scored and the one the pull request fixes. The apex and `www.` can score differently when one redirects; use the host the site serves. |
+| `AUDIT_DOMAIN` (`infra/agents/readiness-auditor.ts`)         | derived | From the website app's `domains` (`website-building`'s `infra/apps/website.ts`) or the context's company file. Asked only when neither names it.                              | It is the site scored and the one the pull request fixes. Ora drops `www.` and scans the apex, so the apex must serve or forward to the site. |
 | `COMPETITOR_DOMAINS` (`infra/agents/readiness-auditor.ts`)   | derived | From the competitor files in the workspace context, at most three, confirmed with the operator.                                                                             | Each is a scan a week from a budget shared by every caller on the same IP. More than three is a digest nobody reads to the end.                     |
 | `WEBSITE_ROOT` (`infra/agents/readiness-auditor.ts`)         | derived | `ls` the repository for the site's `package.json` (or its static root).                                                                                                    | The only folder the agent may change. Wrong, and every fix lands in a folder nothing deploys.                                                       |
 | `channelId` (`infra/agents/readiness-auditor.ts`)            | asked   | The Slack channel id (`C…`) from the connector's autocomplete. Invite the bot.                                                                                             | Locked, so the digest lands where the web team reads it and nowhere else.                                                                           |
@@ -156,6 +160,12 @@ is enough.
   post is retried next run.
 - **No gain is claimed as measured.** (§4, Rules) `estScoreGain` is Ora's estimate. The next
   Monday's scan, after the fix is merged and deployed, is the number.
+- **An unreached scan opens no pull request.** (§2, §3) When Ora could not fetch the homepage every
+  check fails, and Ora's fixes are guesses about a site it never saw. The row records `reached`
+  false, the digest says so, and next week's change is counted from a baseline.
+- **The branch name is flat, and the run never asks.** (§4, Rules) `agent-readiness-<week>`, not
+  `agent-readiness/<week>`: an install branch named `agent-readiness` would block the nested name.
+  A cron run has no one to answer a question, so a blocked step is skipped and named in the digest.
 
 ## Done when
 
@@ -164,7 +174,7 @@ is enough.
   two folders
 - the first run wrote one `readiness_scans` row per configured domain for this ISO week, each with
   a score, a grade and its failing check ids, and the run transcript shows no `force` on any scan
-- one pull request is open on `agent-readiness/<week>`, changing only files under `WEBSITE_ROOT`,
+- one pull request is open on `agent-readiness-<week>`, changing only files under `WEBSITE_ROOT`,
   each fix naming a check from our result's topFixes; or none, with the digest saying why
 - one digest landed in the locked channel in the `references/digest.md` shape
 - a second run the same week wrote no row, opened no pull request and posted nothing

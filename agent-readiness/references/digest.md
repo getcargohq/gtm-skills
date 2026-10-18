@@ -27,4 +27,7 @@ One Slack post a week, after the scans are recorded and the pull request is open
 - **To do by hand** is at most three fixes from our topFixes that no change to the site's source can
   make: brand search, registry and directory listings, Wikipedia, packages, an API or an MCP server.
 - **A partial or skipped scan says so** on its domain's line. Silence reads as a clean week.
+- **An unreached domain says so instead of a score.** When Ora could not fetch the homepage, our line
+  reads "Ora could not reach <finalUrl>", and the one to-do is to serve or forward that URL. No
+  comparison and no pull request: the score measured nothing.
 - A section with nothing in it is left out, except the first line.

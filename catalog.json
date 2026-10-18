@@ -265,7 +265,7 @@
       ],
       "example": {
         "prompt": "Every Monday, tell #web-team how agent-ready www.fabrikam.example is, and open a PR with the fixes.",
-        "output": "```text\n:robot_face: *Agent readiness: 2026-W43*\n*www.fabrikam.example*: 71/100 (C), +6 since last week. ora.ai/www.fabrikam.example\n• Fixed: llms.txt formatting, Markdown link alternate\n• Newly failing: Sitemap lastmod\n*Competitors*\n• contoso.example: 84 (B), no change\n• wingtip.example: 66 (D), -2\n*Where a competitor is ahead*\n• ARD discovery: passes at contoso.example\n• JSON-LD entity linking: passes at contoso.example, wingtip.example\n*Fix pull request*: [agent-readiness] 2026-W43: 3 fixes for www.fabrikam.example\n*To do by hand*\n• Listed in MCP registries: register the MCP server on a public registry.\n```\n\nThree domains were scanned once each; one pull request carries three fixes to the site's source,\nand nothing was merged or sent outside the channel."
+        "output": "```text\n:robot_face: *Agent readiness: 2026-W43*\n*www.fabrikam.example*: 71/100 (C), +6 since last week. ora.ai/fabrikam.example\n• Fixed: llms.txt formatting, Markdown link alternate\n• Newly failing: Sitemap lastmod\n*Competitors*\n• contoso.example: 84 (B), no change\n• wingtip.example: 66 (D), -2\n*Where a competitor is ahead*\n• ARD discovery: passes at contoso.example\n• JSON-LD entity linking: passes at contoso.example, wingtip.example\n*Fix pull request*: [agent-readiness] 2026-W43: 3 fixes for www.fabrikam.example\n*To do by hand*\n• Listed in MCP registries: register the MCP server on a public registry.\n```\n\nThree domains were scanned once each; one pull request carries three fixes to the site's source,\nand nothing was merged or sent outside the channel."
       },
       "state": "to-be-approved",
       "chain": 24,
@@ -280,7 +280,7 @@
           "input": "AUDIT_DOMAIN` (`infra/agents/readiness-auditor.ts`)",
           "kind": "derived",
           "how": "From the website app's `domains` (`website-building`'s `infra/apps/website.ts`) or the context's company file. Asked only when neither names it.",
-          "why": "It is the site scored and the one the pull request fixes. The apex and `www.` can score differently when one redirects; use the host the site serves."
+          "why": "It is the site scored and the one the pull request fixes. Ora drops `www.` and scans the apex, so the apex must serve or forward to the site."
         },
         {
           "input": "COMPETITOR_DOMAINS` (`infra/agents/readiness-auditor.ts`)",
@@ -339,13 +339,15 @@
         "**The agent changes only `WEBSITE_ROOT`, and never merges.** (`infra/agents/readiness-auditor.prompt.ts` §4) A fix is a change to what agents read about the company. A human reviews it; merging is what deploys it.",
         "**Ora's ranking is the order.** (§4) Re-ranking topFixes by what looks easy is how a pull request ships a cosmetic fix while the check that matters stays red.",
         "**The ledger is written before the pull request, and `digest_ts` after the post.** (§2, §4, §5) A re-run the same week then scans nothing, opens no second pull request, and posts once; a failed post is retried next run.",
-        "**No gain is claimed as measured.** (§4, Rules) `estScoreGain` is Ora's estimate. The next Monday's scan, after the fix is merged and deployed, is the number."
+        "**No gain is claimed as measured.** (§4, Rules) `estScoreGain` is Ora's estimate. The next Monday's scan, after the fix is merged and deployed, is the number.",
+        "**An unreached scan opens no pull request.** (§2, §3) When Ora could not fetch the homepage every check fails, and Ora's fixes are guesses about a site it never saw. The row records `reached` false, the digest says so, and next week's change is counted from a baseline.",
+        "**The branch name is flat, and the run never asks.** (§4, Rules) `agent-readiness-<week>`, not `agent-readiness/<week>`: an install branch named `agent-readiness` would block the nested name. A cron run has no one to answer a question, so a blocked step is skipped and named in the digest."
       ],
       "doneWhen": [
         "`node --import tsx evals/contract.mjs` passes",
         "`cargo-ai cdk plan` reports the agent, the `readiness_scans` model, the three connectors and the two folders",
         "the first run wrote one `readiness_scans` row per configured domain for this ISO week, each with a score, a grade and its failing check ids, and the run transcript shows no `force` on any scan",
-        "one pull request is open on `agent-readiness/<week>`, changing only files under `WEBSITE_ROOT`, each fix naming a check from our result's topFixes; or none, with the digest saying why",
+        "one pull request is open on `agent-readiness-<week>`, changing only files under `WEBSITE_ROOT`, each fix naming a check from our result's topFixes; or none, with the digest saying why",
         "one digest landed in the locked channel in the `references/digest.md` shape",
         "a second run the same week wrote no row, opened no pull request and posted nothing",
         "after the pull request is merged and deployed, the next week's row shows its checks out of `failing_checks`"

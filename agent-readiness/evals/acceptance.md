@@ -15,15 +15,17 @@ Walk every line. A checked template without an evidence-backed consumer adaptati
 - `WEBSITE_ROOT` exists on the default branch and is the folder the site deploys from.
 - `curl -s https://ora.ai/api/score/<domain>` answers for every configured domain, or the domain has
   never been scanned and the first run will scan it.
+- `curl -sI https://<bare domain of AUDIT_DOMAIN>` answers with the site or a redirect to it: Ora
+  scans the apex, not `www.`.
 
 ## First runs
 
 Keep the Slack permalink, the pull request and the model rows as evidence.
 
 - **Score.** One `readiness_scans` row per configured domain for this ISO week, with score, grade,
-  `scanned_at` and sorted `failing_checks`. The transcript shows `scan_domain` once per domain and
+  `scanned_at`, `reached` and sorted `failing_checks`. The transcript shows `scan_domain` once per domain and
   never with `force`.
-- **Fix.** One pull request on `agent-readiness/<week>`, every changed file under `WEBSITE_ROOT`,
+- **Fix.** One pull request on `agent-readiness-<week>`, every changed file under `WEBSITE_ROOT`,
   every fix naming a check in our result's topFixes, in Ora's order, with Ora's estimate called an
   estimate. The site's build passes on the branch. Our row carries `fix_pr_url`.
 - **Post.** One digest in the locked channel in the `references/digest.md` shape, the first week
