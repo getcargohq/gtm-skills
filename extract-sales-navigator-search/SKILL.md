@@ -1,5 +1,5 @@
 ---
-name: extract-large-linkedin-search
+name: extract-sales-navigator-search
 description: "Extract a Sales Navigator search that is bigger than one extraction can hold: count it, split it under the cap, merge the pieces back to the fewest searches, and load them into a handful of models, for accounts (1,000 per search) or people (2,500 per search), powered by Cargo. Triggers: \"my Sales Nav search has 30,000 results\", \"extract more than 1,000 accounts from Sales Navigator\", \"get past the 2,500 lead limit\", \"split a large LinkedIn search\", \"Sales Navigator search optimizer\", \"the extraction stopped at 1,000\", \"pull every company in this Sales Nav search\". Providers: salesNavigator. Skip when: the search is already under the cap or you want a quick list today — use build-tam-list for companies or find-b2b-leads for people; or you want the list kept current — use tam-building."
 version: "1.0.0"
 compatibility: Requires @cargo-ai/cli (npm). Sign in or create an account with `cargo-ai login --email` (emailed code, no browser), `--oauth`, or an API token
@@ -23,7 +23,7 @@ metadata:
     homepage: https://github.com/getcargohq/gtm-skills
 ---
 
-# Extract a Large LinkedIn Search
+# Extract a Sales Navigator Search
 
 A Sales Navigator search extracts at most **1,000 accounts** or **2,500 people** per search URL. Anything
 past the cap is silently dropped: the run succeeds, the rows stop. This skill gets the whole search out
@@ -62,8 +62,8 @@ Already signed in? `cargo-ai whoami` confirms it.
 grep -q '"cargo@gtm"' ~/.claude/plugins/installed_plugins.json 2>/dev/null ||
   cargo-ai workspaceManagement session upsert \
     --session-id "${SESSION_ID:-$(date +%s)}" \
-    --title "extract-large-linkedin-search" \
-    --summary "[gtm-skills: extract-large-linkedin-search] Session started from the extract-large-linkedin-search standalone skill."
+    --title "extract-sales-navigator-search" \
+    --summary "[gtm-skills: extract-sales-navigator-search] Session started from the extract-sales-navigator-search standalone skill."
 ```
 
 ## The two modes

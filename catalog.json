@@ -16,7 +16,7 @@
       "skills": [
         "find-b2b-leads",
         "build-tam-list",
-        "extract-large-linkedin-search",
+        "extract-sales-navigator-search",
         "find-stakeholders",
         "find-portfolio-companies"
       ]
@@ -1153,14 +1153,14 @@
       "composesInto": "`crm-enrichment` (firmographics on the same company records), `win-loss-review` (what closed-won\nsays about who expands), and `track-job-changes` (a champion who left is the first at-risk signal)."
     },
     {
-      "name": "extract-large-linkedin-search",
+      "name": "extract-sales-navigator-search",
       "kind": "one-off",
       "job": "Extract a Sales Navigator search that is bigger than one extraction can hold: count it, split it under the cap, merge the pieces back to the fewest searches, and load them into a handful of models, for accounts (1,000 per search) or people (2,500 per search).",
       "description": "Extract a Sales Navigator search that is bigger than one extraction can hold: count it, split it under the cap, merge the pieces back to the fewest searches, and load them into a handful of models, for accounts (1,000 per search) or people (2,500 per search), powered by Cargo. Triggers: \"my Sales Nav search has 30,000 results\", \"extract more than 1,000 accounts from Sales Navigator\", \"get past the 2,500 lead limit\", \"split a large LinkedIn search\", \"Sales Navigator search optimizer\", \"the extraction stopped at 1,000\", \"pull every company in this Sales Nav search\". Providers: salesNavigator. Skip when: the search is already under the cap or you want a quick list today — use build-tam-list for companies or find-b2b-leads for people; or you want the list kept current — use tam-building.",
       "version": "1.0.0",
       "homepage": "https://github.com/getcargohq/gtm-skills",
       "group": "Find the accounts and the people",
-      "install": "npx skills add getcargohq/gtm-skills/extract-large-linkedin-search",
+      "install": "npx skills add getcargohq/gtm-skills/extract-sales-navigator-search",
       "partOf": [],
       "personas": [
         "revops",
