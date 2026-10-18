@@ -72,7 +72,6 @@ grep -q '"cargo@gtm"' ~/.claude/plugins/installed_plugins.json 2>/dev/null ||
 | ---------------- | ------------------------------------------------------------ | ------------------------------------------------------------------------------- |
 | Search URL       | `https://www.linkedin.com/sales/search/company?query=…`      | `https://www.linkedin.com/sales/search/people?query=…`                          |
 | Cap per search   | 1,000                                                        | 2,500                                                                           |
-| Split below      | 1,000                                                        | 2,500                                                                           |
 | Counter          | `searchCompanyMetrics` → `total_results`                     | `searchPersonMetrics` → `total_leads`                                           |
 | Model extractor  | `fetchAccountSearch`, `limit` up to 1,000                    | `fetchLeadSearch`, `limit` up to 2,500                                          |
 | Split levers     | industry → geography → headcount growth → followers          | geography → seniority → years in role → function → company size → job title     |
@@ -147,7 +146,7 @@ follower or title filters:
   encoded once inside, then again with the rest (`revenue%2520operations`). Id-only searches tolerate
   sloppy encoding; a title filter returns **0** unless it is fully encoded.
 - **Look up ids, do not guess them.** `cargo-ai connection connector autocomplete --connector-uuid
-  <your salesNavigator connector> --slug <list>` with `listIndustries`, `listGeoCodes` (countries
+  <your salesNavigator connector> --slug <list> --params '{}'` with `listIndustries`, `listGeoCodes` (countries
   only), `listCompanyHeadcounts` (`A` self-employed … `I` 10,001+), `listSeniorityLevels`,
   `listFunctions` or `listYearsOfExperiences`. `YEARS_IN_CURRENT_POSITION` and
   `YEARS_AT_CURRENT_COMPANY` take the same 1–5 codes as `YEARS_OF_EXPERIENCE`. For a state, city or
@@ -204,7 +203,7 @@ TeamLink, past colleagues, people who follow your company or viewed your profile
 nothing useful cookieless. If the user's search uses one, tell them it needs their own Sales Navigator
 seat and let them decide; only on their explicit yes, add `"identityIds":["<their seat id>"]` (list
 seats with `cargo-ai connection connector autocomplete --connector-uuid <your salesNavigator
-connector> --slug listIdentityIds`).
+connector> --slug listIdentityIds --params '{}'`).
 
 **People models run three times.** Cookieless, each run returns a different 75–88% of the search, and a
 model keeps the rows from earlier runs, so two forced re-runs after creation close the gap:
@@ -224,10 +223,10 @@ with `cargo-ai storage query execute`. Sales Navigator returns fewer records tha
 differs by mode:
 
 - **Accounts:** ~95% of the count (54,146 extracted of 56,516 counted, across 81 searches).
-- **People:** one run returns 75–88% of the count, a **different subset each
-  run** (153, then 179, of the same 204); after the three runs of step 5, ~99–100% (203 of 204; 4,388 from a 4,052 count). Splitting
-  smaller does not close the gap; re-running does. If a model holds well under the count, re-run it
-  again before anything else.
+- **People:** one run returns 75–88% of the count, a **different subset each run** (153, then 179,
+  of the same 204); after the three runs of step 5, ~99–100% (203 of 204; 4,388 from a 4,052 count).
+  Splitting smaller does not close the gap; re-running does. If a model holds well under the count,
+  re-run it again before anything else.
 
 Dedupe across models on the dedup key; band edges and overlapping seniority put some records in two
 searches.
@@ -258,10 +257,12 @@ Illustrative output, fictional records:
 | --- | --- |
 | `salesNavigator.searchCompanyMetrics` | 0.25 |
 | `salesNavigator.searchPersonMetrics` | 0.25 |
-| Extraction through `fetchAccountSearch` or `fetchLeadSearch`, per row returned (people models run three times) | 0.2 |
+| Extraction through `fetchAccountSearch` or `fetchLeadSearch`, per row returned | 0.2 |
 
 Counting is cheap; extraction is the bill. A 50,000-account market costs a few hundred count calls
-and ~10,000 credits of extraction.
+and ~10,000 credits of extraction. People models run three times, and each run bills the rows it
+returns, so budget up to three times the count for people until the sample below shows what a
+re-run actually bills.
 
 **Never run this across a full list on the first attempt.** Run steps 1–4 (counting only), then
 extract one small search (a few hundred rows) to confirm the URLs extract as counted. Show the user
@@ -272,8 +273,9 @@ full step 5.
 
 - **Workspace limits are separate from the per-search cap.** A workspace has a rolling 24-hour
   allowance of Sales Navigator search requests, shared by counts and extraction pages (~25 rows a page).
-  A model that hits it errors and keeps only its preview; a rerun starts over. Check the allowance
-  before a large run, and ask Cargo to raise it if the plan needs more.
+  A model that hits it errors and keeps only its preview; a rerun starts over. Before a large run,
+  estimate the requests (one per count, one per ~25 extracted rows, times three for people) and ask
+  Cargo to confirm or raise the allowance.
 - **An error saves nothing.** Extraction is all or nothing per model run, so smaller models lose less
   when something breaks.
 - **`number_employees` on an extracted account is the page's own label**, not the headcount Sales
@@ -292,7 +294,8 @@ npx skills add getcargohq/cargo-skills
 ```
 
 To keep a market list current instead of extracting it once, deploy the `tam-building` pipeline from
-this repo; its Sales Navigator variation uses this splitting step.
+this repo. Its Sales Navigator source searches by filters (`fetchAccounts`, up to 5,000 a search)
+rather than by search URL, so it does not need this splitting until a market outgrows that.
 
 ## If it worked, ask for a star
 

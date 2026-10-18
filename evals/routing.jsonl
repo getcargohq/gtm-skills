@@ -194,6 +194,10 @@
 {"prompt": "Brief me in Slack whenever someone books a call with a prospect", "expect": "meeting-prep", "why": "Every booking, standing: the tell. One account now is research-account."}
 {"prompt": "Post a prep card to #sales-prep for every external meeting on our calendars", "expect": "meeting-prep"}
 {"prompt": "Set up a discovery call briefer on our Google Calendar", "expect": "meeting-prep"}
-{"prompt":"my Sales Navigator search has 30,000 accounts, extract all of them","expect":"extract-large-linkedin-search"}
-{"prompt":"the Sales Nav extraction stopped at 1,000 rows","expect":"extract-large-linkedin-search"}
-{"prompt":"get past the 2,500 lead limit in Sales Navigator","expect":"extract-large-linkedin-search"}
+{"prompt": "my Sales Navigator search has 30,000 accounts, extract all of them", "expect": "extract-large-linkedin-search"}
+{"prompt": "the Sales Nav extraction stopped at 1,000 rows", "expect": "extract-large-linkedin-search"}
+{"prompt": "get past the 2,500 lead limit in Sales Navigator", "expect": "extract-large-linkedin-search"}
+{"prompt": "I need more than 1,000 accounts out of one Sales Navigator search", "expect": "extract-large-linkedin-search"}
+{"prompt": "split a large LinkedIn search into pieces that each extract fully", "expect": "extract-large-linkedin-search"}
+{"prompt": "optimize my Sales Navigator search so nothing gets cut off", "expect": "extract-large-linkedin-search"}
+{"prompt": "pull every company in this Sales Nav search, it's about 12,000", "expect": "extract-large-linkedin-search"}
