@@ -2,7 +2,7 @@
 
 `.github/workflows/cargo-deps-update.yml` bumps `@cargo-ai/cdk` and the
 `cli-version` pin every morning and gates the bump on every cookbook still
-passing `cargo-cdk check` and `plan`. When that gate fails, it launches a
+passing `cargo-ai project check` and `plan`. When that gate fails, it launches a
 Replicas run to fix the cookbooks on the bump branch instead of leaving a red
 pull request for someone to find days later.
 

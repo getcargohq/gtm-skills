@@ -6,7 +6,7 @@ Walk every line. A checked template without an evidence-backed consumer adaptati
 
 - `node --import tsx evals/contract.mjs` passes against the adapted graph: a `claudeCode` harness on
   an Anthropic connector, one weekly cron, nothing on `uses`, no capability, `CONTENT_AUTHOR` set.
-- `cargo-ai cdk check` prints `agent:linkedin_content_writer bound to <your repo>#<branch>` with no
+- `cargo-ai project check` prints `agent:linkedin_content_writer bound to <your repo>#<branch>` with no
   trailing subdirectory, and the GitHub grant can push a branch to that repository.
 - `context/` has at least one `global/` file and one `proof/` or `insight/` file.
 - `CONTENT_AUTHOR` no longer reads `PLACEHOLDER`, and names a person rather than a team.

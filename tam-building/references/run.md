@@ -15,7 +15,7 @@ update says `No action needed` and names the next checkpoint.
 
 1. `node --import tsx evals/contract.mjs` from this skill's folder, against the adapted
    resources.
-2. `cargo-ai cdk types`, then `cargo-ai cdk check`, then `cargo-ai cdk plan`.
+2. `cargo-ai project types`, then `cargo-ai project check`, then `cargo-ai project plan`.
    Inspect every resource and action payload.
 3. Confirm the plan shows one source connector (AI Ark unless swapped), one
    folder, and `tam_companies` with **no schedule** and the industries,

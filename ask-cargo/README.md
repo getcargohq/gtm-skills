@@ -7,7 +7,7 @@ own it only after someone in the thread says go. A Claude Code harness agent wit
 trigger; nothing else is deployed.
 
 ```sh
-cargo-ai cdk add cookbook/ask-cargo
+cargo-ai project add cookbook/ask-cargo
 ```
 
 ## What it does

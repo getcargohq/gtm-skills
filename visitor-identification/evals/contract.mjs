@@ -6,8 +6,8 @@ import { resetRegistry, resources } from "@cargo-ai/cdk";
 
 import { snitcherSettings } from "../site/lib/snitcher.ts";
 
-// The boundaries CDK schema validation cannot express, checked against the
-// compiled registry and the site's snippet parser. `cargo-cdk check` proves
+// The boundaries schema validation cannot express, checked against the
+// compiled registry and the site's snippet parser. `cargo-ai project check` proves
 // the resources are well formed; this proves they are still the visitor
 // pipeline this skill describes after an agent has adapted them.
 //

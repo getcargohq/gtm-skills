@@ -32,7 +32,7 @@ import { agentsFolder } from "../folders";
 // No `repository` block, and nothing left to put in one. Plan and deploy
 // fill the repo, branch, root and GitHub connector from the git origin of
 // the checkout, which is the correct binding: the repository holding
-// context/ and outputs/ IS this CDK project's. `cargo-ai cdk check` prints
+// context/ and outputs/ IS this project's. `cargo-ai project check` prints
 // what it resolved; confirm the root is the repository root and not
 // `infra/`.
 //

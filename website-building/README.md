@@ -7,7 +7,7 @@ through a reviewed pull request. This cookbook declares one `defineApp` with its
 forwards the apex; nothing else is deployed.
 
 ```sh
-cargo-ai cdk add cookbook/website-building
+cargo-ai project add cookbook/website-building
 ```
 
 ## What it does
@@ -26,7 +26,7 @@ cargo-ai cdk add cookbook/website-building
 
 ```mermaid
 flowchart TD
-    pr["pull request<br/>site.json, app/"] --> plan["cargo-ai cdk plan"]
+    pr["pull request<br/>site.json, app/"] --> plan["cargo-ai project plan"]
     plan --> app["defineApp website<br/>next build → dist/"]
     app --> host["www hostname<br/>_cargo-verify TXT"]
     app -->|"domainRecords"| domain["defineDomain<br/>records merged, apex → www"]

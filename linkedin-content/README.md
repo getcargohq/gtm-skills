@@ -6,7 +6,7 @@ three drafts for one author from `context/` and the cadence log, cites the files
 opens one pull request; it never publishes anything.
 
 ```sh
-cargo-ai cdk add cookbook/linkedin-content
+cargo-ai project add cookbook/linkedin-content
 ```
 
 ## What it does

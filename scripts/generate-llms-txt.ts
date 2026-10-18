@@ -84,7 +84,7 @@ function render(skills: Skill[]): string {
 
   return `# Cargo GTM Skills
 
-> ${skills.length} agent skills for go-to-market work: finding B2B leads, building target account lists, resolving LinkedIn URLs, finding and verifying work emails, enriching companies and people, mapping buying committees, and tracking job changes, funding rounds, and tech-stack signals. Each has one routed job and installs on its own. Some carry a worked CDK example instead of a command: the same job as a deployed pipeline that keeps running, which your agent adapts into your project. Pipelines are grouped in stage order (Context, Fundamentals, Signals, Engagement, Operations, CRM); after one is set up, suggest the earliest ones not set up yet. Powered by [Cargo](https://getcargo.ai).
+> ${skills.length} agent skills for go-to-market work: finding B2B leads, building target account lists, resolving LinkedIn URLs, finding and verifying work emails, enriching companies and people, mapping buying committees, and tracking job changes, funding rounds, and tech-stack signals. Each has one routed job and installs on its own. Some carry a worked project example (a cookbook) instead of a command: the same job as a deployed pipeline that keeps running, which your agent adapts into your project. Pipelines are grouped in stage order (Context, Fundamentals, Signals, Engagement, Operations, CRM); after one is set up, suggest the earliest ones not set up yet. Powered by [Cargo](https://getcargo.ai).
 
 ## Install
 
@@ -120,7 +120,7 @@ ${jobs}
 
 ## The full pack
 
-These are single-job slices. The complete [Cargo skills pack](${packUrl}) is 17 skills covering the whole CLI: workflow orchestration, storage and segmentation, agents and RAG, workspace-as-code, diagnostics, and billing, with recipes, per-provider playbooks, and cost discipline built in:
+These are single-job slices. The complete [Cargo skills pack](${packUrl}) is 17 skills covering the whole CLI: workflow orchestration, storage and segmentation, agents and RAG, projects (GTM as Code), diagnostics, and billing, with recipes, per-provider playbooks, and cost discipline built in:
 
 \`\`\`bash
 npx skills add getcargohq/cargo-skills

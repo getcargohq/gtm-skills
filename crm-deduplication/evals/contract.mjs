@@ -1,7 +1,7 @@
-// The deduplication graph's executable contract: the boundaries CDK schema
+// The deduplication graph's executable contract: the boundaries schema
 // validation cannot express, checked against the compiled resources.
 //
-// It loads through `loadResources`, the same loader `cargo-ai cdk check`,
+// It loads through `loadResources`, the same loader `cargo-ai project check`,
 // `plan`, and `deploy` use, so what is asserted here is what would deploy.
 import assert from "node:assert/strict";
 import { readdirSync, readFileSync } from "node:fs";

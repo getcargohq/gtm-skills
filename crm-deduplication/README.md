@@ -7,7 +7,7 @@ clusters to Human Review. Fill missing identifiers first with
 [`crm-enrichment`](../crm-enrichment/README.md): a record with none of them cannot be matched.
 
 ```sh
-cargo-ai cdk add cookbook/crm-deduplication
+cargo-ai project add cookbook/crm-deduplication
 ```
 
 This pipeline has two independent paths. Deploy account deduplication, contact deduplication, or
@@ -82,16 +82,16 @@ This folder is a worked HubSpot example. Salesforce and Attio require adapting t
 extracts, record IDs, search and merge actions, and property slugs together. Keep one CRM shape
 across selected paths.
 
-This pipeline requires the `cargo-cdk` authoring skill:
+This pipeline requires the `cargo-project` authoring skill:
 
 ```sh
-npx skills add getcargohq/cargo-skills --skill cargo-cdk
+npx skills add getcargohq/cargo-skills --skill cargo-project
 ```
 
-From a Cargo CDK project:
+From a Cargo project:
 
 ```sh
-cargo-ai cdk add cookbook/crm-deduplication
+cargo-ai project add cookbook/crm-deduplication
 ```
 
 Before planning or deploying:

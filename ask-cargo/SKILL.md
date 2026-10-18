@@ -1,8 +1,8 @@
 ---
 name: ask-cargo
-description: 'Ask your go-to-market repo and workspace anything from Slack: one agent the whole team @mentions answers from context, cadence and live runs, turns change requests into pull requests, captures a thread worth keeping into the cadence log and context, and hands work to the other deployed agents only after a go in the thread. Triggers: "let the team ask our GTM agent from slack", "one agent on top of all the others", "a slack bot that knows our repo", "ask cargo from slack", "orchestrator agent for our GTM stack", "let anyone open a PR from slack", "capture this slack thread into our context". Cargo CDK, defineAgent, harness claudeCode, Slack connector trigger, GitHub, cargo-ai CLI. Skip when: you want the day recapped and posted to Slack on a schedule, which is standup; or you want an answer in this chat right now with nothing deployed.'
-version: "0.2.2"
-compatibility: "Requires @cargo-ai/cli with @cargo-ai/cdk 1.0.104 or later, which brings `repository.runAs` and `defineUser`. On an older CDK, drop `runAs` and `infra/users/`: the agent still answers from the repository, but its `cargo-ai` calls have no session. Also needs a Cargo workspace, an authenticated LLM connector (the harness runs against Cargo's proxy), a GTM repository (the shape `cargo-ai cdk init` scaffolds), and authorized GitHub and Slack connectors."
+description: 'Ask your go-to-market repo and workspace anything from Slack: one agent the whole team @mentions answers from context, cadence and live runs, turns change requests into pull requests, captures a thread worth keeping into the cadence log and context, and hands work to the other deployed agents only after a go in the thread. Triggers: "let the team ask our GTM agent from slack", "one agent on top of all the others", "a slack bot that knows our repo", "ask cargo from slack", "orchestrator agent for our GTM stack", "let anyone open a PR from slack", "capture this slack thread into our context". Cargo project, defineAgent, harness claudeCode, Slack connector trigger, GitHub, cargo-ai CLI. Skip when: you want the day recapped and posted to Slack on a schedule, which is standup; or you want an answer in this chat right now with nothing deployed.'
+version: "0.2.3"
+compatibility: "Requires @cargo-ai/cli with @cargo-ai/cdk 1.0.104 or later, which brings `repository.runAs` and `defineUser`. On an older CDK, drop `runAs` and `infra/users/`: the agent still answers from the repository, but its `cargo-ai` calls have no session. Also needs a Cargo workspace, an authenticated LLM connector (the harness runs against Cargo's proxy), a GTM repository (the shape `cargo-ai project init` scaffolds), and authorized GitHub and Slack connectors."
 homepage: https://github.com/getcargohq/gtm-skills/tree/main/ask-cargo
 metadata:
   author: getcargo
@@ -78,7 +78,7 @@ Illustrative output, fictional records:
 Dana:   @Cargo add Globex to our competitors, they keep showing up in fintech deals
 Cargo:  Opened https://github.com/northwind-example/gtm/pull/212 on branch ask-cargo/add-globex-competitor.
         • Adds Globex to context/ competitors with the fintech positioning from this thread
-        • `cargo-ai cdk check` passes; nothing under infra/ changed
+        • `cargo-ai project check` passes; nothing under infra/ changed
         Want a battlecard section too? Reply @Cargo with what to add.
 Dana:   @Cargo also note they undercut on price for teams under 50 seats
 Cargo:  Pushed a second commit to the same pull request (#212): pricing note added.
@@ -90,15 +90,15 @@ re-scoring an account, would instead get a proposal with its live price and wait
 
 ## Put it in your project
 
-This folder is a **worked example**: real CDK resources written for some other company. The job is
+This folder is a **worked example**: real project resources written for some other company. The job is
 to end up with the code your company would have written, in your project, and an agent does the
 adapting. If the `cargo-project` skill is in your session it carries the long form of this; if not,
 this is enough.
 
-1. **Install it — the CLI does the copy.** From inside the CDK project,
-   `cargo-ai cdk add cookbook/ask-cargo` writes this example to `infra/ask-cargo/` and this
+1. **Install it — the CLI does the copy.** From inside the project (the folder holding `cargo.json`),
+   `cargo-ai project add cookbook/ask-cargo` writes this example to `infra/ask-cargo/` and this
    procedure to `.claude/skills/ask-cargo/`. No project yet?
-   `cargo-ai cdk init <dir> --cookbook ask-cargo && cd <dir> && npm install` does both; this
+   `cargo-ai project init <dir> --cookbook ask-cargo && cd <dir> && npm install` does both; this
    folder never ships a shell. **If you are reading this from the project's `.claude/skills/`, the
    install already happened — start at step 2.** On a CLI too old to have `add`, copy this folder in
    as a sibling of what is there by hand; everything below is unchanged.
@@ -106,7 +106,7 @@ this is enough.
    Anthropic connector (standup and weekly-planning each bring one), rewire the imports to the
    existing one and drop the copy; two resources with one slug is a collision at deploy.
 3. **Check where the bot already is.** Authorize the Slack connector if the workspace does not have
-   one (`cargo-ai cdk add connector/slack`). The trigger is `allChannels`, so the agent answers in
+   one (`cargo-ai project add connector/slack`). The trigger is `allChannels`, so the agent answers in
    every channel the bot has been invited to: list them from the connector's channel autocomplete
    and flag any customer shared (Slack Connect) channel before deploying.
 4. **Write the roster.** Fill `references/roster.md` from `cargo-ai ai agent list`: which deployed
@@ -116,8 +116,8 @@ this is enough.
    offer unprompted; _What you will be asked_ is the floor, and you derive before you ask. Record
    what you changed and why under a `## Decisions` section in your copy of this file.
 6. **Plan, then stop.** `node --import tsx evals/contract.mjs` from this skill's folder, then
-   `npm run check && cargo-ai cdk plan` from the project root, show the diff, and deploy only on an explicit yes: `cargo-ai cdk deploy`. Never
-   `cdk init --force` into a non-empty directory.
+   `npm run check && cargo-ai project plan` from the project root, show the diff, and deploy only on an explicit yes: `cargo-ai project deploy`. Never
+   `cargo-ai project init --force` into a non-empty directory.
 7. **Verify.** Walk _Done when_ line by line and report each with evidence. Read out loud the
    channels the bot is in before you call this done: a customer shared channel among them is the
    failure nobody can undo.
@@ -128,15 +128,15 @@ this is enough.
 
 | Input                                                     | Kind  | How it is answered                                                                                                                                                                                                                                                | Why it matters                                                                                                                                                                                                                  |
 | --------------------------------------------------------- | ----- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| repository binding (`infra/agents/ask-cargo.ts`)          | value | **derived**: `repository` declares only `runAs`, so `plan` binds the project's own repository from the git origin of the checkout, with the project's GitHub connector. `cargo-ai cdk check` prints what it resolved: confirm it names your repo and the root, not `infra/`.                               | This is the checkout every answer reads and every pull request opens against. An `owner/name` typed by hand is the value nobody notices is wrong until a pull request lands on a stranger's repository.                         |
+| repository binding (`infra/agents/ask-cargo.ts`)          | value | **derived**: `repository` declares only `runAs`, so `plan` binds the project's own repository from the git origin of the checkout, with the project's GitHub connector. `cargo-ai project check` prints what it resolved: confirm it names your repo and the root, not `infra/`.                               | This is the checkout every answer reads and every pull request opens against. An `owner/name` typed by hand is the value nobody notices is wrong until a pull request lands on a stranger's repository.                         |
 | service user (`infra/users/index.ts`)                     | value | **derived**: `ask_cargo`, a service user on the adopted `viewer` system role. Deploying creates it; the deploying user's own role must cover viewer.                                                                                                               | Every turn's `cargo-ai` session. Viewer reads runs, models, agents and usage and can message other agents, but cannot deploy or change a resource, so the prompt's limits hold even when the prompt is ignored.               |
-| Slack, GitHub and LLM connectors (`infra/connectors/`)    | value | **derived**: `cargo-ai connection connector list` shows what is authorized; `cargo-ai cdk add connector/<slack\|github\|anthropic>` opens the consent for what is missing. All three are `default: true` because a deploy cannot mint a grant.                      | Slack is the trigger, GitHub the only write path, Anthropic what every turn is billed against. A harness paired with a non-Anthropic connector typechecks green and fails at deploy.                                            |
+| Slack, GitHub and LLM connectors (`infra/connectors/`)    | value | **derived**: `cargo-ai connection connector list` shows what is authorized; `cargo-ai project add connector/<slack\|github\|anthropic>` opens the consent for what is missing. All three are `default: true` because a deploy cannot mint a grant.                      | Slack is the trigger, GitHub the only write path, Anthropic what every turn is billed against. A harness paired with a non-Anthropic connector typechecks green and fails at deploy.                                            |
 | channel reach (`infra/agents/ask-cargo.ts`)               | value | **derived**: `allChannels: true`, so the reach is every channel the bot is in. Read them from the Slack connector's channel autocomplete; `cargo-ai ai agent list` shows which other agents list channels of their own.                                            | The agent reads the ICP, the pipeline and the spend out loud to whoever is in the channel. A customer shared channel the bot is in leaks all of it. A channel another agent lists stays that agent's, and a second `allChannels` agent answers alongside this one. |
 | roster (`references/roster.md`)                           | value | **derived**: `cargo-ai ai agent list` for what is deployed, each agent's description for what it owns.                                                                                                                                                            | Without it the agent guesses which agent owns a job from names alone, and "re-score Acme" goes to the wrong one or gets re-done by hand.                                                                                        |
 
 Checked before moving on, not after the deploy:
 
-- `cargo-ai cdk check` prints `agent:ask_cargo bound to <your repo>#<branch>` with no trailing
+- `cargo-ai project check` prints `agent:ask_cargo bound to <your repo>#<branch>` with no trailing
   subdirectory
 - every channel the bot is in is internal, or is listed on another agent that owns it, and no other
   agent's trigger is also `allChannels`
@@ -204,7 +204,7 @@ it if you still want it, and records why under `## Decisions` in your copy of th
 
 - `node --import tsx evals/contract.mjs` passes: harness is `claudeCode` on an Anthropic connector,
   one Slack trigger on `allChannels`, nothing on `uses`, no capability, `runAs` a viewer service user
-- `cargo-ai cdk plan` reports the agent, the three connectors, the folder, the `ask_cargo` user and the
+- `cargo-ai project plan` reports the agent, the three connectors, the folder, the `ask_cargo` user and the
   adopted `viewer` role
 - a question in a channel the bot is in ("what is our ICP?") got an answer in the thread that cites a file
   under `context/`

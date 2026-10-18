@@ -7,8 +7,8 @@ accounts and contacts and writes them back without overwriting a value a rep ent
 identifiers this one filled.
 
 ```sh
-cargo-ai cdk add cookbook/crm-enrichment      # 1. fill identifiers, write back into blanks only
-cargo-ai cdk add cookbook/crm-deduplication   # 2. then merge duplicates on those identifiers
+cargo-ai project add cookbook/crm-enrichment      # 1. fill identifiers, write back into blanks only
+cargo-ai project add cookbook/crm-deduplication   # 2. then merge duplicates on those identifiers
 ```
 
 Why that order: deduplication matches accounts on LinkedIn company ID, LinkedIn company page and
@@ -97,10 +97,10 @@ alerting.
 
 ## Install and adapt
 
-From a Cargo CDK project:
+From a Cargo project:
 
 ```sh
-cargo-ai cdk add cookbook/crm-enrichment
+cargo-ai project add cookbook/crm-enrichment
 ```
 
 Shared setup:

@@ -1,8 +1,8 @@
 ---
 name: web-capture
-description: 'Keep your company context current from your website and competitors'' pages: each Monday your site, competitors'' pages and news about both land in context/ as one pull request; the first run seeds positioning, offerings, an inferred ICP with a disqualifier, competitors, clients and proof, and every later run adds a dated note of what changed, never editing an existing file. Triggers: "keep our context current from our website", "watch competitor pricing pages", "add our company news to the knowledge base", "our context repo is empty, seed it from our website", "set up the workspace context from our domain". Cargo CDK, harness claudeCode, parallel, GitHub. Skip when: news about target accounts, which is monitor-buying-signals; one company researched before a call, which is research-account; or the ICP verified against won and lost deals, which is win-loss-review.'
-version: "0.1.1"
-compatibility: "Requires @cargo-ai/cli 1.0.89 or later with @cargo-ai/cdk 1.0.67 or later, a Cargo workspace, an authenticated Anthropic connector (the harness runs against Cargo's proxy), an authorized GitHub connector, and a GTM repository with `context/` and `cadence/` at its root (the shape `cargo-ai cdk init` scaffolds). Nothing here needs a credential in .env, and nothing here reads a CRM, a call or Slack."
+description: 'Keep your company context current from your website and competitors'' pages: each Monday your site, competitors'' pages and news about both land in context/ as one pull request; the first run seeds positioning, offerings, an inferred ICP with a disqualifier, competitors, clients and proof, and every later run adds a dated note of what changed, never editing an existing file. Triggers: "keep our context current from our website", "watch competitor pricing pages", "add our company news to the knowledge base", "our context repo is empty, seed it from our website", "set up the workspace context from our domain". Cargo project, harness claudeCode, parallel, GitHub. Skip when: news about target accounts, which is monitor-buying-signals; one company researched before a call, which is research-account; or the ICP verified against won and lost deals, which is win-loss-review.'
+version: "0.1.2"
+compatibility: "Requires @cargo-ai/cli 1.0.89 or later with @cargo-ai/cdk 1.0.67 or later, a Cargo workspace, an authenticated Anthropic connector (the harness runs against Cargo's proxy), an authorized GitHub connector, and a GTM repository with `context/` and `cadence/` at its root (the shape `cargo-ai project init` scaffolds). Nothing here needs a credential in .env, and nothing here reads a CRM, a call or Slack."
 homepage: https://github.com/getcargohq/gtm-skills/tree/main/web-capture
 metadata:
   author: getcargo
@@ -26,7 +26,7 @@ metadata:
 # Web capture
 
 **State: to-be-approved.** Deploy-verified against a live workspace: not yet. Treat `Done when`
-below as the acceptance test and review `cargo-ai cdk plan` before deploying. Make no outcome claim
+below as the acceptance test and review `cargo-ai project plan` before deploying. Make no outcome claim
 for this skill until it is approved.
 
 ## The outcome
@@ -48,7 +48,7 @@ repository:
    a `client/` or `alternative/` file for a newly named customer or competitor. It never edits a
    file that exists: a change to one is a proposal in the pull request body.
 
-Then it opens one pull request and stops. A human merges, and the next `cargo-ai cdk deploy` syncs
+Then it opens one pull request and stops. A human merges, and the next `cargo-ai project deploy` syncs
 `context/` into the workspace context repository, which is where every other Cargo agent reads
 before it acts. A week with nothing worth writing opens no pull request.
 
@@ -93,15 +93,15 @@ proposed edits, and two reads billed (the pages and the news).
 
 ## Put it in your project
 
-This folder is a **worked example**: real CDK resources written for some other company. The job is
+This folder is a **worked example**: real project resources written for some other company. The job is
 to end up with the code your company would have written, in your project, and an agent does the
-adapting. If the `cargo-cdk` skill is in your session it carries the long form of this; if not, this
+adapting. If the `cargo-project` skill is in your session it carries the long form of this; if not, this
 is enough.
 
-1. **Install it: the CLI does the copy.** From inside the CDK project,
-   `cargo-ai cdk add cookbook/web-capture` writes the resources to `infra/web-capture/` and this
+1. **Install it: the CLI does the copy.** From inside the project (the folder holding `cargo.json`),
+   `cargo-ai project add cookbook/web-capture` writes the resources to `infra/web-capture/` and this
    procedure to `.claude/skills/web-capture/`. No project yet?
-   `cargo-ai cdk init <dir> --cookbook web-capture && cd <dir> && npm install` does both; this
+   `cargo-ai project init <dir> --cookbook web-capture && cd <dir> && npm install` does both; this
    folder never ships a shell. **If you are reading this from the project's `.claude/skills/`, the
    install already happened: start at step 2.** On a CLI too old to have `add`, copy this folder in
    as a sibling of what is there by hand; everything below is unchanged.
@@ -122,10 +122,10 @@ is enough.
    offer unprompted; _What you will be asked_ is the floor, and you derive before you ask. Set the
    model. Record what you changed and why under a `## Decisions` section in your copy of this file.
 5. **Plan, then stop.** `node --import tsx evals/contract.mjs` from this skill's folder, then
-   `npm run check && cargo-ai cdk plan` from the project root (`check` validates the resource tree
+   `npm run check && cargo-ai project plan` from the project root (`check` validates the resource tree
    offline; the blank template ships it). Show the diff: one agent, two bound connectors, one
-   folder, and no model. Deploy only on an explicit yes: `cargo-ai cdk deploy`. Never
-   `cdk init --force` into a non-empty directory.
+   folder, and no model. Deploy only on an explicit yes: `cargo-ai project deploy`. Never
+   `cargo-ai project init --force` into a non-empty directory.
 6. **Run the first one by hand.** From the workspace UI or with
    `cargo-ai ai message create --agent-uuid <uuid> --parts '[{"type":"text","text":"Run the web capture. Follow your system prompt exactly."}]'`.
    The first run always opens a pull request: its page and news files are the baseline every later
@@ -143,13 +143,13 @@ _asked_ genuinely live in the operator's head.
 | pages (`PAGES`, same file)                                | value | **derived** from the site's sitemap: the sections that say what is sold, to whom, at what price, for which customers, and what shipped                                                          | A page not listed is a change never seen                                                                                       |
 | competitors (`COMPETITORS`, same file)                    | value | **derived** from `context/alternative/` when it is seeded, with each competitor's pricing and changelog URLs from their sitemaps. **asked** only to confirm which are worth watching every week | Competitors' pricing and launches are what a weekly read catches that the team does not already know. At most 20 URLs in all   |
 | LLM connector and model (`infra/connectors/anthropic.ts`) | value | **derived**: `cargo-ai connection connector list` shows whether an Anthropic connector is authorized; the agent's `languageModel` is a placeholder to set                                       | A harness does not bring its own model; this is what the weekly run is billed and metered against                              |
-| repository binding (`infra/agents/web-scribe.ts`)         | value | **derived**: leave `repository` unset and `plan` fills it from the git origin of the checkout. `cargo-ai cdk check` prints what it resolved: confirm the repository root                        | It is the working tree the agent diffs against the default branch, and the only place its output can land                      |
+| repository binding (`infra/agents/web-scribe.ts`)         | value | **derived**: leave `repository` unset and `plan` fills it from the git origin of the checkout. `cargo-ai project check` prints what it resolved: confirm the repository root                    | It is the working tree the agent diffs against the default branch, and the only place its output can land                      |
 
 Checked before moving on, not after the deploy:
 
 - `DOMAIN` is the company's own domain, and `PAGES` and `COMPETITORS` name pages that exist
 - the contract passes, which includes the 20-URL limit
-- `cargo-ai cdk check` prints the agent bound to the repository root, not `infra/`
+- `cargo-ai project check` prints the agent bound to the repository root, not `infra/`
 - exactly one `defineContext` in the project, the scaffold's, resolving to the root `context/`
 
 ## What you can change
@@ -182,7 +182,7 @@ it if you still want it, and records why under `## Decisions` in your copy of th
   corrected. A change to an existing file is a proposal in the pull request body.
 - **The one-PR write path.** (`infra/agents/web-scribe.ts`) The agent never writes the workspace
   context directly and has no `context` capability: the repository is the source and
-  `cargo-ai cdk deploy` syncs it.
+  `cargo-ai project deploy` syncs it.
 - **The first run always opens a pull request.** (`web-scribe.prompt.ts`) Its page and news files
   are the baseline. Until they are merged, every run reads as a first run and nothing is ever a
   change.
@@ -193,7 +193,7 @@ it if you still want it, and records why under `## Decisions` in your copy of th
 
 - `DOMAIN`, `PAGES` and `COMPETITORS` name the company, its real sections and the competitors worth
   watching, and the contract passes
-- `cargo-ai cdk check` prints the agent bound to the repository root, and `cargo-ai cdk plan`
+- `cargo-ai project check` prints the agent bound to the repository root, and `cargo-ai project plan`
   reports one agent, two bound connectors, one folder and no model
 - the first run opened one pull request with the page, competitor and news files, seeded every empty
   domain, and edited no existing file
@@ -203,7 +203,7 @@ it if you still want it, and records why under `## Decisions` in your copy of th
   `insight/<date>-web.md` with one tagged line per finding, each naming its company, and proposed
   rather than made any edit to an existing file
 - a run with nothing worth writing opened no pull request
-- after merging and `cargo-ai cdk deploy`, a seeded file is readable from the workspace context
+- after merging and `cargo-ai project deploy`, a seeded file is readable from the workspace context
   repository and an agent with the `context` capability quotes it back with its tag
 
 ## What it costs

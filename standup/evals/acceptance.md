@@ -17,15 +17,15 @@ Walk every line. A checked template without an evidence-backed consumer adaptati
   bound Slack connector can post to, and the bot has been invited there. A
   name (`#general`) is the value that collides; autocomplete on the connector
   is how you get the id.
-- `scripts/standup/package.json` exists in the project, and `cargo-ai cdk plan`
+- `scripts/standup/package.json` exists in the project, and `cargo-ai project plan`
   did not run git or `gh` while planning. If it did, that file is missing and
   the loader is importing the collector.
-- `cargo-ai cdk check` prints `agent:standup bound to <your repo>#<branch>` with
+- `cargo-ai project check` prints `agent:standup bound to <your repo>#<branch>` with
   no trailing subdirectory. The repo is the one holding `cadence/`, and the
   GitHub grant can push to it. A trailing `in infra/` means the harness was
   rooted where there is no node_modules, so the collector cannot run.
 - `cargo-ai connection connector list` shows an authorized Slack connector, or
-  `cargo-ai cdk add connector/slack` was used to open the OAuth consent.
+  `cargo-ai project add connector/slack` was used to open the OAuth consent.
 - The same list shows an authorized Anthropic connector, and `languageModel` in
   `infra/agents/standup.ts` names a model it can reach. The harness runs against
   Cargo's proxy, so a missing one throws at `plan`.
@@ -72,5 +72,5 @@ Walk every line. A checked template without an evidence-backed consumer adaptati
   `channelId` locked, and no tool wraps it.
 - The `cargo-ai` calls in the run's transcript were read-only (whoami, run
   count / list, usage, play and agent list). No `orchestration action execute`,
-  no `batch create`, no `cdk deploy`. If
+  no `batch create`, no `cargo-ai project deploy`. If
   `whoami` failed, the PR says so and the recap continued from the git dump.

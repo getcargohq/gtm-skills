@@ -8,7 +8,7 @@ companies as `tam_companies`. Atomic by design: one connector, one model, one
 folder.
 
 ```sh
-cargo-ai cdk add cookbook/tam-building
+cargo-ai project add cookbook/tam-building
 ```
 
 ## What it does
@@ -129,7 +129,7 @@ with the reason each one is not a default TAM source.
 
 ```sh
 node --import tsx evals/contract.mjs   # the graph boundaries, from the compiled registry
-cargo-ai cdk types && cargo-ai cdk check && cargo-ai cdk plan
+cargo-ai project types && cargo-ai project check && cargo-ai project plan
 ```
 
 `evals/acceptance.md` is the line-by-line acceptance test.

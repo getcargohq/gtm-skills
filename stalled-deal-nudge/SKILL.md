@@ -1,7 +1,7 @@
 ---
 name: stalled-deal-nudge
-description: 'Flag stalled deals and nudge each rep with a drafted follow-up: every Monday each rep gets one Slack digest of their open deals that went quiet, with how long since the last logged activity, the line that activity left off on, why the deal is worth a touch now, and a follow-up drafted for them to send. Triggers: "flag deals that went quiet", "weekly stalled deal report in slack", "nudge reps on deals with no activity", "which open deals have gone cold", "remind reps to follow up on stuck opportunities", "draft follow-ups for stalled deals weekly". Cargo CDK, defineAgent, native deal, account and activity models, SQL, Slack postMessage, workspace context, ledger model; adapts to HubSpot, Salesforce or Attio. Skip when: you want the week''s GTM work ranked against initiatives, which is weekly-planning; or you want one account researched now, which is research-account.'
-version: "0.1.1"
+description: 'Flag stalled deals and nudge each rep with a drafted follow-up: every Monday each rep gets one Slack digest of their open deals that went quiet, with how long since the last logged activity, the line that activity left off on, why the deal is worth a touch now, and a follow-up drafted for them to send. Triggers: "flag deals that went quiet", "weekly stalled deal report in slack", "nudge reps on deals with no activity", "which open deals have gone cold", "remind reps to follow up on stuck opportunities", "draft follow-ups for stalled deals weekly". Cargo project, defineAgent, native deal, account and activity models, SQL, Slack postMessage, workspace context, ledger model; adapts to HubSpot, Salesforce or Attio. Skip when: you want the week''s GTM work ranked against initiatives, which is weekly-planning; or you want one account researched now, which is research-account.'
+version: "0.1.2"
 compatibility: "Requires @cargo-ai/cli with @cargo-ai/cdk 1.0.92 or later, a Cargo workspace, and authorized Slack and Anthropic connectors. No CRM connector: the example runs on Cargo native models. Reads the workspace context when the project declares one."
 homepage: https://github.com/getcargohq/gtm-skills/tree/main/stalled-deal-nudge
 metadata:
@@ -76,15 +76,15 @@ second run that Monday posted nothing.
 
 ## Put it in your project
 
-This folder is a **worked example**: real CDK resources written for some other company. The job is
+This folder is a **worked example**: real project resources written for some other company. The job is
 to end up with the code your company would have written, in your project, and an agent does the
-adapting. If the `cargo-cdk` skill is in your session it carries the long form of this; if not, this
+adapting. If the `cargo-project` skill is in your session it carries the long form of this; if not, this
 is enough.
 
-1. **Install it — the CLI does the copy.** From inside the CDK project,
-   `cargo-ai cdk add cookbook/stalled-deal-nudge` writes this example to
+1. **Install it — the CLI does the copy.** From inside the project (the folder holding `cargo.json`),
+   `cargo-ai project add cookbook/stalled-deal-nudge` writes this example to
    `infra/stalled-deal-nudge/` and this procedure to `.claude/skills/stalled-deal-nudge/`. No
-   project yet? `cargo-ai cdk init <dir> --cookbook stalled-deal-nudge && cd <dir> && npm install`
+   project yet? `cargo-ai project init <dir> --cookbook stalled-deal-nudge && cd <dir> && npm install`
    does both. **If you are reading this from the project's `.claude/skills/`, the install already
    happened — start at step 2.** On a CLI too old to have `add`, copy this folder in as a sibling of
    what is there by hand; everything below is unchanged.
@@ -93,7 +93,7 @@ is enough.
    and drop the copy; two resources with one slug is a collision at deploy. If the deals live in a
    CRM, apply `crm-backed` now, before the first deploy.
 3. **Point Slack at your channel and name the owners.** Authorize the Slack connector if the
-   workspace does not have one (`cargo-ai cdk add connector/slack`). Set `channelId` in
+   workspace does not have one (`cargo-ai project add connector/slack`). Set `channelId` in
    `infra/agents/nudger.ts` to a channel id (`C…`) from that connector's channel autocomplete, and
    invite the bot. Fill `OWNERS` in `infra/agents/nudger.prompt.ts` from the distinct `owner_id`
    values on open deals. `references/digest.md` (installed beside this file) is the digest shape.
@@ -103,8 +103,8 @@ is enough.
    are asking more than about four questions you have skipped lookups. Record what you changed and
    why under a `## Decisions` section in your copy of this file.
 5. **Check, then plan.** `node --import tsx evals/contract.mjs` from this skill's folder, then
-   `npm run check && cargo-ai cdk plan` from the project root. Show the diff, and deploy only on an
-   explicit yes: `cargo-ai cdk deploy`. Never `cdk init --force` into a non-empty directory.
+   `npm run check && cargo-ai project plan` from the project root. Show the diff, and deploy only on an
+   explicit yes: `cargo-ai project deploy`. Never `cargo-ai project init --force` into a non-empty directory.
 6. **Verify.** With the models filled (or seeded with test rows,
    `cargo-ai storage record create-bulk`), run the prompt's selection by hand (`cargo-ai storage`
    SQL over the models) and compare it with what a rep would call stalled. Then
@@ -172,7 +172,7 @@ Checked before moving on, not after the deploy:
 ## Done when
 
 - `node --import tsx evals/contract.mjs` passes
-- `cargo-ai cdk plan` reports the agent, the `gtm_opportunities`, `gtm_accounts`, `gtm_activities` and `deal_nudges`
+- `cargo-ai project plan` reports the agent, the `gtm_opportunities`, `gtm_accounts`, `gtm_activities` and `deal_nudges`
   models, the two connectors and the two folders
 - the hand-run selection returned only open deals whose latest activity is older than `QUIET_DAYS`
 - the first run posted exactly one digest per owner with stalled deals, in the `references/digest.md`

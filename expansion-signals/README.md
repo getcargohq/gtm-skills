@@ -7,7 +7,7 @@ picks up customers whose won deal is ten to twelve months old, has an agent mark
 account, and posts one Slack digest.
 
 ```sh
-cargo-ai cdk add cookbook/expansion-signals
+cargo-ai project add cookbook/expansion-signals
 ```
 
 ## What it does

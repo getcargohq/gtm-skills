@@ -36,10 +36,11 @@
 //     stray `../../other/...` is the one way to break it silently.
 //   - no numeric credit amount appears in pipeline Markdown: provider prices
 //     are fetched when the skill runs, while unrelated decimals remain valid.
-//   - every `infra/` template passes `cargo-cdk check` and `plan`: executable
-//     examples are discovered by structure rather than a hard-coded skill name.
+//   - every `infra/` template passes `cargo-ai project check` and `plan` (run
+//     through the `cargo-cdk` bin @cargo-ai/cdk installs): executable examples
+//     are discovered by structure rather than a hard-coded skill name.
 //   - an optional `evals/contract.mjs` executes against the compiled registry:
-//     graph boundaries that CDK schema validation cannot express stay enforced.
+//     graph boundaries that schema validation cannot express stay enforced.
 //   - the inline procedure section is present: each skill carries its own
 //     "Put it in your project", the way every one-off skill here carries its
 //     own Setup. There is no shared procedure skill to depend on.
@@ -48,7 +49,14 @@
 //     to-be-approved, and absent once approved, so approving in the data file
 //     and forgetting the customer file is a red build.
 import { execFileSync } from "node:child_process";
-import { readFileSync, existsSync, readdirSync, statSync } from "node:fs";
+import {
+  readFileSync,
+  existsSync,
+  readdirSync,
+  rmSync,
+  statSync,
+  writeFileSync,
+} from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { parse as parseYaml } from "yaml";
@@ -229,6 +237,27 @@ for (const name of exampleFolders) {
     );
   }
 
+  // The noun is "project" and the commands are `cargo-ai project …`; the
+  // `cdk` alias and the old names still resolve, so nothing else would catch a
+  // cookbook teaching them to the next agent. `@cargo-ai/cdk` stays: it is the
+  // library.
+  for (const file of ["SKILL.md", "README.md"]) {
+    const path = join(root, name, file);
+    if (!existsSync(path)) continue;
+    const text = readFileSync(path, "utf8");
+    for (const [pattern, use] of [
+      [/cargo-ai cdk /, "`cargo-ai project …`"],
+      [/--skill cargo-cdk\b|skills\/cargo-cdk\//, "the `cargo-project` skill"],
+      [/Manifest repo/i, "a project"],
+      [/Cargo CDK|CDK project/, "a Cargo project"],
+    ]) {
+      if (pattern.test(text))
+        errors.push(
+          `${name}/${file} says ${pattern.exec(text)[0].trim()}: use ${use}`,
+        );
+    }
+  }
+
   // A `## Requires` section contradicts isolation: a pipeline skill carries
   // what it needs, and the agent reconciles duplicates against the project.
   if (/\n## Requires\n/.test(body)) {
@@ -282,13 +311,25 @@ for (const name of exampleFolders) {
         `${name}/infra cannot be checked because node_modules/.bin/cargo-cdk is missing`,
       );
     } else {
+      // A project is the folder holding `cargo.json`: every command finds the
+      // nearest one walking up and stops without it, and loads only the
+      // resources folder it names. A cookbook folder carries none, because it
+      // is copied into a project that already has one, so the check writes a
+      // temporary `{ "resources": "infra" }` beside the skill's infra/ for the
+      // duration of the check and removes it after. That makes each cookbook
+      // its own project, loaded in isolation the way `cargo-ai project add`
+      // lands it, rather than this repo's root (every skill plus scripts/) as
+      // one. A cargo.json the folder already carries is left alone.
+      const skillDir = join(root, name);
+      const projectFile = join(skillDir, "cargo.json");
+      const wroteProjectFile = !existsSync(projectFile);
       try {
-        // Point at the skill folder, not infra/. Since 1.0.68, `--dir infra/`
-        // walks up to the nearest package.json that declares @cargo-ai/cdk —
-        // this repo's root — and loads every skill plus scripts/ as one project.
-        // `--dir <skill>` resolves that skill's infra/ in isolation, the way a
-        // scaffolded consumer project does.
-        const skillDir = join(root, name);
+        if (wroteProjectFile) {
+          writeFileSync(
+            projectFile,
+            `${JSON.stringify({ resources: "infra" }, null, 2)}\n`,
+          );
+        }
         execFileSync(cargoCdk, ["check", "--dir", skillDir], {
           stdio: "pipe",
         });
@@ -299,7 +340,7 @@ for (const name of exampleFolders) {
         );
         if (!Array.isArray(plan.errors) || plan.errors.length > 0) {
           throw new Error(
-            `cargo-cdk plan returned errors: ${JSON.stringify(plan.errors)}`,
+            `plan returned errors: ${JSON.stringify(plan.errors)}`,
           );
         }
         checkedInfraTemplates += 1;
@@ -313,7 +354,11 @@ for (const name of exampleFolders) {
           .join(" ")
           .trim()
           .replace(/\s+/g, " ");
-        errors.push(`${name}/infra fails cargo-cdk validation: ${detail}`);
+        errors.push(
+          `${name}/infra fails cargo-ai project check/plan: ${detail}`,
+        );
+      } finally {
+        if (wroteProjectFile) rmSync(projectFile, { force: true });
       }
     }
   }

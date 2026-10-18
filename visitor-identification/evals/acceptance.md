@@ -14,7 +14,7 @@
   `NEXT_PUBLIC_SNITCHER_SNIPPET: visitingCompanies.config._trackingScript`.
 - `visitors.json` `privacyPolicyUrl` points at a disclosure the operator reviewed.
 - `node --import tsx evals/contract.mjs` passes from this skill's folder.
-- `npm run check && cargo-ai cdk plan` pass, and the plan shows the two models and the app update.
+- `npm run check && cargo-ai project plan` pass, and the plan shows the two models and the app update.
 
 ## After deploy
 

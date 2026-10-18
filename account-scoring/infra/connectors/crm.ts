@@ -7,7 +7,7 @@ import { crmWriteback } from "../settings";
 // with no CRM connection plans and deploys exactly as before.
 //
 // Bound, not created: `default: true` links the workspace's existing HubSpot or
-// Salesforce connector (`cargo-ai cdk add connector/hubspot`), the same way
+// Salesforce connector (`cargo-ai project add connector/hubspot`), the same way
 // crm-enrichment binds its `crm`. A workspace without that connection fails at
 // deploy, not at plan, because binding declares no `config` to typecheck. When
 // crm-enrichment is installed too, both files declare the slug `crm`: delete

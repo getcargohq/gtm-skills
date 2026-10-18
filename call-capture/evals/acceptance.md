@@ -25,14 +25,14 @@ Walk every line. A checked template without an evidence-backed consumer adaptati
   attendees files everything as internal and captures nothing at all.
 - `INTERNAL_DOMAIN` in `scripts/collect/config.ts` is the company's real domain, and an internal-only call in the
   window was **not** captured.
-- `scripts/call-capture/package.json` exists in the project, and `cargo-ai cdk plan` did not
+- `scripts/call-capture/package.json` exists in the project, and `cargo-ai project plan` did not
   hit the recorder's API while planning. If it did, that file is missing and the loader is importing
   the collector.
 - Exactly one `defineContext` exists in the project, resolving to the `context/` directory at the
   repository root.
-- `cargo-ai cdk check` prints `agent:call_scribe bound to <repo>#<branch>` with no trailing
+- `cargo-ai project check` prints `agent:call_scribe bound to <repo>#<branch>` with no trailing
   subdirectory. The repo is the one holding `context/` and `cadence/`, and the grant can push to it.
-  A trailing `in infra/` means the harness was rooted at the CDK project rather than at the
+  A trailing `in infra/` means the harness was rooted at the resources folder rather than at the
   package.json that declares `@cargo-ai/cdk`: that directory has no node_modules, so `npx tsx`
   cannot run the collector at all.
 - `CALL_RECORDER_API_KEY` is a workspace environment variable —
@@ -68,7 +68,7 @@ Walk every line. A checked template without an evidence-backed consumer adaptati
 
 ## After merge
 
-- `cargo-ai cdk deploy` syncs the changed `context/` files into the workspace context repository.
+- `cargo-ai project deploy` syncs the changed `context/` files into the workspace context repository.
 - An agent with the `context` capability quotes the changed file back when asked about its subject.
 
 ## Over the first two weeks

@@ -610,7 +610,7 @@ if (!skillNames.length) {
 //
 //   one-off   a job an agent runs in a turn: the exact cargo-ai command, its
 //             price, the star ask. Validated here, against the playbooks.
-//   cookbook  a worked CDK example an agent adapts into a project and deploys.
+//   cookbook  a worked project example an agent adapts into a project and deploys.
 //             Names no connector action, prices no call. Validated by
 //             scripts/check-pipelines.mjs.
 //

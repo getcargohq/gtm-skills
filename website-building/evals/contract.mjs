@@ -4,8 +4,8 @@ import { join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { resetRegistry, resources } from "@cargo-ai/cdk";
 
-// The boundaries CDK schema validation cannot express, checked against the
-// compiled registry. `cargo-cdk check` proves the resources are well formed;
+// The boundaries schema validation cannot express, checked against the
+// compiled registry. `cargo-ai project check` proves the resources are well formed;
 // this proves they are still the website this skill describes after an agent
 // has adapted them.
 //
@@ -14,7 +14,7 @@ import { resetRegistry, resources } from "@cargo-ai/cdk";
 //
 // Every resource file is loaded, so the contract still runs once
 // `domains/website.ts` is deleted for DNS hosted elsewhere. A directory with a
-// package.json is the app's browser code, which the CDK loader skips too.
+// package.json is the app's browser code, which the project loader skips too.
 const resourceFiles = (dir) =>
   readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
     const path = join(dir, entry.name);

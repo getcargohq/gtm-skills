@@ -1,5 +1,5 @@
 // The two settings an operator changes without touching the graph. Everything
-// else in this skill is wired from them, so edit here, run `cargo-ai cdk plan`,
+// else in this skill is wired from them, so edit here, run `cargo-ai project plan`,
 // and read what moved.
 
 // How long a tier stands before the play judges the company again. The play

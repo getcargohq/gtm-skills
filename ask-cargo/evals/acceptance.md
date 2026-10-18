@@ -7,7 +7,7 @@ Walk every line. A checked template without an evidence-backed consumer adaptati
 - `node --import tsx evals/contract.mjs` passes against the adapted graph: harness is `claudeCode`
   on an Anthropic connector, exactly one Slack trigger on `allChannels`, nothing on `uses`, no
   capability.
-- `cargo-ai cdk check` prints `agent:ask_cargo bound to <your repo>#<branch>` with no trailing
+- `cargo-ai project check` prints `agent:ask_cargo bound to <your repo>#<branch>` with no trailing
   subdirectory, and the GitHub grant can push a branch to that repository.
 - `cargo-ai connection connector list` shows authorized Slack, GitHub and Anthropic connectors, and
   `languageModel` names a model the Anthropic one can reach.
@@ -60,4 +60,4 @@ Run each in a channel the bot is in and keep the thread links as evidence.
   summoning thread, `listUsers`, and one `addReaction` on the summoning message: every reply is
   the turn's final text.
 - The `cargo-ai` calls in the transcripts are the reads listed in §1 of the prompt, plus the actions
-  a go approved. No `cdk deploy`, `cdk destroy`, remove, delete, login, or token command.
+  a go approved. No `cargo-ai project deploy`, `cargo-ai project destroy`, remove, delete, login, or token command.

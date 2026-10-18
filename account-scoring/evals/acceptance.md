@@ -13,9 +13,9 @@ adaptation is incomplete.
 - Every tier names the evidence that counts for it, and is decidable from the
   sourced row plus at most one search.
 
-## CDK template
+## Project
 
-- The agent installed and read `cargo-cdk` before adapting.
+- The agent installed and read `cargo-project` before adapting.
 - With tam-building installed, the four tier columns were moved onto its
   `tam_companies`, and this skill's model copy and AI Ark connector were
   deleted. The plan shows `tam_companies` as an update that adds the columns,
@@ -36,8 +36,8 @@ adaptation is incomplete.
   match property holds the row's domain (or record id on a CRM model), and the
   play's one connector node is `updateRecords` after the row write.
 - This skill declares no `defineContext`.
-- `node --import tsx evals/contract.mjs`, `cargo-ai cdk types`,
-  `cargo-ai cdk check` and `cargo-ai cdk plan` pass.
+- `node --import tsx evals/contract.mjs`, `cargo-ai project types`,
+  `cargo-ai project check` and `cargo-ai project plan` pass.
 
 ## Guided handoff
 

@@ -9,7 +9,7 @@ Walk every line. A checked template without an evidence-backed consumer adaptati
   Slack,
   `postMessage` with `channelId` locked, no Slack read, one cron, `TRACKER_TIMEZONE` in the
   repository env.
-- `cargo-ai cdk check` prints `agent:commitment_tracker bound to <your repo>#<branch>` with no
+- `cargo-ai project check` prints `agent:commitment_tracker bound to <your repo>#<branch>` with no
   trailing subdirectory.
 - `cargo-ai connection connector list` shows authorized GitHub, Slack and Anthropic
   connectors.

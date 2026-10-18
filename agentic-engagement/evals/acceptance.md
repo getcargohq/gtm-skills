@@ -11,7 +11,7 @@ Walk every line. A checked template without an evidence-backed consumer adaptati
 - `cargo-ai mailboxManagement pricing get` was read live, the monthly figure was quoted as a
   recurring charge, and the operator approved the plan's `+ create mailbox:…` line.
 - `node --import tsx evals/contract.mjs` passes against the adapted graph.
-- `cargo-ai cdk types && cargo-ai cdk check && cargo-ai cdk plan` pass in the consumer project.
+- `cargo-ai project types && cargo-ai project check && cargo-ai project plan` pass in the consumer project.
 
 ## After deploy
 

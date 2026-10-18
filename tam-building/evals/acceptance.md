@@ -50,10 +50,10 @@ adaptation is incomplete.
 - In-progress messages that need no decision say `No action needed` and name the
   next checkpoint.
 
-## CDK template
+## Project
 
-- The agent installed and read `cargo-cdk` before sizing or adapting.
-- Every resource is declared in the CDK. No imperative script sources or writes
+- The agent installed and read `cargo-project` before sizing or adapting.
+- Every resource is declared in the project. No imperative script sources or writes
   anything.
 - Exactly one company source exists. The example is `aiArk.fetchCompanies` on
   `tam_companies`; a swapped source replaces it rather than sitting beside it.
@@ -69,7 +69,7 @@ adaptation is incomplete.
   segment.
 - This skill declares **no** `defineContext`.
 - `node --import tsx evals/contract.mjs` passes against the adapted resources.
-- `cargo-ai cdk types`, `cargo-ai cdk check`, and `cargo-ai cdk plan` pass in the
+- `cargo-ai project types`, `cargo-ai project check`, and `cargo-ai project plan` pass in the
   consumer project.
 - The plan was shown and deployment happened only after the sizing approval.
 

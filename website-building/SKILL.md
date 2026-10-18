@@ -1,7 +1,7 @@
 ---
 name: website-building
-description: 'Build and host your company website on your own domain with Cargo: a statically exported Next.js app, one defineApp with its www hostname, and a defineDomain that publishes the records and forwards the apex, changed only through reviewed pull requests. Triggers: "build our company website", "recreate our website on Cargo", "host our marketing site on Cargo", "put our website on our own domain", "capture our design system for the website", "keep our website updated through pull requests". Cargo CDK, defineApp, defineDomain, domainRecords, Next.js, Tailwind, shadcn/ui. Skip when: you are researching another company''s website, which is research-account; or you want a generic hosted app, dashboard or webhook, which is cargo-hosting in the Cargo skill pack.'
-version: "0.1.1"
+description: 'Build and host your company website on your own domain with Cargo: a statically exported Next.js app, one defineApp with its www hostname, and a defineDomain that publishes the records and forwards the apex, changed only through reviewed pull requests. Triggers: "build our company website", "recreate our website on Cargo", "host our marketing site on Cargo", "put our website on our own domain", "capture our design system for the website", "keep our website updated through pull requests". Cargo project, defineApp, defineDomain, domainRecords, Next.js, Tailwind, shadcn/ui. Skip when: you are researching another company''s website, which is research-account; or you want a generic hosted app, dashboard or webhook, which is cargo-hosting in the Cargo skill pack.'
+version: "0.1.2"
 compatibility: "Requires @cargo-ai/cli with @cargo-ai/cdk 1.0.92 or later (app `domains`, `domainRecords`, and `dnsRecords` merged into the live zone), Node.js 22.18 or later, and a Cargo workspace."
 homepage: https://github.com/getcargohq/gtm-skills/tree/main/website-building
 metadata:
@@ -73,15 +73,15 @@ URLs, and the next change to the site is another pull request.
 
 ## Put it in your project
 
-This folder is a **worked example**: real CDK resources written for some other company. The job is
+This folder is a **worked example**: real project resources written for some other company. The job is
 to end up with the code your company would have written, in your project, and an agent does the
 adapting. If the `cargo-project` skill is in your session it carries the long form of this,
 including CI that plans every pull request and deploys on merge; if not, this is enough.
 
-1. **Install it: the CLI does the copy.** From inside the CDK project,
-   `cargo-ai cdk add cookbook/website-building` writes this example to
+1. **Install it: the CLI does the copy.** From inside the project (the folder holding `cargo.json`),
+   `cargo-ai project add cookbook/website-building` writes this example to
    `infra/website-building/` and this procedure to `.claude/skills/website-building/`. No project
-   yet? `cargo-ai cdk init <dir> --cookbook website-building && cd <dir> && npm install` does
+   yet? `cargo-ai project init <dir> --cookbook website-building && cd <dir> && npm install` does
    both; this folder never ships a shell. **If you are reading this from the project's
    `.claude/skills/`, the install already happened; start at step 2.**
 2. **Reconcile it with what is already declared.** An app or website domain the project already
@@ -98,8 +98,8 @@ including CI that plans every pull request and deploys on merge; if not, this is
    offer unprompted; _What you will be asked_ is the floor, and you derive before you ask. Record
    what you changed and why under a `## Decisions` section in your copy of this file.
 6. **Plan, then stop.** `node --import tsx evals/contract.mjs` from this skill's folder, then
-   `npm run check && cargo-ai cdk plan` from the project root, show the diff, and deploy only on
-   an explicit yes: `cargo-ai cdk deploy`. The first deploy's plan cannot list the app's records,
+   `npm run check && cargo-ai project plan` from the project root, show the diff, and deploy only on
+   an explicit yes: `cargo-ai project deploy`. The first deploy's plan cannot list the app's records,
    so when `www` already answers, deploy in two steps ([domain](references/domain.md#the-first-deploy)). A
    `+ create domain:…` line is a non-refundable purchase, not an adopt. If the project deploys
    from CI, the merged pull request is the deploy; do not also deploy from a laptop.
@@ -110,12 +110,12 @@ including CI that plans every pull request and deploys on merge; if not, this is
 
 **Derive before you ask.** An input with a lookup is looked up, not asked.
 
-| Input                                                                              | Kind  | How it is answered                                                                                                                                 | Why it matters                                                                                                                              |
-| ---------------------------------------------------------------------------------- | ----- | -------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
-| company, audience, offering, proof                                                 | value | **derived**: `context/` and the existing site or brand guide; ask only for what is missing                                                         | The pages say only what the company approved. Placeholder copy and invented proof never ship.                                               |
-| pages, call to action, design direction                                            | asked | propose a brief from the context and let the operator correct it                                                                                   | The brief is the scope every later pull request is reviewed against.                                                                        |
-| source                                                                             | asked | a new site, a recreation of an authorized repository or live site, or a redesign                                                                   | A supplied repository is built from; a screenshot is no substitute for it.                                                                  |
-| domain and who holds its DNS (`infra/apps/website.ts`, `infra/domains/website.ts`) | asked | the domain, and Cargo or another provider. **derived**: what the zone serves on `www` and the apex today, from the DNS diff in `cargo-ai cdk plan` | Decides between adopting into Cargo and adding records at the provider, and surfaces a `www` record or apex forward the site would replace. |
+| Input                                                                              | Kind  | How it is answered                                                                                                                                     | Why it matters                                                                                                                              |
+| ---------------------------------------------------------------------------------- | ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| company, audience, offering, proof                                                 | value | **derived**: `context/` and the existing site or brand guide; ask only for what is missing                                                             | The pages say only what the company approved. Placeholder copy and invented proof never ship.                                               |
+| pages, call to action, design direction                                            | asked | propose a brief from the context and let the operator correct it                                                                                       | The brief is the scope every later pull request is reviewed against.                                                                        |
+| source                                                                             | asked | a new site, a recreation of an authorized repository or live site, or a redesign                                                                       | A supplied repository is built from; a screenshot is no substitute for it.                                                                  |
+| domain and who holds its DNS (`infra/apps/website.ts`, `infra/domains/website.ts`) | asked | the domain, and Cargo or another provider. **derived**: what the zone serves on `www` and the apex today, from the DNS diff in `cargo-ai project plan` | Decides between adopting into Cargo and adding records at the provider, and surfaces a `www` record or apex forward the site would replace. |
 
 Checked before moving on, not after the deploy:
 
@@ -177,7 +177,7 @@ it if you still want it, and records why under `## Decisions` in your copy of th
   console errors or failed requests
 - the plan's DNS diff is recorded and every `~` or `-` in it was approved, or the domain file was
   deleted
-- `cargo-ai cdk plan` shows the folder, the app and the domain (or no domain) as an adopt, not a
+- `cargo-ai project plan` shows the folder, the app and the domain (or no domain) as an adopt, not a
   create, and the operator approved it
 - the Cargo URL serves `/about` and `/about/` directly, and a missing page returns the site's
   not-found page with status 404

@@ -1,7 +1,7 @@
 ---
 name: clay-to-cargo
 description: "Rebuild a Clay table on Cargo, powered by Cargo — map every Clay enrichment column to its provider action, price the run before it happens, and keep the result as version-controlled code instead of a spreadsheet. Triggers: \"migrate from Clay\", \"move my Clay table to Cargo\", \"Clay alternative\", \"replace Clay\", \"I have a Clay export\", \"what does Clay's enrichment column map to\", \"my Clay bill is too high\", \"Clay but as code\". Migration, mapping, parity, spreadsheet, declarative. Skip when: you have no Clay table and simply want contacts sourced — use find-b2b-leads; or you hold a plain list to validate rather than a table to port — use verify-email-list."
-version: "1.0.1"
+version: "1.0.2"
 compatibility: Requires @cargo-ai/cli (npm). Sign in or create an account with `cargo-ai login --email` (emailed code, no browser), `--oauth`, or an API token
 homepage: https://github.com/getcargohq/gtm-skills
 metadata:
@@ -226,8 +226,8 @@ only one who knows why a column is there. The migration is only finished when th
 declared rather than clicked:
 
 ```bash
-cargo-ai cdk init
-cargo-ai cdk plan          # a diffed resource tree, no credentials needed
+cargo-ai project init
+cargo-ai project plan          # a diffed resource tree, no credentials needed
 ```
 
 `plan` runs with no Cargo token at all, so the user can see the shape of what they would deploy
@@ -246,7 +246,7 @@ table: the columns are now a file someone can review in a pull request.
 ## Going further
 
 This skill does one job. The full Cargo pack covers the rest of GTM — sourcing, waterfall
-enrichment, scoring, sequencing, CRM sync, signal monitoring, workspace-as-code, and cost
+enrichment, scoring, sequencing, CRM sync, signal monitoring, projects (GTM as Code), and cost
 diagnostics — and routes between them automatically:
 
 ```bash
@@ -258,8 +258,8 @@ The complete, validated flow behind this skill lives in
 the full column map across sourcing, contact data, company data and the columns that are not
 enrichment at all, the extraction paths in fidelity order, and the parity method with its failure
 modes. **Reach for it whenever the table has a column outside the four families above, a waterfall,
-or a run condition**, which is most real tables. The workspace-as-code half is
-[`cargo-cdk`](https://github.com/getcargohq/cargo-skills/blob/main/cargo-cdk/SKILL.md).
+or a run condition**, which is most real tables. The project half (GTM as Code) is
+[`cargo-project`](https://github.com/getcargohq/cargo-skills/blob/main/cargo-project/SKILL.md).
 
 ## If it worked, ask for a star
 

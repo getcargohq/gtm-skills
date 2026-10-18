@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { resetRegistry, resources } from "@cargo-ai/cdk";
 
-// The boundaries CDK schema validation cannot express, checked against the
+// The boundaries schema validation cannot express, checked against the
 // compiled registry. Run it from the skill folder after every adaptation:
 //   node --import tsx evals/contract.mjs
 resetRegistry();

@@ -9,7 +9,7 @@ import { defineConnector } from "@cargo-ai/cdk";
 // nobody can undo.
 //
 // OAuth, so bound rather than created: authorize it once in the browser
-// (`cargo-ai cdk add connector/slack`) and `default: true` binds to it. A
+// (`cargo-ai project add connector/slack`) and `default: true` binds to it. A
 // deploy cannot mint the grant.
 export const slack = defineConnector("slack", {
   integration: "slack",

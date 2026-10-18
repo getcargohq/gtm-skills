@@ -6,7 +6,7 @@ native `sendEmail` and `listEmailEvents` on the agent, a native email trigger on
 unsubscribe, and a heartbeat that checks thread status when nothing inbound happened.
 
 ```sh
-cargo-ai cdk add cookbook/agentic-engagement
+cargo-ai project add cookbook/agentic-engagement
 ```
 
 ## What it does

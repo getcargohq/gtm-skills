@@ -1,7 +1,7 @@
 ---
 name: expansion-signals
-description: 'Find which customers are ready to expand before renewal: weekly, customers nearing renewal are judged for an expansion moment (won-deal cadence and last price, events such as funding, hiring, a new leader), with the signal and reason written onto the account and posted as one Slack digest. Triggers: "flag customers ready to expand", "which customers should we upsell this quarter", "renewal and expansion signals every week", "tell account managers which accounts to reach out to before renewal", "find expansion opportunities in our customer base", "at-risk renewals digest in slack". Cargo CDK, native accounts and deals models, definePlay, defineAgent, webSearch, Slack; adapts to HubSpot, Salesforce or Attio. Skip when: you want who raised money across prospects, which is track-funding-rounds; or buying signals on accounts that are not customers yet, which is monitor-buying-signals.'
-version: "0.1.1"
+description: 'Find which customers are ready to expand before renewal: weekly, customers nearing renewal are judged for an expansion moment (won-deal cadence and last price, events such as funding, hiring, a new leader), with the signal and reason written onto the account and posted as one Slack digest. Triggers: "flag customers ready to expand", "which customers should we upsell this quarter", "renewal and expansion signals every week", "tell account managers which accounts to reach out to before renewal", "find expansion opportunities in our customer base", "at-risk renewals digest in slack". Cargo project, native accounts and deals models, definePlay, defineAgent, webSearch, Slack; adapts to HubSpot, Salesforce or Attio. Skip when: you want who raised money across prospects, which is track-funding-rounds; or buying signals on accounts that are not customers yet, which is monitor-buying-signals.'
+version: "0.1.2"
 compatibility: "Requires @cargo-ai/cli with @cargo-ai/cdk 1.0.92 or later, a Cargo workspace, and authorized Slack and Anthropic connectors. The worked example runs on native accounts and deals models, so no CRM connector is needed; the crm-backed variation swaps in HubSpot, Salesforce or Attio. Reads the workspace context when the project declares one."
 homepage: https://github.com/getcargohq/gtm-skills/tree/main/expansion-signals
 metadata:
@@ -75,15 +75,15 @@ seventh account had already renewed early and was written `none`.
 
 ## Put it in your project
 
-This folder is a **worked example**: real CDK resources written for some other company. The job is
+This folder is a **worked example**: real project resources written for some other company. The job is
 to end up with the code your company would have written, in your project, and an agent does the
-adapting. If the `cargo-cdk` skill is in your session it carries the long form of this; if not, this
+adapting. If the `cargo-project` skill is in your session it carries the long form of this; if not, this
 is enough.
 
-1. **Install it — the CLI does the copy.** From inside the CDK project,
-   `cargo-ai cdk add cookbook/expansion-signals` writes this example to `infra/expansion-signals/`
+1. **Install it — the CLI does the copy.** From inside the project (the folder holding `cargo.json`),
+   `cargo-ai project add cookbook/expansion-signals` writes this example to `infra/expansion-signals/`
    and this procedure to `.claude/skills/expansion-signals/`. No project yet?
-   `cargo-ai cdk init <dir> --cookbook expansion-signals && cd <dir> && npm install` does both.
+   `cargo-ai project init <dir> --cookbook expansion-signals && cd <dir> && npm install` does both.
    **If you are reading this from the project's `.claude/skills/`, the install already happened —
    start at step 2.**
 2. **Reconcile it with what is already declared.** If the project already has a Slack or Anthropic
@@ -100,7 +100,7 @@ is enough.
    and you derive before you ask. Record what you changed and why under `## Decisions` in your copy
    of this file.
 6. **Check, then plan.** `node --import tsx evals/contract.mjs` from this skill's folder, then
-   `npm run check && cargo-ai cdk plan` from the project root. Show the diff, and deploy only on an
+   `npm run check && cargo-ai project plan` from the project root. Show the diff, and deploy only on an
    explicit yes. The play ships disabled.
 7. **Pilot.** Run the play by hand on five deals from the window, read each written reason against
    its sources, then enable the play, execute it once (an `added` play does not backfill), and let
@@ -152,7 +152,7 @@ is enough.
 ## Done when
 
 - `node --import tsx evals/contract.mjs` passes
-- `cargo-ai cdk plan` reports the `gtm_accounts`, `gtm_opportunities` and `expansion_digests` models, the two
+- `cargo-ai project plan` reports the `gtm_accounts`, `gtm_opportunities` and `expansion_digests` models, the two
   agents, the play, two connectors and three folders, with the play disabled and no CRM connector
 - seeded accounts and won deals, with two deals inside the window, produced two analyst runs and
   two accounts carrying a signal, a reason and a stamp; every event named in a reason has a dated

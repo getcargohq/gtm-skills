@@ -1,8 +1,8 @@
 ---
 name: linkedin-content
-description: 'Draft LinkedIn posts every week from your own proof points: each Monday three post drafts for one author land in your go-to-market repo as one pull request, built only from what context/ and the cadence log already say, each with its hook and the files it draws on; nothing is ever published. Triggers: "draft our founder''s LinkedIn posts every week", "weekly LinkedIn drafts from our proof points", "turn our wins and insights into LinkedIn posts", "keep a LinkedIn content pipeline", "ghostwrite LinkedIn posts from our context", "content calendar for the CEO on LinkedIn". Cargo CDK, defineAgent, harness claudeCode, GitHub, context/, cadence/content. Skip when: you want the company website and news read into context/, which is web-capture; or you want one post written now, in this chat, with nothing deployed.'
-version: "0.1.1"
-compatibility: "Requires @cargo-ai/cli with @cargo-ai/cdk 1.0.67 or later (the harness repository spec, rooted at the package.json that declares the CDK), a Cargo workspace, an authenticated Anthropic connector, an authorized GitHub connector, and a GTM repository with context/ and cadence/ at its root (the shape `cargo-ai cdk init` scaffolds)."
+description: 'Draft LinkedIn posts every week from your own proof points: each Monday three post drafts for one author land in your go-to-market repo as one pull request, built only from what context/ and the cadence log already say, each with its hook and the files it draws on; nothing is ever published. Triggers: "draft our founder''s LinkedIn posts every week", "weekly LinkedIn drafts from our proof points", "turn our wins and insights into LinkedIn posts", "keep a LinkedIn content pipeline", "ghostwrite LinkedIn posts from our context", "content calendar for the CEO on LinkedIn". Cargo project, defineAgent, harness claudeCode, GitHub, context/, cadence/content. Skip when: you want the company website and news read into context/, which is web-capture; or you want one post written now, in this chat, with nothing deployed.'
+version: "0.1.2"
+compatibility: "Requires @cargo-ai/cli with @cargo-ai/cdk 1.0.67 or later (the harness repository spec, rooted at the package.json that declares @cargo-ai/cdk), a Cargo workspace, an authenticated Anthropic connector, an authorized GitHub connector, and a GTM repository with context/ and cadence/ at its root (the shape `cargo-ai project init` scaffolds)."
 homepage: https://github.com/getcargohq/gtm-skills/tree/main/linkedin-content
 metadata:
   author: getcargo
@@ -72,15 +72,15 @@ was posted anywhere.
 
 ## Put it in your project
 
-This folder is a **worked example**: real CDK resources written for some other company. The job is
+This folder is a **worked example**: real project resources written for some other company. The job is
 to end up with the code your company would have written, in your project, and an agent does the
-adapting. If the `cargo-cdk` skill is in your session it carries the long form of this; if not, this
+adapting. If the `cargo-project` skill is in your session it carries the long form of this; if not, this
 is enough.
 
-1. **Install it — the CLI does the copy.** From inside the CDK project,
-   `cargo-ai cdk add cookbook/linkedin-content` writes this example to `infra/linkedin-content/` and
+1. **Install it — the CLI does the copy.** From inside the project (the folder holding `cargo.json`),
+   `cargo-ai project add cookbook/linkedin-content` writes this example to `infra/linkedin-content/` and
    this procedure to `.claude/skills/linkedin-content/`. No project yet?
-   `cargo-ai cdk init <dir> --cookbook linkedin-content && cd <dir> && npm install` does both. **If
+   `cargo-ai project init <dir> --cookbook linkedin-content && cd <dir> && npm install` does both. **If
    you are reading this from the project's `.claude/skills/`, the install already happened — start
    at step 2.**
 2. **Reconcile it with what is already declared.** If the project already has a GitHub or Anthropic
@@ -94,8 +94,8 @@ is enough.
    offer unprompted; _What you will be asked_ is the floor, and you derive before you ask. Record
    what you changed and why under a `## Decisions` section in your copy of this file.
 5. **Check, then plan.** `node --import tsx evals/contract.mjs` from this skill's folder, then
-   `npm run check && cargo-ai cdk plan` from the project root. Show the diff, and deploy only on an
-   explicit yes: `cargo-ai cdk deploy`. Never `cdk init --force` into a non-empty directory.
+   `npm run check && cargo-ai project plan` from the project root. Show the diff, and deploy only on an
+   explicit yes: `cargo-ai project deploy`. Never `cargo-ai project init --force` into a non-empty directory.
 6. **Verify.** Send the agent its trigger text once by hand (`cargo-ai ai message create`), and walk
    _Done when_ line by line. Then send it again: it must update the same pull request.
 
@@ -106,13 +106,13 @@ is enough.
 | Input                                                     | Kind  | How it is answered                                                                                                                                                         | Why it matters                                                                                                                                |
 | --------------------------------------------------------- | ----- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
 | `CONTENT_AUTHOR` (`infra/agents/content-writer.ts`)       | asked | the person the posts are written as, the way they sign their name                                                                                                          | Every draft is in the first person. A team name produces posts nobody can publish as themselves.                                              |
-| repository binding                                        | value | **derived**: leave `repository` without `repository`/`defaultBranch`/`connector`; `plan` fills them from the checkout's git origin. `cargo-ai cdk check` prints the binding. | The drafts are read from and written to this repository. A hand-written `owner/name` opens the pull request against the wrong one.            |
+| repository binding                                        | value | **derived**: leave `repository` without `repository`/`defaultBranch`/`connector`; `plan` fills them from the checkout's git origin. `cargo-ai project check` prints the binding. | The drafts are read from and written to this repository. A hand-written `owner/name` opens the pull request against the wrong one.            |
 | what context/ holds                                       | value | **derived**: `ls context/*/` before the first run. A repository with no `proof/` or `insight/` files gets drafts that say so.                                                 | The agent can only draft what is written down. An empty `proof/` is a reason to install `call-capture` or `win-loss-review` first, not to invent. |
-| GitHub and Anthropic connectors                           | value | **derived**: `cargo-ai connection connector list`; `cargo-ai cdk add connector/github` if missing. `languageModel` is a placeholder to set.                                 | GitHub is the agent's only write path. Anthropic is what every Monday is billed against.                                                      |
+| GitHub and Anthropic connectors                           | value | **derived**: `cargo-ai connection connector list`; `cargo-ai project add connector/github` if missing. `languageModel` is a placeholder to set.                                 | GitHub is the agent's only write path. Anthropic is what every Monday is billed against.                                                      |
 
 Checked before moving on, not after the deploy:
 
-- `cargo-ai cdk check` prints `agent:linkedin_content_writer bound to <your repo>#<branch>` with no
+- `cargo-ai project check` prints `agent:linkedin_content_writer bound to <your repo>#<branch>` with no
   trailing `infra/`
 - `context/` has at least one file under `global/` and one under `proof/` or `insight/`
 - `node --import tsx evals/contract.mjs` passes
@@ -148,7 +148,7 @@ Checked before moving on, not after the deploy:
 ## Done when
 
 - `node --import tsx evals/contract.mjs` passes
-- `cargo-ai cdk plan` reports the agent, the two connectors and the folder
+- `cargo-ai project plan` reports the agent, the two connectors and the folder
 - the first run opened one pull request, `[linkedin-content] <week>`, containing only
   `cadence/content/<week>.md` in the `references/post.md` shape
 - every draft lists its sources, and every number, customer and quote in it appears in one of them

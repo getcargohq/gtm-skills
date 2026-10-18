@@ -1,8 +1,8 @@
 ---
 name: win-loss-review
-description: 'Run a monthly win-loss review of your CRM''s closed deals, landed in context/ as one pull request: the ICP verified against won versus lost with a disqualifier, dated insights with counts and denominators, objections from recorded lost reasons, and a client file per closed-won account; a five-line Slack digest says what changed. Never edits a persona, nor the ICP after the first pass. Triggers: "verify our ICP against won and lost deals", "what do closed-lost deals say about who we should not sell to", "keep the context repo current from the CRM every month", "our lost reasons should become objections", "run a monthly win-loss review". Cargo CDK, harness claudeCode, HubSpot, Salesforce, Attio, Slack. Skip when: there is no CRM yet and the context should come from the website, which is web-capture; or you want one account researched before a call, which is research-account.'
-version: "0.1.1"
-compatibility: "Requires @cargo-ai/cli 1.0.89 or later with @cargo-ai/cdk 1.0.67 or later, a Cargo workspace, an authenticated Anthropic connector (the harness runs against Cargo's proxy), an authorized GitHub connector, an authorized Slack connector, an authorized CRM connection (HubSpot in the checked example; Salesforce and Attio adapt the connector, the models and the queries), and a GTM repository with `context/` and `outputs/` at its root (the shape `cargo-ai cdk init` scaffolds). Nothing here needs a credential in .env, and nothing here reads calls, postings or the website."
+description: 'Run a monthly win-loss review of your CRM''s closed deals, landed in context/ as one pull request: the ICP verified against won versus lost with a disqualifier, dated insights with counts and denominators, objections from recorded lost reasons, and a client file per closed-won account; a five-line Slack digest says what changed. Never edits a persona, nor the ICP after the first pass. Triggers: "verify our ICP against won and lost deals", "what do closed-lost deals say about who we should not sell to", "keep the context repo current from the CRM every month", "our lost reasons should become objections", "run a monthly win-loss review". Cargo project, harness claudeCode, HubSpot, Salesforce, Attio, Slack. Skip when: there is no CRM yet and the context should come from the website, which is web-capture; or you want one account researched before a call, which is research-account.'
+version: "0.1.2"
+compatibility: "Requires @cargo-ai/cli 1.0.89 or later with @cargo-ai/cdk 1.0.67 or later, a Cargo workspace, an authenticated Anthropic connector (the harness runs against Cargo's proxy), an authorized GitHub connector, an authorized Slack connector, an authorized CRM connection (HubSpot in the checked example; Salesforce and Attio adapt the connector, the models and the queries), and a GTM repository with `context/` and `outputs/` at its root (the shape `cargo-ai project init` scaffolds). Nothing here needs a credential in .env, and nothing here reads calls, postings or the website."
 homepage: https://github.com/getcargohq/gtm-skills/tree/main/win-loss-review
 metadata:
   author: getcargo
@@ -26,7 +26,7 @@ metadata:
 # Win-loss review
 
 **State: to-be-approved.** Deploy-verified against a live workspace: not yet. Treat `Done when`
-below as the acceptance test and review `cargo-ai cdk plan` before deploying. Make no outcome claim
+below as the acceptance test and review `cargo-ai project plan` before deploying. Make no outcome claim
 for this skill until it is approved.
 
 ## The outcome
@@ -44,7 +44,7 @@ month one agent runs, and two things land in your repository:
    can check. Its date is where next month starts.
 
 Then it opens one pull request and posts a five-line digest to Slack. A human merges, and the next
-`cargo-ai cdk deploy` syncs `context/` into the workspace context repository, which is where every
+`cargo-ai project deploy` syncs `context/` into the workspace context repository, which is where every
 other Cargo agent reads before it acts.
 
 The CRM is its only source, and it reaches it through models. Three `defineModel`s extract it into
@@ -96,15 +96,15 @@ and modifies nothing under `icp/` or `persona/`; the disqualifier waits for a hu
 
 ## Put it in your project
 
-This folder is a **worked example**: real CDK resources written for some other company. The job is
+This folder is a **worked example**: real project resources written for some other company. The job is
 to end up with the code your company would have written, in your project, and an agent does the
-adapting. If the `cargo-cdk` skill is in your session it carries the long form of this; if not, this
+adapting. If the `cargo-project` skill is in your session it carries the long form of this; if not, this
 is enough.
 
-1. **Install it: the CLI does the copy.** From inside the CDK project,
-   `cargo-ai cdk add cookbook/win-loss-review` writes the resources to `infra/win-loss-review/` and
+1. **Install it: the CLI does the copy.** From inside the project (the folder holding `cargo.json`),
+   `cargo-ai project add cookbook/win-loss-review` writes the resources to `infra/win-loss-review/` and
    this procedure to `.claude/skills/win-loss-review/`. No project yet?
-   `cargo-ai cdk init <dir> --cookbook win-loss-review && cd <dir> && npm install` does both; this
+   `cargo-ai project init <dir> --cookbook win-loss-review && cd <dir> && npm install` does both; this
    folder never ships a shell. **If you are reading this from the project's `.claude/skills/`, the
    install already happened: start at step 2.** On a CLI too old to have `add`, copy this folder in
    as a sibling of what is there by hand; everything below is unchanged.
@@ -127,10 +127,10 @@ is enough.
    Slack channel id and the model. Record what you changed and why under a `## Decisions` section in
    your copy of this file.
 5. **Plan, then stop.** `node --import tsx evals/contract.mjs` from this skill's folder, then
-   `npm run check && cargo-ai cdk plan` from the project root (`check` validates the resource tree
+   `npm run check && cargo-ai project plan` from the project root (`check` validates the resource tree
    offline; the blank template ships it). Show the diff: one agent, three models (fewer when the
    project already declares the shared two), the bound connectors and two folders. Deploy only on an
-   explicit yes: `cargo-ai cdk deploy`. Never `cdk init --force` into a non-empty directory.
+   explicit yes: `cargo-ai project deploy`. Never `cargo-ai project init --force` into a non-empty directory.
 6. **Check the models, then run the first pass by hand.** Once the models have synced, run the
    `pipelines` query from the prompt with `cargo-ai storage query execute` and confirm won and lost
    are both non-zero: zero won with deals you know closed means the closed flags are typed
@@ -158,13 +158,13 @@ request body, never in a chat.
 | mode                                                      | value     | **derived**: `verify` at `VERIFY_MIN_WON` (20) or more won deals in the window, else `hypothesis`. Never asked                                                                               | The line is a number so nobody argues it per run                                                                                                                                                       |
 | `icp/`, `insight/`, `objection/`, `client/`               | generated | **derived** from the queries, as the prompt describes; a seeded ICP gets one dated "Verified against the CRM" section on the first pass and is never edited after                            | The disqualifier is the half of an ICP that protects the team's time, and won versus lost is the only place it comes from with evidence                                                                |
 | Slack channel (`infra/agents/win-loss-analyst.ts`)        | value     | **asked**: the channel the digest lands in, locked on the `postMessage` use. An id (`C…`), not a name                                                                                        | Locked so the agent cannot pick a customer shared channel; a digest about lost deals is internal                                                                                                       |
-| repository binding (`infra/agents/win-loss-analyst.ts`)   | value     | **derived**: leave `repository` unset and `plan` fills it from the git origin of the checkout. `cargo-ai cdk check` prints what it resolved: confirm the repository root                     | This is the working tree the harness clones and the only place its output can land                                                                                                                     |
+| repository binding (`infra/agents/win-loss-analyst.ts`)   | value     | **derived**: leave `repository` unset and `plan` fills it from the git origin of the checkout. `cargo-ai project check` prints what it resolved: confirm the repository root                 | This is the working tree the harness clones and the only place its output can land                                                                                                                     |
 | LLM connector and model (`infra/connectors/anthropic.ts`) | value     | **derived**: `cargo-ai connection connector list` shows whether an Anthropic connector is authorized; the agent's `languageModel` is a placeholder to set                                    | A harness does not bring its own model; this is what the monthly run is billed and metered against                                                                                                     |
 
 Checked before moving on, not after the deploy:
 
 - the `pipelines` query returns non-zero won and lost counts once the models have synced
-- `cargo-ai cdk check` prints the agent bound to the repository root, not `infra/`
+- `cargo-ai project check` prints the agent bound to the repository root, not `infra/`
 - exactly one `crm` connector and one each of `crm_accounts` and `crm_contacts` in the project
 - the Slack channel id is an id, not a name, and not a customer shared channel
 
@@ -207,7 +207,7 @@ it if you still want it, and records why under `## Decisions` in your copy of th
   collision at deploy.
 - **The one-PR write path.** (`infra/agents/win-loss-analyst.ts`) The agent never writes the
   workspace context directly and has no `context` capability: the repository is the source and
-  `cargo-ai cdk deploy` syncs it.
+  `cargo-ai project deploy` syncs it.
 - **Personas are never edited, and the ICP only on the first pass, append-only.**
   (`win-loss-analyst.prompt.ts`) A monthly agent quietly rewriting them is how a knowledge base
   drifts without anyone deciding it should.
@@ -221,7 +221,7 @@ it if you still want it, and records why under `## Decisions` in your copy of th
 ## Done when
 
 - the models synced, and the `pipelines` query returned non-zero won and lost counts
-- `cargo-ai cdk check` prints the agent bound to the repository root, and `cargo-ai cdk plan`
+- `cargo-ai project check` prints the agent bound to the repository root, and `cargo-ai project plan`
   reports one agent, the models, the bound connectors and two folders
 - the first pass opened one pull request whose body opens with the two hygiene findings with
   denominators, then the mode and the won count that set it
@@ -240,7 +240,7 @@ it if you still want it, and records why under `## Decisions` in your copy of th
   request link
 - a monthly run with new deals opened a pull request that adds files and modifies none under `icp/`
   or `persona/`; with none it opened no pull request and the digest said so
-- after merging and `cargo-ai cdk deploy`, the verified ICP section is readable from the workspace
+- after merging and `cargo-ai project deploy`, the verified ICP section is readable from the workspace
   context repository and an agent with the `context` capability quotes it back with its tag
 
 ## What it costs

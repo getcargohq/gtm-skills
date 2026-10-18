@@ -1,7 +1,7 @@
 ---
 name: social-listening
-description: 'Find the LinkedIn conversations worth joining every week: each Monday the week''s public LinkedIn posts about the problem you solve are judged against your ICP, and one Slack digest lists the posts worth joining and the commenters who look like buyers, each quoted with a link. Triggers: "tell me which linkedin posts we should comment on", "watch linkedin for people talking about our problem", "social listening on linkedin", "weekly digest of linkedin conversations in our space", "who is engaging with posts about our category", "monitor linkedin posts mentioning our competitors". Cargo CDK, LinkedIn fetchPosts, searchPostComments, defineModel, defineAgent, Slack postMessage. Skip when: you want named target accounts checked for hiring, news or detection-feed events, once, which is monitor-buying-signals; or you want people who just took a role you sell to, which is new-hire-detection.'
-version: "0.1.1"
+description: 'Find the LinkedIn conversations worth joining every week: each Monday the week''s public LinkedIn posts about the problem you solve are judged against your ICP, and one Slack digest lists the posts worth joining and the commenters who look like buyers, each with a link. Triggers: "tell me which linkedin posts we should comment on", "watch linkedin for people talking about our problem", "social listening on linkedin", "weekly digest of linkedin conversations in our space", "who is engaging with posts about our category", "monitor linkedin posts mentioning our competitors". Cargo project, LinkedIn fetchPosts, searchPostComments, defineModel, defineAgent, Slack postMessage. Skip when: you want named target accounts checked for hiring, news or detection-feed events, once, which is monitor-buying-signals; or you want people who just took a role you sell to, which is new-hire-detection.'
+version: "0.1.2"
 compatibility: "Requires @cargo-ai/cli with @cargo-ai/cdk 1.0.92 or later, a Cargo workspace, and authorized LinkedIn, Slack and Anthropic connectors. Reads the ICP, pains and competitors from the workspace context."
 homepage: https://github.com/getcargohq/gtm-skills/tree/main/social-listening
 metadata:
@@ -29,7 +29,7 @@ metadata:
 digest, read no comments because none of the picked posts had any, called no engagement action,
 and wrote 4 ledger rows (3 posts and the week's digest row); a re-run the same day found the digest
 row and posted nothing. Treat `Done when`
-below as the acceptance test and review `cargo-ai cdk plan` before deploying. Make no outcome claim
+below as the acceptance test and review `cargo-ai project plan` before deploying. Make no outcome claim
 for this skill until it is approved.
 
 ## The outcome
@@ -80,15 +80,15 @@ persona, and nothing was sent to anyone.
 
 ## Put it in your project
 
-This folder is a **worked example**: real CDK resources written for some other company. The job is
+This folder is a **worked example**: real project resources written for some other company. The job is
 to end up with the code your company would have written, in your project, and an agent does the
-adapting. If the `cargo-cdk` skill is in your session it carries the long form of this; if not, this
+adapting. If the `cargo-project` skill is in your session it carries the long form of this; if not, this
 is enough.
 
-1. **Install it — the CLI does the copy.** From inside the CDK project,
-   `cargo-ai cdk add cookbook/social-listening` writes this example to `infra/social-listening/` and
+1. **Install it — the CLI does the copy.** From inside the project (the folder holding `cargo.json`),
+   `cargo-ai project add cookbook/social-listening` writes this example to `infra/social-listening/` and
    this procedure to `.claude/skills/social-listening/`. No project yet?
-   `cargo-ai cdk init <dir> --cookbook social-listening && cd <dir> && npm install` does both. **If
+   `cargo-ai project init <dir> --cookbook social-listening && cd <dir> && npm install` does both. **If
    you are reading this from the project's `.claude/skills/`, the install already happened — start
    at step 2.**
 2. **Reconcile it with what is already declared.** If the project already has a LinkedIn, Slack or
@@ -106,8 +106,8 @@ is enough.
    and you derive before you ask. Record what you changed and why under a `## Decisions` section in
    your copy of this file.
 6. **Check, then plan.** `node --import tsx evals/contract.mjs` from this skill's folder, then
-   `npm run check && cargo-ai cdk plan` from the project root. Show the diff, and deploy only on an
-   explicit yes: `cargo-ai cdk deploy`.
+   `npm run check && cargo-ai project plan` from the project root. Show the diff, and deploy only on an
+   explicit yes: `cargo-ai project deploy`.
 7. **Verify.** Trigger the model sync once, then send the agent its trigger text by hand
    (`cargo-ai ai message create`), and walk _Done when_ with evidence. Send it again: the second run
    must post nothing.
@@ -158,7 +158,7 @@ is enough.
 ## Done when
 
 - `node --import tsx evals/contract.mjs` passes
-- `cargo-ai cdk plan` reports the agent, the two models, the three connectors and the two folders
+- `cargo-ai project plan` reports the agent, the two models, the three connectors and the two folders
 - the first sync landed rows in `linkedin_posts`, all from the past week, no more than `limit`
 - one digest landed in the locked channel in the `references/digest.md` shape, every pick citing a
   context line and linking its post

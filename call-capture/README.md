@@ -7,7 +7,7 @@ reviewable pull request against your go-to-market repository. Nine call recorder
 one adapter file.
 
 ```sh
-cargo-ai cdk add cookbook/call-capture
+cargo-ai project add cookbook/call-capture
 ```
 
 ## What it does
@@ -37,7 +37,7 @@ cargo-ai cdk add cookbook/call-capture
 5. **It opens one pull request** whose body reports four numbers: captured, scribed fresh, scribed
    from backfill, pending remaining. The remainder is the drain gauge; a number that never falls
    means the cap is too low or a class of call is failing to parse.
-6. **A human merges**, and the next `cargo-ai cdk deploy` syncs `context/` into the workspace
+6. **A human merges**, and the next `cargo-ai project deploy` syncs `context/` into the workspace
    context repository, where the scorer, the researcher and every other agent read it.
 
 Adds 4 resources plus a script bundle.
@@ -64,20 +64,21 @@ call-capture/infra/     ->  infra/call-capture/      what is declared and deploy
 call-capture/scripts/   ->  scripts/call-capture/    what the agent runs
 ```
 
-Those are the layers `cargo-ai cdk init` already scaffolds — `infra/` is the CDK project, `scripts/`
-is "imperative glue for runtime surfaces the CDK cannot declare yet" — so a cookbook that needs both
-contributes to both under its own name rather than inventing a third place.
+Those are the layers `cargo-ai project init` already scaffolds — `infra/` holds the resources
+`cargo.json` names, `scripts/` is imperative glue for runtime surfaces a project cannot declare yet —
+so a cookbook that needs both contributes to both under its own name rather than inventing a third
+place.
 
 The `collect/` subdirectory is a namespace, not decoration: call recordings are the first sensor,
 and the next one (Slack threads, reply metadata, product usage) lands beside it as its own
 entrypoint rather than growing this one. The agent's step 1 names the collectors it runs, so adding
 a sensor is a new file plus a line in the system prompt.
 
-`scripts/package.json` is belt and braces. In a Manifest repo the CDK project root is `infra/`, so
-nothing under `scripts/` is ever imported as a resource. In a project whose CDK root is the repo
-root, the loader imports every `.ts` it finds **except** directories carrying a `package.json` —
-without that file, `cargo-ai cdk plan` would import the collector and run it against the live API on
-every plan.
+`scripts/package.json` is belt and braces. The loader imports only the resources folder `cargo.json`
+names (`infra/` in a scaffolded project), so nothing under `scripts/` is ever imported as a resource.
+In a project whose `cargo.json` names the repo root instead, the loader imports every `.ts` it finds
+**except** directories carrying a `package.json` — without that file, `cargo-ai project plan` would
+import the collector and run it against the live API on every plan.
 
 ## Why the split
 
@@ -127,7 +128,7 @@ minutes — rather than a stub.
 ## Why the context is not in this folder
 
 `defineContext` is a per-workspace singleton, and the knowledge layer belongs at the repository root
-where humans edit it — which is exactly where `cargo-ai cdk init` already declares it. So this folder
+where humans edit it — which is exactly where `cargo-ai project init` already declares it. So this folder
 ships none.
 
 ## Placeholders (edit before deploy)

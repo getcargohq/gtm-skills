@@ -7,7 +7,7 @@ posts one card to a locked Slack channel mentioning the organizer, and threads r
 cancellations under it.
 
 ```sh
-cargo-ai cdk add cookbook/meeting-prep
+cargo-ai project add cookbook/meeting-prep
 ```
 
 ## What it does

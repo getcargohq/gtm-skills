@@ -6,7 +6,7 @@ records each dated commitment either side made, closes the ones the activity log
 and posts what is due or overdue to one locked Slack channel, at most once a day.
 
 ```sh
-cargo-ai cdk add cookbook/next-step-tracker
+cargo-ai project add cookbook/next-step-tracker
 ```
 
 ## What it does

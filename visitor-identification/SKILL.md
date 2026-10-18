@@ -1,7 +1,7 @@
 ---
 name: visitor-identification
-description: 'Identify which companies visit your website and what they read: Snitcher identifies the organisation behind each visit, two Cargo models keep the visiting companies and their sessions current, and the site loads the tracker only after a visitor accepts it. Triggers: "who is visiting our website", "identify website visitors", "which companies visit our site", "track website sessions by company", "add visitor identification to our website", "website visitor intelligence", "Snitcher on our site", "which accounts read our pricing page". Cargo CDK, defineModel, model.config, Snitcher, consent. Skip when: you want to identify named people, which this does not do; you want buying signals from the wider market, which is monitor-buying-signals; or there is no site to add it to yet, which is website-building.'
-version: "0.1.1"
+description: 'Identify which companies visit your website and what they read: Snitcher identifies the organisation behind each visit, two Cargo models keep the visiting companies and their sessions current, and the site loads the tracker only after a visitor accepts it. Triggers: "who is visiting our website", "identify website visitors", "which companies visit our site", "track website sessions by company", "add visitor identification to our website", "website visitor intelligence", "Snitcher on our site", "which accounts read our pricing page". Cargo project, defineModel, model.config, Snitcher, consent. Skip when: you want to identify named people, which this does not do; you want buying signals from the wider market, which is monitor-buying-signals; or there is no site to add it to yet, which is website-building.'
+version: "0.1.2"
 compatibility: "Requires @cargo-ai/cli with @cargo-ai/cdk 1.0.98 or later (`model.config.<key>` tokens and token-valued app env), a website on Cargo Hosting (website-building), Node.js 22.18 or later, and a Cargo workspace."
 homepage: https://github.com/getcargohq/gtm-skills/tree/main/visitor-identification
 metadata:
@@ -66,16 +66,16 @@ every IP resolves to an organisation.
 
 ## Put it in your project
 
-This folder is a **worked example**: real CDK resources written for some other company. The job is
+This folder is a **worked example**: real project resources written for some other company. The job is
 to end up with the code your company would have written, in your project, and an agent does the
 adapting. If the `cargo-project` skill is in your session it carries the long form of this; if
 not, this is enough.
 
-1. **Install it: the CLI does the copy.** From inside the CDK project,
-   `cargo-ai cdk add cookbook/visitor-identification` writes the models to
+1. **Install it: the CLI does the copy.** From inside the project (the folder holding `cargo.json`),
+   `cargo-ai project add cookbook/visitor-identification` writes the models to
    `infra/visitor-identification/` and this procedure, with the `site/` files, to
    `.claude/skills/visitor-identification/`. No project yet?
-   `cargo-ai cdk init <dir> --cookbook visitor-identification && cd <dir> && npm install`.
+   `cargo-ai project init <dir> --cookbook visitor-identification && cd <dir> && npm install`.
    **If you are reading this from the project's `.claude/skills/`, the install already happened;
    start at step 2.**
 2. **Reconcile it with what is already declared.** The website must already be declared, usually
@@ -88,8 +88,8 @@ not, this is enough.
    offer unprompted; _What you will be asked_ is the floor, and you derive before you ask. Record
    what you changed and why under a `## Decisions` section in your copy of this file.
 5. **Plan, then stop.** `node --import tsx evals/contract.mjs` from this skill's folder, then
-   `npm run check && cargo-ai cdk plan` from the project root, show the diff, and deploy only on
-   an explicit yes: `cargo-ai cdk deploy`. If the project deploys from CI, the merged pull request
+   `npm run check && cargo-ai project plan` from the project root, show the diff, and deploy only on
+   an explicit yes: `cargo-ai project deploy`. If the project deploys from CI, the merged pull request
    is the deploy; do not also deploy from a laptop.
 6. **Verify.** Walk _Done when_ line by line in a real browser, and report each with evidence.
    Read [data](references/data.md) for what the rows mean before reporting a count.

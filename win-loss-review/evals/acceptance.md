@@ -12,8 +12,8 @@ as passed.
 - `LOST_REASON_COLUMN` in the prompt names the portal's lost-reason property, and no model's config
   filters or picks columns.
 - The Slack channel id is an id, not a name, and not a customer shared channel.
-- `cargo-ai cdk check` prints `agent:win_loss_analyst` bound to `<repo>#<branch>` at the repository
-  root, and `cargo-ai cdk plan` shows the agent, the models, the bound connectors and two folders.
+- `cargo-ai project check` prints `agent:win_loss_analyst` bound to `<repo>#<branch>` at the repository
+  root, and `cargo-ai project plan` shows the agent, the models, the bound connectors and two folders.
 
 ## After the models sync
 
@@ -46,4 +46,4 @@ as passed.
 ## After merge
 
 - The verified ICP section is readable from the workspace context repository after
-  `cargo-ai cdk deploy`, and an agent with the `context` capability quotes it back with its tag.
+  `cargo-ai project deploy`, and an agent with the `context` capability quotes it back with its tag.

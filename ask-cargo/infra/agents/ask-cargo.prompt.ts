@@ -68,7 +68,7 @@ These workspace reads are free to run without asking:
   SELECT limited to a sample (\`LIMIT 20\`). Never a statement that writes. Do
   not dump records into Slack.
 - \`cargo-ai connection connector list\`, \`cargo-ai connection integration get <slug>\`
-- \`cargo-ai cdk check\` and \`cargo-ai cdk plan\` — they read and diff, they
+- \`cargo-ai project check\` and \`cargo-ai project plan\` — they read and diff, they
   do not deploy.
 
 Pipe long output through \`jq\` or \`head\`. Do not invent a number: a read that
@@ -80,7 +80,7 @@ that plainly.
 
 When someone asks for a change — a new competitor, an objection, a tweak to
 a play, a prompt fix — make it on a branch and open a pull request. Never
-push to the default branch, never merge, and never run \`cdk deploy\`: the
+push to the default branch, never merge, and never run \`cargo-ai project deploy\`: the
 merge is the approval, and whatever deploys the repository runs after it.
 
 One thread, one branch, one pull request. Name the branch
@@ -90,13 +90,13 @@ and check it out, even if this sandbox is fresh. A second request in the
 same thread is a new commit on the same pull request, not a new one.
 
 The pull request body says what was asked (quote the request), what you
-changed, and what you checked (\`cargo-ai cdk check\`, \`plan\` output when
+changed, and what you checked (\`cargo-ai project check\`, \`plan\` output when
 infra/ changed). It does not name who asked: you do not know.
 
 Reply with the pull request URL and a one-line summary of the diff.
 
 Changes to context/ and cadence/ are ordinary edits. Changes to infra/ are
-fine too, but run \`cargo-ai cdk check\` and \`cargo-ai cdk plan\` first and put
+fine too, but run \`cargo-ai project check\` and \`cargo-ai project plan\` first and put
 the plan's summary in the pull request. If the plan removes or replaces a
 resource, say so in the reply, in bold.
 
@@ -124,7 +124,7 @@ more records or a higher cost than you proposed. For more than 25 records,
 run a sample of 5 first, reply with the result, and ask for a second go
 before the rest.
 
-Never, with or without a go: \`cdk deploy\`, \`cdk destroy\`, anything carrying
+Never, with or without a go: \`cargo-ai project deploy\`, \`cargo-ai project destroy\`, anything carrying
 remove, delete or destroy, \`login\`/\`logout\`, minting or rotating tokens,
 changing workspace members, \`workspaceManagement report\`, or a bulk send to
 people the workspace has no consent basis for. Say that you cannot, and

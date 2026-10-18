@@ -1,7 +1,7 @@
 ---
 name: next-step-tracker
-description: 'Track the next steps promised on sales calls and flag the overdue ones in Slack: every weekday morning each commitment made on a recorded call, by your team or the customer, is read from the call log, recorded once, closed when the activity log shows it was kept, and flagged once it falls due or goes overdue. Triggers: "track the next steps from our calls", "remind me when I promised something on a call", "what did we commit to and not do", "chase customer follow-ups we agreed on", "commitment tracker for sales calls", "flag overdue next steps in slack". Cargo CDK, defineAgent, harness claudeCode, call-capture entries, native models, Slack postMessage, ledger model; HubSpot, Salesforce or Attio as an adaptation. Skip when: you want calls written into the repository, which is call-capture; or a digest of everything that moved, which is standup.'
-version: "0.1.1"
+description: 'Track the next steps promised on sales calls and flag the overdue ones in Slack: every weekday morning each commitment made on a recorded call, by your team or the customer, is read from the call log, recorded once, closed when the activity log shows it was kept, and flagged once it falls due or goes overdue. Triggers: "track the next steps from our calls", "remind me when I promised something on a call", "what did we commit to and not do", "chase customer follow-ups we agreed on", "commitment tracker for sales calls", "flag overdue next steps in slack". Cargo project, defineAgent, harness claudeCode, call-capture entries, native models, Slack postMessage, ledger model; HubSpot, Salesforce or Attio as an adaptation. Skip when: you want calls written into the repository, which is call-capture; or a digest of everything that moved, which is standup.'
+version: "0.1.2"
 compatibility: "Requires @cargo-ai/cli with @cargo-ai/cdk 1.0.92 or later, a Cargo workspace, a GTM repository whose cadence/log/calls/ is written by call-capture (or by hand in the same shape), and authorized GitHub, Slack and Anthropic connectors. No CRM is required: the example reads activity from native models, and a CRM-backed model is a swap."
 homepage: https://github.com/getcargohq/gtm-skills/tree/main/next-step-tracker
 metadata:
@@ -71,15 +71,15 @@ second run that morning posted nothing.
 
 ## Put it in your project
 
-This folder is a **worked example**: real CDK resources written for some other company. The job is
+This folder is a **worked example**: real project resources written for some other company. The job is
 to end up with the code your company would have written, in your project, and an agent does the
-adapting. If the `cargo-cdk` skill is in your session it carries the long form of this; if not, this
+adapting. If the `cargo-project` skill is in your session it carries the long form of this; if not, this
 is enough.
 
-1. **Install it — the CLI does the copy.** From inside the CDK project,
-   `cargo-ai cdk add cookbook/next-step-tracker` writes this example to `infra/next-step-tracker/`
+1. **Install it — the CLI does the copy.** From inside the project (the folder holding `cargo.json`),
+   `cargo-ai project add cookbook/next-step-tracker` writes this example to `infra/next-step-tracker/`
    and this procedure to `.claude/skills/next-step-tracker/`. No project yet?
-   `cargo-ai cdk init <dir> --cookbook next-step-tracker && cd <dir> && npm install` does both.
+   `cargo-ai project init <dir> --cookbook next-step-tracker && cd <dir> && npm install` does both.
    **If you are reading this from the project's `.claude/skills/`, the install already happened —
    start at step 2.** On a CLI too old to have `add`, copy this folder in as a sibling of what is
    there by hand; everything below is unchanged.
@@ -89,7 +89,7 @@ is enough.
 3. **Check there is a call log to read.** `ls cadence/log/calls/` on the default branch. Empty means
    install `call-capture` first, or the tracker runs clean and finds nothing every morning.
 4. **Point Slack at your channel.** Authorize the Slack connector if the workspace does not have one
-   (`cargo-ai cdk add connector/slack`). Set `channelId` in `infra/agents/tracker.ts` to a channel
+   (`cargo-ai project add connector/slack`). Set `channelId` in `infra/agents/tracker.ts` to a channel
    id (`C…`) from that connector's channel autocomplete, and invite the bot.
    `references/nudge.md` (installed beside this file) is the message shape.
 5. **Adapt.** Work the sections below in order: _What should not change_ is what you argue back
@@ -98,9 +98,9 @@ is enough.
    are asking more than about four questions you have skipped lookups. Record what you changed and
    why under a `## Decisions` section in your copy of this file.
 6. **Check, then plan.** `node --import tsx evals/contract.mjs` from this skill's folder, then
-   `npm run check && cargo-ai cdk plan` from the project root. Confirm `cargo-ai cdk check` prints
+   `npm run check && cargo-ai project plan` from the project root. Confirm `cargo-ai project check` prints
    the agent bound to your repository with no trailing subdirectory. Show the diff, and deploy only
-   on an explicit yes: `cargo-ai cdk deploy`.
+   on an explicit yes: `cargo-ai project deploy`.
 7. **Verify.** Send the agent its trigger text once by hand (`cargo-ai ai message create`), and walk
    _Done when_ line by line with evidence. Then send it again: the second run must add no row and
    post nothing.
@@ -112,7 +112,7 @@ _asked_ genuinely live in the operator's head.
 
 | Input                                                     | Kind  | How it is answered                                                                                                                                                                             | Why it matters                                                                                                                                         |
 | --------------------------------------------------------- | ----- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| repository binding (`infra/agents/tracker.ts`)            | value | **derived**: leave `repository`, `defaultBranch` and `connector` unset; plan fills them from the checkout's git origin. `cargo-ai cdk check` prints what it resolved.                              | It is the only place the call log is read from. A hand-written `owner/name` is the value nobody notices is wrong until every morning comes back empty. |
+| repository binding (`infra/agents/tracker.ts`)            | value | **derived**: leave `repository`, `defaultBranch` and `connector` unset; plan fills them from the checkout's git origin. `cargo-ai project check` prints what it resolved.                              | It is the only place the call log is read from. A hand-written `owner/name` is the value nobody notices is wrong until every morning comes back empty. |
 | call log path                                             | value | **derived**: `ls cadence/log/calls/` and read two entries. The prompt expects call-capture's shape: frontmatter with a date, and an Actions section of checkboxes.                                | A log in another folder or shape is read as empty, and an empty morning looks exactly like a team that kept every promise.                            |
 | evidence source (`infra/models/gtm-activities.ts`, `gtm-accounts.ts`) | value | **derived**: `cargo-ai storage model list`. A project with a CRM-backed activities or gtm_accounts model uses `crm-backed`; otherwise the native models stay and something must fill `gtm_activities` (a sequencer webhook, a play, `cargo-ai storage record create-bulk`). | It is the only evidence a promise was kept besides a later call. An empty `gtm_activities` closes nothing, and the post grows every day until it is muted. |
 | `channelId` (`infra/agents/tracker.ts`)                   | asked | the Slack channel id (`C…`) the nudges may land in, read from the connector's channel autocomplete. Invite the bot.                                                                             | Nudges quote what customers said on calls. Locked so they never land in a customer shared channel.                                                    |
@@ -122,7 +122,7 @@ _asked_ genuinely live in the operator's head.
 Checked before moving on, not after the deploy:
 
 - `cadence/log/calls/` on the default branch holds at least one entry with an unchecked action
-- `cargo-ai cdk check` prints `agent:commitment_tracker bound to <your repo>#<branch>` with no
+- `cargo-ai project check` prints `agent:commitment_tracker bound to <your repo>#<branch>` with no
   trailing subdirectory
 - `channelId` is a `C…` id the Slack connector can see, and the bot is in that channel
 - `node --import tsx evals/contract.mjs` passes
@@ -162,7 +162,7 @@ Checked before moving on, not after the deploy:
 ## Done when
 
 - `node --import tsx evals/contract.mjs` passes
-- `cargo-ai cdk plan` reports the agent, the `commitments`, `gtm_activities` and `gtm_accounts` models, the
+- `cargo-ai project plan` reports the agent, the `commitments`, `gtm_activities` and `gtm_accounts` models, the
   three connectors and the two folders
 - the first run recorded one row per unchecked action in the last 30 days of call entries, each with
   a quoted promise, a due date and its source entry

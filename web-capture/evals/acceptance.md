@@ -13,8 +13,8 @@ as passed.
 
 ## Template and compiled graph
 
-- `cargo-ai cdk check` prints `agent:web_scribe` bound to `<repo>#<branch>` at the repository root.
-- `cargo-ai cdk plan` shows one agent, two bound connectors, one folder, and no model.
+- `cargo-ai project check` prints `agent:web_scribe` bound to `<repo>#<branch>` at the repository root.
+- `cargo-ai project plan` shows one agent, two bound connectors, one folder, and no model.
 
 ## First run
 

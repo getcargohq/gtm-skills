@@ -6,7 +6,7 @@ visit with Snitcher and keep the results in two Cargo models, `website_visiting_
 identifies companies, never named people.
 
 ```sh
-cargo-ai cdk add cookbook/visitor-identification
+cargo-ai project add cookbook/visitor-identification
 ```
 
 ```text
@@ -19,7 +19,7 @@ visitor accepts on the site
 ## Why it is built this way
 
 **One deploy, no capture step.** Snitcher's tracker and workspace only exist once the companies
-model is created. `visitingCompanies.config._trackingScript` and `._workspaceUuid` are CDK tokens,
+model is created. `visitingCompanies.config._trackingScript` and `._workspaceUuid` are project tokens,
 so the sessions model and the site's env read them in the same deploy that creates them.
 
 **The site owns its loader.** The provider's snippet is a script; the site takes only its public

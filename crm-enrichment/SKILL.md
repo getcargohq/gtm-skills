@@ -1,8 +1,8 @@
 ---
 name: crm-enrichment
-description: 'Clean up and enrich a messy CRM: fill the missing identifiers on accounts and contacts first (LinkedIn, domain, email), write them back into blank fields only, then deduplicate on those identifiers with crm-deduplication. Keeps records filled and refreshes them when they go stale. Triggers: "keep our CRM accounts filled", "keep our CRM contacts filled", "nobody refreshes the company records", "nobody refreshes the contact records", "enrich my CRM", "refresh stale firmographics", "every new CRM company", "every new CRM contact", "contacts are missing emails, LinkedIn URLs, or titles". HubSpot, Salesforce, Attio, Cargo CDK. Skip when: the records are not in a CRM. A supplied company list is enrich-company-data, a supplied LinkedIn URL list is enrich-linkedin-profile, and a one-time email lookup is find-work-email.'
-version: "0.7.2"
-compatibility: "Requires the cargo-cdk skill, a Cargo CDK project, @cargo-ai/cdk 1.0.82 or later, and authenticated CRM and LinkedIn connectors. The repository example does not deploy or access a CRM until it is adapted in the consumer project."
+description: 'Clean up and enrich a messy CRM: fill the missing identifiers on accounts and contacts first (LinkedIn, domain, email), write them back into blank fields only, then deduplicate on those identifiers with crm-deduplication. Keeps records filled and refreshes them when they go stale. Triggers: "keep our CRM accounts filled", "keep our CRM contacts filled", "nobody refreshes the company records", "nobody refreshes the contact records", "enrich my CRM", "refresh stale firmographics", "every new CRM company", "every new CRM contact", "contacts are missing emails, LinkedIn URLs, or titles". HubSpot, Salesforce, Attio, Cargo project. Skip when: the records are not in a CRM. A supplied company list is enrich-company-data, a supplied LinkedIn URL list is enrich-linkedin-profile, and a one-time email lookup is find-work-email.'
+version: "0.7.3"
+compatibility: "Requires the cargo-project skill, a Cargo project (cargo.json at its root), @cargo-ai/cdk 1.0.82 or later, and authenticated CRM and LinkedIn connectors. The repository example does not deploy or access a CRM until it is adapted in the consumer project."
 homepage: https://github.com/getcargohq/gtm-skills/tree/main/crm-enrichment
 metadata:
   author: getcargo
@@ -25,7 +25,7 @@ metadata:
 # CRM enrichment
 
 **State: to-be-approved.** This pipeline has not been deploy-verified against a live workspace.
-Review `cargo-ai cdk plan`, the compiled graph, and the live connector schemas before deployment.
+Review `cargo-ai project plan`, the compiled graph, and the live connector schemas before deployment.
 
 ## The outcome
 
@@ -90,24 +90,24 @@ a contact where nothing resolved, like Sam Hale, is never marked enriched.
 
 ## Put it in your project
 
-Install the required authoring skill first. If `cargo-cdk` is absent, run:
+Install the required authoring skill first. If `cargo-project` is absent, run:
 
 ```sh
-npx skills add getcargohq/cargo-skills --skill cargo-cdk
+npx skills add getcargohq/cargo-skills --skill cargo-project
 ```
 
-Then read `.agents/skills/cargo-cdk/SKILL.md` and follow its state, plan, and deployment rules.
+Then read `.agents/skills/cargo-project/SKILL.md` and follow its state, plan, and deployment rules.
 
-From the Cargo CDK project, install this example with:
+From the Cargo project, install this example with:
 
 ```sh
-cargo-ai cdk add cookbook/crm-enrichment
+cargo-ai project add cookbook/crm-enrichment
 ```
 
 Or start a project with:
 
 ```sh
-cargo-ai cdk init <dir> --cookbook crm-enrichment
+cargo-ai project init <dir> --cookbook crm-enrichment
 cd <dir>
 npm install
 ```

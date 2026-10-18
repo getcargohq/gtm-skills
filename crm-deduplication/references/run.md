@@ -8,7 +8,7 @@ Approval for one path does not authorize the other.
 ## Shared deployment safety
 
 Before deploying either path, run the checks from `SKILL.md`, inspect the compiled graphs, and
-review `cargo-ai cdk plan`. Deploy only the approved resources, with every selected play set to
+review `cargo-ai project plan`. Deploy only the approved resources, with every selected play set to
 `isEnabled: false`, `runCreationRule: noConcurrency`, and `limit: 15`.
 
 Resolve `workspaceUuid` from `cargo-ai whoami` (`workspace.uuid`) and each selected play UUID from

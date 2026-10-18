@@ -15,12 +15,12 @@ import { appsFolder } from "../folders";
 // serve the about page and a missing page gets `404.html` with status 404.
 //
 // The package has its own package.json and lockfile, which is also what stops
-// the CDK loader from importing its browser code as resources.
+// the project loader from importing its browser code as resources.
 //
-// `path` is relative to the directory the CDK runs in, and the CDK hashes the
-// string itself: an absolute path would read as a change on every machine and
-// in CI. It is computed from this file so it stays right wherever
-// `cargo-ai cdk add` placed the folder (`infra/website-building/apps/website`
+// `path` is relative to the directory `cargo-ai project` runs in, and the
+// deploy hashes the string itself: an absolute path would read as a change on
+// every machine and in CI. It is computed from this file so it stays right wherever
+// `cargo-ai project add` placed the folder (`infra/website-building/apps/website`
 // in a project, `infra/apps/website` here). Keep the computation.
 const path = relative(
   process.cwd(),

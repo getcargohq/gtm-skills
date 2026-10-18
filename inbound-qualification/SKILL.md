@@ -1,7 +1,7 @@
 ---
 name: inbound-qualification
-description: 'Qualify and route inbound demo requests from your website form: each submission runs a Cargo tool that identifies the company by work email, qualifies it against your ICP, lands the account and contact in the shared models, posts it to Slack, and answers with a booking link or a thank-you; an optional play then tiers and summarises each qualified contact. Triggers: "add a demo form to our website", "handle inbound leads", "route website form submissions", "qualify inbound demo requests", "contact form that books meetings", "inbound lead flow", "Cargo public form", "tier each demo request and summarise it". Cargo CDK, defineTool, publicForm, @cargo-ai/form-sdk, definePlay, gtm_accounts, gtm_contacts. Skip when: you want visiting companies that fill nothing in, which is visitor-identification; no site yet, which is website-building first; or leads from a list, which is find-b2b-leads.'
-version: "0.2.1"
+description: 'Qualify and route inbound demo requests from your website form: each submission runs a Cargo tool that identifies the company by work email, qualifies it against your ICP, lands the account and contact in the shared models, posts it to Slack, and answers with a booking link or a thank-you; an optional play then tiers and summarises each qualified contact. Triggers: "add a demo form to our website", "handle inbound leads", "route website form submissions", "qualify inbound demo requests", "contact form that books meetings", "inbound lead flow", "Cargo public form", "tier each demo request and summarise it". Cargo project, defineTool, publicForm, form-sdk, definePlay, gtm_accounts, gtm_contacts. Skip when: you want visiting companies that fill nothing in, which is visitor-identification; no site yet, which is website-building first; or leads from a list, which is find-b2b-leads.'
+version: "0.2.2"
 compatibility: "Requires @cargo-ai/cli with @cargo-ai/cdk 1.0.98 or later (token-valued app env), @cargo-ai/form-sdk 1.0.3 or later in the website app, a website on Cargo Hosting (website-building), Node.js 22.18 or later, and a Cargo workspace."
 homepage: https://github.com/getcargohq/gtm-skills/tree/main/inbound-qualification
 metadata:
@@ -79,16 +79,16 @@ POST /contact            sam@gmail.com            -> work_email_required   (noth
 
 ## Put it in your project
 
-This folder is a **worked example**: real CDK resources written for some other company. The job is
+This folder is a **worked example**: real project resources written for some other company. The job is
 to end up with the code your company would have written, in your project, and an agent does the
 adapting. If the `cargo-project` skill is in your session it carries the long form of this; if
 not, this is enough.
 
-1. **Install it: the CLI does the copy.** From inside the CDK project,
-   `cargo-ai cdk add cookbook/inbound-qualification` writes the tool and models to
+1. **Install it: the CLI does the copy.** From inside the project (the folder holding `cargo.json`),
+   `cargo-ai project add cookbook/inbound-qualification` writes the tool and models to
    `infra/inbound-qualification/` and this procedure, with the `site/` files, to
    `.claude/skills/inbound-qualification/`. No project yet?
-   `cargo-ai cdk init <dir> --cookbook inbound-qualification && cd <dir> && npm install`.
+   `cargo-ai project init <dir> --cookbook inbound-qualification && cd <dir> && npm install`.
    **If you are reading this from the project's `.claude/skills/`, the install already happened;
    start at step 2.**
 2. **Reconcile it with what is already declared.** The website must already be declared, usually
@@ -102,8 +102,8 @@ not, this is enough.
    offer unprompted; _What you will be asked_ is the floor, and you derive before you ask. Record
    what you changed and why under a `## Decisions` section in your copy of this file.
 5. **Plan, then stop.** `node --import tsx evals/contract.mjs` from this skill's folder, then
-   `npm run check && cargo-ai cdk plan` from the project root, show the diff, and deploy only on
-   an explicit yes: `cargo-ai cdk deploy`. If the project deploys from CI, the merged pull request
+   `npm run check && cargo-ai project plan` from the project root, show the diff, and deploy only on
+   an explicit yes: `cargo-ai project deploy`. If the project deploys from CI, the merged pull request
    is the deploy; do not also deploy from a laptop.
 6. **Verify.** Walk _Done when_ line by line with real submissions, and report each with evidence.
 

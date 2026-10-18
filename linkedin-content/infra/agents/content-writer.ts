@@ -25,7 +25,7 @@ import { agentsFolder } from "../folders";
 //
 // No `repository` block beyond `env`. Plan and deploy fill the repo, branch,
 // root and GitHub connector from the git origin of the checkout, which is the
-// repository holding context/ and cadence/. `cargo-ai cdk check` prints what
+// repository holding context/ and cadence/. `cargo-ai project check` prints what
 // it resolved; confirm the root is the repository root and not `infra/`.
 export const contentWriter = defineAgent("linkedin_content_writer", {
   name: "LinkedIn content writer",

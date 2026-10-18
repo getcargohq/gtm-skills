@@ -3,13 +3,13 @@ name: update cargo deps
 # Bumps @cargo-ai/cdk and the CLI pin, then proves every cookbook still checks
 # and plans against them before asking anyone to merge.
 #
-# The gate is the reason this job is not a one-liner. The CDK validates inside
-# `defineAgent` and friends, at call time, so a contract change lands as a
+# The gate is the reason this job is not a one-liner. @cargo-ai/cdk validates
+# inside `defineAgent` and friends, at call time, so a contract change lands as a
 # runtime throw that `tsc` cannot see: a cookbook that stopped being deployable
 # still typechecks green. When the gate fails, a Replicas run is launched to fix
 # the cookbooks on this job's own branch, because a bump this repo cannot absorb
-# is a content problem — the CDK is usually right and the cookbook is usually
-# stale.
+# is a content problem — the library is usually right and the cookbook is
+# usually stale.
 
 on:
   schedule:
@@ -101,9 +101,10 @@ jobs:
         if: steps.diff.outputs.changed == 'true'
         run: npm ci --ignore-scripts
 
-      # `check-pipelines.mjs` runs `cargo-cdk check` and `plan` on every
-      # cookbook's infra/, which is the only step here that sees a CDK contract
-      # change. This is what would have caught getcargohq/cargo#5865 making
+      # `check-pipelines.mjs` runs `cargo-ai project check` and `plan` on every
+      # cookbook's infra/ (each as its own project, through a temporary
+      # cargo.json), which is the only step here that sees an @cargo-ai/cdk
+      # contract change. This is what would have caught getcargohq/cargo#5865 making
       # `connector` and `languageModel` hard requirements on harness agents.
       #
       # `scripts/validate.ts` is deliberately NOT the gate: it resolves slugs and
@@ -159,7 +160,7 @@ jobs:
           if [ "$GATE" = "success" ]; then
             VERDICT="Every cookbook checks and plans against these versions, and \`npm run typecheck\` passed."
           else
-            VERDICT="**The gate failed.** At least one cookbook no longer checks or plans against these versions, so a Replicas run was launched to fix the cookbooks on this branch. Expect a follow-up commit here; if none arrives, read the gate output below and fix it by hand. Do not merge this as-is, and do not resolve it by reverting the bump — the CDK is usually right and the cookbook is usually stale."
+            VERDICT="**The gate failed.** At least one cookbook no longer checks or plans against these versions, so a Replicas run was launched to fix the cookbooks on this branch. Expect a follow-up commit here; if none arrives, read the gate output below and fix it by hand. Do not merge this as-is, and do not resolve it by reverting the bump — the library is usually right and the cookbook is usually stale."
           fi
 
           GATE_LOG=$(tail -c 4000 /tmp/gate.log 2>/dev/null || echo "(no gate output)")

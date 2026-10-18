@@ -10,7 +10,7 @@ import { defineConnector } from "@cargo-ai/cdk";
 // it by hand would only re-state what the resolver already knows.
 //
 // Bound, not created. `default: true` authorizes nothing: you grant it once in
-// the browser (`cargo-ai cdk add connector/github`) and this declaration binds
+// the browser (`cargo-ai project add connector/github`) and this declaration binds
 // to it. A deploy cannot mint an OAuth grant.
 export const git = defineConnector("github", {
   integration: "github",

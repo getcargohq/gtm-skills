@@ -15,7 +15,7 @@ Walk every line. A checked template without an evidence-backed consumer adaptati
   `-` was approved by the operator.
 - `site.json` `canonicalUrl` is `https://www.<domain>/` before `status` is `ready`.
 - `node --import tsx evals/contract.mjs` passes against the adapted graph.
-- `cargo-ai cdk types && cargo-ai cdk check && cargo-ai cdk plan` pass in the consumer project. The
+- `cargo-ai project types && cargo-ai project check && cargo-ai project plan` pass in the consumer project. The
   plan shows the app folder, the app and the domain as an adopt; a `+ create domain:…` line was
   approved explicitly as a non-refundable purchase, or is absent.
 

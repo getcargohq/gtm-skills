@@ -3,7 +3,7 @@
  * `npm run validate` (scripts/check-pipelines.mjs executes this file).
  *
  * Three parts. The registry checks the compiled resources for the boundaries
- * CDK schema validation cannot express: one harness agent on a monthly cron
+ * schema validation cannot express: one harness agent on a monthly cron
  * with the Slack channel locked, the CRM models it reads, and no connector
  * for a system this cookbook must not read. The models check that every
  * model pulls all the data, with no filter in its config, and that the
@@ -14,7 +14,7 @@
  * Run it from the skill folder after every adaptation:
  *   node --import tsx evals/contract.mjs
  *
- * It loads through `loadResources`, the same loader `cargo-ai cdk check`,
+ * It loads through `loadResources`, the same loader `cargo-ai project check`,
  * `plan`, and `deploy` use, so what is asserted here is what would deploy.
  */
 import assert from "node:assert/strict";
