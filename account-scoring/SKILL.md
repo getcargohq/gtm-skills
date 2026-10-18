@@ -132,8 +132,11 @@ template work if the skill cannot be installed or read.
    Ark connector so it deploys on its own. When `infra/tam-building/` exists, move the four
    `additionalColumns` from the copy onto tam-building's model, point the play and the segments
    at that export, and delete the copy and its connector: one slug declared twice collides at
-   deploy. Reuse an existing Anthropic connector the same way. This skill declares no
-   `defineContext`: that resource is a per-workspace singleton the project owns.
+   deploy. Reuse an existing Anthropic connector the same way. A deploy drops any custom column
+   the model declaration no longer lists, values included, so first compare the declaration with
+   `cargo-ai storage column list` on the live model and carry over every `custom__` column you
+   want to keep. This skill declares no `defineContext`: that resource is a per-workspace
+   singleton the project owns.
 3. **Write or confirm the rubric.** Phase 1 above. It goes in the project's context repo beside
    the ICP, never into the agent's prompt.
 4. **Adapt and deploy disabled.** Work the sections below in order: _What should not change_ is
@@ -235,8 +238,9 @@ it if you still want it, and records why under `## Decisions` in your copy of th
 ## What it costs
 
 **Tiering is one agent run per company**, billed as LLM tokens through the bound connector, plus
-the web searches the agent decides to make. `maxSteps` is the per-company ceiling, and the rubric's
-one-question-one-search rule is what keeps a normal row far below it. The pilot is how you learn
+the web searches the agent makes. The prompt holds it to one search per company and `maxSteps: 4`
+is the ceiling: on the 2026-10-18 pilot, holding the agent to one search more than halved the
+cost per company against an agent left at eight steps, with the same tiers coming back. The pilot is how you learn
 the real number: read actual credits for the ten rows, then multiply by the untiered row count
 before approving the backfill.
 

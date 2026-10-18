@@ -16,7 +16,10 @@ also named "TAM building", so creating `tam_building_models` fails with
 `cargo-ai project import folder:tam_building_models <folderUuid>`, with the
 UUID from the error. The old agent, play and segments stay live until a deploy
 runs with `--prune`, and that prune also deletes the old folder entry, which
-now points at the same folder: retire it from state first.
+now points at the same folder: retire it from state first. If the folder is
+already gone, any update to `tam_companies` fails with `folderNotFound`: create
+a "TAM building" model folder and bind the entry to it with the same
+`project import` command.
 
 This skill declares no `defineContext`: that resource is a **per-workspace
 singleton** owned by the project (a scaffolded repo points it at the root
