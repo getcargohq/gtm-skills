@@ -6,7 +6,7 @@ and up to three competitors' through Ora's MCP server, records the week, opens o
 the top fixes the website's source can make, and posts one digest to a locked Slack channel.
 
 ```sh
-cargo-ai cdk add cookbook/agent-readiness
+cargo-ai project add cookbook/agent-readiness
 ```
 
 ## What it does

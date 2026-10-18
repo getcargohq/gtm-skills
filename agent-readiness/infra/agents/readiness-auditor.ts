@@ -45,7 +45,7 @@ export const readinessAuditor = defineAgent("readiness_auditor", {
       // empty. Each is one scan a week.
       COMPETITOR_DOMAINS: "fabrikam.example,contoso.example",
       // The website's source, relative to the repository root. This is where
-      // `cargo-ai cdk add cookbook/website-building` puts it.
+      // `cargo-ai project add cookbook/website-building` puts it.
       WEBSITE_ROOT: "infra/website-building/apps/website",
     },
   },

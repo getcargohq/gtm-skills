@@ -248,7 +248,7 @@
       "name": "agent-readiness",
       "kind": "cookbook",
       "job": "Keep your site usable by AI agents: once a week Ora audits how agents discover, read and use your domain and up to three rival domains, one pull request applies the fixes your site source can make, and one Slack digest reports the Ora score and what moved.",
-      "description": "Keep your site usable by AI agents: once a week Ora audits how agents discover, read and use your domain and up to three rival domains, one pull request applies the fixes your site source can make, and one Slack digest reports the Ora score and what moved. Triggers: \"make our site readable by ai agents\", \"track our ora score\", \"can ai agents read our site\", \"agent readiness audit\", \"compare our ora score with rivals\", \"fix llms.txt and agent discovery files\". Cargo CDK, defineAgent, harness claudeCode, Ora MCP server, mcpClients, native model, Slack postMessage, GitHub pull request. Skip when: the site itself is to be built or hosted, which is website-building; or rival pages and news belong in context, which is web-capture.",
+      "description": "Keep your site usable by AI agents: once a week Ora audits how agents discover, read and use your domain and up to three rival domains, one pull request applies the fixes your site source can make, and one Slack digest reports the Ora score and what moved. Triggers: \"make our site readable by ai agents\", \"track our ora score\", \"can ai agents read our site\", \"agent readiness audit\", \"compare our ora score with rivals\", \"fix llms.txt and agent discovery files\". Cargo project, defineAgent, harness claudeCode, Ora MCP server, mcpClients, native model, Slack postMessage, GitHub pull request. Skip when: the site itself is to be built or hosted, which is website-building; or rival pages and news belong in context, which is web-capture.",
       "version": "0.1.0",
       "homepage": "https://github.com/getcargohq/gtm-skills/tree/main/agent-readiness",
       "group": "Fundamentals",
@@ -310,9 +310,9 @@
         },
         {
           "id": "separate-site-repo",
-          "when": "The website's source lives in a repository other than the CDK project's",
+          "when": "The website's source lives in a repository other than the project's",
           "how": "Set `repository.repository`, `defaultBranch` and `connector` explicitly on the agent, and `WEBSITE_ROOT` relative to that repository",
-          "cost": "The binding is no longer derived, so a renamed repository breaks the run silently. Check it with `cargo-ai cdk check` after every rename."
+          "cost": "The binding is no longer derived, so a renamed repository breaks the run silently. Check it with `cargo-ai project check` after every rename."
         },
         {
           "id": "ora-scan-key",
@@ -345,7 +345,7 @@
       ],
       "doneWhen": [
         "`node --import tsx evals/contract.mjs` passes",
-        "`cargo-ai cdk plan` reports the agent, the `readiness_scans` model, the three connectors and the two folders",
+        "`cargo-ai project plan` reports the agent, the `readiness_scans` model, the three connectors and the two folders",
         "the first run wrote one `readiness_scans` row per configured domain for this ISO week, each with a score, a grade and its failing check ids, and the run transcript shows no `force` on any scan",
         "one pull request is open on `agent-readiness-<week>`, changing only files under `WEBSITE_ROOT`, each fix naming a check from our result's topFixes; or none, with the digest saying why",
         "one digest landed in the locked channel in the `references/digest.md` shape",

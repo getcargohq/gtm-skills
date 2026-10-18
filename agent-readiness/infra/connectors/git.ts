@@ -6,7 +6,7 @@ import { defineConnector } from "@cargo-ai/cdk";
 // Nothing imports this handle. The agent leaves `repository.connector` unset,
 // and plan/deploy resolve it from the project's own GitHub connector, this
 // one. Bound, not created: `default: true` authorizes nothing, a deploy cannot
-// mint an OAuth grant (`cargo-ai cdk add connector/github` does).
+// mint an OAuth grant (`cargo-ai project add connector/github` does).
 export const git = defineConnector("github", {
   integration: "github",
   default: true,

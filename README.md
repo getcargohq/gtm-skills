@@ -1,10 +1,10 @@
 # Cargo GTM Skills
 
 [![cargo-ai cli](https://img.shields.io/npm/v/@cargo-ai/cli?label=cargo-ai%20cli&color=black)](https://www.npmjs.com/package/@cargo-ai/cli)
-[![skills.sh](https://img.shields.io/badge/skills.sh-41%20skills-black)](https://www.skills.sh)
+[![skills.sh](https://img.shields.io/badge/skills.sh-42%20skills-black)](https://www.skills.sh)
 [![License](https://img.shields.io/github/license/getcargohq/gtm-skills?color=black)](LICENSE)
 
-41 agent skills for B2B go-to-market work, each with one routed job. Some run once, in a turn:
+42 agent skills for B2B go-to-market work, each with one routed job. Some run once, in a turn:
 find the emails, score the list, brief me on this account. Others deploy a pipeline that keeps
 doing that job after the session ends.
 
@@ -16,7 +16,7 @@ doing that job after the session ends.
   that supports the [skills.sh](https://skills.sh) standard.
 
 ```bash
-npx skills add getcargohq/gtm-skills --all              # all 41
+npx skills add getcargohq/gtm-skills --all              # all 42
 npx skills add getcargohq/gtm-skills/<skill-name>       # exactly one
 cargo-ai project add cookbook/<skill-name>              # a pipeline, into your Cargo project
 ```
@@ -172,7 +172,7 @@ reconciles it with whatever your project already declares. More are coming (`con
 
 ## As an agent plugin: Claude Code, Codex, Cursor
 
-The same 41 skills also install as one native plugin. Take this route when you want all of them
+The same 42 skills also install as one native plugin. Take this route when you want all of them
 and two things `skills add` cannot give you:
 
 - **Fewer prompts, same guardrails.** An approval hook ([`hooks/approve-cli.sh`](hooks/approve-cli.sh))

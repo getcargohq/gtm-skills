@@ -9,7 +9,7 @@ Walk every line. A checked template without an evidence-backed consumer adaptati
   write tools and `run_checks` disabled, `readiness_scans` the only model and writable, no connector
   action but Slack `postMessage` with `channelId` locked, one cron, and `AUDIT_DOMAIN`,
   `COMPETITOR_DOMAINS` (at most three) and `WEBSITE_ROOT` in the repository env.
-- `cargo-ai cdk check` prints `agent:readiness_auditor bound to <your repo>#<branch>` with no
+- `cargo-ai project check` prints `agent:readiness_auditor bound to <your repo>#<branch>` with no
   trailing subdirectory.
 - `cargo-ai connection connector list` shows authorized GitHub, Slack and Anthropic connectors.
 - `WEBSITE_ROOT` exists on the default branch and is the folder the site deploys from.
