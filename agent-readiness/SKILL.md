@@ -97,9 +97,12 @@ is enough.
    `infra/website-building/apps/website`, the default. Source in another repository is the
    `separate-site-repo` variation.
 4. **Name the domains.** `AUDIT_DOMAIN` is the hostname the site is served on. Ora scores the bare
-   domain whatever you pass it, so `curl -sI https://<bare domain>` must answer with the site or a
-   redirect to it: a site on `www.` whose apex has no record scores 0, and the digest says Ora could
-   not reach it. With `website-building`, set `redirectUrl` on the apex's `defineDomain`.
+   domain whatever you pass it, so
+   `curl -sL -o /dev/null -w '%{http_code} %{url_effective}' https://<bare domain>` must end on 200
+   at `AUDIT_DOMAIN`'s host. Otherwise the agent scans nothing for you and the digest names where
+   the bare domain ended. With `website-building`, set `redirectUrl` on the apex's `defineDomain`,
+   then run the curl again after deploy: a forward that answers with a challenge page is not a
+   redirect.
    `COMPETITOR_DOMAINS` is at most three competitors, read from the workspace context's competitor
    files. Score each once by hand first (`curl -s https://ora.ai/api/score/<domain>`) so a typo is
    caught before the cron.
@@ -160,9 +163,10 @@ is enough.
   post is retried next run.
 - **No gain is claimed as measured.** (§4, Rules) `estScoreGain` is Ora's estimate. The next
   Monday's scan, after the fix is merged and deployed, is the number.
-- **An unreached scan opens no pull request.** (§2, §3) When Ora could not fetch the homepage every
-  check fails, and Ora's fixes are guesses about a site it never saw. The row records `reached`
-  false, the digest says so, and next week's change is counted from a baseline.
+- **An unreached site is not scanned.** (§2, §3) Ora scans the bare domain. When that ends anywhere
+  but the site (no record, an error, a forwarding or challenge page), Ora scores a page that is not
+  the site and its fixes are guesses. The row records `reached` false, the digest names where the
+  bare domain ended, and next week's change is counted from a baseline.
 - **The branch name is flat, and the run never asks.** (§4, Rules) `agent-readiness-<week>`, not
   `agent-readiness/<week>`: an install branch named `agent-readiness` would block the nested name.
   A cron run has no one to answer a question, so a blocked step is skipped and named in the digest.

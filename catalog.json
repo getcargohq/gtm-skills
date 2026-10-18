@@ -340,7 +340,7 @@
         "**Ora's ranking is the order.** (§4) Re-ranking topFixes by what looks easy is how a pull request ships a cosmetic fix while the check that matters stays red.",
         "**The ledger is written before the pull request, and `digest_ts` after the post.** (§2, §4, §5) A re-run the same week then scans nothing, opens no second pull request, and posts once; a failed post is retried next run.",
         "**No gain is claimed as measured.** (§4, Rules) `estScoreGain` is Ora's estimate. The next Monday's scan, after the fix is merged and deployed, is the number.",
-        "**An unreached scan opens no pull request.** (§2, §3) When Ora could not fetch the homepage every check fails, and Ora's fixes are guesses about a site it never saw. The row records `reached` false, the digest says so, and next week's change is counted from a baseline.",
+        "**An unreached site is not scanned.** (§2, §3) Ora scans the bare domain. When that ends anywhere but the site (no record, an error, a forwarding or challenge page), Ora scores a page that is not the site and its fixes are guesses. The row records `reached` false, the digest names where the bare domain ended, and next week's change is counted from a baseline.",
         "**The branch name is flat, and the run never asks.** (§4, Rules) `agent-readiness-<week>`, not `agent-readiness/<week>`: an install branch named `agent-readiness` would block the nested name. A cron run has no one to answer a question, so a blocked step is skipped and named in the digest."
       ],
       "doneWhen": [

@@ -15,8 +15,8 @@ Walk every line. A checked template without an evidence-backed consumer adaptati
 - `WEBSITE_ROOT` exists on the default branch and is the folder the site deploys from.
 - `curl -s https://ora.ai/api/score/<domain>` answers for every configured domain, or the domain has
   never been scanned and the first run will scan it.
-- `curl -sI https://<bare domain of AUDIT_DOMAIN>` answers with the site or a redirect to it: Ora
-  scans the apex, not `www.`.
+- `curl -sL -o /dev/null -w '%{http_code} %{url_effective}' https://<bare domain of AUDIT_DOMAIN>`
+  ends on 200 at `AUDIT_DOMAIN`'s host: Ora scans the apex, not `www.`.
 
 ## First runs
 

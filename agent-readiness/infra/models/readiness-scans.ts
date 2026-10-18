@@ -27,8 +27,8 @@ export const readinessScans = defineModel("readiness_scans", {
       { slug: "week", type: "string" },
       { slug: "domain", type: "string" },
       { slug: "is_ours", type: "boolean" },
-      // False when Ora could not fetch the homepage: the score measures nothing,
-      // and next week's change is counted from a baseline instead.
+      // False when the bare domain, which is what Ora scans, does not land on
+      // the site: no scan, no score, and next week counts from a baseline.
       { slug: "reached", type: "boolean" },
       { slug: "score", type: "number" },
       { slug: "grade", type: "string" },
