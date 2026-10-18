@@ -36,11 +36,17 @@ disabled. The play's workflow UUID is in `cargo.state.json`.
 
 ```sh
 cargo-ai orchestration batch create --workflow-uuid <tierAccountWorkflowUuid> \
-  --data '{"kind":"filter","modelUuid":"<tamCompaniesUuid>","limit":10}' \
+  --data '{"kind":"filter","modelUuid":"<tamCompaniesUuid>","filter":{"conjonction":"and","groups":[{"conjonction":"and","conditions":[{"kind":"date","columnSlug":"custom__tiered_at","operator":"isNull"}]}]},"limit":10}' \
   --wait-until-finished
 ```
 
-Then read the ten rows back:
+The filter keeps the pilot on untiered rows: a model that already carries
+tiers from an earlier run would otherwise spend the pilot re-judging them.
+
+Then read the ten rows back. Storage SQL lags the write by about a minute
+(the result says `"isRefreshing": true`), so an empty result straight after
+the batch is the lag, not a failed write: the write node of a run reports
+"Record upserted" when it landed.
 
 ```sql
 SELECT name, domain, custom__tier, custom__tier_reason, custom__tier_evidence_url, custom__tiered_at
@@ -69,9 +75,12 @@ Check by hand:
 cargo-ai orchestration run get <runUuid>
 ```
 
-Cost: read actual credits for the batch (`cargo-ai billing usage get-metrics`
-for the day, LLM and search lines), divide by ten, and multiply by the
-untiered row count. That is the backfill estimate the operator approves.
+Cost: sum `creditsUsedCount` over the executions of the batch's runs
+(`cargo-ai orchestration run list --workflow-uuid <uuid> --batch-uuid <uuid>`),
+divide by ten, and multiply by the untiered row count. That is the backfill
+estimate the operator approves. Read the spread as well as the average: rows
+that cost several times the cheapest one are an agent searching more than once,
+which the prompt and `maxSteps: 4` are there to stop.
 
 ## Backfill, then enable
 
@@ -86,6 +95,13 @@ cargo-ai orchestration batch create --workflow-uuid <tierAccountWorkflowUuid> \
 
 Then set `isEnabled: true` on the play, plan, and deploy. From then on, the
 hourly tick tiers what lands.
+
+A segment's stored `recordsCount` is computed when the model syncs, not when
+the play writes a tier, and `tam_companies` carries no schedule. So right after
+a pilot or a backfill the four segments show the counts from before it. Read
+the live split with the SQL below, or with
+`cargo-ai segmentation segment fetch --model-uuid <uuid> --filter <the segment's filter>`;
+the stored counts catch up at the next sync.
 
 ## Report
 

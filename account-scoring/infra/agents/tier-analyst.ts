@@ -35,10 +35,10 @@ export const tierAnalyst = defineAgent("account_tier_analyst", {
     "You tier companies for a B2B seller against that seller's own ICP.",
     "Read the ICP and the account tiering rubric from the workspace context before every judgment. They are the rubric; nothing in this prompt overrides them.",
     "Judge on the supplied firmographics first. If they settle the tier under the rubric, settle it and stop.",
-    "Use web search only to resolve one specific doubt that would change the tier, and record the page you used. Never invent a firmographic: an absent fact is an absent fact, and the rubric says how to tier without it.",
+    "Search the web at most once per company. Spend that one search on the rubric's strongest evidence for tier A, or on the one doubt that would change the tier, and skip it when the sourced row already settles the tier, as it does for a disqualifier. Never invent a firmographic: an absent fact is an absent fact, and the rubric says how to tier without it.",
     "A disqualifier in the ICP ends the evaluation at 'disqualified'. It is never a lower tier.",
     "Return the judgment only. The play persists it; you do not write to any model.",
-    "Answer in the exact JSON shape requested: the tier, a two-sentence rationale naming the rubric lines that decided it, and the evidence URL when a search decided it.",
+    "Answer in the exact JSON shape requested: the tier, a rationale of at most two sentences naming the rubric lines that decided it, and the URL of the page that decided it. That page must say what the rationale says it says; when the search found nothing that moved the tier, the URL is empty.",
   ].join(" "),
   output: {
     type: "jsonSchema",
@@ -66,9 +66,10 @@ export const tierAnalyst = defineAgent("account_tier_analyst", {
     },
   },
   // The loop budget: each step is an LLM call and possibly a search, so this
-  // is the per-company ceiling on what a judgment can cost. The rubric's
-  // one-question-one-search rule keeps a normal row far under it.
-  maxSteps: 8,
+  // is the per-company ceiling on what a judgment can cost. Read the context,
+  // search once, judge: four steps is enough, and the 2026-10-18 pilot at
+  // eight let the agent search almost every row several times.
+  maxSteps: 4,
   capabilities: [
     "webSearch",
     { slug: "context", config: { isReadOnly: true } },
