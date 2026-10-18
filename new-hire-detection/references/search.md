@@ -62,7 +62,8 @@ URL. It bills per call; quote its live price with
 
 ```sh
 cargo-ai orchestration action execute --wait-until-finished \
-  --action '{"kind":"connector","integrationSlug":"salesNavigator","actionSlug":"searchPersonMetrics","config":{"url":"<the search url>"}}'
+  --action '{"kind":"connector","integrationSlug":"salesNavigator","actionSlug":"searchPersonMetrics","config":{}}' \
+  --data '{"url":"<the search url>"}'
 ```
 
 Open the same URL in a browser with a Sales Navigator seat if one is at hand:

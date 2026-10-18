@@ -1,9 +1,13 @@
-# Next-step tracker
+# Next-step tracker: track the next steps promised on sales calls
 
-Every promise made on a recorded call, kept or chased. One Claude Code harness agent reads the call
-log `call-capture` writes, records each commitment either side made in a ledger model, closes the
-ones the activity log shows were kept, and posts what is due or overdue to one locked Slack channel, at most
-once a day.
+To make sure every promise made on a call is kept, record each one when it is made and close it only
+on evidence. Every weekday morning this cookbook's agent reads the call log `call-capture` writes,
+records each dated commitment either side made, closes the ones the activity log shows were kept,
+and posts what is due or overdue to one locked Slack channel, at most once a day.
+
+```sh
+cargo-ai cdk add cookbook/next-step-tracker
+```
 
 ## What it does
 

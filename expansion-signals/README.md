@@ -1,9 +1,14 @@
-# Expansion signals
+# Expansion signals: find customers ready to expand before renewal
 
-Every Monday the customers coming up on renewal are judged for an expansion moment, the judgment is
-written onto the account, and one digest lands in Slack for the customer team. The worked example
-runs on Cargo's native accounts and deals models, so it deploys with no CRM connector; HubSpot,
-Salesforce and Attio are the `crm-backed` variation in `SKILL.md`.
+To know which customers to approach before renewal, judge each one as its renewal nears, from its
+won deals and dated public events, and send the customer team one list. Every Monday this cookbook
+picks up customers whose won deal is ten to twelve months old, has an agent mark each account
+`renewal`, `expansion`, `repeat_purchase`, `at_risk` or `none` with a reason, writes that onto the
+account, and posts one Slack digest.
+
+```sh
+cargo-ai cdk add cookbook/expansion-signals
+```
 
 ## What it does
 

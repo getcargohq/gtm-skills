@@ -1,8 +1,8 @@
 ---
 name: account-scoring
-description: 'Tier every company in your TAM A / B / C / disqualified with a deployed agent that reads your ICP and tiering rubric from the workspace context, web-searches only to settle a doubt, and writes the tier, a two-sentence reason and its evidence back onto the row, then keeps new companies tiered as they land. Triggers: "score our TAM", "tier the market we just sourced", "which accounts should the team work first", "why is this account tier A", "keep our accounts tiered as they arrive", "our lead scoring is a spreadsheet nobody trusts". Cargo CDK, defineAgent, webSearch, workspace context, tam_companies, tier segments. Skip when: someone hands you a list and wants it scored once, which is score-leads; or there is no account universe yet, which is tam-building.'
-version: "0.5.0"
-compatibility: "Requires the cargo-cdk skill, a Cargo CDK project, @cargo-ai/cdk 1.0.58 or later, an authenticated LLM connector (Anthropic in the example), and a model of companies to tier: tam-building's tam_companies, which this example carries a copy of. No CRM needed. The repository example does not deploy or tier anything until an agent adapts it in the consumer project."
+description: 'Score every account against your ICP on a schedule: a deployed agent tiers each company in a Cargo model (tam-building''s, or your CRM companies) A / B / C / disqualified against the ICP and rubric in workspace context, and the tier, a two-sentence reason and evidence are written onto the row and, optionally, the matching HubSpot or Salesforce company. New companies are tiered hourly; the book is re-scored weekly or on any window set. Triggers: "score our TAM", "tier the market we just sourced", "which accounts should the team work first", "why is this account tier A", "keep our accounts tiered as they arrive", "our lead scoring is a spreadsheet nobody trusts". Cargo CDK, defineAgent, webSearch, workspace context, tam_companies, tier segments. Skip when: someone hands you a list and wants it scored once, which is score-leads; or there is no account universe yet, which is tam-building.'
+version: "0.5.2"
+compatibility: "Requires the cargo-cdk skill, a Cargo CDK project, @cargo-ai/cdk 1.0.58 or later, an authenticated LLM connector (Anthropic in the example), and a model of companies to tier: tam-building's tam_companies, which this example carries a copy of. No CRM needed; a HubSpot or Salesforce connection only when the tier is written back to it. The repository example does not deploy or tier anything until an agent adapts it in the consumer project."
 homepage: https://github.com/getcargohq/gtm-skills/tree/main/account-scoring
 metadata:
   author: getcargo
@@ -37,7 +37,8 @@ New companies are tiered as they land. The tiers are four segments: tier A is wh
 sourcing and engagement run on, and disqualified is what everything else suppresses.
 
 It runs on `tam_companies`, the model tam-building lands, and needs nothing else: no CRM, no
-scoring code, no point weights.
+scoring code, no point weights. When reps work in a CRM, one setting writes the tier, its reason and
+the scored-at date onto the matching HubSpot or Salesforce company as well, in the same run.
 
 **The judgment lives in the context repo, not in code.** The agent reads the ICP and
 `tiering-rubric.md` from the workspace context on every call. Changing what tier A means is a
@@ -68,7 +69,9 @@ Illustrative output, fictional records:
 | Tailspin (tailspin.example)   | disqualified | Services-only consultancy with no software product, which the ICP lists as a disqualifier. The sourced industry label was misleading.         | https://tailspin.example/about            |
 
 Every row also gets `tiered_at` and lands in `tier_a_accounts`, `tier_b_accounts`,
-`tier_c_accounts` or `disqualified_accounts`. The report closes on the tier distribution and one
+`tier_c_accounts` or `disqualified_accounts`. With `crmWriteback` set to HubSpot, `northwind.example`'s
+company record gets `cargo_tier = A`, the same rationale in `cargo_tier_reason`, and today's date in
+`cargo_tiered_at`. The report closes on the tier distribution and one
 recommended next step.
 
 ## Guide the operator through every phase
@@ -96,7 +99,8 @@ help.
 3. **Pilot.** Run ten rows through the workflow as a batch, with the play still disabled
    ([`references/run.md`](references/run.md#pilot)). Spot-check one A, one C and one disqualified
    against the rubric, quote the evaluator results, and give the observed cost per company and
-   what the whole book would cost. End by asking to approve the backfill at that cost and to
+   what the whole book would cost. With `crmWriteback` set, read one piloted company back from the
+   CRM and show its three fields. End by asking to approve the backfill at that cost and to
    enable the play.
 4. **Backfill, enable, report.** Backfill every untiered row, enable the play, and report the
    tier distribution, the disqualified share, the evaluator pass rate and actual credits, with a
@@ -152,7 +156,8 @@ template work if the skill cannot be installed or read.
 | `tier_rubric`   | asked   | An existing rubric in the context is shown and confirmed. Otherwise propose A / B / C / disqualified from the ICP's language and have the operator correct it | It is the one input that is genuinely a decision about the business: what "work it now" means here                      |
 | `model`         | derived | `tam_companies` from tam-building. Another companies model works if it has an id, a name and a domain; map its columns in the workflow input                  | The workflow interpolates these columns into the prompt. A renamed one hands the agent an undefined                     |
 | `languageModel` | derived | Whichever LLM connector the workspace already holds (`cargo-ai connection connector list`)                                                                    | Judgment quality and the cost per company both live here                                                                |
-| `restale`       | derived | Six months by default. Ask only to change it                                                                                                                  | How often a tiered company is judged again. Shorter re-bills the whole book more often                                  |
+| `rescoreAfter`  | derived | `"6 months"` in `infra/settings.ts`. Ask only to change it; `"7 days"` is weekly                                                                              | How often a tiered company is judged again. Shorter re-bills the whole book more often                                  |
+| `crmWriteback`  | asked   | `none` unless the tier should reach a CRM. Then the connected CRM (`cargo-ai connection connector list`) and the three property names the operator created    | Reps read the CRM, not the Cargo row. A property that does not exist is a write that ends green and lands nothing       |
 
 Checked before moving on, not after the deploy:
 
@@ -161,6 +166,9 @@ Checked before moving on, not after the deploy:
   tier names what evidence counts for it
 - `model`: the column names in the workflow input match `cargo-ai storage column list` on the live
   model
+- `crmWriteback`: the three properties exist on the CRM company object (HubSpot company properties,
+  Salesforce Account fields), and the match property holds the same value as the row: a bare domain,
+  or the record id when the play runs on a CRM model
 
 ## What you can change
 
@@ -168,12 +176,14 @@ The code is a worked example. These reshapes are expected, and the agent offers 
 waiting to be asked. Every one costs something; that is what makes it a variation and not the
 default.
 
-| Variation               | When it is right                                                                                               | How                                                                                                                                                                         | What it costs                                                                                                                  |
-| ----------------------- | -------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| `crm-accounts`          | The accounts already live in a CRM and the tier should be visible where reps work                              | Point the play at a CRM companies model, and add a CRM update node after the custom-column write, mapping the same four values to CRM properties the operator created first | A CRM connector and four CRM properties to maintain. A property that does not exist makes the update succeed and write nothing |
-| `numeric-score`         | A downstream router or report needs a 0 to 100 number, not four buckets                                        | Add `score` to the agent's output schema, a `score` custom column, and the mapping in the write; define what the number means in the rubric                                 | A number reads more precise than the judgment behind it. Keep the tier as the field people act on                              |
-| `deterministic-tiering` | The rubric turns out to be thresholds on sourced columns (headcount, industry, country) with no judgment in it | Delete the agent and write the tier in the play from the columns, or push the thresholds into tam-building's filter                                                         | You lose the rationale and the evidence, and anything the sourced row does not hold can no longer move a tier                  |
-| `tier-once`             | The market is stable and nobody reads a tier older than a quarter anyway                                       | Remove the `lowerThan` condition from the play's filter                                                                                                                     | A company that changed (hired the persona, got acquired) keeps its old tier until someone re-tiers it by hand                  |
+| Variation               | When it is right                                                                                               | How                                                                                                                                                                          | What it costs                                                                                                            |
+| ----------------------- | -------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `crm-writeback`         | Reps work in HubSpot or Salesforce and the tier should be visible there                                        | Set `crmWriteback` in `infra/settings.ts`: the CRM, `matchOn` (`domain`, or `id` when the play runs on a CRM companies model), the match property, and the three field names | A CRM connection and three CRM properties to maintain. A miss ends the run green, so the pilot reads one CRM record back |
+| `crm-accounts`          | The accounts already live in a CRM rather than in tam_companies                                                | Point the play, its write and the segments at a CRM companies model carrying the four tier columns, map its columns in the workflow input, and set `matchOn: "id"`           | The CRM's own fields decide what the agent sees. A thin CRM record is a thin judgment                                    |
+| `weekly-rescore`        | The market moves fast enough that a month-old tier is wrong                                                    | `rescoreAfter: "7 days"` in `infra/settings.ts`                                                                                                                              | Every account is judged, and billed, once a week instead of twice a year                                                 |
+| `numeric-score`         | A downstream router or report needs a 0 to 100 number, not four buckets                                        | Add `score` to the agent's output schema, a `score` custom column, and the mapping in the write; define what the number means in the rubric                                  | A number reads more precise than the judgment behind it. Keep the tier as the field people act on                        |
+| `deterministic-tiering` | The rubric turns out to be thresholds on sourced columns (headcount, industry, country) with no judgment in it | Delete the agent and write the tier in the play from the columns, or push the thresholds into tam-building's filter                                                          | You lose the rationale and the evidence, and anything the sourced row does not hold can no longer move a tier            |
+| `tier-once`             | The market is stable and nobody reads a tier older than a quarter anyway                                       | Remove the `lowerThan` condition from the play's filter                                                                                                                      | A company that changed (hired the persona, got acquired) keeps its old tier until someone re-tiers it by hand            |
 
 ## What should not change
 
@@ -198,6 +208,11 @@ it if you still want it, and records why under `## Decisions` in your copy of th
   tier with no stamp is judged again on every tick.
 - **`changeKinds: ["added"]` stays.** (`infra/plays/tier-accounts.ts`) Runs are created for rows
   entering the filter. Without it, the LLM bill scales with how often the cron fires.
+- **The CRM write-back updates, never creates, and writes only the fields named in
+  `settings.ts`.** (`infra/plays/tier-accounts.ts`) `upsertRecords` would create a CRM company for
+  every TAM row the CRM does not hold, and a field nobody named is a CRM value overwritten without a
+  decision. It runs after the row write, so the row is the record of the judgment whatever the CRM
+  does.
 - **Every tier the agent can emit has a segment.** (`infra/segments/tiers.ts`) A tier with no
   segment is a row that lands nowhere and quietly disappears from the book.
 
@@ -210,6 +225,8 @@ it if you still want it, and records why under `## Decisions` in your copy of th
   and a `tiered_at` stamp, and no row carries one without the others
 - the four segments resolve, and their counts sum to the tiered row count
 - the agent's evaluator pass rate is at or above its threshold
+- with `crmWriteback` set, one piloted company read back from the CRM carries the same tier, reason
+  and scored-at date as its row
 - editing the rubric in the context repo changes the next tier with no deploy
 - the report gave the tier distribution, actual credits against the pilot's estimate, and one
   recommended next step
@@ -224,8 +241,9 @@ the real number: read actual credits for the ten rows, then multiply by the unti
 before approving the backfill.
 
 After the backfill, the play only tiers what arrives (`changeKinds: ["added"]`) and what goes stale
-after six months, so the steady-state cost follows how many companies tam-building lands, not how
-often the cron fires.
+after `rescoreAfter`, so the steady-state cost follows how many companies tam-building lands and how
+short that window is, not how often the cron fires. A weekly window bills every account every week.
+The CRM write-back is one connector action per tiered company; the pilot's actual credits include it.
 
 ## Composes into
 

@@ -1,7 +1,7 @@
 ---
 name: find-portfolio-companies
-description: "Find every portfolio company of an investor or accelerator, then the people inside them, powered by Cargo. Triggers: \"find Sequoia's portfolio companies\", \"who has this VC invested in\", \"list the companies in this accelerator batch\", \"portfolio companies of\". Providers: peopleDataLabs. Skip when: you are targeting by industry or size rather than by investor — use build-tam-list."
-version: "1.0.1"
+description: "Find every portfolio company of an investor or accelerator, then the people inside them, powered by Cargo. Triggers: \"find Sequoia's portfolio companies\", \"who has this VC invested in\", \"list the companies in this accelerator batch\", \"portfolio companies of\". Providers: theirStack. Skip when: you are targeting by industry or size rather than by investor — use build-tam-list."
+version: "1.0.2"
 compatibility: Requires @cargo-ai/cli (npm). Sign in or create an account with `cargo-ai login --email` (emailed code, no browser), `--oauth`, or an API token
 homepage: https://github.com/getcargohq/gtm-skills
 metadata:
@@ -66,17 +66,17 @@ grep -q '"cargo@gtm"' ~/.claude/plugins/installed_plugins.json 2>/dev/null ||
 
 ```bash
 cargo-ai orchestration action execute \
-  --action '{"kind":"connector","integrationSlug":"peopleDataLabs","actionSlug":"queryCompanies","config":{}}' \
+  --action '{"kind":"connector","integrationSlug":"theirStack","actionSlug":"searchCompanies","config":{}}' \
   --data '{
-    "query": "SELECT * FROM company WHERE summary.investors LIKE %Sequoia Capital%",
+    "fields": {"company_investors_partial_match_or": ["Sequoia"]},
     "limit": 20
   }' \
   --wait-until-finished
 ```
 
-The portfolio company list with domains and LinkedIn URLs, ready to enrich. PDL bills every
-returned row, so `limit` is the bill: pull 20, report them, and raise it only once the user approves
-the full portfolio at 3 credits a company.
+The portfolio company list with domains, LinkedIn URLs and each company's `investors`, ready to
+enrich. TheirStack bills every returned company, so `limit` is the bill: pull 20, report them, and
+raise it only once the user approves the full portfolio at 0.5 credits a company.
 
 Operations are asynchronous. `--wait-until-finished` blocks until done; without it you get a run
 or batch UUID to poll with `cargo-ai orchestration run get <uuid>` (2s interval) or
@@ -88,19 +88,19 @@ or batch UUID to poll with `cargo-ai orchestration run get <uuid>` (2s interval)
 
 Illustrative output, fictional records:
 
-| name | domain | industry | headcount | linkedinUrl |
+| name | domain | industry | employee_count | linkedin_url |
 |---|---|---|---|---|
 | Northwind | northwind.example | Logistics software | 240 | linkedin.com/company/northwind-example |
 | Tailspin | tailspin.example | Travel tech | 85 | linkedin.com/company/tailspin-example |
 | Wingtip | | Fintech | 30 | linkedin.com/company/wingtip-example |
 
-20 portfolio companies on the first pull for 60 credits (20 × 3); 2 have no domain on record and are left empty for enrichment, and the full portfolio waits for your go.
+20 portfolio companies on the first pull for 10 credits (20 × 0.5); 2 have no domain on record and are left empty for enrichment, and the full portfolio waits for your go.
 
 ## What it costs
 
 | Action | Credits |
 |---|---|
-| `peopleDataLabs.queryCompanies` | 3 |
+| `theirStack.searchCompanies` | 0.5 per company returned |
 
 **Never run this across a full list on the first attempt.** Sample 10–20 records, report the
 observed cost and hit-rate, then get the user to approve the full run — quoting the record count
@@ -109,9 +109,11 @@ with it.
 
 ## Worth knowing
 
-- Investor membership needs SQL: `summary.investors LIKE %Name%` is not expressible in cargo's filter shape, which is why this uses PDL's SQL query rather than a cheaper structured search.
-- Accelerator batches work the same way — YC and similar are stored in `summary.investors` alongside VCs.
-- PDL bills per returned row: 3 credits a company, so a 140-company portfolio is 420 credits. `limit` caps the bill; an uncapped query is the expensive mistake.
+- `company_investors_partial_match_or` matches part of the investor name, so `"Sequoia"` catches "Sequoia Capital" and its regional funds. Use `company_investors_or` when you need the exact name only, and read each row's `investors` before reporting, since a short fragment can match an unrelated fund.
+- For Y Combinator there is a dedicated flag, `"only_yc_companies": true`, in the same `fields` object. Other accelerators go through the investor filter like any VC.
+- Narrow in the same call when the portfolio is large: `funding_stage_or`, `last_funding_round_date_gte`, `min_employee_count` and `company_country_code_or` all sit beside the investor filter in `fields`.
+- Billed per returned company: 0.5 credits each, so a 140-company portfolio is 70 credits. `limit` caps the bill (default 10, max 500).
+- Not People Data Labs: Cargo's PDL company schema carries no investor field (`summary` is the plain-text description), so an investor query there has nothing to match against.
 - One warm investor intro beats fifty cold emails; pull the list, then ask the investor for the intro.
 
 ## Going further

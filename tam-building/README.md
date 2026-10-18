@@ -1,8 +1,15 @@
-# TAM building
+# TAM building: build your total addressable market list in Cargo
 
-Source your account universe from AI Ark with a filter that encodes your ICP,
-and keep it as one model in Cargo. Atomic by design: one connector, one model,
-one folder.
+To build a total addressable market (TAM) list the rest of your go-to-market
+stack can use, turn your ICP into an AI Ark company search and land the result
+as one model in Cargo. This cookbook settles industries, company size and
+countries first, sizes the search for free before it bills, and keeps the
+companies as `tam_companies`. Atomic by design: one connector, one model, one
+folder.
+
+```sh
+cargo-ai cdk add cookbook/tam-building
+```
 
 ## What it does
 

@@ -1,7 +1,7 @@
 ---
 name: social-listening
-description: 'Every Monday the week''s public LinkedIn posts about the problem you solve are searched, judged against your ICP, and posted to Slack as one digest: the conversations worth joining, and the commenters in them who look like buyers, each quoted with a link. Triggers: "tell me which linkedin posts we should comment on", "watch linkedin for people talking about our problem", "social listening on linkedin", "weekly digest of linkedin conversations in our space", "who is engaging with posts about our category", "monitor linkedin posts mentioning our competitors". Cargo CDK, LinkedIn fetchPosts, searchPostComments, defineModel, defineAgent, Slack postMessage. Skip when: you want named target accounts checked for hiring, news or detection-feed events, once, which is monitor-buying-signals; or you want people who just took a role you sell to, which is new-hire-detection.'
-version: "0.1.0"
+description: 'Find the LinkedIn conversations worth joining every week: each Monday the week''s public LinkedIn posts about the problem you solve are judged against your ICP, and one Slack digest lists the posts worth joining and the commenters who look like buyers, each quoted with a link. Triggers: "tell me which linkedin posts we should comment on", "watch linkedin for people talking about our problem", "social listening on linkedin", "weekly digest of linkedin conversations in our space", "who is engaging with posts about our category", "monitor linkedin posts mentioning our competitors". Cargo CDK, LinkedIn fetchPosts, searchPostComments, defineModel, defineAgent, Slack postMessage. Skip when: you want named target accounts checked for hiring, news or detection-feed events, once, which is monitor-buying-signals; or you want people who just took a role you sell to, which is new-hire-detection.'
+version: "0.1.1"
 compatibility: "Requires @cargo-ai/cli with @cargo-ai/cdk 1.0.92 or later, a Cargo workspace, and authorized LinkedIn, Slack and Anthropic connectors. Reads the ICP, pains and competitors from the workspace context."
 homepage: https://github.com/getcargohq/gtm-skills/tree/main/social-listening
 metadata:
@@ -72,7 +72,7 @@ _Routing breakage after CRM migrations came up three times._
 • Sam Okafor, Head of Revenue Operations at Contoso, on Dana's post:
   "We rebuilt ours three times this year." (linkedin.com/in/sam-okafor)
 
-_Searched: "lead routing" OR "speed to lead" · 40 posts read, 3 already surfaced_
+_Searched: 40 posts read, 3 already surfaced_
 ```
 
 Forty posts were read; two were picked and recorded in `surfaced_posts`, one commenter matched an ICP

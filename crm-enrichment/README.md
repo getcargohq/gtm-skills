@@ -1,4 +1,20 @@
-# CRM enrichment
+# CRM enrichment: clean up and enrich a messy CRM
+
+To clean up a messy CRM, fill the missing identifiers first (LinkedIn, domain, email), then
+deduplicate on them. This cookbook is the first step: it fills blank identity fields on CRM
+accounts and contacts and writes them back without overwriting a value a rep entered.
+[`crm-deduplication`](../crm-deduplication/README.md) is the second: it merges duplicates on the
+identifiers this one filled.
+
+```sh
+cargo-ai cdk add cookbook/crm-enrichment      # 1. fill identifiers, write back into blanks only
+cargo-ai cdk add cookbook/crm-deduplication   # 2. then merge duplicates on those identifiers
+```
+
+Why that order: deduplication matches accounts on LinkedIn company ID, LinkedIn company page and
+domain, and contacts on LinkedIn person ID, LinkedIn URL, email and phone. A record missing all of
+them cannot be matched, so deduplicating first misses exactly the records enrichment would have
+made matchable.
 
 This pipeline has two independent paths. Deploy the account path, the contact path, or both. Each
 path has its own model, tool contract, play, field approval, cost preview, pilot, and acceptance

@@ -1,7 +1,7 @@
 ---
 name: find-companies-using-tech
-description: "Find companies by the technology they run or the roles they are hiring for, powered by Cargo. Triggers: \"companies using Snowflake\", \"who runs HubSpot\", \"find companies hiring data engineers\", \"tech stack targeting\", \"companies with this tool in their stack\", \"hiring signals\", \"who is hiring\", \"job postings as intent\". Providers: theirStack. Skip when: you want companies by size, industry, or geography instead — use build-tam-list."
-version: "1.1.1"
+description: "Find companies by the technology they run or the roles they are hiring for, powered by Cargo. Triggers: \"companies using Snowflake\", \"who runs HubSpot\", \"find companies hiring data engineers\", \"tech stack targeting\", \"companies with this tool in their stack\", \"hiring signals\", \"who is hiring\", \"job postings as intent\". Technographics, installed software, stack detection, hiring intent. Providers: theirStack. Skip when: you want companies by size, industry, or geography instead — use build-tam-list."
+version: "1.1.2"
 compatibility: Requires @cargo-ai/cli (npm). Sign in or create an account with `cargo-ai login --email` (emailed code, no browser), `--oauth`, or an API token
 homepage: https://github.com/getcargohq/gtm-skills
 metadata:
@@ -68,9 +68,8 @@ grep -q '"cargo@gtm"' ~/.claude/plugins/installed_plugins.json 2>/dev/null ||
 cargo-ai orchestration action execute \
   --action '{"kind":"connector","integrationSlug":"theirStack","actionSlug":"searchCompanies","config":{}}' \
   --data '{
-    "techFields": {"technologies": ["snowflake"]},
-    "jobFields": {"job_titles": ["Data Engineer"], "posted_at_max_age_days": 60},
-    "fields": {"industries": ["software"]},
+    "fields": {"company_technology_slug_or": ["snowflake"], "industry_id_or": ["4"]},
+    "jobFields": {"job_title_or": ["Data Engineer"], "posted_at_max_age_days": 60},
     "limit": 50
   }' \
   --wait-until-finished
@@ -100,7 +99,7 @@ Illustrative output, fictional records:
 
 | Action | Credits |
 |---|---|
-| `theirStack.searchCompanies` | 0.5 |
+| `theirStack.searchCompanies` | 0.5 per company returned |
 
 **Never run this across a full list on the first attempt.** Sample 10–20 records, report the
 observed cost and hit-rate, then get the user to approve the full run — quoting the record count
@@ -110,6 +109,7 @@ with it.
 ## Worth knowing
 
 - Combines tech-stack and job-posting filters in one call — 'runs Snowflake AND is hiring analytics engineers' is a single query.
+- Filter keys are TheirStack's own: `fields.company_technology_slug_or` (technology slugs, lowercase), `fields.industry_id_or` (LinkedIn industry ids as strings, `"4"` is Software Development), `jobFields.job_title_or`. Unknown keys such as `technologies`, `job_titles` or `industries` are dropped without an error, so the query runs unfiltered and bills 0.5 for every company in the page.
 - Hiring intent decays fast. A job posting is a signal for weeks, not quarters.
 
 ## Going further

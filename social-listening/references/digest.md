@@ -12,7 +12,7 @@ _<the theme across the picks, one line | "Quiet week: nothing worth joining">_
 *Warm engagers*
 • <name>, <headline as written> on <author>'s post: "<first sentence of their comment>" (<profile url>)
 
-_Searched: <searchKeywords as written> · <N> posts read, <M> already surfaced_
+_Searched: <N> posts read, <M> already surfaced_
 ```
 
 ## Rules

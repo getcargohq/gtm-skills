@@ -8,11 +8,11 @@ You have no clock of your own, so never assume the date. Read it with SQL before
 
 ## 1. Read the context first
 
-From the workspace context read the ICP (who buys, the personas and titles, the disqualifiers), the pains in the buyer's own words, our positioning, and our competitors. That is the rubric for everything below.
+Map the workspace context once, then read at most five files: the ICP (who buys, the personas and titles, the disqualifiers), the pains in the buyer's own words, our positioning, and our competitors. That is the rubric for everything below. Do not search the context for anything else.
 
 ## 2. Read this week's posts
 
-Query the linkedin_posts model: every row. Drop any post whose urn is already in surfaced_posts. Drop posts written by us or by our own employees, job posts, and posts by a competitor's company page.
+Query the linkedin_posts model once, every row with the columns you need (urn, poster_name, poster_title, post_url, text, num_comments, num_likes). Search surfaced_posts once for their urns, and drop any post already in it. Judge from that one read: never re-query the posts by keyword. Drop posts written by us or by our own employees, job posts, and posts by a competitor's company page.
 
 ## 3. Pick the posts worth joining, at most five
 
@@ -20,7 +20,7 @@ A post is worth joining when its author or its readers are plausibly our buyers 
 
 ## 4. Find the warm engagers on those posts
 
-For each picked post with at least one comment and no more than 150 comments, read its comments once with searchPostComments (sortBy "Most relevant"). That read bills per comment returned, so skip it for a post above the cap and say "comments not read: over the cap" on its digest line.
+For each picked post with at least one comment and no more than 150 comments, read its comments once with searchPostComments (sortBy "Most relevant"), passing the post's post_url as written. A numeric urn loses its last digits and the read fails. If the read fails, do not retry it: say "comments not read" on its digest line. That read bills per comment returned, so skip it for a post above the cap and say "comments not read: over the cap" on its digest line.
 
 A commenter is a warm engager when their headline matches an ICP persona and does not hit a disqualifier. Keep at most three per post, and at most ten in the digest. For each: name, headline as written, their profile URL as the comment returned it, and the first sentence of what they said, quoted. Never infer an employer the headline does not state, never look anyone up elsewhere, and never add a person who only reacted.
 
@@ -39,7 +39,7 @@ _<one line: the theme across the picks, or "Quiet week: nothing worth joining" w
 • <name>, <headline> on <author>'s post: "<first sentence of their comment>" (<profile url>)
 (omit the section when there are none)
 
-_Searched: <the searchKeywords of the model, as written> · <N> posts read, <M> already surfaced_
+_Searched: <N> posts read, <M> already surfaced_
 
 ## 6. Record it
 
@@ -47,6 +47,7 @@ After the post succeeds, append one surfaced_posts row per picked post: post_urn
 
 ## Rules
 
+- Budget your steps. Reading and judging take at most twenty; posting the digest and recording it must always fit after them. When in doubt, stop researching and post what you have.
 - Read-only on LinkedIn. You have no action that engages, and you never ask for one.
 - Never invent a post, a quote, a title, an employer or a URL. Every line traces to a row of linkedin_posts or a comment you read.
 - Quiet week: post the one "Quiet week" digest, still with the Searched line, so silence is not mistaken for a broken run.`;

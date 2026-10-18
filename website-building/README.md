@@ -1,9 +1,14 @@
-# Website building
+# Website building: build and host your company website on your own domain
 
-The company website, hosted by Cargo and served on the company's own domain. A statically
-exported Next.js app, the `www` hostname on it, and a domain that publishes its records and
-forwards the apex. Every change is a pull request your coding agent writes and someone reviews;
-nothing else is deployed.
+To run the company website as code, build it as a statically exported Next.js
+app, host it on Cargo and serve it on your own domain, with every change made
+through a reviewed pull request. This cookbook declares one `defineApp` with its
+`www` hostname and one `defineDomain` that publishes the DNS records and
+forwards the apex; nothing else is deployed.
+
+```sh
+cargo-ai cdk add cookbook/website-building
+```
 
 ## What it does
 

@@ -1,7 +1,7 @@
 ---
 name: track-job-changes
 description: "Detect which of your contacts have changed jobs, and where they went, powered by Cargo. Triggers: \"who changed jobs\", \"track job changes in my CRM\", \"did any of my contacts move companies\", \"alert me when a champion leaves\", \"find people who recently started a new role\", \"job changes\", \"job change signals\". Providers: waterfall. Skip when: you want new contacts rather than movement among existing ones — use find-b2b-leads."
-version: "1.1.1"
+version: "1.1.2"
 compatibility: Requires @cargo-ai/cli (npm). Sign in or create an account with `cargo-ai login --email` (emailed code, no browser), `--oauth`, or an API token
 homepage: https://github.com/getcargohq/gtm-skills
 metadata:
@@ -71,7 +71,7 @@ cargo-ai orchestration action execute-batch \
   --wait-until-finished
 ```
 
-MOVED / LEFT / NO_CHANGE / UNKNOWN per contact, plus updated details for the movers.
+A `job_change_status` per contact (`moved`, `left`, `no_change` or `unknown`, lowercase), plus the updated `person` record for the movers.
 
 Operations are asynchronous. `--wait-until-finished` blocks until done; without it you get a run
 or batch UUID to poll with `cargo-ai orchestration run get <uuid>` (2s interval) or
@@ -83,14 +83,14 @@ or batch UUID to poll with `cargo-ai orchestration run get <uuid>` (2s interval)
 
 Illustrative output, fictional records:
 
-| professional_email | status | newCompany | newTitle |
+| professional_email | job_change_status | person.company_name | person.title |
 |---|---|---|---|
-| priya.raman@northwind.example | MOVED | Contoso | VP Data Platform |
-| t.ferreira@fabrikam.example | NO_CHANGE | | |
-| hannah.okafor@globex.example | LEFT | | |
-| wei.zhang@initech.example | UNKNOWN | | |
+| priya.raman@northwind.example | moved | Contoso | VP Data Platform |
+| t.ferreira@fabrikam.example | no_change | | |
+| hannah.okafor@globex.example | left | | |
+| wei.zhang@initech.example | unknown | | |
 
-4 MOVED, 2 LEFT, 22 NO_CHANGE, 2 UNKNOWN across 30 contacts; 90 credits (30 × 3).
+4 moved, 2 left, 22 no_change, 2 unknown across 30 contacts; 90 credits (30 × 3).
 
 ## What it costs
 
@@ -107,6 +107,7 @@ with it.
 
 - At 3 credits a contact this is the most expensive skill in this set — run it on a filtered segment, never your whole database.
 - A champion who moved is the highest-intent signal in outbound: they already bought from you once.
+- Branch on the lowercase values. A filter written as `job_change_status == "MOVED"` matches nothing and reports that nobody moved.
 - On a schedule, this re-bills every run. Monthly on a curated segment beats weekly on everything.
 
 ## Going further

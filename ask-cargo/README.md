@@ -1,9 +1,14 @@
-# Ask Cargo
+# Ask Cargo: ask your go-to-market repo and workspace anything from Slack
 
-One agent the whole team @mentions in Slack, on top of the GTM repository and the workspace it
-deploys. It answers from what is written and what actually ran, turns change requests into pull
-requests, and hands work to the agents that own it, but only after someone in the thread says go.
-A Claude Code harness agent with a Slack connector trigger; nothing else is deployed.
+To give the whole team one place to ask about the go-to-market stack, deploy one agent they @mention
+in Slack, on top of your repository and the workspace it deploys. It answers from what is written
+and what actually ran, turns change requests into pull requests, and hands work to the agents that
+own it only after someone in the thread says go. A Claude Code harness agent with a Slack connector
+trigger; nothing else is deployed.
+
+```sh
+cargo-ai cdk add cookbook/ask-cargo
+```
 
 ## What it does
 
@@ -41,6 +46,7 @@ Adds 5 resources.
 | `infra/connectors/git.ts`          | `defineConnector` (`github`)    | the clone, branch, push and pull request path                |
 | `infra/connectors/anthropic.ts`    | `defineConnector` (`anthropic`) | the model the harness runs on, billed and metered            |
 | `infra/folders/index.ts`           | `defineFolder`                  | the workspace folder this cookbook's agent is filed in       |
+| `infra/users/index.ts`             | `defineUser`, `defineRole`      | the viewer service user every turn's `cargo-ai` runs as      |
 | `references/roster.md`             | (not a resource)                | which deployed agent owns which job                          |
 | `references/capture-entry.md`      | (not a resource)                | what a capture writes, and how a re-mention is handled       |
 
