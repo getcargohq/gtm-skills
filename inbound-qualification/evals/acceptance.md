@@ -13,7 +13,7 @@
   linked, and the app's `defineApp` env has `NEXT_PUBLIC_CARGO_FORM: inboundForm.uuid`.
 - The privacy page has a contact form section the operator reviewed.
 - `node --import tsx evals/contract.mjs` passes from this skill's folder.
-- `npm run check && cargo-ai cdk plan` pass; the plan shows the tool, the models, the connectors and
+- `npm run check && cargo-ai project plan` pass; the plan shows the tool, the models, the connectors and
   the app update.
 
 ## After deploy

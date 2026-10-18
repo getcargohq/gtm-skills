@@ -1,7 +1,7 @@
 ---
 name: build-tam-list
 description: "Build a total addressable market list of companies filtered by industry, headcount, and geography, powered by Cargo. Triggers: \"build a TAM list\", \"how many companies match our ICP\", \"list every SaaS company in Europe under 200 employees\", \"size our addressable market\", \"find target accounts\", \"list building\", \"build a list of companies\". Providers: salesNavigator. Skip when: you want the people at those companies — use find-b2b-leads or find-stakeholders; or you want companies by tech stack — use find-companies-using-tech."
-version: "1.2.1"
+version: "1.2.2"
 compatibility: Requires @cargo-ai/cli (npm). Sign in or create an account with `cargo-ai login --email` (emailed code, no browser), `--oauth`, or an API token
 homepage: https://github.com/getcargohq/gtm-skills
 metadata:
@@ -118,7 +118,7 @@ with it.
 ## Going further
 
 This skill does one job. The full Cargo pack covers the rest of GTM — sourcing, waterfall
-enrichment, scoring, sequencing, CRM sync, signal monitoring, workspace-as-code, and cost
+enrichment, scoring, sequencing, CRM sync, signal monitoring, projects (GTM as Code), and cost
 diagnostics — and routes between them automatically:
 
 ```bash

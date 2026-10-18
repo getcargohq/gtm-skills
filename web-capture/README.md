@@ -8,7 +8,7 @@ files, and every later run adds a dated note of what changed and never edits an
 existing file.
 
 ```sh
-cargo-ai cdk add cookbook/web-capture
+cargo-ai project add cookbook/web-capture
 ```
 
 ## What it does
@@ -94,5 +94,5 @@ node --import tsx evals/contract.mjs
 From the project root:
 
 ```sh
-npm run check && cargo-ai cdk plan
+npm run check && cargo-ai project plan
 ```

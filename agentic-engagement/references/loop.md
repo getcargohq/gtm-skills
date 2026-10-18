@@ -50,7 +50,7 @@ Threading rules live in `infra/agents/engager.prompt.ts` and are the contract
 the evaluator scores. `mailboxUuid` is locked on the `sendEmail` use in
 `infra/agents/engager.ts`, so the agent cannot pick a different inbox.
 
-Warm-up is not in the CDK spec. After the mailbox is `active`:
+Warm-up is not in the project spec. After the mailbox is `active`:
 
 ```sh
 cargo-ai mailboxManagement mailbox start-warmup <uuid>

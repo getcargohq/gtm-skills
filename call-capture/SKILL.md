@@ -1,8 +1,8 @@
 ---
 name: call-capture
-description: 'Turn your recorded calls into a go-to-market knowledge base: each recorded call is collected every morning, scribed into a log entry, and, once a claim repeats, promoted into context, as one pull request against your go-to-market repo. Nine recorders ship; a tenth is one adapter file. Triggers: "our call recordings never make it into the knowledge base", "turn our call transcripts into context", "we relearn the same objection every quarter", "scribe yesterday''s calls into the repo every morning", "replace the GitHub Action that summarizes our meetings", "we record on Granola, not Avoma". Cargo CDK, defineAgent, harnessSlug claudeCode, workspace env var, GitHub, Avoma, Granola, Fathom, Gong, Fireflies, Grain, tl;dv, Modjo, Clari Copilot, cadence, context. Skip when: you want one call summarized right now, which is a read against the recorder''s own API and needs nothing deployed.'
-version: "0.1.2"
-compatibility: "Requires @cargo-ai/cli 1.0.89 or later with @cargo-ai/cdk 1.0.67 or later, a Cargo workspace, an authenticated LLM connector, a GTM repository with `context/` and `cadence/` at its root (the shape `cargo-ai cdk init` scaffolds), and an API key for whatever records your calls, stored as a workspace environment variable."
+description: 'Turn your recorded calls into a go-to-market knowledge base: each recorded call is collected every morning, scribed into a log entry, and, once a claim repeats, promoted into context, as one pull request against your go-to-market repo. Nine recorders ship; a tenth is one adapter file. Triggers: "our call recordings never make it into the knowledge base", "turn our call transcripts into context", "we relearn the same objection every quarter", "scribe yesterday''s calls into the repo every morning", "replace the GitHub Action that summarizes our meetings", "we record on Granola, not Avoma". Cargo project, defineAgent, harnessSlug claudeCode, workspace env var, GitHub, Avoma, Granola, Fathom, Gong, Fireflies, Grain, tl;dv, Modjo, Clari Copilot, cadence, context. Skip when: you want one call summarized right now, which is a read against the recorder''s own API and needs nothing deployed.'
+version: "0.1.3"
+compatibility: "Requires @cargo-ai/cli 1.0.89 or later with @cargo-ai/cdk 1.0.67 or later, a Cargo workspace, an authenticated LLM connector, a GTM repository with `context/` and `cadence/` at its root (the shape `cargo-ai project init` scaffolds), and an API key for whatever records your calls, stored as a workspace environment variable."
 homepage: https://github.com/getcargohq/gtm-skills/tree/main/call-capture
 metadata:
   author: getcargo
@@ -26,7 +26,7 @@ metadata:
 # Call capture
 
 **State: to-be-approved.** Deploy-verified against a live workspace: not yet. Treat `Done when`
-below as the acceptance test and review `cargo-ai cdk plan` before deploying. Make no outcome claim
+below as the acceptance test and review `cargo-ai project plan` before deploying. Make no outcome claim
 for this skill until it is approved.
 
 ## The outcome
@@ -43,7 +43,7 @@ runs, and three things land in your repository:
 3. **The context update.** Where a claim has been heard twice — an objection, a competitor, a
    signal — the agent promotes it into `context/` at the repository root, citing both calls.
 
-Then it opens one pull request and stops. A human merges, and the next `cargo-ai cdk deploy` syncs
+Then it opens one pull request and stops. A human merges, and the next `cargo-ai project deploy` syncs
 `context/` into the workspace context repository, which is where every other Cargo agent reads
 before it acts. A correction made once on a call propagates to everything that reasons about your
 market, through code review rather than through someone remembering to update a doc.
@@ -90,15 +90,15 @@ account raised it; a single mention would have stayed in its log entry.
 
 ## Put it in your project
 
-This folder is a **worked example**: real CDK resources written for some other company. The job is
+This folder is a **worked example**: real project resources written for some other company. The job is
 to end up with the code your company would have written, in your project, and an agent does the
-adapting. If the `cargo-cdk` skill is in your session it carries the long form of this; if not, this
+adapting. If the `cargo-project` skill is in your session it carries the long form of this; if not, this
 is enough.
 
-1. **Install it — the CLI does the copy.** From inside the CDK project,
-   `cargo-ai cdk add cookbook/call-capture` writes this example to `infra/call-capture/` (resources
+1. **Install it — the CLI does the copy.** From inside the project (the folder holding `cargo.json`),
+   `cargo-ai project add cookbook/call-capture` writes this example to `infra/call-capture/` (resources
    **and** `scripts/`) and this procedure to `.claude/skills/call-capture/`. No project yet?
-   `cargo-ai cdk init <dir> --cookbook call-capture && cd <dir> && npm install` does both; this
+   `cargo-ai project init <dir> --cookbook call-capture && cd <dir> && npm install` does both; this
    folder never ships a shell. **If you are reading this from the project's `.claude/skills/`, the
    install already happened — start at step 2.** On a CLI too old to have `add`, copy this folder in
    as a sibling of what is there by hand; everything below is unchanged.
@@ -167,8 +167,8 @@ is enough.
    adapter from one that will report a clean empty run every morning. Then drop `--dry-run`. If it does
    not produce raw files locally it will not produce them on a schedule, and that is far cheaper to
    find out now. Then
-   `npm run check && cargo-ai cdk plan`, show the diff, and deploy only on an explicit yes:
-   `cargo-ai cdk deploy`. Never `cdk init --force` into a non-empty directory.
+   `npm run check && cargo-ai project plan`, show the diff, and deploy only on an explicit yes:
+   `cargo-ai project deploy`. Never `cargo-ai project init --force` into a non-empty directory.
 6. **Verify.** Walk _Done when_ line by line and report each with evidence. Deployed cleanly and
    produced nothing is the normal failure — and the second normal failure is a pull request nobody
    can review, so read the first line before you call this done.
@@ -180,13 +180,13 @@ _asked_ genuinely live in the operator's head.
 
 | Input                                                        | Kind   | How it is answered                                                                                                                                                                                                                                     | Why it matters                                                                                                                                                                                                       |
 | ------------------------------------------------------------ | ------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| repository binding (`infra/agents/call-scribe.ts`)           | value  | **derived**: leave `repository`, `defaultBranch` and `connector` unset and `plan` fills them from the git origin of the checkout, taking the GitHub connector from the project's own. `cargo-ai cdk check` prints what it resolved: confirm the line reads your repo and `./`.                | This is the working tree the harness clones and the only place its output can land. An `owner/name` written by hand is the one value nobody notices is wrong until a pull request opens against a stranger's repository.                                                |
+| repository binding (`infra/agents/call-scribe.ts`)           | value  | **derived**: leave `repository`, `defaultBranch` and `connector` unset and `plan` fills them from the git origin of the checkout, taking the GitHub connector from the project's own. `cargo-ai project check` prints what it resolved: confirm the line reads your repo and `./`.                | This is the working tree the harness clones and the only place its output can land. An `owner/name` written by hand is the one value nobody notices is wrong until a pull request opens against a stranger's repository.                                                |
 | recorder (`RECORDER` in `scripts/collect/config.ts`)         | value  | **asked**, once derivation fails: check the repo's own context and `cargo-ai connection connector list` first, then ask which of the nine slugs (`--list` prints them) records the team's calls. A recorder that is not there is one new adapter file plus an entry, per `references/providers.md`. | It is the one input with no lookup anywhere in the project, and everything downstream is shaped by it. A typed constant rather than an env var so a slug that is not a recorder fails to compile, and so the one thing no compiler catches — a plausible-but-wrong slug, which reads the wrong vendor's API successfully and reports a clean empty morning indefinitely — is at least in a diff someone reads. |
 | `CALL_RECORDER_API_KEY`                                              | env    | **asked**: the recorder's API key, put in the workspace with `cargo-ai workspaceManagement envVar create --key CALL_RECORDER_API_KEY --secret` (step 3) and named in no file here. A harness agent inherits the workspace catalog, so nothing declares it. Gong and Clari Copilot issue two values; that one variable holds `<first>:<second>` and the adapter splits it.                                  | It is the collector's only credential, and the workspace is the only copy of it that outlives the session that set it. In the catalog it is read server-side on every run, so a rotation needs no deploy; as a `secret()` in the agent's env it is the deploying shell's value, so every deploy needs the key again and a rotation lands only on a re-apply. |
 | `INTERNAL_DOMAIN` (`scripts/collect/config.ts`)              | value  | **derived**: your own email domain, which the workspace members' addresses already name                                                                                                                                                                | It is how an internal call is told from a customer one. Avoma's `is_internal` is false on every meeting in some workspaces, so it cannot be used; leave the placeholder and every standup is captured as an account.  |
 | adapter state (`scripts/collect/recorders/index.ts`)   | value  | **derived**: `--list` prints which adapters were verified against a live workspace (Avoma) and which were written from vendor docs (the other eight). Nothing to decide — it decides how hard you check step 5 before deploying.                          | The contract is compiler-enforced, so a half-written adapter fails to build rather than half-working. Pointed at the wrong API it fails on the first request, which is loud; pointed at the right API with a stale field name it captures nothing and reports a clean empty run every morning. |
-| GitHub connector (`infra/connectors/git.ts`)                 | value  | **derived**: `cargo-ai connection connector list` shows whether one is authorized; if not, `cargo-ai cdk add connector/github` opens the OAuth consent. The declaration is `default: true` because a deploy cannot mint an OAuth grant.                    | It is the agent's entire write path. Without it the run does the work and has nowhere to put it.                                                                                                                      |
-| LLM connector and model (`infra/connectors/anthropic.ts`)    | value  | **derived**: `cargo-ai connection connector list` shows whether an Anthropic connector is authorized; if not, `cargo-ai cdk add connector/anthropic` takes the key. `default: true` because a deploy cannot mint one. Any Anthropic model pairs with `claudeCode`; the agent's `languageModel` is a placeholder to set.        | A harness does not bring its own model — it runs against Cargo's LLM proxy, so this is what the daily run is billed and metered against. Omit either and `defineAgent` throws at `plan`; pair `claudeCode` with an `openAi` connector and it typechecks green and fails at deploy. |
+| GitHub connector (`infra/connectors/git.ts`)                 | value  | **derived**: `cargo-ai connection connector list` shows whether one is authorized; if not, `cargo-ai project add connector/github` opens the OAuth consent. The declaration is `default: true` because a deploy cannot mint an OAuth grant.                    | It is the agent's entire write path. Without it the run does the work and has nowhere to put it.                                                                                                                      |
+| LLM connector and model (`infra/connectors/anthropic.ts`)    | value  | **derived**: `cargo-ai connection connector list` shows whether an Anthropic connector is authorized; if not, `cargo-ai project add connector/anthropic` takes the key. `default: true` because a deploy cannot mint one. Any Anthropic model pairs with `claudeCode`; the agent's `languageModel` is a placeholder to set.        | A harness does not bring its own model — it runs against Cargo's LLM proxy, so this is what the daily run is billed and metered against. Omit either and `defineAgent` throws at `plan`; pair `claudeCode` with an `openAi` connector and it typechecks green and fails at deploy. |
 | cadence and context paths                                    | value  | **derived**: read `cadence/README.md` and `context/README.md`, and `ls cadence/log/` for what already exists                                                                                                                                            | The agent writes into layers humans already curate. A second parallel folder splits the record in half and the repetition bar stops seeing the earlier occurrence.                                                    |
 
 Checked before moving on, not after the deploy:
@@ -196,7 +196,7 @@ Checked before moving on, not after the deploy:
 - `cargo-ai workspaceManagement envVar list` shows a `CALL_RECORDER_API_KEY` entry, marked secret —
   that listing is the deployed credential, and a value only ever exported in a shell is not one
 - the collector was run by hand once and wrote real raw files
-- `cargo-ai cdk check` prints `agent:call_scribe bound to <your repo>#<branch>` with no trailing
+- `cargo-ai project check` prints `agent:call_scribe bound to <your repo>#<branch>` with no trailing
   subdirectory — the repo is the one holding `context/` and `cadence/`, and the GitHub grant can
   push to it. A trailing `in infra/` is the failure to catch here: it roots the harness where there
   is no node_modules, so the collector cannot run
@@ -258,14 +258,15 @@ it if you still want it, and records why under `## Decisions` in your copy of th
   there as a `secret()` and the next deploy is blocked on whoever runs it having the value
   exported, which on an unattended 07:00 pipeline is discovered as a morning with no pull request.
 - **`scripts/call-capture/package.json` stays.** (`scripts/package.json`) It is not
-  decoration. The CDK loader imports every `.ts` under the project root except directories carrying a
-  `package.json`; delete it and `cargo-ai cdk plan` imports the collector and runs it against the live
+  decoration. The loader imports only the resources folder `cargo.json` names, but in a project whose
+  `cargo.json` names its root it imports every `.ts` there except directories carrying a
+  `package.json`; delete it and `cargo-ai project plan` imports the collector and runs it against the live
   API on every plan.
 - **The harness root stays the directory holding the `package.json` that declares `@cargo-ai/cdk`.**
   (`infra/agents/call-scribe.ts`) That is where `node_modules` is, so it is the only place
   `npx tsx …/collect/calls.ts` resolves — and in the scaffolded layout it is the repository root,
   which is also where `cadence/` and `context/` live. The binder infers it, so nothing declares it
-  here; what must not change is the outcome. **Check it, do not assume it:** `cargo-ai cdk check`
+  here; what must not change is the outcome. **Check it, do not assume it:** `cargo-ai project check`
   prints the resolved binding, and a line ending `in infra/` means the harness was rooted where
   there is no package.json and no node_modules. The collector then cannot run at all, and the
   morning reports clean and empty. On a CLI old enough to resolve it that way, pin
@@ -305,7 +306,7 @@ it if you still want it, and records why under `## Decisions` in your copy of th
   and the error names the missing field), it is registered under a key equal to its own `provider`,
   `--dry-run` lists real calls through it, and nothing in `scripts/collect/recorder.ts` had to
   change to make it fit
-- `cargo-ai cdk plan` reports three resources and does **not** hit the recorder's API while planning
+- `cargo-ai project plan` reports three resources and does **not** hit the recorder's API while planning
 - the first scheduled run opened one pull request whose body reports four numbers: captured, scribed
   fresh, scribed from backfill, and pending remaining
 - every scribed call has exactly one entry under `cadence/log/calls/`, and no raw file was edited,
@@ -314,7 +315,7 @@ it if you still want it, and records why under `## Decisions` in your copy of th
   in the diff cites only one
 - a call where your company was the buyer, not the seller, is filed as vendor intel and appears
   nowhere as pipeline
-- after merging and `cargo-ai cdk deploy`, the changed `context/` file is readable from the workspace
+- after merging and `cargo-ai project deploy`, the changed `context/` file is readable from the workspace
   context repository, and an agent with the `context` capability quotes it back
 
 ## What it costs

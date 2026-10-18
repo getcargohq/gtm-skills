@@ -14,7 +14,7 @@ update says `No action needed` and names the next checkpoint.
 
 1. `node --import tsx evals/contract.mjs` from this skill's folder, against the
    adapted resources.
-2. `cargo-ai cdk types`, then `cargo-ai cdk check`, then `cargo-ai cdk plan`
+2. `cargo-ai project types`, then `cargo-ai project check`, then `cargo-ai project plan`
    from the project root. Inspect every resource and action payload.
 3. Confirm the plan shows `tam_companies` updated with the four tier columns
    (and no other change to it), the agent, the play with `isEnabled: false`,

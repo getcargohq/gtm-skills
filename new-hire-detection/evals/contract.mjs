@@ -3,7 +3,7 @@
 // adaptation:
 //   node --import tsx evals/contract.mjs
 //
-// It loads through `loadResources`, the same loader `cargo-ai cdk check`,
+// It loads through `loadResources`, the same loader `cargo-ai project check`,
 // `plan`, and `deploy` use, so what is asserted here is what would deploy.
 import assert from "node:assert/strict";
 import { loadResources } from "@cargo-ai/cdk";

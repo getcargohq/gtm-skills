@@ -266,7 +266,7 @@ const manifest = {
   name: "cargo-gtm-skills",
   version,
   description:
-    "Routed go-to-market skills over the Cargo CLI, each focused on one job, including worked CDK examples an agent adapts and deploys. Install one skill or the full bundle to research accounts, build markets, enrich professional company and contact data, verify business emails, score accounts, and monitor buying signals. Business-to-business professional identities only. Skills preview spend before paid calls. They send no messages. Bulk unsolicited messaging, purchased or scraped lists, and consumer targeting are out of scope.",
+    "Routed go-to-market skills over the Cargo CLI, each focused on one job, including worked project examples (cookbooks) an agent adapts and deploys. Install one skill or the full bundle to research accounts, build markets, enrich professional company and contact data, verify business emails, score accounts, and monitor buying signals. Business-to-business professional identities only. Skills preview spend before paid calls. They send no messages. Bulk unsolicited messaging, purchased or scraped lists, and consumer targeting are out of scope.",
   author: { name: "getcargo" },
   homepage: "https://getcargo.ai",
   repository: "https://github.com/getcargohq/gtm-skills",

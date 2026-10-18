@@ -1,5 +1,5 @@
 {
-  "//": "Belt and braces. In a Manifest repo the CDK project root is infra/, so nothing here is ever imported as a resource. In a project whose CDK root is the repo root, the loader imports every .ts EXCEPT directories carrying a package.json - without this file, `cdk plan` would import collect/day.ts and run git/gh on every plan.",
+  "//": "Belt and braces. The loader imports only the resources folder cargo.json names (infra/ in a scaffolded project), so nothing here is ever imported as a resource. In a project whose cargo.json names the repo root instead, the loader imports every .ts EXCEPT directories carrying a package.json - without this file, `cargo-ai project plan` would import collect/day.ts and run git/gh on every plan.",
   "name": "standup-scripts",
   "private": true,
   "type": "module"

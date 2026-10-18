@@ -18,12 +18,12 @@ doing that job after the session ends.
 ```bash
 npx skills add getcargohq/gtm-skills --all              # all 40
 npx skills add getcargohq/gtm-skills/<skill-name>       # exactly one
-cargo-ai cdk add cookbook/<skill-name>                  # a pipeline, into your Cargo project
+cargo-ai project add cookbook/<skill-name>              # a pipeline, into your Cargo project
 ```
 
-Pipelines install through the CDK instead of `skills add`: each one carries CDK resources that have
-to land in your project's CDK directory while the procedure goes to your skills folder, and only the
-CDK knows how to split them.
+Pipelines install through `cargo-ai project` instead of `skills add`: each one carries resources
+that have to land in your project's resources folder (the one its `cargo.json` names) while the
+procedure goes to your skills folder, and only the CLI knows how to split them.
 
 ## Skills
 
@@ -117,8 +117,8 @@ Deployed pipelines that watch the market for the moment to reach out: who just t
 
 | Skill | Does | Try saying |
 | --- | --- | --- |
-| [`new-hire-detection`](new-hire-detection/SKILL.md) | Get a Slack alert when a decision-maker joins a company in your ICP: a Sales Navigator job-change search watches your market for people who just took a role you sell to, an agent qualifies each one's new company against your ICP, and the fits are posted with verdict and links. | “Every time a new VP Sales or head of RevOps starts at a US software company with 51 to 500 people, post it in #new-hires.” |
-| [`social-listening`](social-listening/SKILL.md) | Find the LinkedIn conversations worth joining every week: each Monday the week's public LinkedIn posts about the problem you solve are judged against your ICP, and one Slack digest lists the posts worth joining and the commenters who look like buyers, each quoted with a link. | “Every Monday, tell #gtm-signals which LinkedIn conversations about lead routing are worth joining.” |
+| [`new-hire-detection`](new-hire-detection/SKILL.md) | Get a Slack alert when a decision-maker joins a company in your ICP: a Sales Navigator job-change search watches your market for people who just took a role you sell to, an agent qualifies each one's new company against your ICP, and fits are posted with verdict and links. | “Every time a new VP Sales or head of RevOps starts at a US software company with 51 to 500 people, post it in #new-hires.” |
+| [`social-listening`](social-listening/SKILL.md) | Find the LinkedIn conversations worth joining every week: each Monday the week's public LinkedIn posts about the problem you solve are judged against your ICP, and one Slack digest lists the posts worth joining and the commenters who look like buyers, each with a link. | “Every Monday, tell #gtm-signals which LinkedIn conversations about lead routing are worth joining.” |
 | [`visitor-identification`](visitor-identification/SKILL.md) | Identify which companies visit your website and what they read: Snitcher identifies the organisation behind each visit, two Cargo models keep the visiting companies and their sessions current, and the site loads the tracker only after a visitor accepts it. | “Show us which companies visit www.fabrikam.example, and only track visitors who accept.” |
 
 ### Engagement

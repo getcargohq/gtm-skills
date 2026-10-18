@@ -166,7 +166,7 @@ Confirm the compiled graph has:
 npm run typecheck
 node scripts/check-pipelines.mjs
 node --import tsx crm-enrichment/evals/contract.mjs
-cargo-ai cdk plan
+cargo-ai project plan
 ```
 
 Deploy only the selected paths, with every play disabled. Send direct Cargo links for every deployed

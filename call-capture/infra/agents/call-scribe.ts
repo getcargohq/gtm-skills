@@ -33,8 +33,8 @@ export const callScribe = defineAgent("call_scribe", {
   // No `repository` block, and nothing left to put in one. Plan and deploy
   // fill the repo, branch, root and GitHub connector from the git origin of
   // the checkout — which is the correct binding, not a shortcut: the
-  // repository holding cadence/ and context/ IS this CDK project's. Declare a
-  // field only to override that. `cargo-ai cdk check` prints what it resolved;
+  // repository holding cadence/ and context/ IS this project's. Declare a
+  // field only to override that. `cargo-ai project check` prints what it resolved;
   // confirm the root is the repository root and not `infra/`, since that is
   // where the agent's `npx tsx` resolves node_modules from.
   //

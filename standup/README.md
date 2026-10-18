@@ -6,7 +6,7 @@ Claude Code harness agent writes the day into the cadence log as one reviewable 
 posts a digest to Slack.
 
 ```sh
-cargo-ai cdk add cookbook/standup
+cargo-ai project add cookbook/standup
 ```
 
 ## What it does
@@ -62,16 +62,17 @@ standup/infra/     ->  infra/standup/      what is declared and deployed
 standup/scripts/   ->  scripts/standup/    what the agent runs
 ```
 
-Those are the layers `cargo-ai cdk init` already scaffolds — `infra/` is the CDK project,
-`scripts/` is "imperative glue for runtime surfaces the CDK cannot declare yet" — so a
-cookbook that needs both contributes to both under its own name rather than inventing a
-third place.
+Those are the layers `cargo-ai project init` already scaffolds — `infra/` holds the
+resources `cargo.json` names, `scripts/` is imperative glue for runtime surfaces a project
+cannot declare yet — so a cookbook that needs both contributes to both under its own name
+rather than inventing a third place.
 
-`scripts/package.json` is belt and braces. In a Manifest repo the CDK project root is
-`infra/`, so nothing under `scripts/` is ever imported as a resource. In a project whose
-CDK root is the repo root, the loader imports every `.ts` it finds **except** directories
-carrying a `package.json` — without that file, `cargo-ai cdk plan` would import the
-collector and run git/`gh` on every plan.
+`scripts/package.json` is belt and braces. The loader imports only the resources folder
+`cargo.json` names (`infra/` in a scaffolded project), so nothing under `scripts/` is ever
+imported as a resource. In a project whose `cargo.json` names the repo root instead, the
+loader imports every `.ts` it finds **except** directories carrying a `package.json` —
+without that file, `cargo-ai project plan` would import the collector and run git/`gh` on
+every plan.
 
 ## Why the split
 

@@ -48,7 +48,7 @@ export const askCargo = defineAgent("ask_cargo", {
   // checkout they run in and fill the repo, default branch and root
   // directory, taking the connector from the project's GitHub
   // `defineConnector`. (`null` is the opposite: an unbound agent with no
-  // clone.) `cargo-ai cdk check` prints what it resolved; verify it names the
+  // clone.) `cargo-ai project check` prints what it resolved; verify it names the
   // repository root and not `infra/`.
   //
   // Nor an `env` to hold one: the one value a reply needs — the bot's own

@@ -1,7 +1,7 @@
 ---
 name: meeting-prep
-description: 'Post a Slack card for every external meeting the moment it is booked on anyone''s Google Calendar: who is joining, the open deal, the line that mattered last time, one recent public event, and an opener grounded in your positioning, with reschedules and cancellations threaded under it. Triggers: "tell me in slack whenever someone books", "a card for every external meeting", "briefer on our google calendar", "watch our calendars for new meetings with prospects", "post who is joining before each booked meeting". Cargo CDK, defineAgent, Google Calendar agent trigger, domain-wide delegation, getEvent, Slack postMessage, gtm_ native models, workspace context, webSearch. Skip when: you want one company looked into now, in this chat, which is research-account; or you want the call scribed after it happened, which is call-capture.'
-version: "0.2.1"
+description: 'Post a Slack card for every external meeting the moment it is booked on anyone''s Google Calendar: who is joining, the open deal, the line that mattered last time, one recent public event, and an opener grounded in your positioning, with reschedules and cancellations threaded under it. Triggers: "tell me in slack whenever someone books", "a card for every external meeting", "briefer on our google calendar", "watch our calendars for new meetings with prospects", "post who is joining before each booked meeting". Cargo project, defineAgent, Google Calendar agent trigger, domain-wide delegation, getEvent, Slack postMessage, gtm_ native models, workspace context, webSearch. Skip when: you want one company looked into now, in this chat, which is research-account; or you want the call scribed after it happened, which is call-capture.'
+version: "0.2.2"
 compatibility: "Requires @cargo-ai/cli with @cargo-ai/cdk 1.0.92 or later, a Cargo workspace, the Google Calendar integration with its agent trigger, and authorized Slack and Anthropic connectors. Covering the whole team needs a Google Workspace admin to authorize Cargo's client id once; one person's calendar connects with OAuth. No CRM needed: accounts, contacts, opportunities and activity are the shared gtm_ native models."
 homepage: https://github.com/getcargohq/gtm-skills/tree/main/meeting-prep
 metadata:
@@ -79,15 +79,15 @@ agenda edit in between posted nothing.
 
 ## Put it in your project
 
-This folder is a **worked example**: real CDK resources written for some other company. The job is
+This folder is a **worked example**: real project resources written for some other company. The job is
 to end up with the code your company would have written, in your project, and an agent does the
-adapting. If the `cargo-cdk` skill is in your session it carries the long form of this; if not, this
+adapting. If the `cargo-project` skill is in your session it carries the long form of this; if not, this
 is enough.
 
-1. **Install it — the CLI does the copy.** From inside the CDK project,
-   `cargo-ai cdk add cookbook/meeting-prep` writes this example to `infra/meeting-prep/` and this
+1. **Install it — the CLI does the copy.** From inside the project (the folder holding `cargo.json`),
+   `cargo-ai project add cookbook/meeting-prep` writes this example to `infra/meeting-prep/` and this
    procedure to `.claude/skills/meeting-prep/`. No project yet?
-   `cargo-ai cdk init <dir> --cookbook meeting-prep && cd <dir> && npm install` does both. **If you
+   `cargo-ai project init <dir> --cookbook meeting-prep && cd <dir> && npm install` does both. **If you
    are reading this from the project's `.claude/skills/`, the install already happened — start at
    step 2.**
 2. **Reconcile it with what is already declared.** If the project already has a Slack, Anthropic or
@@ -100,7 +100,7 @@ is enough.
    Cargo with the Workspace domain and an admin email. For one person: connect it with OAuth
    instead. Either way `default: true` in `infra/connectors/google-calendar.ts` binds it.
 4. **Point Slack at your channel.** Authorize the Slack connector if the workspace does not have one
-   (`cargo-ai cdk add connector/slack`). Set `channelId` in `infra/agents/briefer.ts` to a channel id
+   (`cargo-ai project add connector/slack`). Set `channelId` in `infra/agents/briefer.ts` to a channel id
    (`C…`) from that connector's channel autocomplete, and invite the bot. `references/card.md` is
    the card shape.
 5. **Adapt.** Work the sections below in order: _What should not change_ is what you argue back
@@ -108,8 +108,8 @@ is enough.
    and you derive before you ask. Record what you changed and why under a `## Decisions` section in
    your copy of this file.
 6. **Check, then plan.** `node --import tsx evals/contract.mjs` from this skill's folder, then
-   `npm run check && cargo-ai cdk plan` from the project root. Show the diff, and deploy only on an
-   explicit yes: `cargo-ai cdk deploy`. Never `cdk init --force` into a non-empty directory.
+   `npm run check && cargo-ai project plan` from the project root. Show the diff, and deploy only on an
+   explicit yes: `cargo-ai project deploy`. Never `cargo-ai project init --force` into a non-empty directory.
 7. **Verify.** Seed the account, a contact and one activity for a test company
    (`cargo-ai storage record create` on each `gtm_` model; Cargo generates the ids, so create the
    account first and use its id), book a test meeting with an outside address on a watched
@@ -176,7 +176,7 @@ Checked before moving on, not after the deploy:
 ## Done when
 
 - `node --import tsx evals/contract.mjs` passes
-- `cargo-ai cdk plan` reports the agent, the four `gtm_` models, the three connectors and the two
+- `cargo-ai project plan` reports the agent, the four `gtm_` models, the three connectors and the two
   folders
 - a test meeting booked with an outside address on a watched calendar produced exactly one card in
   the locked channel, in the `references/card.md` shape, mentioning the organizer, with sources on

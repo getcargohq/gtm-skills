@@ -1,8 +1,8 @@
 ---
 name: tam-building
-description: 'Build your total addressable market (TAM) list and stand it up as a deployed model in Cargo: your ICP, read from your context (or drafted from your website and customer stories), becomes an AI Ark company search setting industries, company size and countries, sized for free before it bills, and lands as one model other pipelines read. Triggers: "our TAM is a stale CSV", "build our account universe", "source every company that matches our ICP", "keep our market list in Cargo", "how big is our market, and give me the companies", "land our TAM as a model the other pipelines can read". Cargo CDK, aiArk, countCompanies, fetchCompanies; FullEnrich, Apollo or Sales Navigator as swapped sources. Skip when: you want a list handed back in the chat or as a CSV rather than a model in the workspace, which is build-tam-list; or the accounts already exist and need tiering, which is account-scoring.'
+description: 'Build your total addressable market (TAM) list and stand it up as a deployed model in Cargo: your ICP, read from your context (or drafted from your website and customer stories), becomes an AI Ark company search setting industries, company size and countries, sized for free before it bills, and lands as one model other pipelines read. Triggers: "our TAM is a stale CSV", "build our account universe", "source every company that matches our ICP", "keep our market list in Cargo", "how big is our market, and give me the companies", "land our TAM as a model the other pipelines can read". Cargo project, aiArk, countCompanies, fetchCompanies; FullEnrich, Apollo or Sales Navigator as swaps. Skip when: you want a list handed back in the chat or as a CSV rather than a model in the workspace, which is build-tam-list; or the accounts already exist and need tiering, which is account-scoring.'
 version: "0.5.2"
-compatibility: "Requires the cargo-cdk skill, a Cargo CDK project, @cargo-ai/cdk 1.0.58 or later, and an authenticated AI Ark connector (or one of the swapped sources in references/sources.md). No CRM, no LLM connector, no API key, and no LinkedIn seat, user, or cookie needed, on any source. The repository example does not deploy or source anything until an agent adapts it in the consumer project."
+compatibility: "Requires the cargo-project skill, a Cargo project (cargo.json at its root), @cargo-ai/cdk 1.0.58 or later, and an authenticated AI Ark connector (or one of the swapped sources in references/sources.md). No CRM, no LLM connector, no API key, and no LinkedIn seat, user, or cookie needed, on any source. The repository example does not deploy or source anything until an agent adapts it in the consumer project."
 homepage: https://github.com/getcargohq/gtm-skills/tree/main/tam-building
 metadata:
   author: getcargo
@@ -114,24 +114,24 @@ help.
 
 ## Put it in your project
 
-This folder is a **worked example**: real CDK resources written for some other company. The job
+This folder is a **worked example**: real project resources written for some other company. The job
 is to end up with the code your company would have written, in your project, and an agent does the
 adapting.
 
-**Install the required authoring skill first.** If `cargo-cdk` is absent, run:
+**Install the required authoring skill first.** If `cargo-project` is absent, run:
 
 ```sh
-npx skills add getcargohq/cargo-skills --skill cargo-cdk
+npx skills add getcargohq/cargo-skills --skill cargo-project
 ```
 
-Then read `.agents/skills/cargo-cdk/SKILL.md` directly; no session reload is needed. Complete its
+Then read `.agents/skills/cargo-project/SKILL.md` directly; no session reload is needed. Complete its
 bootstrap and use its authoring, state, plan, and deployment rules throughout. Stop before any
 research or template work if the skill cannot be installed or read.
 
-1. **Install it: the CLI does the copy.** From inside the CDK project,
-   `cargo-ai cdk add cookbook/tam-building` writes this example to `infra/tam-building/` and this
+1. **Install it: the CLI does the copy.** From inside the project (the folder holding `cargo.json`),
+   `cargo-ai project add cookbook/tam-building` writes this example to `infra/tam-building/` and this
    procedure to `.claude/skills/tam-building/`. No project yet?
-   `cargo-ai cdk init <dir> --cookbook tam-building && cd <dir> && npm install` does both; this
+   `cargo-ai project init <dir> --cookbook tam-building && cd <dir> && npm install` does both; this
    folder never ships a shell. **If you are reading this from the project's `.claude/skills/`, the
    install already happened: start at step 2.** On a CLI too old to have `add`, copy this folder
    in as a sibling of what is there by hand; everything below is unchanged.
@@ -153,8 +153,8 @@ research or template work if the skill cannot be installed or read.
    asked_ is the floor, and you derive before you ask. If you are asking more than about four
    questions you have skipped lookups. Record what you changed and why under a `## Decisions`
    section in your copy of this file. Then run `node --import tsx evals/contract.mjs` from this
-   skill's folder, followed by `cargo-ai cdk types && cargo-ai cdk check && cargo-ai cdk plan` from
-   the project root. Show the diff and deploy. Never run `cargo-ai cdk init --force` in a non-empty
+   skill's folder, followed by `cargo-ai project types && cargo-ai project check && cargo-ai project plan` from
+   the project root. Show the diff and deploy. Never run `cargo-ai project init --force` in a non-empty
    directory.
 6. **Source and report.** Follow [`references/run.md`](references/run.md): sync once, run the
    report queries, walk _Done when_ line by line with evidence, and end on the openings. Deployed

@@ -6,7 +6,7 @@ accounts and contacts, posted to Slack, and answered on the page with a booking 
 A personal email address is refused on the page before anything is paid for or written.
 
 ```sh
-cargo-ai cdk add cookbook/inbound-qualification
+cargo-ai project add cookbook/inbound-qualification
 ```
 
 ```text

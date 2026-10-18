@@ -7,7 +7,7 @@ import { defineConnector } from "@cargo-ai/cdk";
 // Same slug as crm-enrichment's and crm-deduplication's connector, so a
 // project running either shares one connection: drop this copy and import
 // theirs. Bound, not created: authorize HubSpot once
-// (`cargo-ai cdk add connector/hubspot`) and `default: true` resolves to it.
+// (`cargo-ai project add connector/hubspot`) and `default: true` resolves to it.
 export const crm = defineConnector("crm", {
   integration: "hubspot",
   default: true,

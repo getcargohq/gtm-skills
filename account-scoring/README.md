@@ -7,7 +7,7 @@ Cargo row, and on the matching HubSpot or Salesforce company when you name one
 in `infra/settings.ts`.
 
 ```sh
-cargo-ai cdk add cookbook/account-scoring
+cargo-ai project add cookbook/account-scoring
 ```
 
 1. **Accounts in.** The play reads a Cargo companies model: `tam_companies`,
@@ -128,7 +128,7 @@ After that the play only tiers what arrives and what goes stale.
 
 ```sh
 node --import tsx evals/contract.mjs   # the graph boundaries, from the compiled registry
-cargo-ai cdk types && cargo-ai cdk check && cargo-ai cdk plan
+cargo-ai project types && cargo-ai project check && cargo-ai project plan
 ```
 
 `evals/acceptance.md` is the line-by-line acceptance test.

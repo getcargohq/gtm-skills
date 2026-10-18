@@ -197,7 +197,7 @@ Confirm the compiled graph has:
 npm run typecheck
 node scripts/check-pipelines.mjs
 node --import tsx crm-deduplication/evals/contract.mjs
-cargo-ai cdk plan
+cargo-ai project plan
 ```
 
 Confirm the plan contains the shared CRM connector, the Slack connector when at least one selected

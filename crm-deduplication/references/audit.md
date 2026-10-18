@@ -1,11 +1,11 @@
 # Audit CRM duplicates
 
 Choose the account path, contact path, or both. Audit every selected path independently before
-editing CDK, making a paid call, sending a review request, or writing to the CRM. Approval for one
+editing project resources, making a paid call, sending a review request, or writing to the CRM. Approval for one
 path does not approve the other.
 
 For every selected path, inspect the authenticated CRM connector, CRM-backed model, object schema,
-record ID, identity fields, relevant conflict and protection fields, and existing compatible CDK
+record ID, identity fields, relevant conflict and protection fields, and existing compatible project
 resources. Normalize identifiers exactly as the deployed scripts for that path do:
 `infra/scripts/accounts/account.ts` for companies and `infra/scripts/contacts/identity.ts` for
 people. Classify each cluster once, rank one deterministic survivor, and record the exact CRM IDs

@@ -1,7 +1,7 @@
 ---
 name: enrich-company-data
 description: "Enrich a list of companies with firmographics — industry, size, geography, founding year, and headquarters, powered by Cargo. Triggers: \"enrich these companies\", \"add company size and industry to my list\", \"get firmographics for these domains\", \"enrich a supplied spreadsheet of company domains once\", \"fill in company data\", \"company enrichment\", \"enrich companies\", \"what sector is this business in\", \"how big is this organisation\". Providers: cargo. Skip when: you want funding history — use track-funding-rounds; or tech stack — use find-companies-using-tech."
-version: "1.1.1"
+version: "1.1.2"
 compatibility: Requires @cargo-ai/cli (npm). Sign in or create an account with `cargo-ai login --email` (emailed code, no browser), `--oauth`, or an API token
 homepage: https://github.com/getcargohq/gtm-skills
 metadata:
@@ -110,7 +110,7 @@ with it.
 ## Going further
 
 This skill does one job. The full Cargo pack covers the rest of GTM — sourcing, waterfall
-enrichment, scoring, sequencing, CRM sync, signal monitoring, workspace-as-code, and cost
+enrichment, scoring, sequencing, CRM sync, signal monitoring, projects (GTM as Code), and cost
 diagnostics — and routes between them automatically:
 
 ```bash

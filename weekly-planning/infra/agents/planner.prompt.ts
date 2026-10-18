@@ -113,7 +113,7 @@ you are recapping in PLANNING_TIMEZONE:
 Pipe long output through \`jq\` or \`head\` rather than reading it whole.
 
 Read, never write. No \`orchestration action execute\`, no \`batch create\`, no
-\`cdk deploy\` or \`cdk destroy\`, no \`login\`/\`logout\`, no token minting, no
+\`cargo-ai project deploy\` or \`cargo-ai project destroy\`, no \`login\`/\`logout\`, no token minting, no
 \`workspaceManagement report\`, and nothing carrying remove, delete or destroy.
 Those spend, deploy, or leak, and a recommendation is none of the three: it is
 markdown a human merges. Do not go looking for a play to start.

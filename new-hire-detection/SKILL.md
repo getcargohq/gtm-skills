@@ -1,8 +1,8 @@
 ---
 name: new-hire-detection
-description: 'Get a Slack alert when a decision-maker joins a company in your ICP: a Sales Navigator job-change search watches your market for people who just took a role you sell to, an agent qualifies each one''s new company against your ICP, and the fits are posted with verdict and links. Triggers: "watch our market for new hires", "put new VPs of Sales in our market into HubSpot", "post in Slack when a new VP Sales joins a company in our ICP", "a decision-maker just joined a company in our market", "a new head of sales starts at an account", "new KDM detection", "route new hires into the CRM", "tell the deal owner when a new decision-maker lands mid-deal", "run our new-hire play on a schedule". Cargo CDK, Sales Navigator, Slack, HubSpot, Salesforce, Attio. Skip when: your own CRM contacts may have moved jobs, which is track-job-changes; or you want a list of people once, which is find-b2b-leads.'
-version: "0.1.2"
-compatibility: "Requires the cargo-cdk skill, a Cargo CDK project, @cargo-ai/cdk 1.0.88 or later, and authenticated Sales Navigator, LinkedIn, LLM, and Slack connectors. A CRM connector (HubSpot in the example; Salesforce and Attio by adaptation) is needed only for the CRM variations. No LinkedIn seat, user, or cookie is needed. The repository example does not deploy, extract, or post anything until an agent adapts it in the consumer project."
+description: 'Get a Slack alert when a decision-maker joins a company in your ICP: a Sales Navigator job-change search watches your market for people who just took a role you sell to, an agent qualifies each one''s new company against your ICP, and fits are posted with verdict and links. Triggers: "watch our market for new hires", "put new VPs of Sales in our market into HubSpot", "post in Slack when a new VP Sales joins a company in our ICP", "a decision-maker just joined a company in our market", "a new head of sales starts at an account", "new KDM detection", "route new hires into the CRM", "tell the deal owner when a new decision-maker lands mid-deal", "run our new-hire play on a schedule". Cargo project, Sales Navigator, Slack, HubSpot, Salesforce, Attio. Skip when: your own CRM contacts may have moved jobs, which is track-job-changes; or you want a list of people once, which is find-b2b-leads.'
+version: "0.1.3"
+compatibility: "Requires the cargo-project skill, a Cargo project (cargo.json at its root), @cargo-ai/cdk 1.0.88 or later, and authenticated Sales Navigator, LinkedIn, LLM, and Slack connectors. A CRM connector (HubSpot in the example; Salesforce and Attio by adaptation) is needed only for the CRM variations. No LinkedIn seat, user, or cookie is needed. The repository example does not deploy, extract, or post anything until an agent adapts it in the consumer project."
 homepage: https://github.com/getcargohq/gtm-skills/tree/main/new-hire-detection
 metadata:
   author: getcargo
@@ -26,7 +26,7 @@ metadata:
 # New-hire detection
 
 **State: to-be-approved.** Deploy-verified against a live workspace: not yet. Treat `Done when`
-below as the acceptance test and review `cargo-ai cdk plan` before deploying. Make no outcome claim
+below as the acceptance test and review `cargo-ai project plan` before deploying. Make no outcome claim
 for this skill until it is approved.
 
 ## The outcome
@@ -73,24 +73,24 @@ guard before any qualifier call.
 
 ## Put it in your project
 
-This folder is a **worked example**: real CDK resources written for some other company. The job
+This folder is a **worked example**: real project resources written for some other company. The job
 is to end up with the code your company would have written, in your project, and an agent does the
 adapting.
 
-**Install the required authoring skill first.** If `cargo-cdk` is absent, run:
+**Install the required authoring skill first.** If `cargo-project` is absent, run:
 
 ```sh
-npx skills add getcargohq/cargo-skills --skill cargo-cdk
+npx skills add getcargohq/cargo-skills --skill cargo-project
 ```
 
-Then read `.agents/skills/cargo-cdk/SKILL.md` directly; no session reload is needed. Complete its
+Then read `.agents/skills/cargo-project/SKILL.md` directly; no session reload is needed. Complete its
 bootstrap and use its authoring, state, plan, and deployment rules throughout. Stop before any
 search or template work if the skill cannot be installed or read.
 
-1. **Install it: the CLI does the copy.** From inside the CDK project,
-   `cargo-ai cdk add cookbook/new-hire-detection` writes this example to
+1. **Install it: the CLI does the copy.** From inside the project (the folder holding `cargo.json`),
+   `cargo-ai project add cookbook/new-hire-detection` writes this example to
    `infra/new-hire-detection/` and this procedure to `.claude/skills/new-hire-detection/`. No
-   project yet? `cargo-ai cdk init <dir> --cookbook new-hire-detection && cd <dir> && npm install`
+   project yet? `cargo-ai project init <dir> --cookbook new-hire-detection && cd <dir> && npm install`
    does both; this folder never ships a shell. **If you are reading this from the project's
    `.claude/skills/`, the install already happened. Start at step 2.** On a CLI too old to have
    `add`, copy this folder in as a sibling of what is there by hand; everything below is unchanged.
@@ -117,8 +117,8 @@ search or template work if the skill cannot be installed or read.
    before you ask. Record what you changed and why under a `## Decisions` section in your copy of
    this file. The model ships as the pilot (`limit: 10`, no schedule); keep it that way for the
    first deploy. Then run `node --import tsx evals/contract.mjs` from this skill's folder, followed
-   by `cargo-ai cdk types && cargo-ai cdk check && cargo-ai cdk plan` from the project root. Show
-   the diff and deploy with the play disabled. Never run `cargo-ai cdk init --force` in a non-empty
+   by `cargo-ai project types && cargo-ai project check && cargo-ai project plan` from the project root. Show
+   the diff and deploy with the play disabled. Never run `cargo-ai project init --force` in a non-empty
    directory.
 6. **Run ten, then open it up.** Follow [`references/run.md`](references/run.md): sync ten, enable
    and execute the play once, and report every run with its status and the Slack post. Only on an

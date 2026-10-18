@@ -8,7 +8,7 @@ check, dated insights and objections in `context/` as one pull request, with a
 five-line Slack digest.
 
 ```sh
-cargo-ai cdk add cookbook/win-loss-review
+cargo-ai project add cookbook/win-loss-review
 ```
 
 ## What it does
@@ -80,5 +80,5 @@ node --import tsx evals/contract.mjs
 From the project root:
 
 ```sh
-npm run check && cargo-ai cdk plan
+npm run check && cargo-ai project plan
 ```

@@ -6,7 +6,7 @@ deals quiet for fourteen days or more, with the line the last activity left off 
 worth a touch now, and a follow-up drafted for them to send; it never sends anything to a prospect.
 
 ```sh
-cargo-ai cdk add cookbook/stalled-deal-nudge
+cargo-ai project add cookbook/stalled-deal-nudge
 ```
 
 ## What it does

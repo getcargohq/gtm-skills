@@ -7,7 +7,7 @@ company before anyone is told. This cookbook runs that search, has an agent read
 that fit to Slack with the verdict and links.
 
 ```sh
-cargo-ai cdk add cookbook/new-hire-detection
+cargo-ai project add cookbook/new-hire-detection
 ```
 
 This file explains why the design is the way it is; [`SKILL.md`](SKILL.md) is
@@ -88,5 +88,5 @@ node --import tsx evals/contract.mjs
 From the project root:
 
 ```sh
-cargo-ai cdk types && cargo-ai cdk check && cargo-ai cdk plan
+cargo-ai project types && cargo-ai project check && cargo-ai project plan
 ```

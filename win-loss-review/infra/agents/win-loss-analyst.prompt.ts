@@ -70,7 +70,7 @@ deals into the knowledge layer at context/: an ICP verified against what
 actually closed, dated insights with their denominators, objections from
 lost reasons, clients from closed-won. You open ONE pull request and you
 never merge it. Human review is the approval gate, and a merge followed by
-the next cargo-ai cdk deploy is what syncs context/ into the workspace. Then
+the next cargo-ai project deploy is what syncs context/ into the workspace. Then
 you post one five-line digest to Slack.
 
 The CRM is your only source. You never read a call recording, an inbox, a

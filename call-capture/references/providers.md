@@ -209,7 +209,7 @@ nothing wiring it there. **The agent declares no `env` at all** — the two choi
 | `RECORDER`, `INTERNAL_DOMAIN`       | `collect/config.ts`  | Choices, not secrets. Compiler-checked, read in review, and live on the next run after a merge |
 | `CALL_RECORDER_API_KEY`             | workspace catalog    | A secret. Never in git, read server-side on every run, rotated without a deploy                |
 
-Three ways to put a credential in a CDK spec, and why none of them is here:
+Three ways to put a credential in a project spec, and why none of them is here:
 
 | Written as                                | Value lives            | Costs                                                                                       |
 | ----------------------------------------- | ---------------------- | ------------------------------------------------------------------------------------------- |
@@ -217,7 +217,7 @@ Three ways to put a credential in a CDK spec, and why none of them is here:
 | `secret("CALL_RECORDER_API_KEY")`          | the deploying shell    | Every deploy needs the key exported by whoever deploys, and a rotation lands on a re-apply   |
 | `env("CALL_RECORDER_API_KEY")`             | the spec               | Baked into the content hash and into `cargo.state.json`. Never for a secret                  |
 
-`workspaceEnv("CALL_RECORDER_API_KEY")` is the fourth spelling and the CDK rejects it in a harness
+`workspaceEnv("CALL_RECORDER_API_KEY")` is the fourth spelling and `@cargo-ai/cdk` rejects it in a harness
 `env` block, by type: a pointer there could only restate a variable the sandbox shell already reads.
 It is for credential fields on resources that inherit nothing — a connector's access token, where
 `workspaceEnv()` buys exactly what the catalog buys here.

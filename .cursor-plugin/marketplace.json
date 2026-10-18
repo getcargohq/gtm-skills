@@ -6,7 +6,7 @@
     {
       "name": "cargo",
       "source": "./",
-      "description": "Routed GTM skills, each focused on one job: one-off Cargo CLI workflows plus worked CDK examples an agent adapts and deploys."
+      "description": "Routed GTM skills, each focused on one job: one-off Cargo CLI workflows plus worked project examples (cookbooks) an agent adapts and deploys."
     }
   ]
 }

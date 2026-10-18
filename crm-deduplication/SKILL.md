@@ -1,8 +1,8 @@
 ---
 name: crm-deduplication
-description: 'Deduplicate CRM accounts and contacts and keep them duplicate-free: audit company and person identity, run recurring deduplication plays directly on CRM models, merge safe exact matches, and route uncertain clusters to manual review. Triggers: "deduplicate our CRM accounts", "deduplicate CRM contacts", "our CRM has duplicate people", "merge duplicate contacts in HubSpot", "we keep creating duplicate account records", "merge duplicate companies in HubSpot", "set up recurring CRM deduplication", "review ambiguous duplicates". HubSpot, Salesforce, Attio, Slack, LinkedIn profiles, phone numbers, Cargo CDK, findRecords, Scoring, Human Review, mergeRecords. Skip when: the request is to add or refresh CRM data rather than merge duplicate records; use crm-enrichment.'
-version: "0.1.2"
-compatibility: "Requires the cargo-cdk skill, a Cargo CDK project, @cargo-ai/cdk 1.0.82 or later, an authenticated CRM connector, and a Slack connector for each selected path that uses Human Review. The repository example does not deploy or access a CRM until an agent adapts it in the consumer project."
+description: 'Deduplicate CRM accounts and contacts and keep them duplicate-free: audit company and person identity, run recurring deduplication plays directly on CRM models, merge safe exact matches, and route uncertain clusters to manual review. Triggers: "deduplicate our CRM accounts", "deduplicate CRM contacts", "our CRM has duplicate people", "merge duplicate contacts in HubSpot", "we keep creating duplicate account records", "merge duplicate companies in HubSpot", "set up recurring CRM deduplication", "review ambiguous duplicates". HubSpot, Salesforce, Attio, Slack, LinkedIn profiles, phone numbers, Cargo project, findRecords, Scoring, Human Review, mergeRecords. Skip when: the request is to add or refresh CRM data rather than merge duplicate records; use crm-enrichment.'
+version: "0.1.3"
+compatibility: "Requires the cargo-project skill, a Cargo project (cargo.json at its root), @cargo-ai/cdk 1.0.82 or later, an authenticated CRM connector, and a Slack connector for each selected path that uses Human Review. The repository example does not deploy or access a CRM until an agent adapts it in the consumer project."
 homepage: https://github.com/getcargohq/gtm-skills/tree/main/crm-deduplication
 metadata:
   author: getcargo
@@ -25,7 +25,7 @@ metadata:
 # CRM deduplication
 
 **State: to-be-approved.** Deploy-verified against a live workspace: not yet. Treat `Done when`
-below as the acceptance test and review `cargo-ai cdk plan` before deploying. Make no outcome claim
+below as the acceptance test and review `cargo-ai project plan` before deploying. Make no outcome claim
 for this skill until it is approved.
 
 ## The outcome
@@ -98,22 +98,22 @@ approve merges 20911 into 18234, while decline or 24 hours of silence leaves bot
 
 ## Put it in your project
 
-This folder is a **worked example**: real CDK resources written for another company. The job is to
+This folder is a **worked example**: real project resources written for another company. The job is to
 end with the code this company would have written in its project.
 
-**Install the required authoring skill first.** If `cargo-cdk` is absent, run:
+**Install the required authoring skill first.** If `cargo-project` is absent, run:
 
 ```sh
-npx skills add getcargohq/cargo-skills --skill cargo-cdk
+npx skills add getcargohq/cargo-skills --skill cargo-project
 ```
 
-Read `.agents/skills/cargo-cdk/SKILL.md` directly after installation. Complete its bootstrap and use
+Read `.agents/skills/cargo-project/SKILL.md` directly after installation. Complete its bootstrap and use
 its authoring, state, plan, and deployment rules throughout this pipeline.
 
-1. **Install it: the CLI does the copy.** From inside the CDK project,
-   `cargo-ai cdk add cookbook/crm-deduplication` writes this example to
+1. **Install it: the CLI does the copy.** From inside the project (the folder holding `cargo.json`),
+   `cargo-ai project add cookbook/crm-deduplication` writes this example to
    `infra/crm-deduplication/` and this procedure to `.claude/skills/crm-deduplication/`. No project
-   yet? `cargo-ai cdk init <dir> --cookbook crm-deduplication && cd <dir> && npm install` does both;
+   yet? `cargo-ai project init <dir> --cookbook crm-deduplication && cd <dir> && npm install` does both;
    this folder never ships a shell. **If you are reading this from the project's `.claude/skills/`,
    the install already happened. Start at step 2.** On a CLI too old to have `add`, copy this folder
    in as a sibling of what is there by hand; everything below is unchanged.
@@ -131,7 +131,7 @@ its authoring, state, plan, and deployment rules throughout this pipeline.
    [`references/configure.md`](references/configure.md). Record adaptations under `## Decisions` in
    the copied skill. Run the executable contract, generated types, check, and plan. Inspect the
    selected graph and deploy only its approved resources with `isEnabled: false`. Never run
-   `cargo-ai cdk init --force` in a non-empty directory.
+   `cargo-ai project init --force` in a non-empty directory.
 5. **Hand off each path for pilot approval.** Send its direct play link, exact population, current
    action costs, and approved policy. Stop for explicit approval of that merge-capable pilot.
 6. **Run and report each approved path.** Follow the matching path in
@@ -270,8 +270,8 @@ effect on candidates, safeguards, and validation.
 - the selected resources use one CRM connector, a Slack connector for every path with active review,
   object-specific CRM models, and no candidate or staging model
 - generated types confirm selected search and merge payloads plus Human Review for paths that use it
-- `node --import tsx evals/contract.mjs`, `cargo-ai cdk types`, `cargo-ai cdk check`, and
-  `cargo-ai cdk plan` pass after adaptation
+- `node --import tsx evals/contract.mjs`, `cargo-ai project types`, `cargo-ai project check`, and
+  `cargo-ai project plan` pass after adaptation
 - every selected play is disabled, `noConcurrency`, and limited to 15 CRM rows before its pilot
 
 ### Path 1: Account completion

@@ -32,9 +32,9 @@ jobs:
         with:
           node-version: "22"
 
-      # Repo tooling only (yaml for the frontmatter parser, prettier, the CDK for
-      # typechecking the examples). Nothing in the root package.json ships: a
-      # customer's project shell comes from `cargo-ai cdk init`.
+      # Repo tooling only (yaml for the frontmatter parser, prettier,
+      # @cargo-ai/cdk for typechecking the examples). Nothing in the root package.json ships: a
+      # customer's project shell comes from `cargo-ai project init`.
       - run: npm ci --ignore-scripts
 
       - name: Validate the one-off skills against the Cargo playbooks
@@ -42,10 +42,12 @@ jobs:
           CARGO_SKILLS_REF: ${{ inputs.ref || 'main' }}
         run: node scripts/validate.ts
 
-      # The pipeline skills (folders that carry a worked CDK example): frontmatter
-      # parses, the contract sections exist, no relative import escapes the
-      # folder, fixed credit amounts are absent, infra templates check and plan,
-      # and the to-be-approved banner follows .github/data/approvals.json.
+      # The pipeline skills (cookbooks: folders that carry a worked project
+      # example): frontmatter parses, the contract sections exist, no relative
+      # import escapes the folder, fixed credit amounts are absent, each infra/
+      # checks and plans as its own project (the script supplies a temporary
+      # cargo.json), and the to-be-approved banner follows
+      # .github/data/approvals.json.
       - name: Validate the pipeline skills
         run: node scripts/check-pipelines.mjs
 

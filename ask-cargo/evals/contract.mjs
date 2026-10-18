@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { resetRegistry, resources } from "@cargo-ai/cdk";
 
-// The boundaries CDK schema validation cannot express, checked against the
-// compiled registry. `cargo-cdk check` proves the resources are well formed;
+// The boundaries schema validation cannot express, checked against the
+// compiled registry. `cargo-ai project check` proves the resources are well formed;
 // this proves they are still the agent this skill describes after an agent
 // has adapted them.
 //

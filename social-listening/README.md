@@ -6,7 +6,7 @@ capped post search, has an agent pick at most five posts and up to ten commenter
 buyers, and posts one digest to a locked Slack channel. It never engages on anyone's behalf.
 
 ```sh
-cargo-ai cdk add cookbook/social-listening
+cargo-ai project add cookbook/social-listening
 ```
 
 ## What it does

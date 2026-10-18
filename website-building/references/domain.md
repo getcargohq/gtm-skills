@@ -2,7 +2,7 @@
 
 Cargo serves the app on its own `*.app.getcargo.run` URL with `X-Robots-Tag: noindex`; the
 company's domain is what search engines index. The app always takes `www.<domain>`: the apex
-cannot CNAME to an app, and the CDK refuses a hostname with fewer than three labels. Set
+cannot CNAME to an app, and a project refuses a hostname with fewer than three labels. Set
 `site.json` `canonicalUrl` to `https://www.<domain>/`.
 
 ## Who holds the DNS
@@ -25,7 +25,7 @@ mailboxes send from can carry the website too. Two things are replaced, not adde
 - **The apex forward.** `redirectUrl` replaces it. A sending domain usually forwards its apex to
   the company's main site; after this it forwards to its own `www`.
 
-`cargo-ai cdk plan` reads the live zone and prints the diff record by record (`+` added, `~`
+`cargo-ai project plan` reads the live zone and prints the diff record by record (`+` added, `~`
 changed, `-` deleted). Show it to the operator before the deploy, get a yes for every `~` and `-`,
 and record it under `## Decisions`. A record edited by hand after the deploy published it makes the
 plan stop and name both values; put the one to keep in the code.
@@ -39,7 +39,7 @@ therefore invisible the one time it matters. Look first: `dig +short www.<domain
 - **Nothing answers:** one deploy is fine; the next plan shows the records as `= noop`.
 - **Something answers:** deploy in two steps. Leave `website.domainRecords` out of `dnsRecords`
   (or leave `dnsRecords` off) and deploy: the hostname attaches and the zone is untouched. Put it
-  back and run `cargo-ai cdk plan`: the diff now lists every record, and the deploy waits for the
+  back and run `cargo-ai project plan`: the diff now lists every record, and the deploy waits for the
   operator's yes on it.
 
 The registrar can take a few minutes to publish the records on its nameservers. A browser that

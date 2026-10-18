@@ -1,8 +1,8 @@
 ---
 name: account-scoring
-description: 'Score every account against your ICP on a schedule: a deployed agent tiers each company in a Cargo model (tam-building''s, or your CRM companies) A / B / C / disqualified against the ICP and rubric in workspace context, and the tier, a two-sentence reason and evidence are written onto the row and, optionally, the matching HubSpot or Salesforce company. New companies are tiered hourly; the book is re-scored weekly or on any window set. Triggers: "score our TAM", "tier the market we just sourced", "which accounts should the team work first", "why is this account tier A", "keep our accounts tiered as they arrive", "our lead scoring is a spreadsheet nobody trusts". Cargo CDK, defineAgent, webSearch, workspace context, tam_companies, tier segments. Skip when: someone hands you a list and wants it scored once, which is score-leads; or there is no account universe yet, which is tam-building.'
-version: "0.5.2"
-compatibility: "Requires the cargo-cdk skill, a Cargo CDK project, @cargo-ai/cdk 1.0.58 or later, an authenticated LLM connector (Anthropic in the example), and a model of companies to tier: tam-building's tam_companies, which this example carries a copy of. No CRM needed; a HubSpot or Salesforce connection only when the tier is written back to it. The repository example does not deploy or tier anything until an agent adapts it in the consumer project."
+description: 'Score every account against your ICP on a schedule: a deployed agent tiers each company in a Cargo model (tam-building''s, or your CRM companies) A / B / C / disqualified against the ICP and rubric in workspace context, and the tier, a two-sentence reason and evidence are written onto the row and, optionally, the matching HubSpot or Salesforce company. New companies are tiered hourly; the book is re-scored weekly or on any window set. Triggers: "score our TAM", "tier the market we just sourced", "which accounts should the team work first", "why is this account tier A", "keep our accounts tiered as they arrive", "our lead scoring is a spreadsheet nobody trusts". Cargo project, defineAgent, webSearch, context, tam_companies, tier segments. Skip when: someone hands you a list and wants it scored once, which is score-leads; or there is no account universe yet, which is tam-building.'
+version: "0.5.3"
+compatibility: "Requires the cargo-project skill, a Cargo project (cargo.json at its root), @cargo-ai/cdk 1.0.58 or later, an authenticated LLM connector (Anthropic in the example), and a model of companies to tier: tam-building's tam_companies, which this example carries a copy of. No CRM needed; a HubSpot or Salesforce connection only when the tier is written back to it. The repository example does not deploy or tier anything until an agent adapts it in the consumer project."
 homepage: https://github.com/getcargohq/gtm-skills/tree/main/account-scoring
 metadata:
   author: getcargo
@@ -26,7 +26,7 @@ metadata:
 # Account scoring
 
 **State: to-be-approved.** Deploy-verified against a live workspace: not yet. Treat `Done when`
-below as the acceptance test and review `cargo-ai cdk plan` before deploying. Make no outcome claim
+below as the acceptance test and review `cargo-ai project plan` before deploying. Make no outcome claim
 for this skill until it is approved.
 
 ## The outcome
@@ -108,24 +108,24 @@ help.
 
 ## Put it in your project
 
-This folder is a **worked example**: real CDK resources written for some other company. The job
+This folder is a **worked example**: real project resources written for some other company. The job
 is to end up with the code your company would have written, in your project, and an agent does the
 adapting.
 
-**Install the required authoring skill first.** If `cargo-cdk` is absent, run:
+**Install the required authoring skill first.** If `cargo-project` is absent, run:
 
 ```sh
-npx skills add getcargohq/cargo-skills --skill cargo-cdk
+npx skills add getcargohq/cargo-skills --skill cargo-project
 ```
 
-Then read `.agents/skills/cargo-cdk/SKILL.md` directly; no session reload is needed. Complete its
+Then read `.agents/skills/cargo-project/SKILL.md` directly; no session reload is needed. Complete its
 bootstrap and use its authoring, state, plan, and deployment rules throughout. Stop before any
 template work if the skill cannot be installed or read.
 
-1. **Install it: the CLI does the copy.** From inside the CDK project,
-   `cargo-ai cdk add cookbook/account-scoring` writes this example to `infra/account-scoring/` and
+1. **Install it: the CLI does the copy.** From inside the project (the folder holding `cargo.json`),
+   `cargo-ai project add cookbook/account-scoring` writes this example to `infra/account-scoring/` and
    this procedure to `.claude/skills/account-scoring/`. No project yet?
-   `cargo-ai cdk init <dir> --cookbook account-scoring && cd <dir> && npm install` does both.
+   `cargo-ai project init <dir> --cookbook account-scoring && cd <dir> && npm install` does both.
    **If you are reading this from the project's `.claude/skills/`, the install already happened:
    start at step 2.**
 2. **Reconcile it with tam-building.** This example carries a copy of `tam_companies` and its AI
@@ -141,8 +141,8 @@ template work if the skill cannot be installed or read.
    change_ is what you offer unprompted; _What you will be asked_ is the floor, and you derive
    before you ask. Record what you changed and why under a `## Decisions` section in your copy of
    this file. Then run `node --import tsx evals/contract.mjs` from this skill's folder, followed by
-   `cargo-ai cdk types && cargo-ai cdk check && cargo-ai cdk plan` from the project root. Show the
-   diff, and deploy only on a yes. Never run `cargo-ai cdk init --force` in a non-empty directory.
+   `cargo-ai project types && cargo-ai project check && cargo-ai project plan` from the project root. Show the
+   diff, and deploy only on a yes. Never run `cargo-ai project init --force` in a non-empty directory.
 5. **Pilot, backfill, verify.** Follow [`references/run.md`](references/run.md), then walk _Done
    when_ line by line with evidence. Deployed cleanly and tiered nothing is the normal failure.
 

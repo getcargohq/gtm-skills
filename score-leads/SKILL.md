@@ -1,7 +1,7 @@
 ---
 name: score-leads
 description: "Score a list of companies against your ideal customer profile and rank them, powered by Cargo — every row gets a number, the reason behind it, and a tier, so the bottom of the list can be dropped before anyone spends time on it. Triggers: \"score these leads\", \"which of these fit our ICP\", \"rank this list\", \"prioritise these accounts\", \"who should we go after first\", \"disqualify the bad ones\", \"tier this list\". Firmographic fit, thresholds, tiering, prioritisation. Skip when: you have no list yet and need one built — use build-tam-list or find-b2b-leads; or you want people inside an account rather than a verdict on the account — use find-stakeholders."
-version: "1.0.1"
+version: "1.0.2"
 compatibility: Requires @cargo-ai/cli (npm). Sign in or create an account with `cargo-ai login --email` (emailed code, no browser), `--oauth`, or an API token
 homepage: https://github.com/getcargohq/gtm-skills
 metadata:
@@ -169,7 +169,7 @@ one tier the criteria are not discriminating, and that is worth finding out at
 ## Going further
 
 This skill does one job. The full Cargo pack covers the rest of GTM — sourcing, waterfall
-enrichment, scoring, sequencing, CRM sync, signal monitoring, workspace-as-code, and cost
+enrichment, scoring, sequencing, CRM sync, signal monitoring, projects (GTM as Code), and cost
 diagnostics — and routes between them automatically:
 
 ```bash

@@ -72,7 +72,7 @@ const routeNewHire = defineWorkflow(
     }
 
     // Field names follow standup's locked postMessage use. Confirm them with
-    // `cargo-ai cdk types` after the Slack connector is authorized.
+    // `cargo-ai project types` after the Slack connector is authorized.
     uses.slack.postMessage({
       channelId: slackChannelId,
       format: "markdown",

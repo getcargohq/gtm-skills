@@ -26,7 +26,7 @@ Add `infra/connectors/crm.ts`:
 import { defineConnector } from "@cargo-ai/cdk";
 
 // Binds the workspace's DEFAULT HubSpot connector rather than creating one:
-// authorize it once (`cargo-ai cdk add connector/hubspot`) and this
+// authorize it once (`cargo-ai project add connector/hubspot`) and this
 // declaration resolves to it.
 export const crm = defineConnector("crm", {
   integration: "hubspot",
@@ -818,6 +818,6 @@ From this skill's folder:
 node --import tsx evals/contract.mjs
 ```
 
-Then from the project root: `cargo-ai cdk types && cargo-ai cdk check && cargo-ai cdk plan`. In
+Then from the project root: `cargo-ai project types && cargo-ai project check && cargo-ai project plan`. In
 the pilot, take one record through each route the variation adds, with the CRM record links in the
 report.

@@ -60,8 +60,8 @@ stay in that same slug. Accounts that are not in a CRM, if they land, are
 Inside a cookbook, resource slugs are snake_case: plays, workflows, tools,
 agents, segments and folders (`score_accounts`, `enrich_crm_contact`,
 `account_enrichment`, `tam_tier_analyst`, `tam_tier_a`,
-`crm_enrichment_plays`), the same as the connectors and models the CDK
-already requires it of. Workers and apps are the exception: the CDK requires
+`crm_enrichment_plays`), the same as `@cargo-ai/cdk` already requires of
+connectors and models. Workers and apps are the exception: it requires
 kebab-case for them. File names stay kebab-case (`score-accounts.ts`). A slug
 is the resource's identity in `cargo.state.json`, so renaming one after a
 deploy creates a new resource and orphans the old one: get it right before
@@ -88,7 +88,7 @@ Four parts, in order:
 
 1. The job in one sentence
 2. `Triggers:` literal quoted phrases a user would type
-3. Proper nouns (connectors, CRM, CDK)
+3. Proper nouns (connectors, CRM, Cargo project)
 4. `Skip when:` the sibling skill that should win instead
 
 Quote any YAML value that contains colon-space. Unquoted, the installer
@@ -153,7 +153,7 @@ Resources must earn their deploy:
 - Do not declare a segment that restates the play's own filter.
 - Do not add `examples/example.md` until a live install has sanitized
   audit findings, mappings, a plan summary, and lookup-backed credits.
-- A folder of CDK with no `SKILL.md` does not belong at the root. Older
+- A folder of resource code with no `SKILL.md` does not belong at the root. Older
   examples live in history: `git checkout 305cd88 -- <name>`, then write
   the skill.
 
@@ -173,7 +173,7 @@ that (connector, extractor, record-id, write action, fill-blank guard). A
 pipeline whose whole job is a CRM (crm-enrichment, crm-deduplication) keeps
 HubSpot as its checked example. No parallel branches.
 
-CDK workflow bodies must compile. These fail `cargo-cdk check` / `plan`:
+Workflow bodies must compile. These fail `cargo-ai project check` / `plan`:
 `undefined`/`void`, comma / SequenceExpression, `Date#getTime()`.
 Optional chaining (`?.`) and `??` are worse: they pass `check` and `plan`, then
 fail at run time (`OptionalMemberExpression`), after an agent step has already

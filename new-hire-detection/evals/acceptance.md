@@ -30,7 +30,7 @@ as passed.
 ## Template and compiled graph
 
 - [ ] `node --import tsx evals/contract.mjs` passes, run from the skill folder.
-- [ ] `cargo-ai cdk types`, `cargo-ai cdk check` and `cargo-ai cdk plan` pass in the consumer
+- [ ] `cargo-ai project types`, `cargo-ai project check` and `cargo-ai project plan` pass in the consumer
       project.
 - [ ] The plan shows one model with no schedule, one agent, one disabled play, and no duplicated
       connector or folder.
