@@ -1,8 +1,8 @@
 ---
 name: tam-building
 description: 'Build your total addressable market (TAM) list and stand it up as a deployed model in Cargo: your ICP, read from your context (or drafted from your website and customer stories), becomes an AI Ark company search setting industries, company size and countries, sized for free before it bills, and lands as one model other pipelines read. Triggers: "our TAM is a stale CSV", "build our account universe", "source every company that matches our ICP", "keep our market list in Cargo", "how big is our market, and give me the companies", "land our TAM as a model the other pipelines can read". Cargo CDK, aiArk, countCompanies, fetchCompanies; FullEnrich, Apollo or Sales Navigator as swapped sources. Skip when: you want a list handed back in the chat or as a CSV rather than a model in the workspace, which is build-tam-list; or the accounts already exist and need tiering, which is account-scoring.'
-version: "0.5.1"
-compatibility: "Requires the cargo-cdk skill, a Cargo CDK project, @cargo-ai/cdk 1.0.58 or later, and an authenticated AI Ark connector (or one of the swapped sources in references/sources.md). No CRM, no LLM connector, no API key, and no LinkedIn seat, user, or cookie needed (only Sales Navigator, as a swapped source, needs a seat). The repository example does not deploy or source anything until an agent adapts it in the consumer project."
+version: "0.5.2"
+compatibility: "Requires the cargo-cdk skill, a Cargo CDK project, @cargo-ai/cdk 1.0.58 or later, and an authenticated AI Ark connector (or one of the swapped sources in references/sources.md). No CRM, no LLM connector, no API key, and no LinkedIn seat, user, or cookie needed, on any source. The repository example does not deploy or source anything until an agent adapts it in the consumer project."
 homepage: https://github.com/getcargohq/gtm-skills/tree/main/tam-building
 metadata:
   author: getcargo

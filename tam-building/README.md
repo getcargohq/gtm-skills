@@ -115,12 +115,12 @@ AI Ark is the default because it is the only source that counts for free with
 the filters it bills on. [`references/sources.md`](references/sources.md)
 compares it with the other sources the contract accepts as a swap:
 
-| Source          | Pick it when                               | Watch out for                                                       |
-| --------------- | ------------------------------------------ | ------------------------------------------------------------------- |
-| AI Ark          | You want the pool size before you commit   | Enum-backed filters; per-record billing; 10,000 per sync            |
-| FullEnrich      | Budget matters, or you want a free refresh | No count; no persona, funding or lookalike filter                   |
-| Apollo          | The market is defined by hiring or funding | No industry taxonomy (keyword tags only); no free count             |
-| Sales Navigator | The market is defined by LinkedIn facets   | Needs a seat; highest per-record price; no domain; 5,000 per search |
+| Source          | Pick it when                               | Watch out for                                            |
+| --------------- | ------------------------------------------ | -------------------------------------------------------- |
+| AI Ark          | You want the pool size before you commit   | Enum-backed filters; per-record billing; 10,000 per sync |
+| FullEnrich      | Budget matters, or you want a free refresh | No count; no persona, funding or lookalike filter        |
+| Apollo          | The market is defined by hiring or funding | No industry taxonomy (keyword tags only); no free count  |
+| Sales Navigator | The market is defined by LinkedIn facets   | Highest per-record price; no domain; 5,000 per search    |
 
 People Data Labs, TheirStack, Ocean.io and CompanyEnrich are covered there too,
 with the reason each one is not a default TAM source.
