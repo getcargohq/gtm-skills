@@ -25,10 +25,6 @@ metadata:
 
 # Account scoring
 
-**State: to-be-approved.** Deploy-verified against a live workspace: not yet. Treat `Done when`
-below as the acceptance test and review `cargo-ai project plan` before deploying. Make no outcome claim
-for this skill until it is approved.
-
 ## The outcome
 
 Every company in your TAM tiered A, B, C or disqualified, with a two-sentence reason and the page
