@@ -13,7 +13,7 @@
 #   {"name":"Skill","input":{"skill":"find-work-email"}}
 # and plugin installs namespace them by PLUGIN name — `cargo:find-work-email`.
 # That is the same prefix the pack's skills carry (this plugin is `cargo@gtm`,
-# the pack is `cargo@cargo`), so the prefix cannot tell the two apart and the
+# the pack is `cargo@cargo-skills`), so the prefix cannot tell the two apart and the
 # name list below is what does: `cargo:cargo-gtm` never matches here, and
 # `cargo:find-work-email` never matches the pack's detector.
 #

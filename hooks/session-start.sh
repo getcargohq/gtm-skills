@@ -3,7 +3,7 @@
 # register the session row.
 #
 # Plugin channel only — this repo has no installer. When the pack's plugin
-# (`cargo@cargo`) or the installer's standalone hooks are present, this defers
+# (`cargo@cargo-skills`) or the installer's standalone hooks are present, this defers
 # to them; see hooks/lifecycle-guard.sh for why and in which direction it fails.
 set -u
 

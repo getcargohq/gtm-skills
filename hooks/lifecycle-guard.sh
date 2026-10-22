@@ -6,7 +6,8 @@
 #
 #   1. the installer's standalone hooks in ~/.claude/hooks/ (cargo-ai's
 #      install.sh fallback channel),
-#   2. the full pack's plugin (`cargo@cargo`, getcargohq/cargo-skills),
+#   2. the full pack's plugin (`cargo@cargo-skills`, or `cargo@cargo` on
+#      installs made before the pack's marketplace was renamed),
 #   3. this plugin (`cargo@gtm`).
 #
 # The upsert is idempotent, so a duplicate is not corrupting — but each extra
@@ -51,14 +52,16 @@ gtm_lifecycle_deferred() {
   #    than settings.json, so presence in the installed-plugins registry is the
   #    signal.
   #
-  #    Matched on the MARKETPLACE half of the id (`…@cargo`), not the plugin
-  #    half. Both plugins are named `cargo` — this one installs as `cargo@gtm`
-  #    and the pack as `cargo@cargo` — so a `cargo@` prefix match would find
-  #    THIS plugin in the registry and defer to itself, disabling the lifecycle
-  #    on every machine where it is the only one installed.
+  #    Matched on the MARKETPLACE half of the id (`…@cargo-skills`, or
+  #    `…@cargo` before the rename Claude Code forced by reserving `cargo`),
+  #    not the plugin half. Both plugins are named `cargo` — this one installs
+  #    as `cargo@gtm` and the pack as `cargo@cargo-skills` — so a `cargo@`
+  #    prefix match would find THIS plugin in the registry and defer to itself,
+  #    disabling the lifecycle on every machine where it is the only one
+  #    installed.
   _installed="$HOME/.claude/plugins/installed_plugins.json"
   if [ -f "$_installed" ]; then
-    if jq -e '[(.plugins // {}) | keys[] | select(endswith("@cargo"))] | length > 0' \
+    if jq -e '[(.plugins // {}) | keys[] | select(endswith("@cargo-skills") or endswith("@cargo"))] | length > 0' \
       "$_installed" > /dev/null 2>&1; then
       return 0
     fi
