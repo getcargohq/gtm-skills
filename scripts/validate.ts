@@ -303,12 +303,12 @@ async function checkPluginChannel(skillNames: string[]): Promise<void> {
   }
 
   // The plugin id a user types is `<plugin>@<marketplace>`. The plugin half is
-  // `cargo` on every Cargo product — the pack installs as `cargo@cargo`, this
+  // `cargo` on every Cargo product — the pack installs as `cargo@cargo-skills`, this
   // one as `cargo@gtm` — so the MARKETPLACE half is what has to differ, and it
   // must not be `cargo`: two marketplaces sharing one name cannot both be added.
   //
   // The shared plugin name is also why hooks/lifecycle-guard.sh matches the
-  // pack on `…@cargo` rather than on a `cargo@` prefix, which would match this
+  // pack on `…@cargo-skills` (or the pre-rename `…@cargo`) rather than on a `cargo@` prefix, which would match this
   // plugin's own id.
   for (const [label, manifest] of [
     [".claude-plugin/marketplace.json", claudeMarket],
