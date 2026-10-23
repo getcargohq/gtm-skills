@@ -80,10 +80,11 @@
     },
     {
       "title": "Engagement",
-      "description": "Deployed pipelines that hold the conversation: every demo request answered on the page, and an agent answering every lead who replies.",
+      "description": "Deployed pipelines that hold the conversation: every demo request answered on the page, an agent answering every lead who replies, and every reply drafted and sent once a person approves it in Slack.",
       "skills": [
         "inbound-qualification",
-        "agentic-engagement"
+        "agentic-engagement",
+        "reply-handling"
       ]
     },
     {
@@ -1917,6 +1918,156 @@
       ],
       "cost": "The evidence reads are SQL over workspace models and bill nothing. The post is `slack.postMessage`\non the bound connector; immediately before the plan, run\n`cargo-ai orchestration action list postMessage --kind connector --integration-slug slack` and read\nthe current cost out loud. The recurring cost is the harness run itself, once each weekday, billed as\nLLM tokens through the Anthropic connector. It scales with the number of call entries in the window\nand open commitments to check, not with the size of the activity log, and the run posts at most once.",
       "composesInto": "`call-capture` (the call log it reads), and `standup` (the evening recap can cite what closed today)."
+    },
+    {
+      "name": "reply-handling",
+      "kind": "cookbook",
+      "job": "Answer every reply to your cold email with a person in the loop: a deployed play emails a first touch from a mailbox in your workspace, waits on the thread, stops opt-outs with a phrase list before any model reads them, classifies the rest into fifteen classes, drafts the answer, and posts it to Slack, where a person approves, edits or declines it before it goes out in the same thread.",
+      "description": "Answer every reply to your cold email with a person in the loop: a deployed play emails a first touch from a mailbox in your workspace, waits on the thread, stops opt-outs with a phrase list before any model reads them, classifies the rest into fifteen classes, drafts the answer, and posts it to Slack, where a person approves, edits or declines it before it goes out in the same thread. Triggers: \"classify replies and draft answers for approval\", \"a human approves every reply in Slack\", \"human in the loop reply handling\", \"draft replies to our cold emails but let me approve them\", \"route replies by class: meeting, question, not now, opt-out\", \"autogtm reply loop\". Cargo project, waitEmailEvent, humanReview, Slack. Skip when: an agent should hold the conversation on its own, which is agentic-engagement; or you want one email sent now, which needs nothing deployed.",
+      "version": "0.1.0",
+      "homepage": "https://github.com/getcargohq/gtm-skills/tree/main/reply-handling",
+      "group": "Engagement",
+      "install": "cargo-ai project add cookbook/reply-handling",
+      "partOf": [],
+      "personas": [
+        "sales-development",
+        "account-executive",
+        "gtm-engineering"
+      ],
+      "integrations": [
+        "anthropic",
+        "slack"
+      ],
+      "example": {
+        "prompt": "Email each person we add with a first touch, and when they reply, draft the answer and let me approve it in #replies before it goes out.",
+        "output": "| Person (company)              | Their reply                                                       | Class (confidence)            | What happened                                                                                          |\n| ----------------------------- | ----------------------------------------------------------------- | ----------------------------- | ------------------------------------------------------------------------------------------------------ |\n| Priya Raman (northwind.example) | \"Sounds good. Thursday afternoon works, anything after 2pm.\"      | super_positive_meeting (0.92) | Card offered Thursday at 2pm or Friday at 3pm; approved with one word changed; sent in thread, `replied` |\n| Tomás Ortega (fabrikam.example) | \"Not right now. Try me again in Q2.\"                              | positive_timing (0.88)        | Draft acknowledged the window; the reviewer declined it; `declined`, nothing sent                      |\n| Sam Hale (tailspin.example)     | \"Please take me off this list.\"                                   | hard_stop                     | Stopped by the phrase list before any model ran; `suppressed`                                         |\n| Mei Lin (contoso.example)       | \"I am out of the office until Monday.\"                            | out_of_office (0.97)          | Suppressed by the rules table, no draft; `suppressed`                                                  |\n\nFour replies: one answer sent after an edit, one declined in Slack, two stopped without a draft."
+      },
+      "state": "to-be-approved",
+      "chain": 26,
+      "resources": [
+        "agents",
+        "connectors",
+        "domains",
+        "folders",
+        "mailboxes",
+        "models",
+        "plays"
+      ],
+      "asked": [
+        {
+          "input": "sendingDomain",
+          "kind": "derived",
+          "how": "A domain the workspace bought through Cargo, from `cargo.state.json`, an existing `defineDomain`, or the Cargo UI (Settings, Domains). Ask only when none exists",
+          "why": "A mailbox provisions only on a domain Cargo registered; a domain connected from another registrar answers `providerNotSupported"
+        },
+        {
+          "input": "mailboxIdentity",
+          "kind": "asked",
+          "how": "First name, last name and username of a real person (`infra/mailboxes/sender.ts`), and the same name as `senderName",
+          "why": "The From name is what the lead sees and the writer signs as. Domain, username and type are create-only"
+        },
+        {
+          "input": "mailboxCharge",
+          "kind": "asked",
+          "how": "cargo-ai mailboxManagement pricing get` for the type, said out loud as a monthly cost, approved before the deploy",
+          "why": "A mailbox bills every month until `destroy"
+        },
+        {
+          "input": "reviewChannel",
+          "kind": "asked",
+          "how": "Which channel the reviewers read. Resolve its id through the Slack connector's autocomplete and set `reviewChannelId` in `infra/settings.ts`; never type a name",
+          "why": "The card carries a lead's words. A wrong id posts them somewhere else, or nowhere, and the run waits on a card nobody sees"
+        },
+        {
+          "input": "playbook",
+          "kind": "asked",
+          "how": "Drafted from the workspace context (positioning, voice, offer) and corrected by the operator, as `reply-playbook.md` in the context repo",
+          "why": "Every claim the writer may make comes from it. A thin playbook is a writer that invents an offer"
+        },
+        {
+          "input": "languageModel",
+          "kind": "derived",
+          "how": "Whichever LLM connector the workspace already holds (`cargo-ai connection connector list`)",
+          "why": "Draft quality and the cost per reply both live here"
+        },
+        {
+          "input": "meetingGrid",
+          "kind": "derived",
+          "how": "infra/settings.ts`: weekdays, 9 to 4 on the hour, 30 minutes, the sender's UTC offset. Ask only for the offset when the sender's time zone is not in the context",
+          "why": "Every time the writer offers comes from here; a wrong offset offers 3am"
+        }
+      ],
+      "canChange": [
+        {
+          "id": "reply-mode-for-a-class",
+          "when": "Reviewers have approved one class's drafts unchanged for weeks (say `positive_timing`)",
+          "how": "Change that class to `\"reply\"` in `routingRules` (`infra/settings.ts`); the gate and `confidenceFloor` still send anything doubtful to a person",
+          "cost": "That class reaches leads with nobody reading it first. Keep the diff and the reason; review its `auto_replied` rows weekly"
+        },
+        {
+          "id": "research-first-touch",
+          "when": "Rows arrive without a fact, from a list or a form",
+          "how": "Before the writer, one web search on the person and company and a research agent that returns one grounded sentence or nothing; write it to `fact`, then let `checkRow` decide",
+          "cost": "One search and one agent call per row. An empty result still blocks the row: no fact, no email"
+        },
+        {
+          "id": "calendar-slots",
+          "when": "The sender's calendar, not a grid, should decide the times",
+          "how": "Replace `proposeSlots` (`infra/scripts/reply/propose-slots.ts`) with a free/busy lookup through a calendar connector; keep its output shape, so the gate still checks every time",
+          "cost": "A calendar connection to keep authorized and one lookup per meeting reply. The gate's instant comparison stays: the engine rewrites offsets to UTC between nodes"
+        },
+        {
+          "id": "mailbox-pool",
+          "when": "Volume above what one mailbox's ramp allows",
+          "how": "Declare several mailboxes and pick one per person by a hash of the recipient's address, in a script before the first send; use the same pick for the answer",
+          "cost": "A monthly charge per mailbox, each warming on its own. They share the domain's reputation, so this spreads the rate, not the risk"
+        },
+        {
+          "id": "crm-backed",
+          "when": "Reps live in HubSpot or Salesforce and should see the class and status there",
+          "how": "After the approved send, `updateRecords` on the contact matched by email with the class, positivity, status and reply time, `continueOnFailure: true",
+          "cost": "A CRM connection and four properties to create. A failed CRM write must not block an answer the lead is waiting for"
+        },
+        {
+          "id": "loop-alerts",
+          "when": "Nobody watches the ledger, and a stuck loop would go unnoticed",
+          "how": "defineAlert` on this play's failed runs, posting to the review channel, and one on zero runs in a day while rows are being added",
+          "cost": "Two alert resources, evaluated on a schedule. An alert on model freshness measures the model definition's age, not new rows: do not use it as a heartbeat"
+        },
+        {
+          "id": "follow-up-on-silence",
+          "when": "One more touch on a thread that stayed quiet",
+          "how": "continueOnFailure` on the wait, branch on `matched`, and a second, gated draft. Not exercised live: read the wait's failed output on a pilot row before trusting the branch",
+          "cost": "A second email per silent person, from a mailbox whose ramp you are already spending. `agentic-engagement`'s heartbeat is the tested way to handle silence"
+        }
+      ],
+      "shouldNotChange": [
+        "**A row is an email to a real person.** (`infra/models/reply-threads.ts`) Only people the operator named are added, and nobody is added to test something: the pilot uses the operator's own address. There is no dry run once the play is on.",
+        "**`changeKinds: [\"added\"]` stays.** (`infra/plays/handle-replies.ts`) Every stage writes the row. Enrol on updates too and each ledger write starts the conversation again: a second first touch to the same person.",
+        "**The hard stop runs before any model.** (`infra/scripts/reply/screen-reply.ts`) Move it after the classifier and an opt-out is read, drafted and, in Reply Mode, answered.",
+        "**The play sends the first touch, from the declared mailbox.** (`infra/plays/handle-replies.ts`) The wait keys off that message: a thread a sequencer started is one this play never hears back on. A mailbox computed per run answers from an address the lead did not write to.",
+        "**Answers carry `inReplyTo` and the full `references` chain, oldest first.** (`infra/plays/handle-replies.ts`) Without them mail clients split the conversation, and the lead sees a new email from a stranger.",
+        "**The decision is read from the review node's output.** (`infra/plays/handle-replies.ts`) `nodes.humanReview.approved === true`, in a script after the review. Branch on what `humanReview(...)` returns instead and every approval is recorded as a decline.",
+        "**The gate fails closed.** (`infra/scripts/reply/check-draft.ts`) Any flag sends the draft to a person whatever the rule says, and a flagged first touch is not sent at all. Loosen it and the first lead to see a machine tell is the one who reports it.",
+        "**No fact, no email.** (`infra/scripts/reply/check-row.ts`) A first touch with nothing true to say is the shape of spam, and it spends the mailbox's reputation on everyone else.",
+        "**Times come only from the slot step.** (`reply-writer.prompt.ts`, `check-draft.ts`) The writer may not invent availability, and the gate flags any time the slots did not offer. A writer left to reason about the calendar once refused the exact day the reader asked for.",
+        "**Routing rules are code, and every class starts in Human Mode.** (`infra/settings.ts`) A rule someone can flip in a UI is a rule nobody reviewed. `hard_stop`, `spam` and `out_of_office` are never answered.",
+        "**The agents hold nothing.** (`infra/agents/`) The writer and the classifier return text; only the play writes and sends. An agent that can send decides its own routing.",
+        "**Company knowledge lives in the context repo.** (`reply-playbook.md`) In the prompt, a change of offer becomes a deploy and stops being reviewable."
+      ],
+      "doneWhen": [
+        "`cargo-ai project plan` showed the domain, the mailbox, `reply_threads`, both agents and the play disabled, and the operator approved the monthly mailbox line against a live `pricing get`",
+        "`node --import tsx evals/contract.mjs` passes against the adapted resources",
+        "the mailbox is `active`, warm-up has started, and `get-send-allowance` returns a daily limit",
+        "the pilot row for the operator's own address received a first touch from the declared address, and the row reads `waiting` with `touch_message_uuid` set",
+        "the operator's reply woke the run: the context post and the review card landed in the review channel, and the row reads `pending_review` with a class, a confidence and a gate result",
+        "an approval after an edit sent the edited answer in the same thread (same subject with `Re:`, threaded in the operator's mail client), and the row reads `replied` with `review_decision` `edited` and the reviewer's name",
+        "a reply saying \"please remove me\" from a second address ended at `suppressed` with `routing_reason` naming the phrase, and its run trace shows no agent node after the wait",
+        "a decline sent nothing and the row reads `declined`",
+        "no class in `routingRules` is `\"reply\"`, unless the operator changed one and the reason is recorded under `## Decisions`"
+      ],
+      "cost": "Fetch live prices before every estimate, and quote the lookup time with the estimate.\n\n**The mailbox is the fixed cost.** A monthly, recurring charge for as long as it exists: read\n`monthlyCredits` from `cargo-ai mailboxManagement pricing get` for the type and say it as a\nper-month figure. `destroy` is the only way it stops. Adopting a domain costs nothing; a\n`+ create domain:…` line in the plan is a separate, non-refundable registration.\n\n**Each person costs one writer call, one send and the run's node executions.** Each reply that is\nnot stopped by the phrase list adds one classifier call, one writer call and, when approved, one\nmore send. Read the per-send price with `cargo-ai connection native-integration get` (or\n`orchestration action list sendEmail`), and the model's price from the LLM connector. The pilot's\nactual credits per person and per reply are the numbers to multiply.\n\n**The ramp is the real limit, and it is time, not credits.** A mailbox starts at five real sends a\nday and reaches its target over forty-five days of warm-up. Cargo spaces sends by the daily ceiling,\none every 1440 minutes divided by the ceiling, so at five a day a send waits up to 288 minutes for\nits slot. The approved answer takes a slot too. Check `mailbox get-send-allowance` before promising\nvolume, and add mailboxes (`mailbox-pool`) rather than expecting one to send faster.",
+      "composesInto": "`customer-lookalikes` (the people worth a first touch, with the fact to open on),\n`new-hire-detection` (people who just took a role you sell to), and `account-scoring` (who to add\nfirst). `agentic-engagement` is the next step for a class whose drafts no longer need a person, and\n`meeting-prep` takes over once a reply becomes a meeting."
     },
     {
       "name": "research-account",
