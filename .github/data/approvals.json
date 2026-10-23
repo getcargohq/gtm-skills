@@ -124,5 +124,11 @@
     "chain": 23,
     "demoWorkspace": "2026-10-09",
     "implementations": []
+  },
+  "agent-readiness": {
+    "state": "to-be-approved",
+    "chain": 24,
+    "demoWorkspace": null,
+    "implementations": []
   }
 }
