@@ -1381,7 +1381,7 @@
         "prompt": "Every week, look at our goal and what we have running, and tell us which pipelines we are missing.",
         "output": "```text\nGoal coverage, 2026-W44: \"Reach $8M ARR by 2026-12-31, up from $5.2M on 2026-06-30.\"\n\n1. Outbound to mid-market is a third of the forecast and nothing tells you\n   when to reach out: 1,840 tier A accounts, none watched for a new hire. Flag\n   the week a tier A account hires the role you sell to (`new-hire-detection`).\n2. Expansion is $1.1M of the plan and no account is watched for it: 312\n   customers, no usage or seat signal on any. Flag the customers ready to grow\n   (`expansion-signals`). Needs the HubSpot connector first.\n3. Still missing, first suggested 2026-W42: every demo request answered on the\n   page (`inbound-qualification`).\n\nDecline or adopt in the pull request: github.example/acme/gtm/pull/212\n```\n\nThree suggestions where five were allowed, each opening on a number from the workspace, and the\nscoring model declined in W43 is not among them."
       },
-      "state": "to-be-approved",
+      "state": "approved",
       "chain": 24,
       "resources": [
         "agents",
@@ -3050,7 +3050,7 @@
         "prompt": "Every morning, check our Cargo workspace and tell me in Slack if anything broke.",
         "output": "```text\nWorkspace health: 3 new findings\n\n1. HubSpot sync lost its connector: 212 of 230 runs failed since 06:10 with\n   401 unauthorized at the write step. Re-authorize the HubSpot connector.\n2. Tier Accounts has not run since Oct 19 (it averaged 3 runs a day): the play\n   is disabled. Re-enable it if that was not on purpose.\n3. Enrich new signups succeeded 140 times and wrote no company size on 131 of\n   them. Open run 7c1e… to see what the provider returned.\n```\n\nOn Mondays: \"Workspace health, week of Oct 26: 1 still open (Tier Accounts), 2 cleared, 0 checks\nskipped.\""
       },
-      "state": "to-be-approved",
+      "state": "approved",
       "chain": 25,
       "resources": [
         "agents",

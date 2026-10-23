@@ -25,10 +25,6 @@ metadata:
 
 # Goal coverage
 
-**State: to-be-approved.** Deploy-verified against a live workspace: not yet. Treat `Done when`
-below as the acceptance test and review `cargo-ai project plan` before deploying. Make no outcome claim
-for this skill until it is approved.
-
 ## The outcome
 
 Nobody has to know the catalog to know what is missing. Once a week one agent compares the goal

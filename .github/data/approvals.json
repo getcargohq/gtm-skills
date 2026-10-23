@@ -126,15 +126,15 @@
     "implementations": []
   },
   "goal-coverage": {
-    "state": "to-be-approved",
+    "state": "approved",
     "chain": 24,
-    "demoWorkspace": null,
+    "demoWorkspace": "2026-10-23",
     "implementations": []
   },
   "workspace-health": {
-    "state": "to-be-approved",
+    "state": "approved",
     "chain": 25,
-    "demoWorkspace": null,
+    "demoWorkspace": "2026-10-23",
     "implementations": []
   }
 }
