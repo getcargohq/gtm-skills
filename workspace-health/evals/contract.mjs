@@ -63,6 +63,19 @@ assert.equal(
   "workspace-health needs no capability: the read path is the cargo-ai CLI in the sandbox",
 );
 
+// The sandbox's Cargo session is a viewer service user, never the deployer.
+// Without `runAs` the CLI has no session and every workspace read fails; with a
+// broader role a prompt that is ignored can deploy or change resources.
+assert.ok(
+  agent.spec.repository?.runAsUserUuid,
+  "workspace-health must run as a service user (repository.runAs): the sandbox needs a Cargo session",
+);
+const user = byId.get("user:workspace_health");
+assert.ok(user, "defineUser(workspace_health) must exist");
+assert.equal(user.spec.kind, "service", "workspace_health must be a service user");
+const role = byId.get("role:viewer");
+assert.ok(role?.spec.adopt === true, "workspace_health must hold the adopted viewer system role");
+
 const actions = agent.spec.connectorActions ?? [];
 assert.equal(
   actions.length,

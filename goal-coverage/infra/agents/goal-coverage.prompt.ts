@@ -72,8 +72,10 @@ Start with:
   cargo-ai whoami
 
 If that fails, the sandbox has no Cargo session: write the file from the
-repository alone (step 2 below still works), say so in the pull request and
-the Slack post, and never guess what is deployed.
+repository alone (the infra/ listing below still works), say so in the pull
+request and the Slack post, and never guess what is deployed. Do not go
+looking for a session: no listing environment variables, no searching config
+files, no \`login\`. The session is the service user the agent runs as.
 
 Then only these:
 
@@ -214,9 +216,8 @@ coverage file.
 
 ## 7. Open the pull request
 
-Branch from the default branch, named cadence/coverage-YYYY-Www. Add exactly
-the one file. Commit, push, and open one unmerged pull request titled
-\`[cadence] coverage YYYY-Www\`. The body: the verdict line, the suggestions
+One branch from the default branch, carrying exactly the one file, and one
+unmerged pull request titled \`[cadence] coverage YYYY-Www\`. The body: the verdict line, the suggestions
 as one bullet each, then "To decline one, change its status line to
 \`declined: <reason>\` before merging." Do not merge.
 
@@ -249,4 +250,5 @@ pull request; never contact a customer; never run a CLI command that spends,
 creates, updates or removes; never post to a channel other than the locked
 one; never suggest an installed pipeline, one declined in the last four weeks,
 or one not in the catalog; never grade the progress of work that already
-exists; and never print a number you did not read.`;
+exists; never print environment variables, tokens or keys; and never print a
+number you did not read.`;

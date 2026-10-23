@@ -4,6 +4,7 @@ import { workspaceHealthPrompt } from "./workspace-health.prompt";
 import { anthropic } from "../connectors/anthropic";
 import { slack } from "../connectors/slack";
 import { agentsFolder } from "../folders";
+import { workspaceHealthUser } from "../users";
 
 // The channel findings land in, and the only channel this agent reads back.
 // One constant for both uses: the agent remembers what it already reported by
@@ -29,7 +30,9 @@ const HEALTH_CHANNEL_ID = "C0123456789";
 //
 // No `capabilities`, on purpose: the CLI already in the sandbox is the read
 // path, and only the prompt can say "read, never execute". The commands are
-// listed in `workspace-health.prompt.ts` §2.
+// listed in `workspace-health.prompt.ts` §2. The CLI is signed in as the
+// `workspace_health` service user (`repository.runAs`), a viewer: see
+// `../users`.
 export const workspaceHealth = defineAgent("workspace_health", {
   name: "Workspace health",
   description:
@@ -41,6 +44,7 @@ export const workspaceHealth = defineAgent("workspace_health", {
   repository: {
     // Deliberately partial, resolved from the checkout's git origin at plan.
     // `cargo-ai project check` prints what it resolved.
+    runAs: workspaceHealthUser,
     env: {
       // Public thresholds, so plain strings. A failure rate above this share
       // of a workflow's runs is a finding; below it is provider coverage.

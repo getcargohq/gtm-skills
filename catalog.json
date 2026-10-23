@@ -1416,6 +1416,7 @@
         }
       ],
       "shouldNotChange": [
+        "**The sandbox runs as a viewer service user.** (`infra/users/index.ts`) With no `runAs` the `cargo-ai` session is missing and every workspace read fails; with a broader role a prompt that is ignored can deploy or edit a resource.",
         "**It suggests only what the fetched catalog lists.** (`goal-coverage.prompt.ts` §3) A pipeline named from memory may have been renamed or removed, and the install line then fails on the one command the reader was persuaded to run.",
         "**It never installs, deploys or enables anything.** (`goal-coverage.prompt.ts` §2, Never) The suggestion is a sentence; the install is a decision with a cost the agent does not see (a connector to authorize, credits on every run).",
         "**Every observation carries a number it read.** (`goal-coverage.prompt.ts` §5) \"You may want scoring\" is a pitch; \"4,200 accounts, none scored\" is a finding. A number it did not read is worse than none, because the reader repeats it.",
@@ -1423,7 +1424,7 @@
         "**The decline memory is the coverage file.** (`goal-coverage.prompt.ts` §4) Drop the pull request and a declined suggestion returns every Tuesday until someone mutes the post."
       ],
       "doneWhen": [
-        "`node --import tsx evals/contract.mjs` passes: a `claudeCode` harness bound to an Anthropic connector and a model, no capability, exactly one connector action (`slack.postMessage` with the channel locked), and a `COVERAGE_GOAL` env entry",
+        "`node --import tsx evals/contract.mjs` passes: a `claudeCode` harness bound to an Anthropic connector and a model, `runAs` a viewer service user, no capability, exactly one connector action (`slack.postMessage` with the channel locked), and a `COVERAGE_GOAL` env entry",
         "`cargo-ai project plan` reports the agent, its folder, and the three connectors",
         "the first run opened one unmerged pull request titled `[cadence] coverage <YYYY-Www>` whose diff is exactly `cadence/coverage/<YYYY-Www>.md`, with the goal quoted verbatim and at most five suggestions, each ending `status: open`",
         "no suggestion names a pipeline that is installed by any of the three signals, or one that is not in the catalog",
@@ -3084,6 +3085,7 @@
         }
       ],
       "shouldNotChange": [
+        "**The sandbox runs as a viewer service user.** (`infra/users/index.ts`) With no `runAs` the `cargo-ai` session is missing and every workspace read fails; with a broader role a prompt that is ignored can deploy or edit a resource.",
         "**It reports and never fixes.** (`workspace-health.prompt.ts` §2, Never) A rerun bills again, a cancel can drop work in flight, and a disabled play may be disabled on purpose. A watcher that acts on its own findings is a second operator nobody reviews.",
         "**The post and the read-back share one locked channel.** (`HEALTH_CHANNEL_ID`) That read-back is the only memory. Split them and every finding is reposted every morning.",
         "**Never report a clean workspace it could not read.** (`workspace-health.prompt.ts` §2) A failed `whoami` posts the error. A silent watcher with no session reads exactly like a healthy workspace.",
@@ -3091,7 +3093,7 @@
         "**A threshold, not every error.** (`HEALTH_ERROR_RATE`) Enrichment that finds no email for some records is coverage, not breakage. Report every error and the channel is muted inside a week."
       ],
       "doneWhen": [
-        "`node --import tsx evals/contract.mjs` passes: a `claudeCode` harness bound to an Anthropic connector and a model, no capability, exactly two connector actions (`slack.postMessage` and `slack.getConversationHistory`) locked to the same channel, a daily cron, and all three threshold env entries",
+        "`node --import tsx evals/contract.mjs` passes: a `claudeCode` harness bound to an Anthropic connector and a model, `runAs` a viewer service user, no capability, exactly two connector actions (`slack.postMessage` and `slack.getConversationHistory`) locked to the same channel, a daily cron, and all three threshold env entries",
         "`cargo-ai project plan` reports the agent, its folder, and the three connectors",
         "the first run with a known problem in the workspace (a disabled play that used to run, or a workflow failing above the threshold) posted it once, naming the play and the cause",
         "every number in the post matches the same read re-run by hand",

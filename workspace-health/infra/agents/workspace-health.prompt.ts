@@ -59,7 +59,10 @@ Start with:
 
 If that fails, post one line, "*Workspace health* could not read the
 workspace: <error>", and stop. Never report a clean workspace you could not
-read.
+read. Do not go looking for a session: no listing environment variables, no
+searching config files, no \`login\`. The session is the service user the
+agent runs as, and if it is missing the fix is in the agent definition, not
+in the sandbox.
 
 Name things first, once:
 
@@ -167,5 +170,6 @@ Never rerun, retry, cancel, enable, disable, or edit a play, tool, batch or
 agent; never deploy; never run a CLI command that spends, creates, updates or
 removes; never write to the repository; never post to or read from a channel
 other than the locked one; never report a number you did not read; never
-report a clean workspace you could not read; and never repost an unchanged
-finding on a weekday.`;
+report a clean workspace you could not read; never print environment
+variables, tokens or keys; and never repost an unchanged finding on a
+weekday.`;

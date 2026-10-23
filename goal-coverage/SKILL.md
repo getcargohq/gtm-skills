@@ -2,7 +2,7 @@
 name: goal-coverage
 description: 'Find what your goal needs that the workspace has not built: once a week a deployed agent reads the company goal, takes stock of every play, agent, model and connector in the workspace, and suggests at most five missing pipelines from the published catalog, each opened with what it noticed ("thousands of accounts, none scored"), as a pull request you can decline lines in and a Slack post. Triggers: "what should we be running", "what are we missing for our goal", "suggest new plays for our goal", "which pipelines should we set up next", "we have 25 plays and do not know which 5 matter", "tell us what to build, do not wait to be asked". Cargo project, defineAgent, harness claudeCode, catalog.json, plan/company-plan.md, Slack. Skip when: you want existing initiatives graded against last week''s runs, which is weekly-planning; or something deployed is failing, which is workspace-health.'
 version: "0.1.0"
-compatibility: "Requires @cargo-ai/cli with @cargo-ai/cdk 1.0.67 or later (harness agents rooted at the package.json that declares @cargo-ai/cdk). Also needs a Cargo workspace, an authenticated Anthropic connector, a Slack connector, and a GTM repository. The goal is read from plan/company-plan.md when it exists, otherwise from COVERAGE_GOAL on the agent."
+compatibility: "Requires @cargo-ai/cli with @cargo-ai/cdk 1.0.104 or later (harness agents rooted at the package.json that declares @cargo-ai/cdk, and `repository.runAs` with `defineUser`). Also needs a Cargo workspace, an authenticated Anthropic connector, a Slack connector, and a GTM repository. The goal is read from plan/company-plan.md when it exists, otherwise from COVERAGE_GOAL on the agent."
 homepage: https://github.com/getcargohq/gtm-skills/tree/main/goal-coverage
 metadata:
   author: getcargo
@@ -123,6 +123,7 @@ is enough.
 | the goal | value | **derived** when `plan/company-plan.md` exists: the agent reads its "## The one goal" section. **asked** only when it does not: one sentence with a number and a date, set as `COVERAGE_GOAL` in `infra/agents/goal-coverage.ts`. | Every suggestion is ranked against it and quotes it. A goal without a number ("grow pipeline") cannot rank anything, so ask for the number. |
 | Slack channel (`infra/agents/goal-coverage.ts`) | value | **asked**: which channel the revenue leader reads. Resolve the name to its `C…` id with the Slack connector's channel autocomplete, never type an id. | Locked on the use so the agent cannot post internal suggestions into a customer channel. |
 | repository binding | value | **derived**: leave `repository` unset; `plan` fills it from the checkout's git origin. `cargo-ai project check` prints it: confirm it names your repo and no trailing `in infra/`. | It is where the coverage file lands and where next week's memory is read from. |
+| service user (`infra/users/index.ts`) | value | **derived**: `goal_coverage`, a service user on the adopted `viewer` system role. Deploying creates it; the deploying user's own role must cover viewer. If the project already adopts `viewer`, import that role instead of declaring it twice. | Every run's `cargo-ai` session. Without it the sandbox has no session and every workspace read fails. Viewer reads folders, plays, agents, models and connectors but cannot deploy or change a resource. |
 | Anthropic, GitHub, Slack connectors | value | **derived**: `cargo-ai connection connector list`; add a missing one with `cargo-ai project add connector/<name>`. All three are `default: true` because a deploy cannot mint an OAuth grant. | The model the run is billed against, the pull request path, and the post. |
 
 ## What you can change
@@ -136,6 +137,9 @@ is enough.
 
 ## What should not change
 
+- **The sandbox runs as a viewer service user.** (`infra/users/index.ts`) With no `runAs` the
+  `cargo-ai` session is missing and every workspace read fails; with a broader role a prompt that
+  is ignored can deploy or edit a resource.
 - **It suggests only what the fetched catalog lists.** (`goal-coverage.prompt.ts` §3) A pipeline
   named from memory may have been renamed or removed, and the install line then fails on the one
   command the reader was persuaded to run.
@@ -154,7 +158,7 @@ is enough.
 ## Done when
 
 - `node --import tsx evals/contract.mjs` passes: a `claudeCode` harness bound to an Anthropic
-  connector and a model, no capability, exactly one connector action (`slack.postMessage` with the
+  connector and a model, `runAs` a viewer service user, no capability, exactly one connector action (`slack.postMessage` with the
   channel locked), and a `COVERAGE_GOAL` env entry
 - `cargo-ai project plan` reports the agent, its folder, and the three connectors
 - the first run opened one unmerged pull request titled `[cadence] coverage <YYYY-Www>` whose diff is

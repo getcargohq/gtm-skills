@@ -4,6 +4,7 @@ import { goalCoveragePrompt } from "./goal-coverage.prompt";
 import { anthropic } from "../connectors/anthropic";
 import { slack } from "../connectors/slack";
 import { agentsFolder } from "../folders";
+import { goalCoverageUser } from "../users";
 
 // Goal coverage: a Claude Code harness agent, not a streamText agent.
 //
@@ -29,7 +30,8 @@ import { agentsFolder } from "../folders";
 // No `capabilities`, on purpose. What is deployed (plays, agents, models,
 // connectors, folders) is read with Cargo's own CLI, which the harness already
 // has, and only the prompt can say "read, never execute". The commands are
-// listed in `goal-coverage.prompt.ts` §2.
+// listed in `goal-coverage.prompt.ts` §2. The CLI is signed in as the
+// `goal_coverage` service user (`repository.runAs`), a viewer: see `../users`.
 export const goalCoverage = defineAgent("goal_coverage", {
   name: "Goal coverage",
   description:
@@ -43,6 +45,7 @@ export const goalCoverage = defineAgent("goal_coverage", {
     // the GitHub `connector` are omitted so plan and deploy fill them from the
     // git origin of the checkout. `cargo-ai project check` prints what it
     // resolved; verify it names the repository root and not `infra/`.
+    runAs: goalCoverageUser,
     env: {
       // PLACEHOLDER: the goal, in one sentence, for a project with no
       // plan/company-plan.md. Leave it empty when that file exists: the file
