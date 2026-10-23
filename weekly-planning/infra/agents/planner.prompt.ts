@@ -214,6 +214,12 @@ The gap is a mismatch, not a vibe:
 Fleet volume is not a recommendation: never report PRs opened, PRs merged,
 or runs green as the thing to do next.
 
+A pipeline the workspace has not built at all is not your recommendation.
+Which pipelines the goal still needs is goal coverage's question; you grade
+the bets that exist. When an initiative has nothing in infra/ serving it,
+say so in The gap and recommend that its owner decide what serves it, not a
+named pipeline to install.
+
 Recommendations are at most three bullets, in the voice above. Each names
 the action, the owner if the initiative or roster names one, when, and the
 evidence. Not "work on outbound". A quiet workspace with no initiatives still gets one to three
