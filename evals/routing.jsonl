@@ -117,6 +117,12 @@
 {"prompt": "Keep talking to leads over email", "expect": "agentic-engagement", "why": "The standing tell: a loop, not one send."}
 {"prompt": "Native email trigger for lead replies", "expect": "agentic-engagement"}
 {"prompt": "I need email addresses for these prospects so I can start conversations", "expect": "find-work-email", "why": "Addresses first; agentic-engagement is the loop you deploy after you have someone to write to."}
+{"prompt": "Draft answers to the replies on our cold emails and let me approve each one in Slack before it sends", "expect": "reply-handling", "why": "A person approves every answer: the supervised loop, not the agent that answers on its own."}
+{"prompt": "Classify the replies to our outbound and route them by class: meetings, questions, not now, unsubscribes", "expect": "reply-handling"}
+{"prompt": "Human in the loop reply handling for our outbound email", "expect": "reply-handling"}
+{"prompt": "Set up the AutoGTM reply loop on our mailbox", "expect": "reply-handling"}
+{"prompt": "Keep talking to leads over email with an agent, no human in the loop", "expect": "agentic-engagement", "why": "No person in the loop: the agent holds the conversation on its own, which is agentic-engagement."}
+{"prompt": "Let an agent answer every lead who replies, no approval step", "expect": "agentic-engagement", "tier": "hard", "why": "The negation is the whole signal, and a lexical ranker cannot read it: approval words point at reply-handling. A model routes it to the agent."}
 {"prompt": "Post the daily standup to slack", "expect": "standup"}
 {"prompt": "End of day report in slack", "expect": "standup"}
 {"prompt": "What happened today posted to slack", "expect": "standup", "why": "The standing tell: posted, every evening, not a recap in this chat."}

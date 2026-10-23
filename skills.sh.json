@@ -81,10 +81,11 @@
     },
     {
       "title": "Engagement",
-      "description": "Deployed pipelines that hold the conversation: every demo request answered on the page, and an agent answering every lead who replies.",
+      "description": "Deployed pipelines that hold the conversation: every demo request answered on the page, an agent answering every lead who replies, and every reply drafted and sent once a person approves it in Slack.",
       "skills": [
         "inbound-qualification",
-        "agentic-engagement"
+        "agentic-engagement",
+        "reply-handling"
       ]
     },
     {
