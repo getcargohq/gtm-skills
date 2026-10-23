@@ -21,7 +21,11 @@ cargo-ai project add cookbook/account-scoring
    `infra/settings.ts` and the same run then updates the matching CRM company
    (by domain, or by record id when the play runs on a CRM model) with tier,
    reason and scored-at, in three properties you create and name. It updates,
-   never creates, and writes no other field. The default is `none`.
+   never creates, and writes no other field. When the domain or id matches
+   more than one CRM company (duplicates), it writes to none of them: the
+   update sets `isFailingOnMultipleMatches`, so the CRM step fails with the
+   match count instead of tiering every duplicate, and the row in Cargo is
+   still tiered. The default is `none`.
 
 ```ts
 // infra/settings.ts

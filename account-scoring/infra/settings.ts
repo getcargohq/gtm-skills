@@ -18,6 +18,8 @@ export const rescoreAfter = "6 months";
 // `hubspot` or `salesforce` adds one update after the row write: it finds the
 // CRM company matching this row and sets the three fields named below. It
 // never creates a record, and it never writes a field you did not name here.
+// When the match value finds more than one CRM company, it writes to none of
+// them (`isFailingOnMultipleMatches` on the update, in the play).
 // The fields must exist in the CRM before the first run (see SKILL.md,
 // `crm-writeback`).
 export type CrmWriteback =

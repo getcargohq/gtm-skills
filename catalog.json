@@ -115,7 +115,7 @@
       "kind": "cookbook",
       "job": "Score every account against your ICP on a schedule: a deployed agent tiers each company in a Cargo model (tam-building's, or your CRM companies) A / B / C / disqualified against the ICP and rubric in workspace context, and the tier, a two-sentence reason and evidence are written onto the row and, optionally, the matching HubSpot or Salesforce company. New companies are tiered hourly; the book is re-scored weekly or on any window set.",
       "description": "Score every account against your ICP on a schedule: a deployed agent tiers each company in a Cargo model (tam-building's, or your CRM companies) A / B / C / disqualified against the ICP and rubric in workspace context, and the tier, a two-sentence reason and evidence are written onto the row and, optionally, the matching HubSpot or Salesforce company. New companies are tiered hourly; the book is re-scored weekly or on any window set. Triggers: \"score our TAM\", \"tier the market we just sourced\", \"which accounts should the team work first\", \"why is this account tier A\", \"keep our accounts tiered as they arrive\", \"our lead scoring is a spreadsheet nobody trusts\". Cargo project, defineAgent, webSearch, context, tam_companies, tier segments. Skip when: someone hands you a list and wants it scored once, which is score-leads; or there is no account universe yet, which is tam-building.",
-      "version": "0.5.3",
+      "version": "0.5.4",
       "homepage": "https://github.com/getcargohq/gtm-skills/tree/main/account-scoring",
       "group": "Fundamentals",
       "install": "cargo-ai project add cookbook/account-scoring",
@@ -186,7 +186,7 @@
           "id": "crm-writeback",
           "when": "Reps work in HubSpot or Salesforce and the tier should be visible there",
           "how": "Set `crmWriteback` in `infra/settings.ts`: the CRM, `matchOn` (`domain`, or `id` when the play runs on a CRM companies model), the match property, and the three field names",
-          "cost": "A CRM connection and three CRM properties to maintain. A miss ends the run green, so the pilot reads one CRM record back"
+          "cost": "A CRM connection and three CRM properties to maintain. A miss ends the run green, so the pilot reads one CRM record back. A domain shared by duplicate CRM companies tiers none of them"
         },
         {
           "id": "crm-accounts",
@@ -227,6 +227,7 @@
         "**A tier ships with its rationale, its evidence, and its stamp, on the same write.** (`infra/plays/tier-accounts.ts`) A tier nobody can audit is a number a rep will not trust, and a tier with no stamp is judged again on every tick.",
         "**`changeKinds: [\"added\"]` stays.** (`infra/plays/tier-accounts.ts`) Runs are created for rows entering the filter. Without it, the LLM bill scales with how often the cron fires.",
         "**The CRM write-back updates, never creates, and writes only the fields named in `settings.ts`.** (`infra/plays/tier-accounts.ts`) `upsertRecords` would create a CRM company for every TAM row the CRM does not hold, and a field nobody named is a CRM value overwritten without a decision. It runs after the row write, so the row is the record of the judgment whatever the CRM does.",
+        "**The CRM write-back fails on multiple matches.** (`infra/plays/tier-accounts.ts`) The update sets `isFailingOnMultipleMatches: true`, so a domain that matches two CRM companies writes to neither and the CRM step fails with the match count. Remove it and every duplicate gets the tier, and nothing shows that the CRM holds the company twice.",
         "**Every tier the agent can emit has a segment.** (`infra/segments/tiers.ts`) A tier with no segment is a row that lands nowhere and quietly disappears from the book."
       ],
       "doneWhen": [

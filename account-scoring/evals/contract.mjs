@@ -219,6 +219,13 @@ if (crmWriteback.crm === "none") {
     crmWriteback.matchProperty,
     "the CRM write-back must match on the property settings.ts names",
   );
+  // A boolean literal compiles to a `{{ true }}` template expression, which
+  // the engine resolves type-preserving before the config is validated.
+  const failOnMultiple = crmWrite.config.isFailingOnMultipleMatches;
+  assert.ok(
+    failOnMultiple === true || failOnMultiple?.expression === "{{ true }}",
+    "the CRM write-back must set isFailingOnMultipleMatches: without it, every duplicate CRM company sharing the match value is tiered",
+  );
   const crmFields = crmWrite.config.mappings.map(
     (mapping) => mapping.propertyName,
   );
