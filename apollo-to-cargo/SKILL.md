@@ -1,7 +1,7 @@
 ---
 name: apollo-to-cargo
 description: "Rebuild an Apollo list on Cargo and price the two side by side before you move anything, powered by Cargo. Triggers: \"Apollo alternative\", \"migrate off Apollo\", \"move my Apollo list to Cargo\", \"replace Apollo.io\", \"I have an Apollo export\", \"Apollo credits ran out\", \"is Cargo cheaper than Apollo\", \"Apollo coverage is bad in my niche\". Providers: apolloio, waterfall. Skip when: you are porting a Clay table rather than an Apollo list — use clay-to-cargo; or you simply want contacts sourced and have nothing to migrate — use find-b2b-leads."
-version: "1.0.2"
+version: "1.0.3"
 compatibility: Requires @cargo-ai/cli (npm). Sign in or create an account with `cargo-ai login --email` (emailed code, no browser), `--oauth`, or an API token
 homepage: https://github.com/getcargohq/gtm-skills
 metadata:
@@ -162,7 +162,7 @@ with it.
 - **Do not quote a saving you have not measured.** The comparison above exists because the answer
   varies by niche: Apollo's coverage is genuinely strong in some segments and thin in others, and
   the sample is what tells you which one you are in.
-- **`apolloio.enrichPerson` costs 3 rather than 1 with `revealPhoneNumber: true`.** Leave it off
+- **`apolloio.enrichPerson` costs 9 rather than 1 with `revealPhoneNumber: true`.** Leave it off
   unless phones are the reason for the migration, and say so when you turn it on.
 - **An Apollo export is a snapshot.** Rows exported months ago carry stale titles and stale
   companies, so a low hit rate on an old export is a fact about the export, not about either

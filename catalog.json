@@ -353,7 +353,7 @@
       "kind": "one-off",
       "job": "Rebuild an Apollo list on Cargo and price the two side by side before you move anything.",
       "description": "Rebuild an Apollo list on Cargo and price the two side by side before you move anything, powered by Cargo. Triggers: \"Apollo alternative\", \"migrate off Apollo\", \"move my Apollo list to Cargo\", \"replace Apollo.io\", \"I have an Apollo export\", \"Apollo credits ran out\", \"is Cargo cheaper than Apollo\", \"Apollo coverage is bad in my niche\". Providers: apolloio, waterfall. Skip when: you are porting a Clay table rather than an Apollo list — use clay-to-cargo; or you simply want contacts sourced and have nothing to migrate — use find-b2b-leads.",
-      "version": "1.0.2",
+      "version": "1.0.3",
       "homepage": "https://github.com/getcargohq/gtm-skills",
       "group": "Coming from another tool",
       "install": "npx skills add getcargohq/gtm-skills/apollo-to-cargo",
@@ -373,7 +373,7 @@
       "cost": "| Action | Credits |\n|---|---|\n| `waterfall.verifyEmail` | 0.1 |\n| `apolloio.enrichPerson` | 1 |\n| `apolloio.enrichOrganization` | 1 |\n| `waterfall.enrichContact` | 2 |\n\nA 20-row comparison running both sides is roughly 20 × (1 + 2 + 0.1 × 2), around 64 credits,\nwhich fits inside the free balance a new account starts with.\n\n**Never run this across a full list on the first attempt.** Sample 10–20 records, report the\nobserved cost and hit-rate, then get the user to approve the full run — quoting the record count\nand the credit estimate. A batch fans out across every record in the source, and the bill scales\nwith it.",
       "worthKnowing": [
         "**Do not quote a saving you have not measured.** The comparison above exists because the answer varies by niche: Apollo's coverage is genuinely strong in some segments and thin in others, and the sample is what tells you which one you are in.",
-        "**`apolloio.enrichPerson` costs 3 rather than 1 with `revealPhoneNumber: true`.** Leave it off unless phones are the reason for the migration, and say so when you turn it on.",
+        "**`apolloio.enrichPerson` costs 9 rather than 1 with `revealPhoneNumber: true`.** Leave it off unless phones are the reason for the migration, and say so when you turn it on.",
         "**An Apollo export is a snapshot.** Rows exported months ago carry stale titles and stale companies, so a low hit rate on an old export is a fact about the export, not about either vendor. Check the export date before reading anything into the numbers."
       ]
     },
