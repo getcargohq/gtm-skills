@@ -69,7 +69,10 @@ Check by hand:
   a lapsed connection all end the run green; this read is what tells them
   apart. Read the `updateRecords` node of one run whose company the CRM
   holds: it returns the records it updated, and an empty list is a miss. Then
-  open that company in the CRM and read the three fields.
+  open that company in the CRM and read the three fields. An `updateRecords`
+  node that failed with "<n> records match the matching value" found
+  duplicate CRM companies and wrote to none of them; that also ends green, and
+  the duplicates are the CRM's to merge.
 
 ```sh
 cargo-ai orchestration run get <runUuid>

@@ -147,12 +147,20 @@ const tierAccount =
           // cost is that a CRM write that fails for another reason (a field
           // that does not exist, a lapsed connection) also ends green, so the
           // pilot reads one record back from the CRM (references/run.md).
+          //
+          // `isFailingOnMultipleMatches: true`: when the match value finds
+          // several CRM companies (duplicates sharing a domain), the update
+          // writes nothing and fails instead of tiering every one of them.
+          // Without it, both duplicates get the tier. The failure is also
+          // absorbed by `continueOnFailure`, so the row is still tiered in
+          // Cargo and the CRM node's error names the match count.
           if (input[crmMatchOn]) {
             uses.crm.updateRecords(
               {
                 objectType: crmObjectType,
                 matchingPropertyName: crmMatchProperty,
                 matchingValue: input[crmMatchOn],
+                isFailingOnMultipleMatches: true,
                 mappings: [
                   { propertyName: crmTierField, value: judgment.answer.tier },
                   {
