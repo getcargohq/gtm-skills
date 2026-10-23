@@ -88,13 +88,15 @@
     },
     {
       "title": "Operations",
-      "description": "Deployed pipelines that run the team: the daily recap, a brief before every external meeting, every promise made on a call, a weekly nudge on deals gone quiet, the weekly plan, the week's LinkedIn drafts, and one agent everyone can ask.",
+      "description": "Deployed pipelines that run the team: the daily recap, a brief before every external meeting, every promise made on a call, a weekly nudge on deals gone quiet, the weekly plan, the pipelines the goal still needs, a morning check for anything broken, the week's LinkedIn drafts, and one agent everyone can ask.",
       "skills": [
         "standup",
         "meeting-prep",
         "next-step-tracker",
         "stalled-deal-nudge",
         "weekly-planning",
+        "goal-coverage",
+        "workspace-health",
         "linkedin-content",
         "ask-cargo"
       ]
@@ -1354,6 +1356,84 @@
         "Run the cheap rung across everything, then escalate only the misses — never run both on the full list.",
         "`prospeo.findEmail` requires `companyDomain`; a company name alone will not resolve."
       ]
+    },
+    {
+      "name": "goal-coverage",
+      "kind": "cookbook",
+      "job": "Find what your goal needs that the workspace has not built: once a week a deployed agent reads the company goal, takes stock of every play, agent, model and connector in the workspace, and suggests at most five missing pipelines from the published catalog, each opened with what it noticed (\"thousands of accounts, none scored\"), as a pull request you can decline lines in and a Slack post.",
+      "description": "Find what your goal needs that the workspace has not built: once a week a deployed agent reads the company goal, takes stock of every play, agent, model and connector in the workspace, and suggests at most five missing pipelines from the published catalog, each opened with what it noticed (\"thousands of accounts, none scored\"), as a pull request you can decline lines in and a Slack post. Triggers: \"what should we be running\", \"what are we missing for our goal\", \"suggest new plays for our goal\", \"which pipelines should we set up next\", \"we have 25 plays and do not know which 5 matter\", \"tell us what to build, do not wait to be asked\". Cargo project, defineAgent, harness claudeCode, catalog.json, plan/company-plan.md, Slack. Skip when: you want existing initiatives graded against last week's runs, which is weekly-planning; or something deployed is failing, which is workspace-health.",
+      "version": "0.1.0",
+      "homepage": "https://github.com/getcargohq/gtm-skills/tree/main/goal-coverage",
+      "group": "Operations",
+      "install": "cargo-ai project add cookbook/goal-coverage",
+      "partOf": [],
+      "personas": [
+        "sales-leadership",
+        "revops",
+        "gtm-engineering"
+      ],
+      "integrations": [
+        "anthropic",
+        "github",
+        "slack"
+      ],
+      "example": {
+        "prompt": "Every week, look at our goal and what we have running, and tell us which pipelines we are missing.",
+        "output": "```text\nGoal coverage, 2026-W44: \"Reach $8M ARR by 2026-12-31, up from $5.2M on 2026-06-30.\"\n\n1. Outbound to mid-market is a third of the forecast and nothing tells you\n   when to reach out: 1,840 tier A accounts, none watched for a new hire. Flag\n   the week a tier A account hires the role you sell to (`new-hire-detection`).\n2. Expansion is $1.1M of the plan and no account is watched for it: 312\n   customers, no usage or seat signal on any. Flag the customers ready to grow\n   (`expansion-signals`). Needs the HubSpot connector first.\n3. Still missing, first suggested 2026-W42: every demo request answered on the\n   page (`inbound-qualification`).\n\nDecline or adopt in the pull request: github.example/acme/gtm/pull/212\n```\n\nThree suggestions where five were allowed, each opening on a number from the workspace, and the\nscoring model declined in W43 is not among them."
+      },
+      "state": "to-be-approved",
+      "chain": 24,
+      "resources": [
+        "agents",
+        "connectors",
+        "folders"
+      ],
+      "asked": [],
+      "canChange": [
+        {
+          "id": "fewer",
+          "when": "The team acts on one or two things at a time",
+          "how": "Change \"at most five\" in step 5 of `infra/agents/goal-coverage.prompt.ts",
+          "cost": "The third most important gap waits a week longer to be said."
+        },
+        {
+          "id": "slack-only",
+          "when": "Nobody on the team reviews pull requests",
+          "how": "Drop steps 6 and 7 of the prompt, keep step 8",
+          "cost": "No memory: a declined suggestion comes back every week, which is what makes people mute the channel. Keep the pull request if anyone can merge it."
+        },
+        {
+          "id": "monthly",
+          "when": "The workspace changes slowly",
+          "how": "Change the cron to `0 15 1-7 * 2` (first Tuesday)",
+          "cost": "A new catalog pipeline or a goal change waits up to a month to be noticed."
+        },
+        {
+          "id": "with-ideas",
+          "when": "You want ideas beyond the catalog",
+          "how": "Raise the `Idea:` allowance in step 5 above one",
+          "cost": "Ideas have no install line and no deploy-verified example behind them; they are the suggestions most likely to be wrong."
+        }
+      ],
+      "shouldNotChange": [
+        "**It suggests only what the fetched catalog lists.** (`goal-coverage.prompt.ts` §3) A pipeline named from memory may have been renamed or removed, and the install line then fails on the one command the reader was persuaded to run.",
+        "**It never installs, deploys or enables anything.** (`goal-coverage.prompt.ts` §2, Never) The suggestion is a sentence; the install is a decision with a cost the agent does not see (a connector to authorize, credits on every run).",
+        "**Every observation carries a number it read.** (`goal-coverage.prompt.ts` §5) \"You may want scoring\" is a pitch; \"4,200 accounts, none scored\" is a finding. A number it did not read is worse than none, because the reader repeats it.",
+        "**Installed is covered, however badly it is going.** (`goal-coverage.prompt.ts` §1) Grading existing work is weekly-planning's and workspace-health's job. Do it here too and the same failing play is reported three times by three agents.",
+        "**The decline memory is the coverage file.** (`goal-coverage.prompt.ts` §4) Drop the pull request and a declined suggestion returns every Tuesday until someone mutes the post."
+      ],
+      "doneWhen": [
+        "`node --import tsx evals/contract.mjs` passes: a `claudeCode` harness bound to an Anthropic connector and a model, no capability, exactly one connector action (`slack.postMessage` with the channel locked), and a `COVERAGE_GOAL` env entry",
+        "`cargo-ai project plan` reports the agent, its folder, and the three connectors",
+        "the first run opened one unmerged pull request titled `[cadence] coverage <YYYY-Www>` whose diff is exactly `cadence/coverage/<YYYY-Www>.md`, with the goal quoted verbatim and at most five suggestions, each ending `status: open`",
+        "no suggestion names a pipeline that is installed by any of the three signals, or one that is not in the catalog",
+        "every observation's number appears in a read listed under `## Checked`",
+        "the Slack post went to the locked channel, once, and links the pull request",
+        "a second run the same week opened nothing and posted nothing",
+        "after a suggestion was merged as `status: declined: <reason>`, the next week's run did not suggest it"
+      ],
+      "cost": "The recurring cost is the harness run once a week, billed as LLM tokens through the bound Anthropic\nconnector. It scales with what the agent reads: the plan file, a few list commands, one or two\naggregate queries, the catalog, and up to eight earlier coverage files. The workspace reads are API\ncalls, not connector actions, so they bill nothing, and the run never executes an action that\nspends. The Slack post is one connector action a week.",
+      "composesInto": "Whatever it suggests. Each suggestion's install line is `cargo-ai project add cookbook/<name>`,\nand the next run counts that pipeline as covered. Pairs with `weekly-planning` (are the bets we\nhave on track) and `workspace-health` (is what we deployed broken)."
     },
     {
       "name": "inbound-qualification",
@@ -2755,8 +2835,8 @@
       "name": "weekly-planning",
       "kind": "cookbook",
       "job": "Decide what the go-to-market team works on this week: every Monday last week's work is ranked against active initiatives, declared infra, and live runs, as one reviewable pull request per initiative, or one workspace pull request when there are none.",
-      "description": "Decide what the go-to-market team works on this week: every Monday last week's work is ranked against active initiatives, declared infra, and live runs, as one reviewable pull request per initiative, or one workspace pull request when there are none. Triggers: \"what should we work on this week\", \"what should we do next this week\", \"rank our initiatives against what is actually running\", \"weekly GTM plan from the cadence log\", \"recommend next work from infra and runs\", \"the play is deployed but I don't think it ran\". Cargo project, defineAgent, harness claudeCode, GitHub, cargo-ai CLI reads, initiatives, cadence. Skip when: you want today recapped and posted to Slack, which is standup; or you want call transcripts scribed into context, which is call-capture.",
-      "version": "0.1.3",
+      "description": "Decide what the go-to-market team works on this week: every Monday last week's work is ranked against active initiatives, declared infra, and live runs, as one reviewable pull request per initiative, or one workspace pull request when there are none. Triggers: \"what should we work on this week\", \"are the bets we already have on track\", \"what should we do next this week\", \"rank our initiatives against what is actually running\", \"weekly GTM plan from the cadence log\", \"recommend next work from infra and runs\", \"the play is deployed but I don't think it ran\". Cargo project, defineAgent, harness claudeCode, GitHub, cargo-ai CLI reads, initiatives, cadence. Skip when: you want today recapped and posted to Slack, which is standup; or you want call transcripts scribed into context, which is call-capture.",
+      "version": "0.1.4",
       "homepage": "https://github.com/getcargohq/gtm-skills/tree/main/weekly-planning",
       "group": "Operations",
       "install": "cargo-ai project add cookbook/weekly-planning",
@@ -2945,6 +3025,82 @@
       ],
       "cost": "CRM extraction bills no credits, and neither do the SQL queries. The recurring cost is one harness\nrun a month, scaling with how many deals closed since the previous one, plus the first pass over the\nwhole window. Confirm the extraction price for the workspace's CRM with\n`cargo-ai connection integration get hubspot` before the first deploy.",
       "composesInto": "`account-scoring` (reads the verified `icp/`, disqualifier included), `website-building` (the\nclient files and proof from closed-won deals are what the pages may cite), and any agent with the\n`context` capability."
+    },
+    {
+      "name": "workspace-health",
+      "kind": "cookbook",
+      "job": "Know the morning something breaks: a deployed agent reads the last 24 hours of the workspace against the week before and posts to Slack only what is wrong and new: failing runs grouped by cause, a lost connector, a play that stopped, runs that succeed and write nothing, a spend spike, a stuck batch. Mondays it posts the week: still open, cleared, all clear.",
+      "description": "Know the morning something breaks: a deployed agent reads the last 24 hours of the workspace against the week before and posts to Slack only what is wrong and new: failing runs grouped by cause, a lost connector, a play that stopped, runs that succeed and write nothing, a spend spike, a stuck batch. Mondays it posts the week: still open, cleared, all clear. Triggers: \"tell me what is broken in the workspace\", \"watch my workspace every morning\", \"alert me when a play stops running\", \"is anything failing in Cargo\", \"catch silent failures before a customer does\", \"tell me in slack every morning if a play broke\". Cargo project, defineAgent, harness claudeCode, orchestration SQL, billing metrics, Slack. Skip when: one run already failed and you want to know why, which is cargo-diagnostics in the Cargo pack; or you want initiatives graded against what ran, which is weekly-planning.",
+      "version": "0.1.0",
+      "homepage": "https://github.com/getcargohq/gtm-skills/tree/main/workspace-health",
+      "group": "Operations",
+      "install": "cargo-ai project add cookbook/workspace-health",
+      "partOf": [],
+      "personas": [
+        "revops",
+        "gtm-engineering"
+      ],
+      "integrations": [
+        "anthropic",
+        "github",
+        "slack"
+      ],
+      "example": {
+        "prompt": "Every morning, check our Cargo workspace and tell me in Slack if anything broke.",
+        "output": "```text\nWorkspace health: 3 new findings\n\n1. HubSpot sync lost its connector: 212 of 230 runs failed since 06:10 with\n   401 unauthorized at the write step. Re-authorize the HubSpot connector.\n2. Tier Accounts has not run since Oct 19 (it averaged 3 runs a day): the play\n   is disabled. Re-enable it if that was not on purpose.\n3. Enrich new signups succeeded 140 times and wrote no company size on 131 of\n   them. Open run 7c1e… to see what the provider returned.\n```\n\nOn Mondays: \"Workspace health, week of Oct 26: 1 still open (Tier Accounts), 2 cleared, 0 checks\nskipped.\""
+      },
+      "state": "to-be-approved",
+      "chain": 25,
+      "resources": [
+        "agents",
+        "connectors",
+        "folders"
+      ],
+      "asked": [],
+      "canChange": [
+        {
+          "id": "daily-all-clear",
+          "when": "The team does not trust silence yet",
+          "how": "In step 3 of `infra/agents/workspace-health.prompt.ts`, post the Monday line every day",
+          "cost": "A post every day that says nothing, which is how a channel gets muted. Move back to Mondays once trusted."
+        },
+        {
+          "id": "twice-a-day",
+          "when": "Plays run on short schedules and a morning is too late",
+          "how": "Add a second cron trigger and change the window in the prompt to 12 hours",
+          "cost": "Twice the runs; a 12-hour baseline is noisier for plays that run daily."
+        },
+        {
+          "id": "skip-empty-outputs",
+          "when": "Models are wide and the empty-column check is slow or noisy",
+          "how": "Drop check c from the prompt",
+          "cost": "The silent-success failure, the one nobody else catches, goes unwatched."
+        },
+        {
+          "id": "page-on-auth",
+          "when": "A lost connector is urgent for you",
+          "how": "Add a second `postMessage` use locked to an on-call channel, used only for auth findings",
+          "cost": "Two channels to keep locked; the contract eval needs updating to allow the third action."
+        }
+      ],
+      "shouldNotChange": [
+        "**It reports and never fixes.** (`workspace-health.prompt.ts` §2, Never) A rerun bills again, a cancel can drop work in flight, and a disabled play may be disabled on purpose. A watcher that acts on its own findings is a second operator nobody reviews.",
+        "**The post and the read-back share one locked channel.** (`HEALTH_CHANNEL_ID`) That read-back is the only memory. Split them and every finding is reposted every morning.",
+        "**Never report a clean workspace it could not read.** (`workspace-health.prompt.ts` §2) A failed `whoami` posts the error. A silent watcher with no session reads exactly like a healthy workspace.",
+        "**Group failures; never list them.** (`workspace-health.prompt.ts` §2a) Same node and same error is one finding with a count. Two hundred lines for one expired token is how a real second failure gets missed.",
+        "**A threshold, not every error.** (`HEALTH_ERROR_RATE`) Enrichment that finds no email for some records is coverage, not breakage. Report every error and the channel is muted inside a week."
+      ],
+      "doneWhen": [
+        "`node --import tsx evals/contract.mjs` passes: a `claudeCode` harness bound to an Anthropic connector and a model, no capability, exactly two connector actions (`slack.postMessage` and `slack.getConversationHistory`) locked to the same channel, a daily cron, and all three threshold env entries",
+        "`cargo-ai project plan` reports the agent, its folder, and the three connectors",
+        "the first run with a known problem in the workspace (a disabled play that used to run, or a workflow failing above the threshold) posted it once, naming the play and the cause",
+        "every number in the post matches the same read re-run by hand",
+        "a second run the same day, with nothing new, posted nothing",
+        "on the first Monday it posted the weekly line, even with nothing new",
+        "nothing in the workspace changed because of a run: no rerun, no cancel, no play enabled or disabled"
+      ],
+      "cost": "The recurring cost is the harness run once a day, billed as LLM tokens through the bound Anthropic\nconnector. It scales with how much is wrong: a clean day is three list commands and five aggregate\nqueries; a bad day adds up to two `run get` reads per failing workflow. The workspace reads are API\ncalls, not connector actions, so they bill nothing, and the run never executes an action that\nspends. Slack is one history read a day, plus a post only on days with something to say.",
+      "composesInto": "The pack's `cargo-diagnostics`, for the deep dive on the run each finding names. Pairs with\n`goal-coverage` (what the goal still needs) and `weekly-planning` (are the bets on track)."
     },
     {
       "name": "zoominfo-to-cargo",

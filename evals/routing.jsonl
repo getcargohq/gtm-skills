@@ -62,7 +62,7 @@
 
 // --- one-off / deployed seam -------------------------------------------------------
 // tam-building, account-scoring, crm-enrichment, crm-deduplication,
-// call-capture, agentic-engagement, standup, meeting-prep, stalled-deal-nudge, weekly-planning, ask-cargo,
+// call-capture, agentic-engagement, standup, meeting-prep, stalled-deal-nudge, weekly-planning, goal-coverage, workspace-health, ask-cargo,
 // new-hire-detection, web-capture and win-loss-review are worked project examples (cookbooks)
 // that deploy a pipeline.
 // build-tam-list, score-leads and research-account are one-offs: the same
@@ -130,6 +130,22 @@
 {"prompt": "Recommend next work from infra and runs", "expect": "weekly-planning"}
 {"prompt": "The play is deployed but I don't think it ran", "expect": "weekly-planning", "why": "Deployed-is-not-running is a planning gap, not a daily Slack recap."}
 {"prompt": "What should we do next this week, not a recap of today in Slack", "expect": "weekly-planning", "why": "Recommendations are weekly-planning; standup recaps the day and posts to Slack."}
+{"prompt": "What should we be running", "expect": "goal-coverage"}
+{"prompt": "What are we missing for our goal", "expect": "goal-coverage"}
+{"prompt": "Suggest new plays for our goal", "expect": "goal-coverage"}
+{"prompt": "Which pipelines should we set up next", "expect": "goal-coverage"}
+{"prompt": "We have 25 plays and do not know which 5 matter", "expect": "goal-coverage"}
+{"prompt": "Tell us what to build, do not wait to be asked", "expect": "goal-coverage"}
+{"prompt": "Hey, I noticed you don't have a scoring model: tell us things like that every week", "expect": "goal-coverage", "why": "Postscript, 2026-10-22: a gap against the goal, not a grade on existing work."}
+{"prompt": "Are the bets we already have on track", "expect": "weekly-planning"}
+{"prompt": "Are the bets we already have on track this week, not what we are missing", "expect": "weekly-planning", "why": "Grading existing initiatives is weekly-planning; goal-coverage only names what is missing."}
+{"prompt": "Tell me what is broken in the workspace", "expect": "workspace-health"}
+{"prompt": "Watch my workspace every morning", "expect": "workspace-health"}
+{"prompt": "Alert me when a play stops running", "expect": "workspace-health"}
+{"prompt": "Is anything failing in Cargo", "expect": "workspace-health"}
+{"prompt": "Catch silent failures before a customer does", "expect": "workspace-health"}
+{"prompt": "Tell me in slack every morning if a play broke", "expect": "workspace-health"}
+{"prompt": "Every morning in Slack, tell me if a play broke, not a recap of the day", "expect": "workspace-health", "why": "Findings only is workspace-health; the evening recap of everything is standup."}
 {"prompt": "Let the team ask our GTM agent from slack", "expect": "ask-cargo"}
 {"prompt": "One agent on top of all the others that anyone can mention in slack", "expect": "ask-cargo"}
 {"prompt": "A slack bot that knows our repo and can open PRs", "expect": "ask-cargo"}

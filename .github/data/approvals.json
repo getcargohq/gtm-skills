@@ -124,5 +124,17 @@
     "chain": 23,
     "demoWorkspace": "2026-10-09",
     "implementations": []
+  },
+  "goal-coverage": {
+    "state": "to-be-approved",
+    "chain": 24,
+    "demoWorkspace": null,
+    "implementations": []
+  },
+  "workspace-health": {
+    "state": "to-be-approved",
+    "chain": 25,
+    "demoWorkspace": null,
+    "implementations": []
   }
 }
