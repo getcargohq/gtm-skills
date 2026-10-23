@@ -81,6 +81,10 @@
 {"prompt": "Why is this account tier A?", "expect": "account-scoring", "why": "Only the deployed scorer writes a rationale anyone can read back."}
 {"prompt": "Tier the TAM we just sourced so the team knows where to start", "expect": "account-scoring", "why": "The model exists and needs judging: scoring, not sourcing."}
 {"prompt": "Score this list of 200 companies against our ICP and rank them", "expect": "score-leads", "why": "A supplied list, scored once: the one-off, not the deployed scorer."}
+{"prompt": "Every month, find companies like our best customers with a contact and an opener", "expect": "customer-lookalikes", "why": "Every month, seeded by customers, judged down to one person and an opener: the standing pipeline."}
+{"prompt": "Lookalikes of the customers we already won, with the person to write to", "expect": "customer-lookalikes"}
+{"prompt": "Monthly customer lookalike prospecting", "expect": "customer-lookalikes"}
+{"prompt": "Build a list of companies that look like acme.com", "expect": "build-tam-list", "why": "One list today, from one domain: the one-off, not the monthly pipeline."}
 {"prompt": "Keep our CRM accounts filled", "expect": "crm-enrichment"}
 {"prompt": "Keep our CRM companies filled", "expect": "crm-enrichment"}
 {"prompt": "Nobody refreshes the company records", "expect": "crm-enrichment"}
