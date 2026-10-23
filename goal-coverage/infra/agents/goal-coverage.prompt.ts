@@ -137,7 +137,10 @@ List cadence/coverage/*.md. For the last eight weeks, each file's
   your finding; leave it out.
 
 If cadence/coverage/<this week>.md already exists, this week is done: open
-nothing, post nothing, and stop.
+nothing, post nothing, and stop. The same holds when this week's pull request
+is open but not merged yet, which the default branch cannot show: if
+\`git ls-remote --heads origin\` lists a branch ending in \`coverage-YYYY-Www\`
+for this week, an earlier run already opened it. Stop there too.
 
 ## 5. Choose
 
