@@ -62,10 +62,11 @@
     },
     {
       "title": "Fundamentals",
-      "description": "Deployed pipelines that build the base: the account universe, a standing score on every account, and the website.",
+      "description": "Deployed pipelines that build the base: the account universe, a standing score on every account, the next accounts shaped like your customers, and the website.",
       "skills": [
         "tam-building",
         "account-scoring",
+        "customer-lookalikes",
         "website-building"
       ]
     },
@@ -1007,6 +1008,133 @@
       ],
       "cost": "Fetch live prices from the workspace before every preview. Cost only the selected paths. A failed\nCRM write can cause provider calls to be billed again on retry, so probe write capability before a\nbatch.\n\n### Path 1: Account cost\n\nQuote both LinkedIn company actions. Multiply the mutually exclusive LinkedIn URL and domain\nfallback populations by their respective live unit prices. Rows with neither identifier make no\npaid call.\n\n### Path 2: Contact cost\n\nQuote both Cargo-native tools and the LinkedIn profile enrichment action. Per contact, the maximum\npaid chain is:\n\n- LinkedIn only: Find Email plus Contact LinkedIn Enrichment.\n- Email only: Find LinkedIn Profile from Email plus Contact LinkedIn Enrichment when resolution\n  succeeds.\n- Both identifiers: Contact LinkedIn Enrichment only.\n- Neither identifier: no paid call.\n\nShow mutually exclusive route counts and maximum spend before requesting approval for either path.",
       "composesInto": "`crm-deduplication` after account enrichment, `find-stakeholders` for coverage gaps, `segment-accounts`\nfor activation, and `track-job-changes` as a separate one-time movement check."
+    },
+    {
+      "name": "customer-lookalikes",
+      "kind": "cookbook",
+      "job": "Find new accounts shaped like your best customers, every month: for each customer you add as a seed, a deployed play finds up to five lookalike companies with AI Ark and web research, scores each against your rubric, finds the one person to write to, verifies their email, and drafts a two-sentence opener for the ones that qualify. Each company is judged once and kept with its verdict.",
+      "description": "Find new accounts shaped like your best customers, every month: for each customer you add as a seed, a deployed play finds up to five lookalike companies with AI Ark and web research, scores each against your rubric, finds the one person to write to, verifies their email, and drafts a two-sentence opener for the ones that qualify. Each company is judged once and kept with its verdict. Triggers: \"find companies like our best customers every month\", \"lookalikes of our customers with a contact and an opener\", \"monthly customer lookalike prospecting\", \"who looks like the customers we already won\". Cargo project, AI Ark lookalikeDomains, verifyEmail. Skip when: you want a company list once, which is build-tam-list; or every company in your market rather than the next few accounts, which is tam-building.",
+      "version": "0.1.0",
+      "homepage": "https://github.com/getcargohq/gtm-skills/tree/main/customer-lookalikes",
+      "group": "Fundamentals",
+      "install": "cargo-ai project add cookbook/customer-lookalikes",
+      "partOf": [],
+      "personas": [
+        "sales-development",
+        "revops",
+        "gtm-engineering"
+      ],
+      "integrations": [
+        "aiArk",
+        "anthropic",
+        "waterfall"
+      ],
+      "example": {
+        "prompt": "Every month, find five companies that look like each customer we've won, with the person to write to and an opener.",
+        "output": "| Company (seed)                                         | Verdict                     | What landed on the row                                                                                                                                                                                                     |\n| ------------------------------------------------------ | --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |\n| Northwind Logistics, northwind.example (Tailspin)      | `drafted`                   | Fit 78, tier 1, second depot opened 2026-09-30, no dispatch lead. Priya Raman, VP Operations, email valid, persona 60. Opener: \"A second depot means the morning plan now decides twice the routes. Nobody owns that plan yet.\" |\n| Contoso Haulage, contoso.example (Tailspin)            | `viable_email_not_verified` | Fit 64, tier 2, hiring two dispatchers. Ana Costa, Head of Operations, email `catch_all`                                                                                                                                    |\n| Adventure Works Supply, adventure-works.example (Tailspin) | `viable_no_contact`     | Fit 70, tier 2. Coverage 0.12, so no gap claimed and no one in operations to aim at                                                                                                                                        |\n| Litware Distribution, litware.example (Tailspin)       | `not_viable`                | Fit 31: a courier network that subcontracts its vehicles, which the rubric excludes                                                                                                                                       |\n\nOne customer, four lookalikes judged: one ready for a first email, three stopped at a named gate. Next month's research skips all four."
+      },
+      "state": "to-be-approved",
+      "chain": 27,
+      "resources": [
+        "agents",
+        "connectors",
+        "folders",
+        "models",
+        "plays"
+      ],
+      "asked": [
+        {
+          "input": "rubric",
+          "kind": "asked",
+          "how": "Drafted from the ICP in the workspace context and corrected by the operator, as `lookalike-rubric.md`: markets, sizes, company types, regions, blocklist, triggers, functions, persona tiers",
+          "why": "Every score and every gate reads it. A rubric without a blocklist returns competitors; one without functions cannot claim a gap"
+        },
+        {
+          "input": "seeds",
+          "kind": "asked",
+          "how": "Customer names and domains derived from the context or the CRM's won deals; why they bought, who signed and their shape at purchase asked, one row per customer",
+          "why": "The purchase-time shape is what makes these lookalikes rather than a domain search. Only the operator knows why a customer bought"
+        },
+        {
+          "input": "floors",
+          "kind": "derived",
+          "how": "accountFitFloor`, `situationFloor` and the persona points in `infra/settings.ts`. Ask only to change them",
+          "why": "They decide how many companies reach the paid contact search"
+        },
+        {
+          "input": "languageModel",
+          "kind": "derived",
+          "how": "Whichever LLM connector the workspace already holds (`cargo-ai connection connector list`)",
+          "why": "Research and scoring quality and the cost per customer both live here"
+        },
+        {
+          "input": "cadence",
+          "kind": "derived",
+          "how": "The 1st of the month at 07:00 UTC. Ask only to change it",
+          "why": "Each run pays for new lookalikes of every seed; a weekly cadence finds them faster and runs out of close matches sooner"
+        }
+      ],
+      "canChange": [
+        {
+          "id": "won-deal-seeds",
+          "when": "Customers live in the CRM or in `gtm_opportunities`, and keeping seeds by hand would rot",
+          "how": "A play on won opportunities that upserts a seed row per new customer (name, domain, amount band), leaving trigger, signer and shape at purchase for a person to fill",
+          "cost": "Seeds without the purchase-time context, until someone writes it. The research falls back to the customer's shape today"
+        },
+        {
+          "id": "send-via-reply-handling",
+          "when": "The team wants each drafted person written to and every reply handled with a person approving",
+          "how": "After the opener, add the contact to `reply_threads` with the opener and urgency as its `fact`; reply-handling sends the first touch and handles the answer",
+          "cost": "Real email to real people every month, from a mailbox with a ramp. Decide the volume against the mailbox's allowance before turning it on"
+        },
+        {
+          "id": "review-inbox",
+          "when": "Someone should read each opener as the lead would see it before anything is sequenced",
+          "how": "sendEmail` the drafted opener to an internal address from a mailbox the workspace owns, the subject naming the lead and the company",
+          "cost": "A mailbox's monthly charge and a send slot per draft. It is a review step, not outreach: never point it at the lead"
+        },
+        {
+          "id": "slack-digest",
+          "when": "The team works from Slack, not from the ledger",
+          "how": "After the loop, one `postMessage` listing the month's `drafted` rows with the opener and links",
+          "cost": "One more connector. Post only drafted rows: a digest of rejects is not read twice"
+        },
+        {
+          "id": "pursue-without-trigger",
+          "when": "Fit matters more than timing for your market",
+          "how": "situationFloor` to 0 in `infra/settings.ts",
+          "cost": "More companies reach the paid contact search, and openers lean on the gap alone because nothing is happening at them"
+        },
+        {
+          "id": "rescore-after",
+          "when": "The market moves, and a company judged a year ago deserves a second look",
+          "how": "Exclude only prospects with a recent `run_at` in both the research exclusions and the in-loop skip",
+          "cost": "Companies are re-scored and re-enriched; the window decides how often you pay again for the same one"
+        }
+      ],
+      "shouldNotChange": [
+        "**The exclusions stay, and the in-loop skip stays.** (`infra/plays/find-lookalikes.ts`) Without them the same lookalikes return monthly and are paid for again; with only the prompt's exclusions, an agent that ignores them still costs a full judgement.",
+        "**The gates run cheapest first.** (`infra/plays/find-lookalikes.ts`) Account, person, verified email, persona, opener. Move the contact search before the account gate and every rejected company costs a people search and an enrichment.",
+        "**Each stage writes its verdict before its guard, and the guard is a bare `continue`.** (`infra/plays/find-lookalikes.ts`) The workflow parser in @cargo-ai/cdk 1.0.119 rewrites `if (stop) { model.upsert(…); continue; }` into an empty branch, and the write disappears from the graph: the company is skipped with no row, and is judged again next month.",
+        "**Only a `valid` email qualifies a person.** (`infra/scripts/lookalikes/score-persona.ts`) A finder's email is a guess until the verifier says otherwise, and a failed verification reads as unknown, never as valid.",
+        "**No gap below a coverage of 0.20.** (`account-qualifier.prompt.ts`) The opener is built on the gap. Claim one from a tenth of a company's staff and the first sentence the lead reads is wrong.",
+        "**The rubric lives in the context repo.** (`lookalike-rubric.md`) In a prompt, changing who counts as a fit becomes a deploy, and the four agents stop reading the same file.",
+        "**Agents judge, the play writes.** (`infra/agents/`) No agent holds a model or sends anything. An agent that can write decides its own verdict.",
+        "**Nothing is sent.** (`infra/plays/find-lookalikes.ts`) The pipeline ends at the row. Sending is a separate decision, with its own mailbox, ramp and approval (`send-via-reply-handling`).",
+        "**Customer names stay internal.** (`lookalike_seeds`, `why_similar`) The writer is told never to name or describe them; the seed model and the ledger are not for a shared screen."
+      ],
+      "doneWhen": [
+        "the rubric is in the workspace context and was approved, and every seed row was approved by the operator",
+        "`cargo-ai project plan` showed both models, the four agents, the three bound connectors and the play disabled, and the deploy happened on a yes",
+        "`node --import tsx evals/contract.mjs` passes against the adapted resources",
+        "the pilot ran one customer: every company the research returned has a row with a final verdict, and none of them is a current customer or a blocklisted domain",
+        "one `drafted` row was checked by hand: the account scores cite sources, the email is `valid`, and the opener's two sentences are true of that company and name no customer",
+        "one stopped row was checked by hand against the rubric line that stopped it",
+        "running the same customer again found new companies or none, and paid for no company already in the ledger",
+        "the operator approved the monthly run at the pilot's observed cost per customer, and the play is enabled"
+      ],
+      "cost": "Fetch live prices before every estimate: `cargo-ai connection integration get aiArk`, `waterfall`,\nand the LLM connector's model. Quote the lookup time with the estimate.\n\n**Per customer, every month:** one researcher run, with one AI Ark lookalike search billed per\ncompany returned, plus its web confirmations. `countCompanies` and `countPeople` are free.\n\n**Per company, and only as far as it gets:** one qualifier run for every new lookalike; then, past\nthe account gate, one AI Ark people search billed per person returned and one enrichment billed only\nwhen an email is found; one verification; and, for a qualified person only, one writer call. A\ncompany skipped as already judged costs one model search and nothing else.\n\n**The agents' step budgets are the ceiling.** `maxSteps` on each agent caps the LLM calls and searches\none judgement can make. The pilot's actual credits per customer, times the number of seeds, is the\nmonthly figure to approve; the cost per customer falls as the account gate rejects more, and rises\nwith `pursue-without-trigger`.",
+      "composesInto": "`reply-handling` (send each drafted person a first touch and handle the reply with a person\napproving), `account-scoring` (score the rest of the market the same way), and `tam-building`\n(when the next accounts should come from the whole market rather than from customers)."
     },
     {
       "name": "enrich-company-data",
