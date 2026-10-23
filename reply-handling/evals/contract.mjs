@@ -177,11 +177,20 @@ assert.ok(
   "the writer reads the reply playbook from the workspace context",
 );
 for (const agentId of ["agent:reply_writer", "agent:reply_classifier"]) {
-  assert.equal(
-    (byId.get(agentId).spec.uses || []).length,
-    0,
-    `${agentId} sends nothing and writes nothing: the play does`,
-  );
+  const spec = byId.get(agentId).spec;
+  for (const key of [
+    "models",
+    "tools",
+    "connectorActions",
+    "nativeActions",
+    "subAgents",
+  ]) {
+    assert.equal(
+      (spec[key] || []).length,
+      0,
+      `${agentId} has no ${key}: it sends nothing and writes nothing, the play does`,
+    );
+  }
 }
 
 // The scripts, called directly.
