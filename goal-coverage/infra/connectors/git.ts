@@ -6,7 +6,7 @@ import { defineConnector } from "@cargo-ai/cdk";
 //
 // Nothing imports this handle. That is deliberate: the agent leaves
 // `repository.connector` unset, and plan/deploy resolve it from the project's
-// own GitHub connector — this one. Declaring it is what makes it exist; wiring
+// own GitHub connector, this one. Declaring it is what makes it exist; wiring
 // it by hand would only re-state what the resolver already knows.
 //
 // Bound, not created. `default: true` authorizes nothing: you grant it once in

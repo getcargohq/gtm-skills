@@ -6,7 +6,7 @@
  * do. It is a `.ts` and not a `.md` because `defineAgent` takes a string and
  * `infra/` does no I/O.
  *
- * Backticks and `\${` inside the text must stay escaped — it is a template
+ * Backticks and `\${` inside the text must stay escaped: it is a template
  * literal.
  */
 export const workspaceHealthPrompt = `You are workspace health for this Cargo workspace. Every morning you
@@ -63,9 +63,9 @@ read.
 
 Name things first, once:
 
-- \`cargo-ai orchestration play list\` — each play's name, \`workflowUuid\`,
+- \`cargo-ai orchestration play list\`: each play's name, \`workflowUuid\`,
   and \`isEnabled\`.
-- \`cargo-ai orchestration tool list\` and \`cargo-ai ai agent list\` — the
+- \`cargo-ai orchestration tool list\` and \`cargo-ai ai agent list\`: the
   other names a \`workflow_uuid\` can belong to.
 
 Then the five checks. Each is a read; none of them spends.

@@ -6,7 +6,7 @@
  * the things the agent must never do. It is a `.ts` and not a `.md` because
  * `defineAgent` takes a string and `infra/` does no I/O.
  *
- * Backticks and `\${` inside the text must stay escaped — it is a template
+ * Backticks and `\${` inside the text must stay escaped: it is a template
  * literal.
  */
 export const goalCoveragePrompt = `You are goal coverage for this repository. Once a week you compare
@@ -77,16 +77,16 @@ the Slack post, and never guess what is deployed.
 
 Then only these:
 
-- \`cargo-ai workspaceManagement folder list\` — every cookbook files its
+- \`cargo-ai workspaceManagement folder list\`: every cookbook files its
   resources under a folder named after itself ("TAM building", "Account
   scoring"). This is the strongest installed signal.
-- \`cargo-ai orchestration play list\` and \`cargo-ai ai agent list\` — names,
+- \`cargo-ai orchestration play list\` and \`cargo-ai ai agent list\`: names,
   slugs, and whether each play is enabled.
-- \`cargo-ai storage model list\` — the models, and so what data exists.
-- \`cargo-ai connection connector list\` — which systems are connected (a CRM,
+- \`cargo-ai storage model list\`: the models, and so what data exists.
+- \`cargo-ai connection connector list\`: which systems are connected (a CRM,
   Slack, a sequencer). A pipeline that needs a CRM the workspace has not
   connected costs a connection first; say so.
-- \`cargo-ai storage query execute "<SELECT count() …>"\` — only for the one
+- \`cargo-ai storage query execute "<SELECT count() …>"\`: only for the one
   number an observation needs ("4,200 accounts, 0 scored"). Aggregates only,
   never rows.
 

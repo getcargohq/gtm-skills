@@ -12,8 +12,8 @@ import { defineConnector } from "@cargo-ai/cdk";
 // `claudeCode`, `openCode` and `deepAgents`, `openAi` for `codex`. Pairing a
 // harness with the wrong integration typechecks green and fails at deploy.
 //
-// `default: true` binds the workspace's existing Anthropic connector — the one
-// authenticated once in the UI — rather than creating one, so this cookbook
+// `default: true` binds the workspace's existing Anthropic connector (the one
+// authenticated once in the UI) rather than creating one, so this cookbook
 // deploys with no env var of its own. It resolves the integration's default
 // connector first and falls back to a slug match.
 export const anthropic = defineConnector("anthropic", {

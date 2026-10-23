@@ -10,7 +10,7 @@ import { agentsFolder } from "../folders";
 // reading its own earlier posts, so posting to one channel and reading another
 // would make it repeat every finding every morning.
 //
-// PLACEHOLDER — a Slack channel id (C…), not a name. Invite the Cargo app to
+// PLACEHOLDER: a Slack channel id (C…), not a name. Invite the Cargo app to
 // it: getConversationHistory cannot read a channel the app is not in.
 const HEALTH_CHANNEL_ID = "C0123456789";
 
@@ -37,7 +37,7 @@ export const workspaceHealth = defineAgent("workspace_health", {
   color: "red",
   harness: "claudeCode",
   connector: anthropic,
-  languageModel: "claude-sonnet-5", // PLACEHOLDER — your model of choice
+  languageModel: "claude-sonnet-5", // PLACEHOLDER: your model of choice
   repository: {
     // Deliberately partial, resolved from the checkout's git origin at plan.
     // `cargo-ai project check` prints what it resolved.

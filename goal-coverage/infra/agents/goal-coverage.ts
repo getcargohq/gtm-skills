@@ -37,14 +37,14 @@ export const goalCoverage = defineAgent("goal_coverage", {
   color: "green",
   harness: "claudeCode",
   connector: anthropic,
-  languageModel: "claude-sonnet-5", // PLACEHOLDER — your model of choice
+  languageModel: "claude-sonnet-5", // PLACEHOLDER: your model of choice
   repository: {
     // Deliberately partial: `repository`, `defaultBranch`, `rootDirectory` and
     // the GitHub `connector` are omitted so plan and deploy fill them from the
     // git origin of the checkout. `cargo-ai project check` prints what it
     // resolved; verify it names the repository root and not `infra/`.
     env: {
-      // PLACEHOLDER — the goal, in one sentence, for a project with no
+      // PLACEHOLDER: the goal, in one sentence, for a project with no
       // plan/company-plan.md. Leave it empty when that file exists: the file
       // wins, because it is the version a human reviews.
       COVERAGE_GOAL: "",
@@ -54,7 +54,7 @@ export const goalCoverage = defineAgent("goal_coverage", {
     {
       ref: slack.actions.postMessage,
       config: {
-        // PLACEHOLDER — the channel suggestions land in. A Slack channel id
+        // PLACEHOLDER: the channel suggestions land in. A Slack channel id
         // (C…), not a name. Locked so the agent cannot pick another one.
         channelId: "C0123456789",
         format: "markdown",

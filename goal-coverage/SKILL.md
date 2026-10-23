@@ -93,11 +93,11 @@ to end up with the code your company would have written, in your project, and an
 adapting. If the `cargo-project` skill is in your session it carries the long form of this; if not, this
 is enough.
 
-1. **Install it — the CLI does the copy.** From inside the project (the folder holding `cargo.json`),
+1. **Install it: the CLI does the copy.** From inside the project (the folder holding `cargo.json`),
    `cargo-ai project add cookbook/goal-coverage` writes this example to `infra/goal-coverage/`
    and this procedure to `.claude/skills/goal-coverage/`. No project yet?
    `cargo-ai project init <dir> --cookbook goal-coverage && cd <dir> && npm install` does both.
-   **If you are reading this from the project's `.claude/skills/`, the install already happened —
+   **If you are reading this from the project's `.claude/skills/`, the install already happened, so
    start at step 2.** On a CLI too old to have `add`, copy this folder in as a sibling of what is
    there by hand; everything below is unchanged.
 2. **Reconcile it with what is already declared.** If the project already has an Anthropic,
