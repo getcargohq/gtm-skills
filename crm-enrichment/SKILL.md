@@ -1,7 +1,7 @@
 ---
 name: crm-enrichment
 description: 'Clean up and enrich a messy CRM: fill the missing identifiers on accounts and contacts first (LinkedIn, domain, email), write them back into blank fields only, then deduplicate on those identifiers with crm-deduplication. Keeps records filled and refreshes them when they go stale. Triggers: "keep our CRM accounts filled", "keep our CRM contacts filled", "nobody refreshes the company records", "nobody refreshes the contact records", "enrich my CRM", "refresh stale firmographics", "every new CRM company", "every new CRM contact", "contacts are missing emails, LinkedIn URLs, or titles". HubSpot, Salesforce, Attio, Cargo project. Skip when: the records are not in a CRM. A supplied company list is enrich-company-data, a supplied LinkedIn URL list is enrich-linkedin-profile, and a one-time email lookup is find-work-email.'
-version: "0.7.3"
+version: "0.7.4"
 compatibility: "Requires the cargo-project skill, a Cargo project (cargo.json at its root), @cargo-ai/cdk 1.0.82 or later, and authenticated CRM and LinkedIn connectors. The repository example does not deploy or access a CRM until it is adapted in the consumer project."
 homepage: https://github.com/getcargohq/gtm-skills/tree/main/crm-enrichment
 metadata:
@@ -46,17 +46,17 @@ The starting HubSpot destinations are `linkedin_company_id`, `name`, `domain`, `
 
 `enrich_contacts` is one play calling three gated tool resources:
 
-1. Cargo-native **Find Email** runs only when LinkedIn is present and email is blank.
-2. Cargo-native **Find LinkedIn Profile from Email** runs only when email is present and LinkedIn
+1. Cargo-native **Find email** runs only when LinkedIn is present and email is blank.
+2. Cargo-native **Find LinkedIn URL from email** runs only when email is present and LinkedIn
    is blank.
 3. Custom **Contact LinkedIn Enrichment** runs only after a LinkedIn URL is available.
 
-| Starting identifiers | Calls                                                              | Outcome                                         |
-| -------------------- | ------------------------------------------------------------------ | ----------------------------------------------- |
-| Email and LinkedIn   | Contact LinkedIn Enrichment                                        | Fill approved LinkedIn identity and role blanks |
-| LinkedIn only        | Find Email, then Contact LinkedIn Enrichment                       | Fill email and approved LinkedIn blanks         |
-| Email only           | Find LinkedIn Profile from Email, then Contact LinkedIn Enrichment | Stop without a write if no profile resolves     |
-| Neither              | None                                                               | Stop without a write                            |
+| Starting identifiers | Calls                                                          | Outcome                                         |
+| -------------------- | -------------------------------------------------------------- | ----------------------------------------------- |
+| Email and LinkedIn   | Contact LinkedIn Enrichment                                    | Fill approved LinkedIn identity and role blanks |
+| LinkedIn only        | Find email, then Contact LinkedIn Enrichment                   | Fill email and approved LinkedIn blanks         |
+| Email only           | Find LinkedIn URL from email, then Contact LinkedIn Enrichment | Stop without a write if no profile resolves     |
+| Neither              | None                                                           | Stop without a write                            |
 
 The starting HubSpot destinations are `email`, `linkedin_person_id`, `linkedin_profile_url`, and
 `jobtitle`. This path contains no customer split, movement detection, relationship mutation, note
@@ -127,14 +127,18 @@ contract before adapting `crm_accounts`, `account_enrichment`, or `enrich_accoun
 
 ### Contact path setup
 
-Instantiate the two Cargo-native tools and replace:
+Both Cargo-native tools are already in the workspace: every workspace is seeded with read-only
+**Find email** and **Find LinkedIn URL from email** tools in its Cargo Tools folder. Look up their
+UUIDs (`cargo-ai orchestration action list "find email" --kind tool`, or `cargo-ai orchestration
+tool list` filtered on `isReadOnly`) and replace:
 
 - `REPLACE-WITH-FIND-EMAIL-TOOL-UUID`
 - `REPLACE-WITH-FIND-LINKEDIN-PROFILE-FROM-EMAIL-TOOL-UUID`
 
-Confirm their live contracts. This example expects Find Email to accept `linkedin_url`,
-`first_name`, and `last_name` and return `email`. It expects Find LinkedIn Profile from Email to
-accept `email` and return `linkedin_url`.
+Confirm their live contracts. Find email takes camelCase `linkedinUrl`, `firstName` and
+`lastName` (or `companyDomain` with the names) and returns `email`, already checked by zeroBounce.
+Find LinkedIn URL from email takes `email` and returns `linkedin_url`. A tool drops an input key
+it does not know without an error, so a snake_case key silently arrives as nothing.
 
 No paid call or CRM write occurs during either audit. Deploy selected resources disabled only after
 the matching field contract is approved. Run a paid pilot only after the operator approves that
@@ -228,8 +232,8 @@ fill rate before recommending a paid route.
 ### Path 2: Contact invariants
 
 - **One contact play and three tool resources.** Keep contact orchestration in `enrich_contacts` and
-  use only Find Email, Find LinkedIn Profile from Email, and Contact LinkedIn Enrichment.
-- **Real branch gating.** Find Email runs only for LinkedIn-only rows. Find LinkedIn Profile from
+  use only Find email, Find LinkedIn URL from email, and Contact LinkedIn Enrichment.
+- **Real branch gating.** Find email runs only for LinkedIn-only rows. Find LinkedIn Profile from
   Email runs only for email-only rows. Contact LinkedIn Enrichment runs only with a LinkedIn URL.
 - **No unresolved write.** When email cannot resolve to LinkedIn, stop without custom enrichment,
   CRM write, or successful freshness.
@@ -293,8 +297,8 @@ paid call.
 Quote both Cargo-native tools and the LinkedIn profile enrichment action. Per contact, the maximum
 paid chain is:
 
-- LinkedIn only: Find Email plus Contact LinkedIn Enrichment.
-- Email only: Find LinkedIn Profile from Email plus Contact LinkedIn Enrichment when resolution
+- LinkedIn only: Find email plus Contact LinkedIn Enrichment.
+- Email only: Find LinkedIn URL from email plus Contact LinkedIn Enrichment when resolution
   succeeds.
 - Both identifiers: Contact LinkedIn Enrichment only.
 - Neither identifier: no paid call.

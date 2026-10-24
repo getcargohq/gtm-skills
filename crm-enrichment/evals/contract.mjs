@@ -145,7 +145,7 @@ const findEmailNode = findOne(
   (node) =>
     node.kind === "tool" &&
     node.toolUuid === "REPLACE-WITH-FIND-EMAIL-TOOL-UUID",
-  "enrich_contacts must call Cargo-native Find Email once",
+  "enrich_contacts must call Cargo-native Find email once",
 );
 const findLinkedinNode = findOne(
   contactNodes,
@@ -153,7 +153,7 @@ const findLinkedinNode = findOne(
     node.kind === "tool" &&
     node.toolUuid ===
       "REPLACE-WITH-FIND-LINKEDIN-PROFILE-FROM-EMAIL-TOOL-UUID",
-  "enrich_contacts must call Cargo-native Find LinkedIn Profile from Email once",
+  "enrich_contacts must call Cargo-native Find LinkedIn URL from email once",
 );
 const customToolCalls = contactNodes.filter(
   (node) =>
@@ -187,12 +187,12 @@ assert.deepEqual(
 
 const parentOf = (node) =>
   contactNodes.find((candidate) => candidate.childrenUuids.includes(node.uuid));
-assert.equal(parentOf(findEmailNode)?.actionSlug, "branch", "Find Email must be gated");
+assert.equal(parentOf(findEmailNode)?.actionSlug, "branch", "Find email must be gated");
 assert.match(parentOf(findEmailNode).config.condition.expression, /email/);
 assert.equal(
   parentOf(findLinkedinNode)?.actionSlug,
   "branch",
-  "Find LinkedIn Profile from Email must be gated",
+  "Find LinkedIn URL from email must be gated",
 );
 assert.match(parentOf(findLinkedinNode).config.condition.expression, /email/);
 
