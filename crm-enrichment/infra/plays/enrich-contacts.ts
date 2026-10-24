@@ -6,16 +6,19 @@ import { playsFolder } from "../folders/crm-enrichment";
 import { crmContacts } from "../models/crm-contacts";
 import { contactLinkedinEnrichment } from "../tools/contact-linkedin-enrichment";
 
-// Instantiate Cargo's native Find Email tool, confirm that it accepts these
-// inputs, and replace this value with its deployed tool UUID. Confirm the
-// release output path before deployment; this example expects `email`.
+// Every workspace is seeded with the read-only "Find email" tool in its Cargo
+// Tools folder (a verified multi-provider email waterfall). Replace this value
+// with its UUID: `cargo-ai orchestration action list "find email" --kind tool`.
+// It takes camelCase `linkedinUrl` / `firstName` / `lastName` (plus
+// `companyDomain`) and returns `email`. A tool drops unknown input keys
+// silently, so a snake_case key reaches it as nothing.
 const findEmail = toolRef<{ email?: string }>(
   "REPLACE-WITH-FIND-EMAIL-TOOL-UUID",
 );
 
-// Instantiate Cargo's native Find LinkedIn Profile from Email tool, confirm
-// that it accepts email, and replace this value with its deployed tool UUID.
-// This example expects the release output path `linkedin_url`.
+// The read-only "Find LinkedIn URL from email" tool sits in the same Cargo
+// Tools folder. Replace this value with its UUID. It takes `email` and returns
+// `linkedin_url`.
 const findLinkedinProfileFromEmail = toolRef<{ linkedin_url?: string }>(
   "REPLACE-WITH-FIND-LINKEDIN-PROFILE-FROM-EMAIL-TOOL-UUID",
 );
@@ -100,9 +103,9 @@ const enrichCrmContact = defineWorkflow(
       // LinkedIn exists but email is blank. Resolve the missing email, then
       // enrich the known profile whether or not an email is found.
       const foundEmail = uses.findEmail({
-        linkedin_url: input.linkedin_profile_url,
-        first_name: input.firstname,
-        last_name: input.lastname,
+        linkedinUrl: input.linkedin_profile_url,
+        firstName: input.firstname,
+        lastName: input.lastname,
       });
       const result = uses.contactLinkedinEnrichment({
         linkedinUrl: input.linkedin_profile_url,
