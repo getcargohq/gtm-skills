@@ -64,7 +64,7 @@ enrichment, both paths must pass independently. Evidence from one path does not 
 
 - [ ] The live CRM contact schema, record ID field, blank semantics, and write action were verified.
 - [ ] The live LinkedIn profile enrichment schema was inspected.
-- [ ] Cargo-native Find Email and Find LinkedIn Profile from Email were instantiated and their UUIDs,
+- [ ] Cargo-native Find email and Find LinkedIn URL from email were found in the Cargo Tools folder and their UUIDs,
       accepted inputs, output paths, and live unit prices were recorded.
 - [ ] The contact field-contract table contains one decision row per provider property, including
       source, output type, CRM destination, transformation, current fill rate, write policy, and
@@ -78,13 +78,13 @@ enrichment, both paths must pass independently. Evidence from one path does not 
 
 - [ ] `crm_contacts` is a direct CRM contact extract and carries the CRM record ID used by the write.
 - [ ] There is one contact play: `enrich_contacts`.
-- [ ] The play targets exactly three tool resources: Cargo-native Find Email, Cargo-native Find
-      LinkedIn Profile from Email, and custom `contact_linkedin_enrichment`.
+- [ ] The play targets exactly three tool resources: Cargo-native Find email, Cargo-native Find
+      LinkedIn URL from email, and custom `contact_linkedin_enrichment`.
 - [ ] `contact_linkedin_enrichment` calls one LinkedIn profile enrichment action and has no CRM
       record ID, connector access, or write action.
 - [ ] A row with email and LinkedIn skips both native tools and calls custom enrichment.
-- [ ] A LinkedIn-only row calls Find Email, then custom enrichment.
-- [ ] An email-only row calls Find LinkedIn Profile from Email, then custom enrichment only when a
+- [ ] A LinkedIn-only row calls Find email, then custom enrichment.
+- [ ] An email-only row calls Find LinkedIn URL from email, then custom enrichment only when a
       profile resolves.
 - [ ] An unresolved email-only row stops without custom enrichment, CRM write, or successful
       freshness.

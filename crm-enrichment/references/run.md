@@ -77,8 +77,8 @@ Stop the account run and report the evidence if:
 1. Confirm the contact audit and field contract are approved.
 2. Confirm both Cargo-native tool UUIDs and live schemas replaced the placeholders.
 3. Confirm the contact extract, CRM record ID, destinations, and write action match the live CRM.
-4. Confirm the plan has one contact play and only these three tool targets: Find Email, Find
-   LinkedIn Profile from Email, and Contact LinkedIn Enrichment.
+4. Confirm the plan has one contact play and only these three tool targets: Find email, Find
+   LinkedIn URL from email, and Contact LinkedIn Enrichment.
 5. Recount both-identifiers, LinkedIn-only, email-only, and neither routes.
 6. Fetch all three live tool prices and show the maximum contact spend.
 7. Send direct Cargo links for the disabled contact play and custom tool.
@@ -106,7 +106,7 @@ Use fixtures or safe live rows to verify every state:
 | State                         | Expected behavior                                                  |
 | ----------------------------- | ------------------------------------------------------------------ |
 | Email and LinkedIn            | Skip native tools, call custom enrichment, write blanks            |
-| LinkedIn only                 | Call Find Email, call custom enrichment, write blanks              |
+| LinkedIn only                 | Call Find email, call custom enrichment, write blanks              |
 | Email only, resolver succeeds | Call profile resolver, call custom enrichment, write blanks        |
 | Email only, resolver misses   | Call profile resolver, stop without custom enrichment or CRM write |
 | Neither                       | No call and no write                                               |

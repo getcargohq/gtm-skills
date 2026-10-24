@@ -217,3 +217,5 @@
 {"prompt": "split a large LinkedIn search into pieces that each extract fully", "expect": "extract-sales-navigator-search"}
 {"prompt": "optimize my Sales Navigator search so nothing gets cut off", "expect": "extract-sales-navigator-search"}
 {"prompt": "pull every company in this Sales Nav search, it's about 12,000", "expect": "extract-sales-navigator-search"}
+{"prompt": "Find work emails for this CSV of names and company domains", "expect": "find-work-email", "why": "The CSV email job reaches the skill whose first move is the workspace's preset Find email tool, not waterfall-enrichment's whole-record calls."}
+{"prompt": "Verify these 300 emails before tomorrow's send", "expect": "verify-email-list", "why": "Verification reaches the skill that leads with the preset Verify email tool, not the finder."}

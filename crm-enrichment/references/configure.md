@@ -87,14 +87,16 @@ The contact path consists only of:
 LinkedIn profile action and has no CRM access. `enrich_contacts` owns identifier resolution, gating,
 and every contact write.
 
-### Instantiate the Cargo-native tools
+### Find the Cargo-native tools
 
-In the live workspace, instantiate:
+Every workspace is seeded with both, read-only, in its Cargo Tools folder:
 
-1. Find Email
-2. Find LinkedIn Profile from Email
+1. Find email
+2. Find LinkedIn URL from email
 
-Inspect each deployed tool. Record its UUID, accepted inputs, output paths, and live unit price.
+Look each one up (`cargo-ai orchestration action list "find email" --kind tool`, or
+`cargo-ai orchestration tool list` filtered on `isReadOnly` and the exact name). Record its UUID,
+accepted inputs, output paths, and live unit price.
 Replace these values in `infra/plays/enrich-contacts.ts`:
 
 ```ts
@@ -104,12 +106,14 @@ Replace these values in `infra/plays/enrich-contacts.ts`:
 
 The example expects:
 
-| Tool                             | Inputs                                    | Output         |
-| -------------------------------- | ----------------------------------------- | -------------- |
-| Find Email                       | `linkedin_url`, `first_name`, `last_name` | `email`        |
-| Find LinkedIn Profile from Email | `email`                                   | `linkedin_url` |
+| Tool                         | Inputs                                 | Output         |
+| ---------------------------- | -------------------------------------- | -------------- |
+| Find email                   | `linkedinUrl`, `firstName`, `lastName` | `email`        |
+| Find LinkedIn URL from email | `email`                                | `linkedin_url` |
 
-If the live schema differs, adapt the call and output access together. Never guess a nested path.
+Input names are camelCase and not checked: a tool drops an unknown key without an error, so
+`linkedin_url` would reach Find email as nothing and the row would come back empty. If the live
+schema differs, adapt the call and output access together. Never guess a nested path.
 
 ### Configure Contact LinkedIn Enrichment
 
@@ -125,8 +129,8 @@ write policy, and cost.
 `enrich_contacts` must keep these routes:
 
 - LinkedIn and email present: skip both native tools, then call custom enrichment.
-- LinkedIn present and email blank: call Find Email, then custom enrichment.
-- LinkedIn blank and email present: call Find LinkedIn Profile from Email. Stop if unresolved;
+- LinkedIn present and email blank: call Find email, then custom enrichment.
+- LinkedIn blank and email present: call Find LinkedIn URL from email. Stop if unresolved;
   otherwise call custom enrichment.
 - Both identifiers blank: stop without any tool call.
 
@@ -153,7 +157,7 @@ Confirm the compiled graph has:
 
 - one contact play and exactly three tool targets
 - a branch before each native lookup
-- a result branch after Find LinkedIn Profile from Email
+- a result branch after Find LinkedIn URL from email
 - no custom enrichment call without a LinkedIn URL
 - no direct LinkedIn connector action in the play
 - no CRM connector action in the custom tool
