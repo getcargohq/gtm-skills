@@ -136,5 +136,11 @@
     "chain": 25,
     "demoWorkspace": "2026-10-23",
     "implementations": []
+  },
+  "readiness-scoring": {
+    "state": "to-be-approved",
+    "chain": 26,
+    "demoWorkspace": null,
+    "implementations": []
   }
 }

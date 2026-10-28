@@ -16,12 +16,15 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const { models: canonical, knownCollisions = {} } = JSON.parse(
   readFileSync(join(root, "scripts", "native-models.json"), "utf8"),
 );
-// Slugs the native dataset already carries in every workspace.
-const RESERVED = new Set([
-  "accounts",
-  "contacts",
-  "account_events",
-  "contact_events",
+// Slugs the native dataset already carries in every workspace, and the unify
+// extractor behind each. Declaring one of them with that extractor adopts the
+// workspace's model (the deploy finds it, it never creates one); declaring it
+// with any other extractor collides with it.
+const RESERVED = new Map([
+  ["accounts", "unifyAccounts"],
+  ["contacts", "unifyContacts"],
+  ["account_events", "unifyAccountEvents"],
+  ["contact_events", "unifyContactEvents"],
 ]);
 
 const errors = [];
@@ -43,6 +46,7 @@ for (const name of pipelines) {
     if (spec.datasetUuid !== "native") continue;
     const where = `${name}: model ${spec.slug}`;
 
+    if (RESERVED.get(spec.slug) === spec.extractorSlug) continue;
     if (RESERVED.has(spec.slug) && !(name in knownCollisions)) {
       errors.push(
         `${where} collides with the workspace's built-in native model of that slug; use the gtm_ model instead`,
