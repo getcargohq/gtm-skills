@@ -1,4 +1,4 @@
-import { defineModel, generatedRelationship } from "@cargo-ai/cdk";
+import { defineModel } from "@cargo-ai/cdk";
 
 import { readyThreshold, warmingThreshold } from "../settings";
 import { accountEvents } from "./account-events";
@@ -14,10 +14,11 @@ import { accountEvents } from "./account-events";
 //     rebuild with no other edit.
 //
 // The metric aggregates over the relationship Account Events generates
-// (`account_id` → `id`). It has no uuid to reference ahead of time and cannot
-// be declared, so it is named by its columns and the deploy finds it. A
-// workspace whose Account Events has never synced has no relationship yet:
-// the deploy says so, and the fix is one sync of Account Events.
+// (`account_id` → `id`), read as `accountEvents.relationships.account_id`. It
+// cannot be declared, and its uuid differs per workspace, so the adopt of
+// Account Events publishes it. A workspace whose Account Events has never
+// synced has no relationship yet: the deploy says so, and the fix is one sync
+// of Account Events.
 //
 // ADOPTED, NOT CREATED, and on its own schedule: hourly at :10, after Account
 // Events at :00, so the sum reads contributions computed the same hour.
@@ -40,10 +41,7 @@ export const accounts = defineModel("accounts", {
       label: "Readiness score",
       description:
         "Sum of the account's event contributions: rises with each fresh signal, falls as they age.",
-      relationship: generatedRelationship({
-        column: "id",
-        to: { model: accountEvents, column: "account_id" },
-      }),
+      relationship: accountEvents.relationships.account_id,
       aggregation: {
         function: "SUM",
         columnSlug: "computed__readiness_contribution",

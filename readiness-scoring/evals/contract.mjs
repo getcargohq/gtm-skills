@@ -127,12 +127,11 @@ assert.deepEqual(
   "the score must be the SUM of the events' readiness_contribution",
 );
 assert.equal(
-  score.generatedRelationship?.toModelUuid?.resourceId,
+  score.relationshipUuid?.resourceId,
   "model:account_events",
-  "the score must aggregate over Account Events through the relationship it generates: it cannot be declared, and a uuid ties the code to one workspace",
+  "the score must aggregate over the relationship Account Events generates (accountEvents.relationships.account_id): it cannot be declared, and a literal uuid ties the code to one workspace",
 );
-assert.equal(score.generatedRelationship.columnSlug, "id");
-assert.equal(score.generatedRelationship.toColumnSlug, "account_id");
+assert.equal(score.relationshipUuid.field, "relationships.account_id");
 
 const stage = accountColumns.get("readiness_stage");
 assert.ok(
