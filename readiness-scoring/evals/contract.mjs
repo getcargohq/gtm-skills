@@ -79,33 +79,61 @@ assert.ok(
   contribution !== undefined && contribution.kind === "computed",
   "account_events must carry the computed readiness_contribution column: a score written onto rows by a play stops decaying between signals",
 );
-const expression = contribution.expression.expression;
-assert.match(
-  expression,
-  /Date\.now\(\)/,
-  "the contribution must read the clock when it is computed: an age stored on the event never moves",
-);
-assert.match(
-  expression,
-  /Math\.pow\(0\.5, ageDays \/ halfLives\[key\]\)/,
-  "the contribution must decay by half-life: weight × 0.5 ^ (age / half-life)",
-);
-assert.match(
-  expression,
-  /if \(weight === undefined[^)]*\) \{ return 0; \}/,
-  "a signal type that settings.ts does not weigh must contribute 0: otherwise a new feed moves every score before anyone decided what it is worth",
-);
-assert.ok(
-  expression.includes(`if (ageDays > ${horizonDays}) { return 0; }`),
-  "events older than horizonDays from settings.ts must contribute 0",
-);
+// The compiled column, run the way the warehouse runs it: `record` bound, the
+// expression returned. Checking what it computes rather than how it is spelled
+// is what survives an adaptation that rewrites the function.
+const runInWarehouse = (column, record) =>
+  new Function("record", `return ${column.expression.expression}`)(record);
+const daysAgo = (days) => new Date(Date.now() - days * 86400000).toISOString();
+
 for (const [type, signal] of Object.entries(signals)) {
+  const fresh = runInWarehouse(contribution, {
+    properties: { signal_type: type },
+    model_slug: "feed",
+    occurred_at: daysAgo(0),
+  });
   assert.ok(
-    expression.includes(`"${type}":${signal.weight}`) &&
-      expression.includes(`"${type}":${signal.halfLifeDays}`),
-    `the contribution must carry the weight and half-life of "${type}" from settings.ts`,
+    Math.abs(fresh - signal.weight) < 0.01,
+    `a fresh "${type}" event must contribute its weight from settings.ts (${signal.weight}), not ${fresh}`,
+  );
+  const halfLife = runInWarehouse(contribution, {
+    properties: { signal_type: type },
+    model_slug: "feed",
+    occurred_at: daysAgo(signal.halfLifeDays),
+  });
+  assert.ok(
+    Math.abs(halfLife - signal.weight / 2) < 0.01,
+    `a "${type}" event one half-life old must contribute half its weight: the contribution must decay by half-life, read from the clock when it is computed`,
   );
 }
+const [firstType] = Object.keys(signals);
+assert.equal(
+  runInWarehouse(contribution, {
+    properties: {},
+    model_slug: "a_model_nobody_weighed",
+    occurred_at: daysAgo(0),
+  }),
+  0,
+  "an event whose type settings.ts does not weigh must contribute 0: otherwise a new feed moves every score before anyone decided what it is worth",
+);
+assert.equal(
+  runInWarehouse(contribution, {
+    properties: { signal_type: firstType },
+    model_slug: "feed",
+    occurred_at: daysAgo(horizonDays + 1),
+  }),
+  0,
+  "an event older than horizonDays from settings.ts must contribute 0",
+);
+assert.equal(
+  runInWarehouse(contribution, {
+    properties: { signal_type: firstType },
+    model_slug: "feed",
+    occurred_at: null,
+  }),
+  0,
+  "an event with no date must contribute 0",
+);
 
 const accounts = get("model:accounts").spec;
 assert.equal(
@@ -138,15 +166,17 @@ assert.ok(
   stage !== undefined && stage.kind === "computed",
   "accounts must carry the computed readiness_stage column",
 );
-assert.ok(
-  stage.expression.expression.includes(
-    `record.metric__readiness_score >= ${readyThreshold} ? "ready_now"`,
-  ) &&
-    stage.expression.expression.includes(
-      `record.metric__readiness_score >= ${warmingThreshold} ? "warming"`,
-    ),
-  "the stage must come from the thresholds in settings.ts",
-);
+for (const [score, expected] of [
+  [readyThreshold, "ready_now"],
+  [warmingThreshold, "warming"],
+  [warmingThreshold / 2, "cold"],
+]) {
+  assert.equal(
+    runInWarehouse(stage, { metric__readiness_score: score }),
+    expected,
+    `a score of ${score} must be ${expected}: the stage comes from the thresholds in settings.ts`,
+  );
+}
 assert.equal(
   [...byId.values()].some(
     (resource) => resource.spec.extractorSlug === "defineQuery",

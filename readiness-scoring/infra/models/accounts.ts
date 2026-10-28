@@ -53,12 +53,13 @@ export const accounts = defineModel("accounts", {
       type: "string",
       label: "Readiness stage",
       description: `ready_now at ${readyThreshold} or more, warming at ${warmingThreshold} or more, cold below.`,
-      expression: {
-        kind: "jsExpression",
-        expression: `record.metric__readiness_score >= ${readyThreshold} ? "ready_now" : record.metric__readiness_score >= ${warmingThreshold} ? "warming" : "cold"`,
-        fromRecipe: false,
-        instructTo: "none",
-      },
+      imports: { readyThreshold, warmingThreshold },
+      expression: (record) =>
+        record.metric__readiness_score >= readyThreshold
+          ? "ready_now"
+          : record.metric__readiness_score >= warmingThreshold
+            ? "warming"
+            : "cold",
     },
   ],
 });
