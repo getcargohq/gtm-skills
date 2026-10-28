@@ -3,7 +3,7 @@ import { z } from "zod";
 
 import { slack } from "../connectors/slack";
 import { playsFolder } from "../folders";
-import { readinessScores } from "../models/readiness-scores";
+import { accounts } from "../models/accounts";
 
 // PLACEHOLDER: the Slack channel every ready account is posted to. A channel
 // id (C…), not a name: names collide, and the connector's autocomplete
@@ -11,20 +11,19 @@ import { readinessScores } from "../models/readiness-scores";
 const slackChannelId = "PLACEHOLDER_SLACK_CHANNEL_ID";
 
 // One account that just crossed `readyThreshold`: one Slack message with the
-// score, the signals behind it and their age. Nothing is written to a CRM and
-// nothing is sent to anyone at the account; what happens after the ping is the
-// team's, or a sequencer's on `ready_now_accounts`.
+// score. Nothing is written to a CRM and nothing is sent to anyone at the
+// account; what happens after the ping is the team's, or a sequencer's on
+// `ready_now_accounts`.
 const routeReadyAccount = defineWorkflow(
   "route_ready_account",
   {
-    // The `readiness_scores` columns, which the query in
-    // models/readiness-scores.ts names. Rename one there, rename it here.
+    // Unify Accounts columns: its own, and the score this skill adds. The
+    // metric is read as `metric__readiness_score`, the name the read side
+    // gives an additional column.
     input: z.object({
-      account_id: z.string(),
+      id: z.string(),
       domain: z.string().optional(),
-      readiness_score: z.number(),
-      top_signals: z.string().optional(),
-      signal_count: z.number(),
+      metric__readiness_score: z.number(),
     }),
     output: z.object({ status: z.enum(["posted"]) }),
     uses: { slack },
@@ -37,7 +36,7 @@ const routeReadyAccount = defineWorkflow(
       channelId: slackChannelId,
       format: "markdown",
       disableUnfurling: true,
-      body: `*${input.domain} is ready* (score ${input.readiness_score})\n${input.signal_count} recent signals. Strongest: ${input.top_signals}.`,
+      body: `*${input.domain} is ready* (readiness score ${input.metric__readiness_score})\nIts recent signals crossed the ready line this hour. The events behind it are on the account's Account Events.`,
     });
 
     return { status: "posted" as const };
@@ -46,14 +45,14 @@ const routeReadyAccount = defineWorkflow(
 
 // Routes every account that enters `ready_now`.
 //
-// `changeKinds: ["added"]` is what makes an account posted once per climb. The
-// score model is rebuilt every hour, and the play diffs the filtered rows on
+// `changeKinds: ["added"]` is what makes an account posted once per climb.
+// Unify Accounts is rebuilt every hour, and the play diffs the filtered rows on
 // the account id, so an account that stays ready creates no run. One that
 // falls below the line and climbs back is posted again, which is the point: a
 // new signal brought it back.
 //
-// Cron at :20, after Account Events at :00 and the score at :10, so a tick
-// reads the score the same hour's events produced. Ticks with nothing added
+// Cron at :20, after Account Events at :00 and Unify Accounts at :10, so a
+// tick reads the score the same hour's events produced. Ticks with nothing added
 // create nothing.
 //
 // Ships disabled. Enabling is the last yes after the pilot query has set the
@@ -64,7 +63,7 @@ export const routeReadyAccounts = definePlay("route_ready_accounts", {
   description:
     "Posts each account whose decaying readiness score just crossed the ready line to Slack, with the score and the signals behind it.",
   folder: playsFolder,
-  model: readinessScores,
+  model: accounts,
   workflow: routeReadyAccount,
   filter: {
     conjonction: "and",
@@ -74,7 +73,7 @@ export const routeReadyAccounts = definePlay("route_ready_accounts", {
         conditions: [
           {
             kind: "string",
-            columnSlug: readinessScores.columns.stage,
+            columnSlug: accounts.columns.computed__readiness_stage,
             operator: "is",
             values: ["ready_now"],
           },

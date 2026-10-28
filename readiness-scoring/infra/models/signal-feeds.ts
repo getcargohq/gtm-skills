@@ -53,7 +53,13 @@ export const fundraisingSignals = defineModel("readiness_fundraising_signals", {
   description:
     "Rounds raised by the accounts in gtm_accounts, from Cargo Signals. Each event lands in Account Events and moves the readiness score.",
   folder: modelsFolder,
-  config: { scope: watched, advancedSettings },
+  // One lead per company. Cargo Signals delivers a company event once per
+  // contact it attaches, and bills each one: without this, one round arrives
+  // as several events, each counted in the score and each billed.
+  config: {
+    scope: { ...watched, filters: { maxLeadsPerCompany: 1 } },
+    advancedSettings,
+  },
   unification: accountEventUnification,
 });
 

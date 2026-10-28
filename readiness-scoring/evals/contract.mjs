@@ -15,6 +15,7 @@ const { signals, readyThreshold, warmingThreshold, horizonDays } = await import(
 );
 await import(`../infra/models/signal-feeds.ts?contract=${stamp}`);
 await import(`../infra/models/account-events.ts?contract=${stamp}`);
+await import(`../infra/models/accounts.ts?contract=${stamp}`);
 await import(`../infra/plays/route-ready-accounts.ts?contract=${stamp}`);
 await import(`../infra/segments/readiness.ts?contract=${stamp}`);
 
@@ -62,8 +63,8 @@ assert.ok(
 );
 
 // ---------------------------------------------------------------------------
-// The score is a query over Account Events, recomputed on a schedule. Decay
-// happens at read time; nothing writes a score.
+// The score is two columns computed on rebuild: what each event adds today on
+// Account Events, and their sum on Unify Accounts. Nothing writes a score.
 // ---------------------------------------------------------------------------
 const accountEvents = get("model:account_events").spec;
 assert.equal(
@@ -71,59 +72,88 @@ assert.equal(
   "unifyAccountEvents",
   "account_events must be the workspace's Unify Account Events, adopted: any other extractor under that slug collides with it",
 );
-
-const scores = get("model:readiness_scores").spec;
-assert.equal(
-  scores.extractorSlug,
-  "defineQuery",
-  "readiness_scores must be a native query model: a score written onto rows by a play stops decaying between signals",
-);
-assert.equal(
-  scores.config.idColumnSlug,
-  "account_id",
-  "readiness_scores must be keyed by account_id: the play's added diff runs on the id, and any other key re-posts accounts",
-);
-const query = scores.config.query;
-assert.match(
-  query,
-  /from object\.account_events\b/,
-  "the score must read object.account_events: every feed reaches the score by unifying there, with no edit to the query",
-);
-assert.match(
-  query,
-  /current_timestamp\(\)/,
-  "the score must compute the age at query time: an age stored on the event never moves",
-);
-assert.match(
-  query,
-  /exp\(-ln\(2\) \* age_days \/ half_life_days\)/,
-  "the score must decay by half-life: weight × 0.5 ^ (age / half-life)",
-);
-assert.match(
-  query,
-  /else 0 end as weight/,
-  "a signal type that settings.ts does not weigh must weigh 0: otherwise a new feed moves every score before anyone decided what it is worth",
-);
-assert.match(
-  query,
-  /select distinct/,
-  "events must be deduplicated per account, type and day: the same round from two feeds otherwise counts twice",
+const contribution = (accountEvents.additionalColumns ?? []).find(
+  (column) => column.slug === "readiness_contribution",
 );
 assert.ok(
-  query.includes(`interval ${horizonDays} day`),
-  "the query must cut at horizonDays from settings.ts: without it the hourly rebuild scans every event ever recorded",
+  contribution !== undefined && contribution.kind === "computed",
+  "account_events must carry the computed readiness_contribution column: a score written onto rows by a play stops decaying between signals",
 );
-for (const type of signalTypes) {
+const expression = contribution.expression.expression;
+assert.match(
+  expression,
+  /Date\.now\(\)/,
+  "the contribution must read the clock when it is computed: an age stored on the event never moves",
+);
+assert.match(
+  expression,
+  /Math\.pow\(0\.5, ageDays \/ halfLives\[key\]\)/,
+  "the contribution must decay by half-life: weight × 0.5 ^ (age / half-life)",
+);
+assert.match(
+  expression,
+  /if \(weight === undefined[^)]*\) \{ return 0; \}/,
+  "a signal type that settings.ts does not weigh must contribute 0: otherwise a new feed moves every score before anyone decided what it is worth",
+);
+assert.ok(
+  expression.includes(`if (ageDays > ${horizonDays}) { return 0; }`),
+  "events older than horizonDays from settings.ts must contribute 0",
+);
+for (const [type, signal] of Object.entries(signals)) {
   assert.ok(
-    query.includes(`when '${type}' then ${signals[type].weight}`) &&
-      query.includes(`when '${type}' then ${signals[type].halfLifeDays}`),
-    `the query must carry the weight and half-life of "${type}" from settings.ts`,
+    expression.includes(`"${type}":${signal.weight}`) &&
+      expression.includes(`"${type}":${signal.halfLifeDays}`),
+    `the contribution must carry the weight and half-life of "${type}" from settings.ts`,
   );
 }
+
+const accounts = get("model:accounts").spec;
+assert.equal(
+  accounts.extractorSlug,
+  "unifyAccounts",
+  "accounts must be the workspace's Unify Accounts, adopted: the score lives on the account row everyone reads",
+);
+const accountColumns = new Map(
+  (accounts.additionalColumns ?? []).map((column) => [column.slug, column]),
+);
+const score = accountColumns.get("readiness_score");
 assert.ok(
-  query.includes(`>= ${readyThreshold} then 'ready_now'`) &&
-    query.includes(`>= ${warmingThreshold} then 'warming'`),
+  score !== undefined && score.kind === "metric",
+  "accounts must carry the readiness_score metric",
+);
+assert.deepEqual(
+  score.aggregation,
+  { function: "SUM", columnSlug: "computed__readiness_contribution" },
+  "the score must be the SUM of the events' readiness_contribution",
+);
+assert.equal(
+  score.generatedRelationship?.toModelUuid?.resourceId,
+  "model:account_events",
+  "the score must aggregate over Account Events through the relationship it generates: it cannot be declared, and a uuid ties the code to one workspace",
+);
+assert.equal(score.generatedRelationship.columnSlug, "id");
+assert.equal(score.generatedRelationship.toColumnSlug, "account_id");
+
+const stage = accountColumns.get("readiness_stage");
+assert.ok(
+  stage !== undefined && stage.kind === "computed",
+  "accounts must carry the computed readiness_stage column",
+);
+assert.ok(
+  stage.expression.expression.includes(
+    `record.metric__readiness_score >= ${readyThreshold} ? "ready_now"`,
+  ) &&
+    stage.expression.expression.includes(
+      `record.metric__readiness_score >= ${warmingThreshold} ? "warming"`,
+    ),
   "the stage must come from the thresholds in settings.ts",
+);
+assert.equal(
+  [...byId.values()].some(
+    (resource) => resource.spec.extractorSlug === "defineQuery",
+  ),
+  false,
+  "the score must not be a query model: the columns put it on the account row, on any warehouse",
 );
 
 // ---------------------------------------------------------------------------
@@ -147,6 +177,13 @@ for (const feed of feeds) {
     "accountEvent",
     `${feed.id} must unify as an account event: an event that lands in Contact Events never reaches the score`,
   );
+  if (feed.spec.extractorSlug === "listenFundraising") {
+    assert.equal(
+      feed.spec.config.scope.filters?.maxLeadsPerCompany,
+      1,
+      `${feed.id} must deliver one lead per company: a round otherwise arrives once per contact, counted and billed each time`,
+    );
+  }
   assert.ok(
     feed.spec.config?.advancedSettings?.dailyLeadLimit > 0,
     `${feed.id} must cap deliveries per day: the first delivery on a new watchlist looks back months`,
@@ -159,29 +196,33 @@ for (const feed of feeds) {
 const play = get("play:route_ready_accounts").spec;
 assert.equal(
   play.modelUuid?.resourceId,
-  "model:readiness_scores",
-  "the play must run on readiness_scores",
+  "model:accounts",
+  "the play must run on Unify Accounts, where the stage is",
 );
 assert.deepEqual(
   play.changeKinds,
   ["added"],
   "the play must create runs only for accounts entering ready_now: without it every ready account is posted every hour",
 );
-assert.equal(play.isEnabled, false, "the first plan must ship the play disabled");
+assert.equal(
+  play.isEnabled,
+  false,
+  "the first plan must ship the play disabled",
+);
 const playConditions = play.filter.groups.flatMap((group) => group.conditions);
 assert.ok(
   playConditions.length === 1 &&
-    playConditions[0].columnSlug === "stage" &&
+    playConditions[0].columnSlug === "computed__readiness_stage" &&
     playConditions[0].values?.join() === "ready_now",
-  "the play must filter on stage = ready_now, never on the raw score: the threshold lives in settings.ts and only reaches the play through stage",
+  "the play must filter on readiness_stage = ready_now, never on the raw score: the threshold lives in settings.ts and only reaches the play through the stage",
 );
 
 const eventsMinute = cronMinute(accountEvents.schedule, "account_events");
-const scoresMinute = cronMinute(scores.schedule, "readiness_scores");
+const scoresMinute = cronMinute(accounts.schedule, "accounts");
 const playMinute = cronMinute(play.schedule, "the play");
 assert.ok(
   eventsMinute < scoresMinute && scoresMinute < playMinute,
-  "Account Events must sync before the score rebuilds, and the score before the play reads it: out of order, each tick acts on the previous hour",
+  "Account Events must rebuild before Unify Accounts sums it, and Unify Accounts before the play reads the stage: out of order, each tick acts on the previous hour",
 );
 
 const connectorNodes = play.nodes.filter((node) => node.kind === "connector");
@@ -204,9 +245,11 @@ for (const segment of segments) {
     (group) => group.conditions,
   );
   assert.equal(
-    conditions.every((condition) => condition.columnSlug === "stage"),
+    conditions.every(
+      (condition) => condition.columnSlug === "computed__readiness_stage",
+    ),
     true,
-    `${segment.id} filters on something other than stage: a threshold restated in a segment drifts from settings.ts`,
+    `${segment.id} filters on something other than readiness_stage: a threshold restated in a segment drifts from settings.ts`,
   );
   for (const condition of conditions) {
     for (const value of condition.values ?? []) segmentStages.add(value);
@@ -225,5 +268,5 @@ assert.equal(
 );
 
 console.log(
-  "ok: the score decays at read time from Account Events, the feeds watch a list, and the play posts once per climb after the score it reads",
+  "ok: each event's contribution decays on rebuild, Unify Accounts sums it, the feeds watch a list, and the play posts once per climb after the score it reads",
 );

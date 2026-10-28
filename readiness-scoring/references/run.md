@@ -38,9 +38,15 @@ same rule. A model the team expects and does not see here does not unify as an a
 1. `node --import tsx evals/contract.mjs` from this skill's folder, against the adapted resources.
 2. `cargo-ai project types`, then `cargo-ai project check`, then `cargo-ai project plan` from the
    project root. Inspect every resource.
-3. Confirm the plan shows `account_events` adopted (an update with its schedule, not a create), the
-   feeds on a watchlist of the accounts model, `readiness_scores` as a native query model with its
-   schedule, the two segments, and the play with `isEnabled: false` and `changeKinds: ["added"]`.
+3. Confirm the plan shows `account_events` and `accounts` adopted (updates, not creates) with their
+   schedules, `account_events` gaining `readiness_contribution` and `accounts` gaining
+   `readiness_score` and `readiness_stage`, **and neither losing a column**. Then the feeds on a
+   watchlist of the accounts model, the two segments, and the play with `isEnabled: false` and
+   `changeKinds: ["added"]`. A column removal on either unify model means a live column was not
+   carried into the declaration: stop and add it.
+   If the deploy stops on "no relationship between id on this model and account_id", Account Events
+   has never synced in this workspace: sync it once (`cargo-ai storage run create --model-uuid <accountEventsUuid>`) and deploy
+   again.
 4. Read each feed's current per-event price (`cargo-ai connection integration get cargoSignals`) and
    give the operator the estimate described in SKILL.md, _What it costs_.
 5. Deploy only on the operator's yes.
@@ -50,31 +56,45 @@ Resolve `workspaceUuid` from `cargo-ai whoami` and resource UUIDs from `cargo.st
 
 ## Pilot
 
-The feeds deliver over the first days. Once Account Events has synced and `readiness_scores` has
-rebuilt (or run the score query by hand: it is the `query` in `infra/models/readiness-scores.ts`),
-read the distribution:
+The feeds deliver over the first days. Once Account Events (:00) and Unify Accounts (:10) have
+rebuilt, read the distribution:
 
 ```sql
-SELECT stage, COUNT(*) AS accounts, MIN(readiness_score) AS min_score, MAX(readiness_score) AS max_score
-FROM object.readiness_scores
-GROUP BY stage
+SELECT computed__readiness_stage AS stage, COUNT(*) AS accounts,
+  MIN(metric__readiness_score) AS min_score, MAX(metric__readiness_score) AS max_score
+FROM object.accounts
+WHERE metric__readiness_score > 0
+GROUP BY 1
 ```
 
-and the top of the list:
+the top of the list:
 
 ```sql
-SELECT domain, readiness_score, stage, top_signals, signal_count, last_signal_at
-FROM object.readiness_scores
-ORDER BY readiness_score DESC
+SELECT id, domain, metric__readiness_score AS score, computed__readiness_stage AS stage
+FROM object.accounts
+ORDER BY metric__readiness_score DESC
 LIMIT 20
+```
+
+and, for any account, the events behind its score:
+
+```sql
+SELECT occurred_at, COALESCE(JSON_VALUE(properties, '$.signal_type'), model_slug) AS signal,
+  computed__readiness_contribution AS contribution
+FROM object.account_events
+WHERE account_id = '<id>' AND computed__readiness_contribution > 0
+ORDER BY contribution DESC
 ```
 
 Check by hand:
 
-- every weighed type in `signals` appears in some `top_signals`; one that never does has no events
+- every weighed type in `signals` has events with a contribution above 0; one that never does has
+  no events
 - the top ten read right to someone who knows the accounts. When they do not, change the weights
   (`weights.md`, _Checking them_), not the threshold
 - an account with only old events sits below one with the same events fresh
+- one round is one event: an account whose top contributions are the same signal on the same day
+  is a feed delivering per contact (`maxLeadsPerCompany`) or two feeds carrying one type
 
 ## Set the lines
 
@@ -95,9 +115,9 @@ result straight after a deploy is the lag, not a failed model.
 ## Report
 
 - the stage distribution and the thresholds chosen
-- the top five accounts with their `top_signals`
+- the top five accounts with the events behind their score
 - events delivered per feed over the pilot, and actual credits against the estimate
-- direct Cargo links to the score model, the two segments and the play
+- direct Cargo links to Unify Accounts, the two segments and the play
 
 End with one recommended `Next step`:
 

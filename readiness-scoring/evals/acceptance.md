@@ -14,15 +14,20 @@ Walk every line. A checked template without an evidence-backed consumer adaptati
 ## Project
 
 - The agent installed and read `cargo-project` before adapting.
-- `account_events` is declared once in the project, as `unifyAccountEvents`, and the plan shows it
-  adopted, not created.
+- `account_events` and `accounts` are each declared once in the project, as `unifyAccountEvents`
+  and `unifyAccounts`, and the plan shows them adopted, not created.
+- Every additional column live on either model before the deploy is in its declaration, and the
+  plan removes none.
 - The watched accounts model unifies into Unify Accounts, and both feeds watch it on its domain
   column, with a `dailyLeadLimit`.
-- `readiness_scores` is a native `defineQuery` model whose query reads `object.account_events`,
-  computes the age with `current_timestamp()`, weighs unknown types 0 and deduplicates per account,
-  type and day.
-- The three crons run in order: Account Events, the score, the play.
-- The play filters on `stage = ready_now` only, uses `changeKinds: ["added"]`, posts to one Slack
+- `readiness_contribution` on Account Events reads the clock (`Date.now()`), decays by half-life,
+  and returns 0 for unweighed types and for events past the horizon.
+- `readiness_score` on Unify Accounts is the `SUM` of `computed__readiness_contribution` over the
+  relationship Account Events generates, and `readiness_stage` is computed from the two
+  thresholds.
+- The fundraising feed delivers one lead per company.
+- The three crons run in order: Account Events, Unify Accounts, the play.
+- The play filters on `readiness_stage = ready_now` only, uses `changeKinds: ["added"]`, posts to one Slack
   channel id, and ships disabled.
 - This skill declares no agent and no `defineContext`.
 - `node --import tsx evals/contract.mjs`, `cargo-ai project types`, `cargo-ai project check` and
@@ -38,8 +43,8 @@ Walk every line. A checked template without an evidence-backed consumer adaptati
 
 ## Results
 
-- After the first rebuild, `readiness_scores` holds a row for every account with a weighed event
-  inside the horizon.
+- After the first rebuilds, every account with a weighed event inside the horizon has a
+  `readiness_score` and a `readiness_stage`.
 - The thresholds came from the pilot distribution, and the top ten accounts were read by hand.
 - The first account to cross the line was posted once, with its score and signals.
 - The report gives the distribution, the top accounts, events and credits per feed against the

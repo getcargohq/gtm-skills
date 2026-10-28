@@ -1,5 +1,5 @@
 // The settings an operator changes without touching the graph. The score
-// query, the segments and the play are all generated from them, so edit here,
+// columns, the segments and the play are all generated from them, so edit here,
 // run `cargo-ai project plan`, and read what moved.
 
 // What each signal is worth on the day it lands, and how many days it takes to
@@ -10,7 +10,7 @@
 // key is not listed here weighs nothing: a new feed must not move a score
 // until someone has decided what it is worth.
 //
-// PLACEHOLDER: these two are the cargoSignals feeds this example deploys.
+// PLACEHOLDER: these two are the Cargo Signals feeds this example deploys.
 // references/weights.md has defaults for the other signal types and for
 // first-party events (demo requests, pricing-page visits), and the reasoning
 // behind a half-life.
@@ -30,9 +30,9 @@ export const signals: Record<string, { weight: number; halfLifeDays: number }> =
 export const readyThreshold = 8;
 export const warmingThreshold = 4;
 
-// How far back the score reads. Events older than this are skipped, which
-// keeps the hourly scan bounded. Three half-lives of the slowest signal leaves
-// an event at an eighth of its weight, which no threshold above should hinge
-// on.
+// How far back an event counts. Older events contribute 0, which keeps a
+// stale event from holding a score up by a rounding error. Three half-lives
+// of the slowest signal leaves an event at an eighth of its weight, which no
+// threshold above should hinge on.
 export const horizonDays =
   3 * Math.max(...Object.values(signals).map((signal) => signal.halfLifeDays));

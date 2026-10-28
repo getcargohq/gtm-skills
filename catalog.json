@@ -2003,9 +2003,9 @@
     {
       "name": "readiness-scoring",
       "kind": "cookbook",
-      "job": "Keep a sales readiness score on every account that rises with each fresh signal and falls on its own as signals age: rounds, job postings, demo requests and any other account event land in Unify Account Events, a SQL model re-scores accounts hourly with a half-life per signal type, and accounts crossing your line are posted to Slack once.",
-      "description": "Keep a sales readiness score on every account that rises with each fresh signal and falls on its own as signals age: rounds, job postings, demo requests and any other account event land in Unify Account Events, a SQL model re-scores accounts hourly with a half-life per signal type, and accounts crossing your line are posted to Slack once. Triggers: \"score accounts by recent engagement, older signals count less\", \"which accounts are ready to buy right now\", \"a lead score that decays over time\", \"signal decay\", \"tell me when an account heats up\". Cargo project, Cargo Signals, unifyAccountEvents, defineQuery, Slack. Skip when: tiering accounts against your ICP, which is account-scoring; scoring a list once, which is score-leads; a one-time look at who raised, which is track-funding-rounds.",
-      "version": "0.1.0",
+      "job": "Keep a sales readiness score on every account that rises with each fresh signal and falls on its own as signals age: rounds, job postings, demo requests and any other account event land in Unify Account Events, each event decays with a half-life per signal type, the sum lands as a score on Unify Accounts every hour, and accounts crossing your line are posted to Slack once.",
+      "description": "Keep a sales readiness score on every account that rises with each fresh signal and falls on its own as signals age: rounds, job postings, demo requests and any other account event land in Unify Account Events, each event decays with a half-life per signal type, the sum lands as a score on Unify Accounts every hour, and accounts crossing your line are posted to Slack once. Triggers: \"score accounts by recent engagement, older signals count less\", \"which accounts are ready to buy right now\", \"a lead score that decays over time\", \"signal decay\", \"tell me when an account heats up\". Cargo project, Cargo Signals, unifyAccountEvents, unifyAccounts, metric column, Slack. Skip when: tiering accounts against your ICP, which is account-scoring; scoring a list once, which is score-leads; a one-time look at who raised, which is track-funding-rounds.",
+      "version": "0.2.0",
       "homepage": "https://github.com/getcargohq/gtm-skills/tree/main/readiness-scoring",
       "group": "Signals",
       "install": "cargo-ai project add cookbook/readiness-scoring",
@@ -2021,7 +2021,7 @@
       ],
       "example": {
         "prompt": "Score our accounts by recent engagement so older signals count for less, and ping #sales-ready when one heats up.",
-        "output": "```\nNorthwind (northwind.example) is ready (score 14.2)\n3 recent signals. Strongest: fundraising 12d ago, demo_requests 2d ago, job_offers 9d ago.\n```\n\n| domain            | readiness_score | stage     | top_signals                                         |\n| ----------------- | --------------- | --------- | --------------------------------------------------- |\n| northwind.example | 14.2            | ready_now | fundraising 12d ago, demo_requests 2d ago, job_offers 9d ago |\n| fabrikam.example  | 6.1             | warming   | job_offers 3d ago, job_offers 17d ago               |\n| tailspin.example  | 2.4             | cold      | fundraising 290d ago                                |\n\nNorthwind is posted once, the hour it crosses the line. Tailspin's round is old enough that it no\nlonger counts for much, and nobody had to lower its score."
+        "output": "```\nnorthwind.example is ready (readiness score 14.2)\nIts recent signals crossed the ready line this hour.\n```\n\nUnify Accounts, with the two columns this adds:\n\n| domain            | readiness_score | readiness_stage | its weighed events                                           |\n| ----------------- | --------------- | --------------- | ------------------------------------------------------------ |\n| northwind.example | 14.2            | ready_now       | fundraising 12d ago, demo_requests 2d ago, job_offers 9d ago |\n| fabrikam.example  | 6.1             | warming         | job_offers 3d ago, job_offers 17d ago                        |\n| tailspin.example  | 2.4             | cold            | fundraising 290d ago                                         |\n\nNorthwind is posted once, the hour it crosses the line. Tailspin's round is old enough that it no\nlonger counts for much, and nobody had to lower its score."
       },
       "state": "to-be-approved",
       "chain": 26,
@@ -2068,19 +2068,19 @@
         {
           "id": "fit-gate",
           "when": "account-scoring is installed and only tier A or B accounts should be routed",
-          "how": "Left join the tier model on domain in the score query and add a `tier` column; add a condition on it to the play filter",
+          "how": "A lookup column on Unify Accounts that reads the tier from `tam_companies` by domain, and a condition on it in the play filter",
           "cost": "An account the tier model does not hold is never routed, however hot it is"
         },
         {
           "id": "contact-score",
           "when": "The motion is person-led (a champion's engagement, not the company's news)",
-          "how": "Copy the score model onto `object.contact_events`, keyed by `contact_id`; the person-level Cargo Signals types feed Contact Events by default",
+          "how": "The same two columns on Unify Contact Events and Unify Contacts (`contact_id` → `id`); the person-level Cargo Signals types feed Contact Events by default",
           "cost": "A second score to read, and a person who changes jobs takes their score with them"
         },
         {
           "id": "crm-stage",
           "when": "Reps work in the CRM and the stage should be a CRM field",
-          "how": "A second play on the score model with `changeKinds: [\"added\", \"removed\"]` writing `stage` with `updateRecords` on the matching company, never creating one",
+          "how": "A second play on Unify Accounts with `changeKinds: [\"added\", \"removed\"]` writing the stage with `updateRecords` on the matching company, never creating one",
           "cost": "One CRM write per account entering or leaving a stage. Writing only on entry leaves a stage in the CRM that the score has left"
         },
         {
@@ -2097,26 +2097,27 @@
         }
       ],
       "shouldNotChange": [
-        "**The decay is computed in the query, at read time.** (`infra/models/readiness-scores.ts`) A score written onto a row by a play stops decaying the moment it is written: the account stays ready forever, or every row is rewritten every hour.",
+        "**The decay is computed by the columns, on every rebuild.** (`infra/models/account-events.ts`, `infra/models/accounts.ts`) A score written onto a row by a play stops decaying the moment it is written: the account stays ready forever, or every row is rewritten every hour.",
+        "**The unify models' `additionalColumns` carry every live column.** (`infra/models/account-events.ts`, `infra/models/accounts.ts`) The list is authoritative on an adopted model: a column left out is removed at deploy, values included, on models the whole workspace reads.",
         "**Events stay as they landed.** (Account Events) The score reads them; nothing edits or deletes one to lower a score. An event rewritten to change its weight is history nobody can audit.",
-        "**An unweighed signal type weighs 0.** (`ELSE 0` in the query) Default it to 1 and a new feed, or a noisy model someone unified for another reason, moves every score before anyone decided what it is worth.",
-        "**One event per account, type and day.** (`select distinct` in the query) The same round arrives from two feeds, or twice from one; counted twice, it doubles a score with no new information.",
-        "**The play reads `stage`, and only `stage`.** (`infra/plays/route-ready-accounts.ts`) A raw score in the play filter is a second copy of the threshold, and the two drift.",
-        "**`changeKinds: [\"added\"]` stays.** (`infra/plays/route-ready-accounts.ts`) The model is rebuilt every hour; without it every ready account is posted every hour.",
-        "**The three schedules stay in order: Account Events, then the score, then the play.** Out of order, each step acts on the previous hour's data, and a signal takes two hours to post.",
+        "**An unweighed signal type contributes 0.** (`return 0` in the contribution) Default it to 1 and a new feed, or a noisy model someone unified for another reason, moves every score before anyone decided what it is worth.",
+        "**One event per signal.** (`maxLeadsPerCompany: 1` on the feeds, one feed per type) The score sums rows, so a round delivered once per contact, or by two feeds, counts as many times as it arrives.",
+        "**The play reads `readiness_stage`, and only that.** (`infra/plays/route-ready-accounts.ts`) A raw score in the play filter is a second copy of the threshold, and the two drift.",
+        "**`changeKinds: [\"added\"]` stays.** (`infra/plays/route-ready-accounts.ts`) Unify Accounts is rebuilt every hour; without it every ready account is posted every hour.",
+        "**The three schedules stay in order: Account Events, then Unify Accounts, then the play.** Out of order, each step acts on the previous hour's data, and a signal takes two hours to post.",
         "**The feeds watch a list.** (`infra/models/signal-feeds.ts`) Market scope delivers, and bills, every round and every posting in the market, and Account Events drops the ones on companies no account model holds.",
         "**No agent in the score.** An LLM call per account per hour is a bill with no judgment in it: the score is arithmetic on dated events."
       ],
       "doneWhen": [
         "the inventory query was run and every key in `signals` matches a type or model it returned, or a feed this deploy added",
         "the operator approved the weights and half-lives in `infra/settings.ts`",
-        "the plan showed `account_events` adopted with its schedule, the feeds on a watchlist, the score model, two segments and the play **disabled**, and the operator approved the deploy",
-        "after the first sync, `readiness_scores` has a row for every account with a weighed event inside the horizon, and an account with only old events scores below one with the same events fresh",
+        "the plan showed `account_events` and `accounts` adopted with their schedules and the score columns added, no live column removed, the feeds on a watchlist, two segments and the play **disabled**, and the operator approved the deploy",
+        "after the first rebuilds, every account with a weighed event inside the horizon has a `readiness_score` and a `readiness_stage`, and an account with only old events scores below one with the same events fresh",
         "the thresholds were set from the pilot's distribution, and the top ten accounts were read by hand and agreed with",
         "the play was enabled, and the first account to cross the line was posted once, with its signals",
         "`node --import tsx evals/contract.mjs` passes against the adapted resources"
       ],
-      "cost": "**The score itself bills nothing in credits.** It is a SQL model rebuilt hourly over the workspace's\nown warehouse, with no LLM and no connector call. The Slack post is one action per account that\ncrosses the line.\n\n**Cargo Signals bills per event delivered**, per feed, on the watched accounts only. The first\ndelivery on a new watchlist looks back months, so the first days cost the most; each feed's\n`dailyLeadLimit` caps them. Read the current per-event price with\n`cargo-ai connection integration get cargoSignals` before the deploy, multiply by the watched\naccounts and the events the pilot week delivered, and give the operator that estimate. First-party\nevents the workspace already has cost nothing to add.",
+      "cost": "**The score itself bills nothing in credits.** It is three columns recomputed hourly in the\nworkspace's own warehouse, with no LLM and no connector call. The Slack post is one action per account that\ncrosses the line.\n\n**Cargo Signals bills per event delivered**, per feed, on the watched accounts only. The first\ndelivery on a new watchlist looks back months, so the first days cost the most; each feed's\n`dailyLeadLimit` caps them. Read the current per-event price with\n`cargo-ai connection integration get cargoSignals` before the deploy, multiply by the watched\naccounts and the events the pilot week delivered, and give the operator that estimate. First-party\nevents the workspace already has cost nothing to add.",
       "composesInto": "`account-scoring` (the fit gate: route only accounts that are both ready and tier A),\n`contact-sourcing` and `agentic-engagement` (what happens after the ping, on `ready_now_accounts`),\nand every other Signals pipeline: once its model unifies as an account event, its events count as\nsoon as its slug has a weight."
     },
     {
