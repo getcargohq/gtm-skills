@@ -33,6 +33,31 @@ Each row is a candidate key for `signals` in `infra/settings.ts`: the `signal_ty
 (Cargo Signals events), the `model_slug` when it is not (first-party models). The score uses the
 same rule. A model the team expects and does not see here does not unify as an account event yet.
 
+Then the repeats: the same signal, on the same account, on the same day.
+
+```sql
+SELECT signal_type, copies, COUNT(*) AS account_days
+FROM (
+  SELECT
+    account_id,
+    COALESCE(JSON_VALUE(properties, '$.signal_type'), model_slug) AS signal_type,
+    TIMESTAMP_TRUNC(CAST(occurred_at AS TIMESTAMP), DAY) AS day,
+    COUNT(*) AS copies
+  FROM object.account_events
+  GROUP BY 1, 2, 3
+)
+WHERE copies > 1
+GROUP BY 1, 2
+ORDER BY account_days DESC
+```
+
+The score sums rows, so every copy counts. For a type that happens many times a day (sessions,
+activity) that is the point. For a one-off signal (a round, a job post) a copy is the same event
+delivered twice, and an account with six copies of one round scores it six times; the feed settings
+stop new copies, not the ones already in the history. Go through the one-off types with the
+operator before weighing them: the fix is at the source that wrote them twice, never an edit to
+Account Events.
+
 ## Deploy, play disabled
 
 1. `node --import tsx evals/contract.mjs` from this skill's folder, against the adapted resources.

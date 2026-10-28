@@ -6,6 +6,8 @@ Walk every line. A checked template without an evidence-backed consumer adaptati
 
 - The inventory query ran on the live Account Events before anything was weighed, and its rows
   were shown to the operator.
+- The repeats query ran too, and every one-off signal type it returned (a round, a job post) was
+  shown to the operator before it was weighed.
 - Every key in `signals` matches a `signal_type` or model slug from the inventory, or a feed this
   deploy adds. None was invented.
 - The operator approved each weight and half-life, and the reasoning for the strongest one is
