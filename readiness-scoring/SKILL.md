@@ -25,10 +25,6 @@ metadata:
 
 # Readiness scoring
 
-**State: to-be-approved.** Deploy-verified against a live workspace: not yet. Treat `Done when`
-below as the acceptance test and review `cargo-ai project plan` before deploying. Make no outcome claim
-for this skill until it is approved.
-
 ## The outcome
 
 A readiness score on every account, on the account row itself (Unify Accounts), rebuilt every hour.

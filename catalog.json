@@ -2023,7 +2023,7 @@
         "prompt": "Score our accounts by recent engagement so older signals count for less, and ping #sales-ready when one heats up.",
         "output": "```\nnorthwind.example is ready (readiness score 14.2)\nIts recent signals crossed the ready line this hour.\n```\n\nUnify Accounts, with the two columns this adds:\n\n| domain            | readiness_score | readiness_stage | its weighed events                                           |\n| ----------------- | --------------- | --------------- | ------------------------------------------------------------ |\n| northwind.example | 14.2            | ready_now       | fundraising 12d ago, demo_requests 2d ago, job_offers 9d ago |\n| fabrikam.example  | 6.1             | warming         | job_offers 3d ago, job_offers 17d ago                        |\n| tailspin.example  | 2.4             | cold            | fundraising 290d ago                                         |\n\nNorthwind is posted once, the hour it crosses the line. Tailspin's round is old enough that it no\nlonger counts for much, and nobody had to lower its score."
       },
-      "state": "to-be-approved",
+      "state": "approved",
       "chain": 26,
       "resources": [
         "connectors",

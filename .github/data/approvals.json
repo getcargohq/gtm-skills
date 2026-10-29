@@ -138,9 +138,9 @@
     "implementations": []
   },
   "readiness-scoring": {
-    "state": "to-be-approved",
+    "state": "approved",
     "chain": 26,
-    "demoWorkspace": null,
+    "demoWorkspace": "2026-10-28",
     "implementations": []
   }
 }
