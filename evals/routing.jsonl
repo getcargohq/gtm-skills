@@ -217,3 +217,10 @@
 {"prompt": "split a large LinkedIn search into pieces that each extract fully", "expect": "extract-sales-navigator-search"}
 {"prompt": "optimize my Sales Navigator search so nothing gets cut off", "expect": "extract-sales-navigator-search"}
 {"prompt": "pull every company in this Sales Nav search, it's about 12,000", "expect": "extract-sales-navigator-search"}
+// readiness-scoring is a worked project example (cookbook): timing from decaying signals, next to account-scoring's fit
+{"prompt": "Score our accounts by recent engagement, older signals should count less", "expect": "readiness-scoring", "why": "Decay over dated signals is readiness-scoring; account-scoring tiers fit and does not move with time."}
+{"prompt": "Which accounts are ready to buy right now?", "expect": "readiness-scoring", "why": "Right now is timing, the standing score that falls as signals age."}
+{"prompt": "Build a lead score that decays over time", "expect": "readiness-scoring"}
+{"prompt": "Tell me in Slack when an account heats up from new signals", "expect": "readiness-scoring"}
+{"prompt": "Tier every account in our TAM against our ICP", "expect": "account-scoring", "why": "Fit against the ICP is account-scoring; readiness-scoring scores timing, not fit."}
+{"prompt": "Score these 200 leads against our ICP", "expect": "score-leads", "why": "A list scored once is the one-off, not a standing score."}

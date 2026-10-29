@@ -71,11 +71,12 @@
     },
     {
       "title": "Signals",
-      "description": "Deployed pipelines that watch the market for the moment to reach out: who just took a role you sell to, and which public conversations are worth joining.",
+      "description": "Deployed pipelines that watch the market for the moment to reach out: who just took a role you sell to, which public conversations are worth joining, who is on your site, and which accounts are ready now.",
       "skills": [
         "new-hire-detection",
         "social-listening",
-        "visitor-identification"
+        "visitor-identification",
+        "readiness-scoring"
       ]
     },
     {
@@ -117,7 +118,7 @@
       "kind": "cookbook",
       "job": "Score every account against your ICP on a schedule: a deployed agent tiers each company in a Cargo model (tam-building's, or your CRM companies) A / B / C / disqualified against the ICP and rubric in workspace context, and the tier, a two-sentence reason and evidence are written onto the row and, optionally, the matching HubSpot or Salesforce company. New companies are tiered hourly; the book is re-scored weekly or on any window set.",
       "description": "Score every account against your ICP on a schedule: a deployed agent tiers each company in a Cargo model (tam-building's, or your CRM companies) A / B / C / disqualified against the ICP and rubric in workspace context, and the tier, a two-sentence reason and evidence are written onto the row and, optionally, the matching HubSpot or Salesforce company. New companies are tiered hourly; the book is re-scored weekly or on any window set. Triggers: \"score our TAM\", \"tier the market we just sourced\", \"which accounts should the team work first\", \"why is this account tier A\", \"keep our accounts tiered as they arrive\", \"our lead scoring is a spreadsheet nobody trusts\". Cargo project, defineAgent, webSearch, context, tam_companies, tier segments. Skip when: someone hands you a list and wants it scored once, which is score-leads; or there is no account universe yet, which is tam-building.",
-      "version": "0.5.4",
+      "version": "0.5.5",
       "homepage": "https://github.com/getcargohq/gtm-skills/tree/main/account-scoring",
       "group": "Fundamentals",
       "install": "cargo-ai project add cookbook/account-scoring",
@@ -244,7 +245,7 @@
         "`node --import tsx evals/contract.mjs` passes against the adapted resources"
       ],
       "cost": "**Tiering is one agent run per company**, billed as LLM tokens through the bound connector, plus\nthe web searches the agent makes. The prompt holds it to one search per company and `maxSteps: 4`\nis the ceiling: on the 2026-10-18 pilot, holding the agent to one search more than halved the\ncost per company against an agent left at eight steps, with the same tiers coming back. The pilot is how you learn\nthe real number: read actual credits for the ten rows, then multiply by the untiered row count\nbefore approving the backfill.\n\nAfter the backfill, the play only tiers what arrives (`changeKinds: [\"added\"]`) and what goes stale\nafter `rescoreAfter`, so the steady-state cost follows how many companies tam-building lands and how\nshort that window is, not how often the cron fires. A weekly window bills every account every week.\nThe CRM write-back is one connector action per tiered company; the pilot's actual credits include it.",
-      "composesInto": "`contact-sourcing` (the buyers at every tier A account), `agentic-engagement` (talk to the accounts\nthis ranked), `new-hire-detection` (watch tier A for the hires that move a C up). Works best after\n`tam-building`, whose `tam_companies` it tiers."
+      "composesInto": "`contact-sourcing` (the buyers at every tier A account), `agentic-engagement` (talk to the accounts\nthis ranked), `new-hire-detection` (watch tier A for the hires that move a C up), `readiness-scoring` (the timing\nnext to the fit: route only tier A accounts whose signals say now). Works best after\n`tam-building`, whose `tam_companies` it tiers."
     },
     {
       "name": "agentic-engagement",
@@ -1998,6 +1999,126 @@
       ],
       "cost": "The evidence reads are SQL over workspace models and bill nothing. The post is `slack.postMessage`\non the bound connector; immediately before the plan, run\n`cargo-ai orchestration action list postMessage --kind connector --integration-slug slack` and read\nthe current cost out loud. The recurring cost is the harness run itself, once each weekday, billed as\nLLM tokens through the Anthropic connector. It scales with the number of call entries in the window\nand open commitments to check, not with the size of the activity log, and the run posts at most once.",
       "composesInto": "`call-capture` (the call log it reads), and `standup` (the evening recap can cite what closed today)."
+    },
+    {
+      "name": "readiness-scoring",
+      "kind": "cookbook",
+      "job": "Keep a sales readiness score on every account that rises with each fresh signal and falls on its own as signals age: rounds, job postings, demo requests and any other account event land in Unify Account Events, each event decays with a half-life per signal type, the sum lands as a score on Unify Accounts every hour, and accounts crossing your line are posted to Slack once.",
+      "description": "Keep a sales readiness score on every account that rises with each fresh signal and falls on its own as signals age: rounds, job postings, demo requests and any other account event land in Unify Account Events, each event decays with a half-life per signal type, the sum lands as a score on Unify Accounts every hour, and accounts crossing your line are posted to Slack once. Triggers: \"score accounts by recent engagement, older signals count less\", \"which accounts are ready to buy right now\", \"a lead score that decays over time\", \"signal decay\", \"tell me when an account heats up\". Cargo project, Cargo Signals, unifyAccountEvents, unifyAccounts, metric column, Slack. Skip when: tiering accounts against your ICP, which is account-scoring; scoring a list once, which is score-leads; a one-time look at who raised, which is track-funding-rounds.",
+      "version": "0.2.0",
+      "homepage": "https://github.com/getcargohq/gtm-skills/tree/main/readiness-scoring",
+      "group": "Signals",
+      "install": "cargo-ai project add cookbook/readiness-scoring",
+      "partOf": [],
+      "personas": [
+        "revops",
+        "sales-development",
+        "gtm-engineering"
+      ],
+      "integrations": [
+        "cargoSignals",
+        "slack"
+      ],
+      "example": {
+        "prompt": "Score our accounts by recent engagement so older signals count for less, and ping #sales-ready when one heats up.",
+        "output": "```\nnorthwind.example is ready (readiness score 14.2)\nIts recent signals crossed the ready line this hour.\n```\n\nUnify Accounts, with the two columns this adds:\n\n| domain            | readiness_score | readiness_stage | its weighed events                                           |\n| ----------------- | --------------- | --------------- | ------------------------------------------------------------ |\n| northwind.example | 14.2            | ready_now       | fundraising 12d ago, demo_requests 2d ago, job_offers 9d ago |\n| fabrikam.example  | 6.1             | warming         | job_offers 3d ago, job_offers 17d ago                        |\n| tailspin.example  | 2.4             | cold            | fundraising 290d ago                                         |\n\nNorthwind is posted once, the hour it crosses the line. Tailspin's round is old enough that it no\nlonger counts for much, and nobody had to lower its score."
+      },
+      "state": "approved",
+      "chain": 26,
+      "resources": [
+        "connectors",
+        "folders",
+        "models",
+        "plays",
+        "segments"
+      ],
+      "asked": [
+        {
+          "input": "signals",
+          "kind": "asked",
+          "how": "Proposed from the inventory query and `references/weights.md`: a weight and a half-life per type, corrected by the operator",
+          "why": "It is the one input that is a decision about the business: what a round is worth against a demo request, and for how long"
+        },
+        {
+          "input": "readyThreshold",
+          "kind": "derived",
+          "how": "From the pilot's score distribution (`references/run.md`), confirmed by the operator after reading the top accounts",
+          "why": "Too low and the channel hears about every account; too high and it never fires"
+        },
+        {
+          "input": "warmingThreshold",
+          "kind": "derived",
+          "how": "The score of one fresh mid-weight signal, so one more signal makes an account ready",
+          "why": "It is the nurture segment's edge"
+        }
+      ],
+      "canChange": [
+        {
+          "id": "first-party-events",
+          "when": "The workspace already has demo requests, signups, meetings or web sessions",
+          "how": "Add their model slugs to `signals` in `infra/settings.ts`; check each model unifies as an account event",
+          "cost": "Nothing billed. Web sessions are noisy: give them a low weight and a short half-life, or the busiest site visitors are always ready"
+        },
+        {
+          "id": "more-feeds",
+          "when": "A signal type the team trusts is missing (M&A, growth, tenders, tech adoption)",
+          "how": "Add a Cargo Signals feed in `infra/models/signal-feeds.ts` on the same watchlist, and its type to `signals",
+          "cost": "Billed per event delivered, per feed. Check the feed's price with `cargo-ai connection integration get cargoSignals` first"
+        },
+        {
+          "id": "fit-gate",
+          "when": "account-scoring is installed and only tier A or B accounts should be routed",
+          "how": "A lookup column on Unify Accounts that reads the tier from `tam_companies` by domain, and a condition on it in the play filter",
+          "cost": "An account the tier model does not hold is never routed, however hot it is"
+        },
+        {
+          "id": "contact-score",
+          "when": "The motion is person-led (a champion's engagement, not the company's news)",
+          "how": "The same two columns on Unify Contact Events and Unify Contacts (`contact_id` → `id`); the person-level Cargo Signals types feed Contact Events by default",
+          "cost": "A second score to read, and a person who changes jobs takes their score with them"
+        },
+        {
+          "id": "crm-stage",
+          "when": "Reps work in the CRM and the stage should be a CRM field",
+          "how": "A second play on Unify Accounts with `changeKinds: [\"added\", \"removed\"]` writing the stage with `updateRecords` on the matching company, never creating one",
+          "cost": "One CRM write per account entering or leaving a stage. Writing only on entry leaves a stage in the CRM that the score has left"
+        },
+        {
+          "id": "why-now-agent",
+          "when": "The Slack line is not enough for a rep to act on",
+          "how": "An agent node in the play that reads the account's recent events and writes two sentences on why now",
+          "cost": "One LLM run per routed account. Keep it in the play, on routed accounts only, never in the hourly score"
+        },
+        {
+          "id": "cadence",
+          "when": "Signals land daily and an hour of latency does not matter",
+          "how": "Move the three crons to once a day, in the same order",
+          "cost": "A ready account waits up to a day to be posted"
+        }
+      ],
+      "shouldNotChange": [
+        "**The decay is computed by the columns, on every rebuild.** (`infra/models/account-events.ts`, `infra/models/accounts.ts`) A score written onto a row by a play stops decaying the moment it is written: the account stays ready forever, or every row is rewritten every hour.",
+        "**The unify models' `additionalColumns` carry every live column.** (`infra/models/account-events.ts`, `infra/models/accounts.ts`) The list is authoritative on an adopted model: a column left out is removed at deploy, values included, on models the whole workspace reads.",
+        "**Events stay as they landed.** (Account Events) The score reads them; nothing edits or deletes one to lower a score. An event rewritten to change its weight is history nobody can audit.",
+        "**An unweighed signal type contributes 0.** (`return 0` in the contribution) Default it to 1 and a new feed, or a noisy model someone unified for another reason, moves every score before anyone decided what it is worth.",
+        "**One event per signal.** (`maxLeadsPerCompany: 1` on the feeds, one feed per type) The score sums rows, so a round delivered once per contact, or by two feeds, counts as many times as it arrives.",
+        "**The play reads `readiness_stage`, and only that.** (`infra/plays/route-ready-accounts.ts`) A raw score in the play filter is a second copy of the threshold, and the two drift.",
+        "**`changeKinds: [\"added\"]` stays.** (`infra/plays/route-ready-accounts.ts`) Unify Accounts is rebuilt every hour; without it every ready account is posted every hour.",
+        "**The three schedules stay in order: Account Events, then Unify Accounts, then the play.** Out of order, each step acts on the previous hour's data, and a signal takes two hours to post.",
+        "**The feeds watch a list.** (`infra/models/signal-feeds.ts`) Market scope delivers, and bills, every round and every posting in the market, and Account Events drops the ones on companies no account model holds.",
+        "**No agent in the score.** An LLM call per account per hour is a bill with no judgment in it: the score is arithmetic on dated events."
+      ],
+      "doneWhen": [
+        "the inventory query was run and every key in `signals` matches a type or model it returned, or a feed this deploy added",
+        "the operator approved the weights and half-lives in `infra/settings.ts`",
+        "the plan showed `account_events` and `accounts` adopted with their schedules and the score columns added, no live column removed, the feeds on a watchlist, two segments and the play **disabled**, and the operator approved the deploy",
+        "after the first rebuilds, every account with a weighed event inside the horizon has a `readiness_score` and a `readiness_stage`, and an account with only old events scores below one with the same events fresh",
+        "the thresholds were set from the pilot's distribution, and the top ten accounts were read by hand and agreed with",
+        "the play was enabled, and the first account to cross the line was posted once, with its signals",
+        "`node --import tsx evals/contract.mjs` passes against the adapted resources"
+      ],
+      "cost": "**The score itself bills nothing in credits.** It is three columns recomputed hourly in the\nworkspace's own warehouse, with no LLM and no connector call. The Slack post is one action per account that\ncrosses the line.\n\n**Cargo Signals bills per event delivered**, per feed, on the watched accounts only. The first\ndelivery on a new watchlist looks back months, so the first days cost the most; each feed's\n`dailyLeadLimit` caps them. Read the current per-event price with\n`cargo-ai connection integration get cargoSignals` before the deploy, multiply by the watched\naccounts and the events the pilot week delivered, and give the operator that estimate. First-party\nevents the workspace already has cost nothing to add.",
+      "composesInto": "`account-scoring` (the fit gate: route only accounts that are both ready and tier A),\n`contact-sourcing` and `agentic-engagement` (what happens after the ping, on `ready_now_accounts`),\nand every other Signals pipeline: once its model unifies as an account event, its events count as\nsoon as its slug has a weight."
     },
     {
       "name": "research-account",
