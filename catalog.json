@@ -62,11 +62,12 @@
     },
     {
       "title": "Fundamentals",
-      "description": "Deployed pipelines that build the base: the account universe, a standing score on every account, and the website.",
+      "description": "Deployed pipelines that build the base: the account universe, a standing score on every account, the website, and keeping it readable by AI agents.",
       "skills": [
         "tam-building",
         "account-scoring",
-        "website-building"
+        "website-building",
+        "agent-readiness"
       ]
     },
     {
@@ -246,6 +247,117 @@
       ],
       "cost": "**Tiering is one agent run per company**, billed as LLM tokens through the bound connector, plus\nthe web searches the agent makes. The prompt holds it to one search per company and `maxSteps: 4`\nis the ceiling: on the 2026-10-18 pilot, holding the agent to one search more than halved the\ncost per company against an agent left at eight steps, with the same tiers coming back. The pilot is how you learn\nthe real number: read actual credits for the ten rows, then multiply by the untiered row count\nbefore approving the backfill.\n\nAfter the backfill, the play only tiers what arrives (`changeKinds: [\"added\"]`) and what goes stale\nafter `rescoreAfter`, so the steady-state cost follows how many companies tam-building lands and how\nshort that window is, not how often the cron fires. A weekly window bills every account every week.\nThe CRM write-back is one connector action per tiered company; the pilot's actual credits include it.",
       "composesInto": "`contact-sourcing` (the buyers at every tier A account), `agentic-engagement` (talk to the accounts\nthis ranked), `new-hire-detection` (watch tier A for the hires that move a C up), `readiness-scoring` (the timing\nnext to the fit: route only tier A accounts whose signals say now). Works best after\n`tam-building`, whose `tam_companies` it tiers."
+    },
+    {
+      "name": "agent-readiness",
+      "kind": "cookbook",
+      "job": "Keep your site usable by AI agents: once a week Ora audits how agents discover, read and use your domain and up to three rival domains, one pull request applies the fixes your site source can make, and one Slack digest reports the Ora score and what moved.",
+      "description": "Keep your site usable by AI agents: once a week Ora audits how agents discover, read and use your domain and up to three rival domains, one pull request applies the fixes your site source can make, and one Slack digest reports the Ora score and what moved. Triggers: \"make our site readable by ai agents\", \"track our ora score\", \"can ai agents read our site\", \"agent readiness audit\", \"compare our ora score with rivals\", \"fix llms.txt and agent discovery files\". Cargo project, defineAgent, harness claudeCode, Ora MCP server, mcpClients, native model, Slack postMessage, GitHub pull request. Skip when: the site itself is to be built or hosted, which is website-building; or rival pages and news belong in context, which is web-capture.",
+      "version": "0.1.0",
+      "homepage": "https://github.com/getcargohq/gtm-skills/tree/main/agent-readiness",
+      "group": "Fundamentals",
+      "install": "cargo-ai project add cookbook/agent-readiness",
+      "partOf": [],
+      "personas": [
+        "marketing",
+        "gtm-engineering"
+      ],
+      "integrations": [
+        "anthropic",
+        "github",
+        "slack"
+      ],
+      "example": {
+        "prompt": "Every Monday, tell #web-team how agent-ready www.fabrikam.example is, and open a PR with the fixes.",
+        "output": "```text\n:robot_face: *Agent readiness: 2026-W43*\n*www.fabrikam.example*: 71/100 (C), +6 since last week. ora.ai/fabrikam.example\n• Fixed: llms.txt formatting, Markdown link alternate\n• Newly failing: Sitemap lastmod\n*Competitors*\n• contoso.example: 84 (B), no change\n• wingtip.example: 66 (D), -2\n*Where a competitor is ahead*\n• ARD discovery: passes at contoso.example\n• JSON-LD entity linking: passes at contoso.example, wingtip.example\n*Fix pull request*: [agent-readiness] 2026-W43: 3 fixes for www.fabrikam.example\n*To do by hand*\n• Listed in MCP registries: register the MCP server on a public registry.\n```\n\nThree domains were scanned once each; one pull request carries three fixes to the site's source,\nand nothing was merged or sent outside the channel."
+      },
+      "state": "to-be-approved",
+      "chain": 27,
+      "resources": [
+        "agents",
+        "connectors",
+        "folders",
+        "models"
+      ],
+      "asked": [
+        {
+          "input": "AUDIT_DOMAIN` (`infra/agents/readiness-auditor.ts`)",
+          "kind": "derived",
+          "how": "From the website app's `domains` (`website-building`'s `infra/apps/website.ts`) or the context's company file. Asked only when neither names it.",
+          "why": "It is the site scored and the one the pull request fixes. Ora drops `www.` and scans the apex, so the apex must serve or forward to the site."
+        },
+        {
+          "input": "COMPETITOR_DOMAINS` (`infra/agents/readiness-auditor.ts`)",
+          "kind": "derived",
+          "how": "From the competitor files in the workspace context, at most three, confirmed with the operator.",
+          "why": "Each is a scan a week from a budget shared by every caller on the same IP. More than three is a digest nobody reads to the end."
+        },
+        {
+          "input": "WEBSITE_ROOT` (`infra/agents/readiness-auditor.ts`)",
+          "kind": "derived",
+          "how": "ls` the repository for the site's `package.json` (or its static root).",
+          "why": "The only folder the agent may change. Wrong, and every fix lands in a folder nothing deploys."
+        },
+        {
+          "input": "channelId` (`infra/agents/readiness-auditor.ts`)",
+          "kind": "asked",
+          "how": "The Slack channel id (`C…`) from the connector's autocomplete. Invite the bot.",
+          "why": "Locked, so the digest lands where the web team reads it and nowhere else."
+        }
+      ],
+      "canChange": [
+        {
+          "id": "report-only",
+          "when": "The site is owned by another team and a pull request from an agent is unwelcome",
+          "how": "Delete §4 of `infra/agents/readiness-auditor.prompt.ts` and the pull request line of the digest",
+          "cost": "Nothing gets fixed on its own; the digest becomes a to-do list someone has to pick up."
+        },
+        {
+          "id": "separate-site-repo",
+          "when": "The website's source lives in a repository other than the project's",
+          "how": "Set `repository.repository`, `defaultBranch` and `connector` explicitly on the agent, and `WEBSITE_ROOT` relative to that repository",
+          "cost": "The binding is no longer derived, so a renamed repository breaks the run silently. Check it with `cargo-ai project check` after every rename."
+        },
+        {
+          "id": "ora-scan-key",
+          "when": "Several domains, or other tools on the same IP, hit Ora's daily scan limit",
+          "how": "Ask Ora for a scan key and pass it on the MCP client's `authentication` as a bearer token",
+          "cost": "A credential to rotate. Without it, a scan over the limit fails and the digest names the domain skipped."
+        },
+        {
+          "id": "more-fixes",
+          "when": "The pull requests are merged quickly and the site is far from an A",
+          "how": "Raise \"the first three\" in §4 of the prompt",
+          "cost": "A bigger diff to review. Each fix changes what agents read about the company; three is a pull request someone reads in one sitting."
+        },
+        {
+          "id": "no-competitors",
+          "when": "You only care about your own score",
+          "how": "Empty `COMPETITOR_DOMAINS",
+          "cost": "You lose \"where a competitor is ahead\", which is often the most persuasive line in the digest."
+        }
+      ],
+      "shouldNotChange": [
+        "**Ora is read, never written.** (`infra/agents/readiness-auditor.ts`) The feedback tools post under an agent identity to a public product page; they are disabled on the MCP client and the contract fails if one is enabled. `disabledToolSlugs` is a deny list, so name any tool Ora adds that writes.",
+        "**No forced scan, and no `run_checks`.** (`infra/agents/readiness-auditor.prompt.ts` §2) Both always scan live and spend a daily budget Ora counts per IP, which a hosted agent shares with every other caller from the same address. A stored result from the last few hours is free.",
+        "**The agent changes only `WEBSITE_ROOT`, and never merges.** (`infra/agents/readiness-auditor.prompt.ts` §4) A fix is a change to what agents read about the company. A human reviews it; merging is what deploys it.",
+        "**Ora's ranking is the order.** (§4) Re-ranking topFixes by what looks easy is how a pull request ships a cosmetic fix while the check that matters stays red.",
+        "**The ledger is written before the pull request, and `digest_ts` after the post.** (§2, §4, §5) A re-run the same week then scans nothing, opens no second pull request, and posts once; a failed post is retried next run.",
+        "**No gain is claimed as measured.** (§4, Rules) `estScoreGain` is Ora's estimate. The next Monday's scan, after the fix is merged and deployed, is the number.",
+        "**An unreached site is not scanned.** (§2, §3) Ora scans the bare domain. When that ends anywhere but the site (no record, an error, a forwarding or challenge page), Ora scores a page that is not the site and its fixes are guesses. The row records `reached` false, the digest names where the bare domain ended, and next week's change is counted from a baseline.",
+        "**The branch name is flat, and the run never asks.** (§4, Rules) `agent-readiness-<week>`, not `agent-readiness/<week>`: an install branch named `agent-readiness` would block the nested name. A cron run has no one to answer a question, so a blocked step is skipped and named in the digest."
+      ],
+      "doneWhen": [
+        "`node --import tsx evals/contract.mjs` passes",
+        "`cargo-ai project plan` reports the agent, the `readiness_scans` model, the three connectors and the two folders",
+        "the first run wrote one `readiness_scans` row per configured domain for this ISO week, each with a score, a grade and its failing check ids, and the run transcript shows no `force` on any scan",
+        "one pull request is open on `agent-readiness-<week>`, changing only files under `WEBSITE_ROOT`, each fix naming a check from our result's topFixes; or none, with the digest saying why",
+        "one digest landed in the locked channel in the `references/digest.md` shape",
+        "a second run the same week wrote no row, opened no pull request and posted nothing",
+        "after the pull request is merged and deployed, the next week's row shows its checks out of `failing_checks`"
+      ],
+      "cost": "Ora's reads are free and keyless; Cargo bills nothing for them. The post is `slack.postMessage` on\nthe bound connector; immediately before the plan, run\n`cargo-ai orchestration action list postMessage --kind connector --integration-slug slack` and read\nthe current cost out loud. The recurring cost is the harness run itself, once a week, billed as LLM\ntokens through the Anthropic connector. It is largest on a week with a pull request, when the agent\nreads Ora's playbook, the site's source and runs its build; a re-run that stops at the ledger costs\na small fraction of that.",
+      "composesInto": "`website-building` (the site whose source this pipeline fixes, and whose deploy ships the merged\npull request), `web-capture` (what competitors publish, next to how readable it is to agents), and\n`weekly-planning` (the digest's to-dos are week-sized work)."
     },
     {
       "name": "agentic-engagement",
