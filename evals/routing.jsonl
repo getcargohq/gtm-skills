@@ -224,3 +224,7 @@
 {"prompt": "Tell me in Slack when an account heats up from new signals", "expect": "readiness-scoring"}
 {"prompt": "Tier every account in our TAM against our ICP", "expect": "account-scoring", "why": "Fit against the ICP is account-scoring; readiness-scoring scores timing, not fit."}
 {"prompt": "Score these 200 leads against our ICP", "expect": "score-leads", "why": "A list scored once is the one-off, not a standing score."}
+{"prompt": "Every week, score how agent-ready our website is and open a PR with the fixes", "expect": "website-auditing", "why": "Agents reading our own site, every week, fixed by pull request: the standing tell."}
+{"prompt": "Track our Ora score against our competitors in Slack", "expect": "website-auditing"}
+{"prompt": "Make our website readable by AI agents: llms.txt, structured data, agent discovery files", "expect": "website-auditing"}
+{"prompt": "Build our company website on Cargo and make it agent-ready from the start", "expect": "website-building", "why": "Building and hosting the site is website-building; agent-readiness audits and fixes a site that already exists."}

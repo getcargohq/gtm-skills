@@ -142,5 +142,11 @@
     "chain": 26,
     "demoWorkspace": "2026-10-28",
     "implementations": []
+  },
+  "website-auditing": {
+    "state": "approved",
+    "chain": 27,
+    "demoWorkspace": "2026-10-30",
+    "implementations": []
   }
 }

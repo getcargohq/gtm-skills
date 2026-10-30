@@ -63,11 +63,12 @@
     },
     {
       "title": "Fundamentals",
-      "description": "Deployed pipelines that build the base: the account universe, a standing score on every account, and the website.",
+      "description": "Deployed pipelines that build the base: the account universe, a standing score on every account, the website, and keeping it readable by AI agents.",
       "skills": [
         "tam-building",
         "account-scoring",
-        "website-building"
+        "website-building",
+        "website-auditing"
       ]
     },
     {
