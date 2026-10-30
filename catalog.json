@@ -341,7 +341,7 @@
         "**Ora is read, never written.** (`infra/agents/readiness-auditor.ts`) The feedback tools post under an agent identity to a public product page; they are disabled on the MCP client and the contract fails if one is enabled. `disabledToolSlugs` is a deny list, so name any tool Ora adds that writes.",
         "**No forced scan, and no `run_checks`.** (`infra/agents/readiness-auditor.prompt.ts` §2) Both always scan live and spend a daily budget Ora counts per IP, which a hosted agent shares with every other caller from the same address. A stored result from the last few hours is free.",
         "**The agent changes only `WEBSITE_ROOT`, and never merges.** (`infra/agents/readiness-auditor.prompt.ts` §4) A fix is a change to what agents read about the company. A human reviews it; merging is what deploys it.",
-        "**Ora's ranking is the order.** (§4) Re-ranking topFixes by what looks easy is how a pull request ships a cosmetic fix while the check that matters stays red.",
+        "**Ora's ranking is the order.** (§4) Re-ranking topFixes by what looks easy is how a pull request ships a cosmetic fix while the check that matters stays red. topFixes lists only a few fixes, and on a marketing site they are often all off-site (an API, an MCP server, brand search), so the agent then goes on through the other failing checks, most points lost first.",
         "**The ledger is written before the pull request, and `digest_ts` after the post.** (§2, §4, §5) A re-run the same week then scans nothing, opens no second pull request, and posts once; a failed post is retried next run.",
         "**No gain is claimed as measured.** (§4, Rules) `estScoreGain` is Ora's estimate. The next Monday's scan, after the fix is merged and deployed, is the number.",
         "**An unreached site is not scanned.** (§2, §3) Ora scans the bare domain. When that ends anywhere but the site (no record, an error, a forwarding or challenge page), Ora scores a page that is not the site and its fixes are guesses. The row records `reached` false, the digest names where the bare domain ended, and next week's change is counted from a baseline.",
@@ -351,7 +351,7 @@
         "`node --import tsx evals/contract.mjs` passes",
         "`cargo-ai project plan` reports the agent, the `readiness_scans` model, the three connectors and the two folders",
         "the first run wrote one `readiness_scans` row per configured domain for this ISO week, each with a score, a grade and its failing check ids, and the run transcript shows no `force` on any scan",
-        "one pull request is open on `agent-readiness-<week>`, changing only files under `WEBSITE_ROOT`, each fix naming a check from our result's topFixes; or none, with the digest saying why",
+        "one pull request is open on `agent-readiness-<week>`, changing only files under `WEBSITE_ROOT`, each fix naming a failing check from our result, topFixes first; or none, with the digest saying why",
         "one digest landed in the locked channel in the `references/digest.md` shape",
         "a second run the same week wrote no row, opened no pull request and posted nothing",
         "after the pull request is merged and deployed, the next week's row shows its checks out of `failing_checks`"

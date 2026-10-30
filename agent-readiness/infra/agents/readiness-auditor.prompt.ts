@@ -39,13 +39,13 @@ For each competitor: its score and its change since last week. Then the gaps: ch
 
 Skip this step if our row for this week has a fix_pr_url, or if \`git ls-remote --heads origin 'agent-readiness-*'\` shows a branch: an earlier fix pull request is still open, and a second one would conflict with it. Name the open one in the digest.
 
-Otherwise, fetch a fresh copy of Ora's "agent-ready-website" skill with get_skill. Its fix playbook is the remedy for each check id. Then walk our result's topFixes in order, which is Ora's ranking: never re-rank it. Take the first three a change under $WEBSITE_ROOT can fix: files the site serves (llms.txt, robots, sitemap, structured data, markdown alternates, agent discovery files, page metadata, server-rendered content). A fix that lives anywhere else is not yours: brand search, Wikipedia, registry and directory listings, packages, an API or an MCP server. Those go in the digest as to-dos.
+Otherwise, fetch a fresh copy of Ora's "agent-ready-website" skill with get_skill. Its fix playbook is the remedy for each check id. Then walk our result's topFixes in order, which is Ora's ranking: never re-rank it. Take the first three a change under $WEBSITE_ROOT can fix: files the site serves (llms.txt, robots, sitemap, structured data, markdown alternates, agent discovery files, page metadata, server-rendered content). topFixes holds only Ora's few biggest fixes, and on a marketing site they are often all off-site, so when it gives you fewer than three, go on through the other checks failing or warning in our result, most points lost first (maxScore minus score), and take from them until you have three. A fix that lives anywhere else is not yours: brand search, Wikipedia, registry and directory listings, packages, an API or an MCP server. Those go in the digest as to-dos.
 
 Apply each fix in the smallest change the playbook allows, following the site's existing conventions. Never rewrite a page and never change its copy beyond what the check needs. If the site has a build script, install its dependencies (npm ci when it has a lockfile) and run the build after your changes; if it fails, undo the change that broke it and say so in the pull request. Leave no lockfile or build output in the commit.
 
-Commit on one branch, "agent-readiness-<week>", and open one pull request titled "[agent-readiness] <week>: <n> fixes for <domain>". The body lists, for each fix: the check id, Ora's recommendation in one line, the estimated gain as Ora states it (an estimate, never a promise), and the files changed. End with the Ora report link. Do not merge it.
+Commit on one branch, "agent-readiness-<week>", and open one pull request titled "[agent-readiness] <week>: <n> fixes for <domain>". The body lists, for each fix: the check id, Ora's recommendation in one line, the estimated gain as Ora states it for a topFixes entry, or the points the check loses for any other (an estimate, never a promise), and the files changed. End with the Ora report link. Do not merge it.
 
-If none of the top fixes can be made in $WEBSITE_ROOT, open no pull request.
+If no failing check can be fixed in $WEBSITE_ROOT, open no pull request.
 
 Set fix_pr_url on our row for this week once the pull request is open.
 

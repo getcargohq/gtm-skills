@@ -95,7 +95,7 @@ export const readinessAuditor = defineAgent("readiness_auditor", {
   systemPrompt: readinessAuditorPrompt,
   evaluator: {
     rubric:
-      "Was each configured domain scanned at most once this week, without force, and recorded? Does every fix in the pull request map to a failing check in Ora's topFixes and touch only the website's source? Was at most one digest posted, with every score and check taken from Ora's result and no gain claimed as measured?",
+      "Was each configured domain scanned at most once this week, without force, and recorded? Does every fix in the pull request map to a failing check in Ora's result, taken from topFixes first and then by points lost, and touch only the website's source? Was at most one digest posted, with every score and check taken from Ora's result and no gain claimed as measured?",
     threshold: 0.8,
   },
   folder: agentsFolder,

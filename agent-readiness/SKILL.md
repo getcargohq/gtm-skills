@@ -118,8 +118,9 @@ is enough.
    the agent bound to your repository with no trailing subdirectory. Show the diff, and deploy only
    on an explicit yes: `cargo-ai project deploy`.
 8. **Verify.** Send the agent its trigger text once by hand (`cargo-ai ai message create`), and walk
-   _Done when_ with evidence. Send it again: the second run must scan nothing, open nothing and post
-   nothing.
+   _Done when_ with evidence. Wait until a SQL query on `readiness_scans` returns this week's rows
+   (a model query can lag a write by several minutes), then send it again: the second run must scan
+   nothing, open nothing and post nothing.
 
 ## What you will be asked
 
@@ -157,7 +158,9 @@ is enough.
   §4) A fix is a change to what agents read about the company. A human reviews it; merging is what
   deploys it.
 - **Ora's ranking is the order.** (§4) Re-ranking topFixes by what looks easy is how a pull request
-  ships a cosmetic fix while the check that matters stays red.
+  ships a cosmetic fix while the check that matters stays red. topFixes lists only a few fixes, and
+  on a marketing site they are often all off-site (an API, an MCP server, brand search), so the
+  agent then goes on through the other failing checks, most points lost first.
 - **The ledger is written before the pull request, and `digest_ts` after the post.** (§2, §4, §5)
   A re-run the same week then scans nothing, opens no second pull request, and posts once; a failed
   post is retried next run.
@@ -179,7 +182,8 @@ is enough.
 - the first run wrote one `readiness_scans` row per configured domain for this ISO week, each with
   a score, a grade and its failing check ids, and the run transcript shows no `force` on any scan
 - one pull request is open on `agent-readiness-<week>`, changing only files under `WEBSITE_ROOT`,
-  each fix naming a check from our result's topFixes; or none, with the digest saying why
+  each fix naming a failing check from our result, topFixes first; or none, with the digest saying
+  why
 - one digest landed in the locked channel in the `references/digest.md` shape
 - a second run the same week wrote no row, opened no pull request and posted nothing
 - after the pull request is merged and deployed, the next week's row shows its checks out of

@@ -27,11 +27,13 @@ Keep the Slack permalink, the pull request and the model rows as evidence.
   `scanned_at`, `reached` and sorted `failing_checks`. The transcript shows `scan_domain` once per domain and
   never with `force`.
 - **Fix.** One pull request on `agent-readiness-<week>`, every changed file under `WEBSITE_ROOT`,
-  every fix naming a check in our result's topFixes, in Ora's order, with Ora's estimate called an
+  every fix naming a failing check in our result: topFixes first in Ora's order, then the others by
+  points lost, with Ora's estimate called an
   estimate. The site's build passes on the branch. Our row carries `fix_pr_url`.
 - **Post.** One digest in the locked channel in the `references/digest.md` shape, the first week
   marked as the baseline. Our row carries `digest_ts`.
-- **Re-run.** Sending the trigger text again the same week writes no row, calls no `scan_domain`,
+- **Re-run.** Once a SQL query on `readiness_scans` returns this week's rows (a model query can lag a
+  write by several minutes), sending the trigger text again the same week writes no row, calls no `scan_domain`,
   opens no pull request and posts nothing.
 - **Measure.** After the pull request is merged and deployed, the next week's row no longer lists
   the fixed checks in `failing_checks`, and the digest names them under Fixed.
