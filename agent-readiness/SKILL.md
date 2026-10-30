@@ -24,10 +24,6 @@ metadata:
 
 # Agent readiness
 
-**State: to-be-approved.** Deploy-verified against a live workspace: not yet. Treat `Done when`
-below as the acceptance test and review `cargo-ai project plan` before deploying. Make no outcome claim
-for this skill until it is approved.
-
 ## The outcome
 
 AI agents are now the first reader of a website: they search for it, fetch it, and decide whether
