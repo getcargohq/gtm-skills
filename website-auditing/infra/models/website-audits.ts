@@ -17,7 +17,7 @@ import { modelsFolder } from "../folders";
 // A row stores the failing check ids, not every check. Ora runs about 150; the
 // ones that pass and the ones that do not apply say nothing week to week, and
 // the full report is one link away.
-export const readinessScans = defineModel("readiness_scans", {
+export const websiteAudits = defineModel("website_audits", {
   kind: "native",
   extractSlug: "defineCustom",
   config: {

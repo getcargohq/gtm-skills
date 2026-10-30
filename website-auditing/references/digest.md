@@ -3,7 +3,7 @@
 One Slack post a week, after the scans are recorded and the pull request is open.
 
 ```text
-:robot_face: *Agent readiness: <ISO week>*
+:robot_face: *Website audit: <ISO week>*
 *<our domain>*: <score>/100 (<grade>), <+n | -n | no change | baseline> since last week. <Ora report link>
 • Fixed: <check names, or "nothing">
 • Newly failing: <check names, or "nothing">
@@ -19,7 +19,7 @@ One Slack post a week, after the scans are recorded and the pull request is open
 ## Rules for each line
 
 - **Every number is Ora's.** Score, grade and check status come from this week's result; the change
-  is against last week's `readiness_scans` row. The first week is the baseline and lists no change.
+  is against last week's `website_audits` row. The first week is the baseline and lists no change.
 - **Check names, not ids**, and Ora's words for each recommendation. A reader acts on "Markdown
   link alternate", not on `markdown-link-alternate`.
 - **Where a competitor is ahead** lists checks failing for us that a competitor passes in this

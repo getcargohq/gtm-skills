@@ -31,7 +31,7 @@ set -u
 MARKER_PREFIX="gtm-skills:"
 
 # BEGIN SKILL LIST (checked by scripts/validate.ts)
-SKILL_NAMES="account-scoring agent-readiness agentic-engagement apollo-to-cargo ask-cargo build-tam-list call-capture clay-to-cargo crm-deduplication expansion-signals crm-enrichment enrich-company-data enrich-linkedin-profile extract-sales-navigator-search find-b2b-leads find-companies-using-tech find-linkedin-url find-portfolio-companies find-stakeholders find-work-email monitor-buying-signals new-hire-detection next-step-tracker social-listening readiness-scoring research-account score-leads stalled-deal-nudge standup meeting-prep tam-building track-funding-rounds track-job-changes verify-email-list waterfall-enrichment web-capture website-building visitor-identification inbound-qualification weekly-planning goal-coverage workspace-health linkedin-content win-loss-review zoominfo-to-cargo"
+SKILL_NAMES="account-scoring agentic-engagement apollo-to-cargo ask-cargo build-tam-list call-capture clay-to-cargo crm-deduplication expansion-signals crm-enrichment enrich-company-data enrich-linkedin-profile extract-sales-navigator-search find-b2b-leads find-companies-using-tech find-linkedin-url find-portfolio-companies find-stakeholders find-work-email monitor-buying-signals new-hire-detection next-step-tracker social-listening readiness-scoring research-account score-leads stalled-deal-nudge standup meeting-prep tam-building track-funding-rounds track-job-changes verify-email-list waterfall-enrichment web-capture website-auditing website-building visitor-identification inbound-qualification weekly-planning goal-coverage workspace-health linkedin-content win-loss-review zoominfo-to-cargo"
 # END SKILL LIST
 
 emit_marker() {

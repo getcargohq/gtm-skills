@@ -1,4 +1,4 @@
-# Agent readiness: keep your website readable by AI agents
+# Website auditing: keep your website readable by AI agents
 
 To make sure AI agents can find, read and use your website, score it every week and fix what the
 source can fix. Every Monday this cookbook's agent reads Ora's agent-readiness audit of your domain
@@ -6,13 +6,13 @@ and up to three competitors' through Ora's MCP server, records the week, opens o
 the top fixes the website's source can make, and posts one digest to a locked Slack channel.
 
 ```sh
-cargo-ai project add cookbook/agent-readiness
+cargo-ai project add cookbook/website-auditing
 ```
 
 ## What it does
 
 - Scans each configured domain once a week through Ora, never forced, and records score, grade and
-  failing checks in `readiness_scans`.
+  failing checks in `website_audits`.
 - Compares with last week: what was fixed, what newly fails, where a competitor is ahead.
 - Applies the first three of Ora's ranked fixes that live in the website's source, following Ora's
   own playbook, and opens one pull request.
@@ -24,9 +24,9 @@ Adds 7 resources.
 
 | File                                     | Resource                        | Role                                                              |
 | ---------------------------------------- | ------------------------------- | ----------------------------------------------------------------- |
-| `infra/agents/readiness-auditor.ts`      | `defineAgent` (claudeCode)      | the cron, the repository binding, the Ora MCP client, the post    |
-| `infra/agents/readiness-auditor.prompt.ts` | (not a resource)              | score, record, compare, fix, post                                 |
-| `infra/models/readiness-scans.ts`        | `defineModel` (native)          | the ledger: one row per domain per week                           |
+| `infra/agents/website-auditor.ts`      | `defineAgent` (claudeCode)      | the cron, the repository binding, the Ora MCP client, the post    |
+| `infra/agents/website-auditor.prompt.ts` | (not a resource)              | score, record, compare, fix, post                                 |
+| `infra/models/website-audits.ts`        | `defineModel` (native)          | the ledger: one row per domain per week                           |
 | `infra/connectors/git.ts`                | `defineConnector` (`github`)    | the clone and the pull request                                    |
 | `infra/connectors/slack.ts`              | `defineConnector` (`slack`)     | the post path                                                     |
 | `infra/connectors/anthropic.ts`          | `defineConnector` (`anthropic`) | the model the harness runs on                                     |
@@ -47,7 +47,7 @@ scanned, fixed and posted, has to live somewhere that is not waiting for a pull 
 
 ## Placeholders (edit before deploy)
 
-1. **`AUDIT_DOMAIN`, `COMPETITOR_DOMAINS`, `WEBSITE_ROOT`** in `infra/agents/readiness-auditor.ts`.
+1. **`AUDIT_DOMAIN`, `COMPETITOR_DOMAINS`, `WEBSITE_ROOT`** in `infra/agents/website-auditor.ts`.
 2. **`channelId`**: the Slack channel id the digest lands in.
 3. **`languageModel`**: any Anthropic model the workspace's connector can reach.
 

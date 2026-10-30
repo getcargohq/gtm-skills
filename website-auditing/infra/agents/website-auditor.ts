@@ -1,10 +1,10 @@
 import { defineAgent } from "@cargo-ai/cdk";
 
-import { readinessAuditorPrompt } from "./readiness-auditor.prompt";
+import { websiteAuditorPrompt } from "./website-auditor.prompt";
 import { anthropic } from "../connectors/anthropic";
 import { slack } from "../connectors/slack";
 import { agentsFolder } from "../folders";
-import { readinessScans } from "../models/readiness-scans";
+import { websiteAudits } from "../models/website-audits";
 
 // The auditor: how well AI agents can find, read and use the website, every
 // week, and the fixes the site's own source can make.
@@ -23,10 +23,10 @@ import { readinessScans } from "../models/readiness-scans";
 // `disabledToolSlugs` is a deny list, so a tool Ora adds later is enabled
 // until it is named here.
 //
-// History is the readiness_scans model, one row per domain per week, because
+// History is the website_audits model, one row per domain per week, because
 // Ora keeps only the latest scan.
-export const readinessAuditor = defineAgent("readiness_auditor", {
-  name: "Agent readiness auditor",
+export const websiteAuditor = defineAgent("website_auditor", {
+  name: "Website auditor",
   description:
     "Weekly Ora agent-readiness score for our website and competitors, one pull request with the fixes the site's source can make, and one Slack digest.",
   color: "purple",
@@ -70,7 +70,7 @@ export const readinessAuditor = defineAgent("readiness_auditor", {
     },
   ],
   uses: [
-    { ref: readinessScans, readOnly: false },
+    { ref: websiteAudits, readOnly: false },
     {
       ref: slack.actions.postMessage,
       config: {
@@ -89,10 +89,10 @@ export const readinessAuditor = defineAgent("readiness_auditor", {
       // 08:00 UTC Monday: a week of merged fixes deployed, and the digest in
       // the channel before the team plans the week.
       cron: "0 8 * * 1",
-      text: "Run the weekly agent-readiness audit. Follow your system prompt exactly: score each domain once, record it, open at most one fix pull request, post one digest.",
+      text: "Run the weekly website audit. Follow your system prompt exactly: score each domain once, record it, open at most one fix pull request, post one digest.",
     },
   ],
-  systemPrompt: readinessAuditorPrompt,
+  systemPrompt: websiteAuditorPrompt,
   evaluator: {
     rubric:
       "Was each configured domain scanned at most once this week, without force, and recorded? Does every fix in the pull request map to a failing check in Ora's result, taken from topFixes first and then by points lost, and touch only the website's source? Was at most one digest posted, with every score and check taken from Ora's result and no gain claimed as measured?",

@@ -2,12 +2,12 @@ import { defineFolder } from "@cargo-ai/cdk";
 
 // One folder per pipeline, so "what put this agent here, and what came with
 // it" is answered by looking, and removing the pipeline is a bounded job.
-export const agentsFolder = defineFolder("agent_readiness_agents", {
+export const agentsFolder = defineFolder("website_auditing_agents", {
   kind: "agent",
-  name: "Agent readiness",
+  name: "Website auditing",
 });
 
-export const modelsFolder = defineFolder("agent_readiness_models", {
+export const modelsFolder = defineFolder("website_auditing_models", {
   kind: "model",
-  name: "Agent readiness",
+  name: "Website auditing",
 });

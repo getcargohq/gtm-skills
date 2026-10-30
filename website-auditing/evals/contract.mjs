@@ -10,7 +10,7 @@ import { resetRegistry, resources } from "@cargo-ai/cdk";
 //   node --import tsx evals/contract.mjs
 resetRegistry();
 const stamp = Date.now();
-await import(`../infra/agents/readiness-auditor.ts?contract=${stamp}`);
+await import(`../infra/agents/website-auditor.ts?contract=${stamp}`);
 await import(`../infra/connectors/git.ts?contract=${stamp}`);
 
 const byId = new Map(resources().map((resource) => [resource.id, resource]));
@@ -23,8 +23,8 @@ const findOne = (nodes, predicate, message) => {
 
 assert.ok(byId.get("connector:github"), "defineConnector(github) must exist: the harness clones and opens the pull request through it");
 
-const agent = byId.get("agent:readiness_auditor");
-assert.ok(agent, "defineAgent(readiness_auditor) must exist");
+const agent = byId.get("agent:website_auditor");
+assert.ok(agent, "defineAgent(website_auditor) must exist");
 assert.equal(
   agent.spec.harnessSlug,
   "claudeCode",
@@ -59,13 +59,13 @@ for (const tool of ["scan_domain", "get_score", "get_skill"]) {
 }
 
 // The ledger is the auditor's only memory and its only model.
-assert.ok(byId.get("model:readiness_scans"), "defineModel(readiness_scans) must exist");
+assert.ok(byId.get("model:website_audits"), "defineModel(website_audits) must exist");
 const models = agent.spec.models ?? [];
-assert.equal(models.length, 1, "readiness_scans is the only model on the auditor");
+assert.equal(models.length, 1, "website_audits is the only model on the auditor");
 const ledger = findOne(
   models,
-  (model) => model.uuid?.resourceId === "model:readiness_scans",
-  "readiness_scans must be on the auditor's uses",
+  (model) => model.uuid?.resourceId === "model:website_audits",
+  "website_audits must be on the auditor's uses",
 );
 assert.equal(ledger.readOnly, false, "the auditor records each week's scans: the ledger must be writable");
 
@@ -104,4 +104,4 @@ const competitors = envByKey
   .filter((domain) => domain.trim() !== "");
 assert.ok(competitors.length <= 3, "at most three competitors: each one is a scan a week from a shared budget");
 
-console.log("ok: agent-readiness contract");
+console.log("ok: website-auditing contract");
