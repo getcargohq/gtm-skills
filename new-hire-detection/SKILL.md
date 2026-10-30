@@ -50,8 +50,8 @@ CRM can add a read-only "already in the CRM" line to the post, or make the CRM t
 routed tasks; both are variations in
 [`references/crm-adaptation.md`](references/crm-adaptation.md).
 
-**Two failure modes worth knowing before you start.** A search URL encoded once instead of twice
-loads an empty search, and the sync reports success with nothing in it. And a missing ICP leaves
+**Two failure modes worth knowing before you start.** A title encoded twice, once on its own and
+again with the query, matches nobody, and the sync reports success with nothing in it. And a missing ICP leaves
 the qualifier judging against nothing, so it passes everything or nothing.
 
 ## Example

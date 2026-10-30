@@ -13,11 +13,19 @@ the model file).
 
 Deploy with the play disabled, as it ships. Then:
 
-1. Sync the model once and confirm ten rows landed, with
+1. Sync the model once and confirm rows landed, with
    `linkedin_profile_url` and `sales_navigator_company_url` filled:
    `cargo-ai storage column list` and a `storage query` over the model.
-2. Enable the play, then execute it once: `changeKinds: ["added"]` does not
-   backfill rows that landed while it was off.
+   Deploying records an empty run, so the first sync is refused with
+   `upToDate` unless forced:
+   `cargo-ai storage run create --model-uuid <modelUuid> --is-force true`.
+   `limit` caps the search, not the row count exactly: a pilot at 10 has
+   landed 16 rows.
+2. Execute the play's workflow once over those rows:
+   `cargo-ai orchestration batch create --workflow-uuid <workflowUuid> --data '{"kind":"filter","modelUuid":"<modelUuid>"}' --wait-until-finished true`.
+   `changeKinds: ["added"]` does not backfill rows that landed while the play
+   was off. Leave the play disabled until opening up, so the hourly run cannot
+   pick up the same rows as the batch.
 3. Read every run, not a sample of them. For each of the ten, report the
    status, the qualifier's verdict, and the Slack post when there is one.
 
@@ -37,8 +45,8 @@ and either widen the pilot or run that path on a hand-picked record.
 
 ### Stop conditions
 
-- the sync reports success with zero rows: the URL was encoded once; rebuild
-  it from the `search` object
+- the sync reports success with zero rows: a title was encoded twice; rebuild
+  the URL from the `search` object and recount it with `searchPersonMetrics`
 - a post landed anywhere but the named channel: disable the play before
   anything else
 - every verdict is the same: check that the qualifier reads `icp.md` from the
