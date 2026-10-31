@@ -14,6 +14,7 @@ import { useQuery } from "@tanstack/react-query";
 import React from "react";
 import { Link } from "react-router-dom";
 
+import { CompanyLogo } from "../components/CompanyLogo";
 import { sql } from "../lib/cargo";
 import { heldClickFor, useHeldClicks } from "../lib/held";
 import { myClaimsQuery, type MyClaim } from "../lib/queries";
@@ -130,7 +131,7 @@ export const MyAccounts: React.FC = () => {
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Account</TableHead>
+            <TableHead>Company</TableHead>
             <TableHead>Status</TableHead>
             <TableHead>Needs you</TableHead>
           </TableRow>
@@ -139,14 +140,19 @@ export const MyAccounts: React.FC = () => {
           {rows.map((row) => (
             <TableRow key={row.domain}>
               <TableCell>
-                <Link
-                  to={`/accounts/${row.domain}`}
-                  className="font-medium hover:underline"
-                >
-                  {row.name}
-                </Link>
-                <div className="text-xs text-muted-foreground">
-                  {row.domain}
+                <div className="flex items-center gap-3">
+                  <CompanyLogo domain={row.domain} name={row.name} />
+                  <div>
+                    <Link
+                      to={`/accounts/${row.domain}`}
+                      className="font-medium hover:underline"
+                    >
+                      {row.name}
+                    </Link>
+                    <div className="text-xs text-muted-foreground">
+                      {row.domain}
+                    </div>
+                  </div>
                 </div>
               </TableCell>
               <TableCell>
