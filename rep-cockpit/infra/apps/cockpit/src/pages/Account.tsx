@@ -28,6 +28,7 @@ import { claimsModelUuid } from "../config";
 import { sql, submitUpsert } from "../lib/cargo";
 import { byAttention } from "../lib/drafts";
 import { heldClickFor, isClaimRowCurrent, useHeldClicks } from "../lib/held";
+import { countNeeds, needsOf, sourcingLabel } from "../lib/needs";
 import {
   accountLookupQuery,
   claimQuery,
@@ -40,10 +41,6 @@ import {
 import { useRep } from "../lib/rep";
 
 const sourcingSteps = "three people in the buying committee";
-
-const countWhere = (drafts: Draft[], statuses: string[]): number => {
-  return drafts.filter((draft) => statuses.includes(draft.status)).length;
-};
 
 export const Account: React.FC = () => {
   const { domain } = useParams();
@@ -143,8 +140,11 @@ export const Account: React.FC = () => {
     name = click.accountName;
   }
   const people = [...drafts.data].sort(byAttention);
-  const replies = countWhere(people, ["replied"]);
-  const toSend = countWhere(people, ["draft", "follow_up"]);
+  const needs = needsOf(countNeeds(people));
+  let status = "Sourcing";
+  if (!isStarting && claim.data !== undefined) {
+    status = sourcingLabel(claim.data.sourcing_status);
+  }
 
   return (
     <div className="flex flex-col gap-6 p-6">
@@ -163,10 +163,12 @@ export const Account: React.FC = () => {
                 {accountDomain}
               </a>
               <LinkedinLink url={company.data?.linkedin_url} />
-              {replies > 0 ? <Badge>{replies} to read</Badge> : null}
-              {toSend > 0 ? (
-                <Badge variant="secondary">{toSend} to send</Badge>
-              ) : null}
+              <Badge variant="outline">{status}</Badge>
+              {needs.length === 0 ? (
+                <span>Nothing waiting</span>
+              ) : (
+                needs.map((need) => <Badge key={need}>{need}</Badge>)
+              )}
             </div>
           </div>
         </div>

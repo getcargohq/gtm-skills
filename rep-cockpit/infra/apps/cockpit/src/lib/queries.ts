@@ -169,16 +169,18 @@ export type MyClaim = Claim & {
   linkedin_url?: string | null;
   replies?: number | null;
   follow_ups?: number | null;
+  drafts?: number | null;
+  no_email?: number | null;
 };
 
 // The rep's accounts, with their LinkedIn page and what waits on each:
-// replies to read and follow-ups to send.
+// replies to read, follow-ups and drafts to send, emails to find.
 export const myClaimsQuery = (repEmail: string): string => {
   return `
 SELECT c.account_domain, c.account_name, c.account_id, c.status,
   c.sourcing_status, c.contacts_found,
   CAST(c.status_at AS STRING) AS status_at,
-  d.replies, d.follow_ups, t.linkedin_url
+  d.replies, d.follow_ups, d.drafts, d.no_email, t.linkedin_url
 FROM object.cockpit_claims c
 LEFT JOIN (
   SELECT domain, MAX(linkedin_url) AS linkedin_url
@@ -188,12 +190,14 @@ LEFT JOIN (
 LEFT JOIN (
   SELECT account_domain,
     COUNTIF(status = 'replied') AS replies,
-    COUNTIF(status = 'follow_up') AS follow_ups
+    COUNTIF(status = 'follow_up') AS follow_ups,
+    COUNTIF(status = 'draft') AS drafts,
+    COUNTIF(status = 'no_email') AS no_email
   FROM object.cockpit_drafts
   GROUP BY account_domain
 ) d ON d.account_domain = c.account_domain
 WHERE c.rep_email = ${quote(repEmail)} AND c.status = 'claimed'
-ORDER BY d.replies DESC, d.follow_ups DESC, c.status_at DESC
+ORDER BY d.replies DESC, d.follow_ups DESC, d.drafts DESC, c.status_at DESC
 LIMIT 200`;
 };
 

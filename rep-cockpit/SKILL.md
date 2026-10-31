@@ -43,8 +43,9 @@ positioning in context.
 
 Clicking a Hot account opens its preview: the fit tier with when it was scored and why, its readiness
 and signals, and what the company is, with Claim and Pass. **Rescore** queues a stale tier for
-account scoring's next hourly run, by clearing the company's `tiered_at` stamp. **My accounts** holds what the rep claimed, with the replies and follow-ups waiting
-on each. An account page opens on the company (description, firmographics, fit and every signal),
+account scoring's next hourly run, by clearing the company's `tiered_at` stamp. **My accounts** holds what the rep claimed, with what needs the rep on
+each (replies to read, follow-ups and drafts to send, emails to find), the same line the account
+page heads with. An account page opens on the company (description, firmographics, fit and every signal),
 with **Add person** for someone the search missed, and shows each person with the draft, editable, with **Regenerate** (the rep says what to
 change), **Find email and phone**, and **Send**, from the rep's own Cargo mailbox. Under each
 email sits the writer's LinkedIn connection note, with **Send invite** and **Send message** from

@@ -17,7 +17,9 @@ import { Link, useNavigate } from "react-router-dom";
 
 import { CompanyLogo, LinkedinLink } from "../components/CompanyLogo";
 import { sql } from "../lib/cargo";
+import { countOf } from "../lib/drafts";
 import { heldClickFor, useHeldClicks } from "../lib/held";
+import { needsOf, sourcingLabel } from "../lib/needs";
 import { myClaimsQuery, type MyClaim } from "../lib/queries";
 import { useRep } from "../lib/rep";
 
@@ -27,34 +29,6 @@ type Row = {
   linkedinUrl?: string | null;
   sourcing: string;
   needs: string[];
-};
-
-// What waits for the rep on an account: replies to read, follow-ups to send.
-const needsOf = (claim: MyClaim): string[] => {
-  const needs: string[] = [];
-  const replies = Number(claim.replies ?? 0);
-  const followUps = Number(claim.follow_ups ?? 0);
-  if (replies === 1) {
-    needs.push("1 reply");
-  } else if (replies > 1) {
-    needs.push(`${replies} replies`);
-  }
-  if (followUps === 1) {
-    needs.push("1 follow-up to send");
-  } else if (followUps > 1) {
-    needs.push(`${followUps} follow-ups to send`);
-  }
-  return needs;
-};
-
-const sourcingLabel = (sourcingStatus: string | null | undefined): string => {
-  if (sourcingStatus === "ready") {
-    return "Drafts ready";
-  }
-  if (sourcingStatus === "failed") {
-    return "Sourcing failed";
-  }
-  return "Sourcing";
 };
 
 export const MyAccounts: React.FC = () => {
@@ -105,7 +79,12 @@ export const MyAccounts: React.FC = () => {
       name: claim.account_name,
       linkedinUrl: claim.linkedin_url,
       sourcing: sourcingLabel(claim.sourcing_status),
-      needs: needsOf(claim),
+      needs: needsOf({
+        replies: countOf(claim.replies),
+        drafts: countOf(claim.drafts),
+        followUps: countOf(claim.follow_ups),
+        noEmail: countOf(claim.no_email),
+      }),
     });
   }
   // Claimed in this browser, not yet in SQL.
