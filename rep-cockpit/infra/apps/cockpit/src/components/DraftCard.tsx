@@ -112,8 +112,8 @@ const ContactLine: React.FC<CardProps> = ({ draft, claim, onChanged }) => {
       {canLookUp ? (
         <Button
           size="sm"
-          variant="outline"
-          className="h-7"
+          variant="secondary"
+          className="h-7 text-secondary-foreground"
           disabled={enrich.isLoading}
           onClick={() => enrich.mutate()}
         >
