@@ -66,16 +66,20 @@ Hot leads                                   Fit      Readiness
 Northwind Traders   northwind.example       Tier A   Ready now    [Pass] [Claim]
 Fabrikam            fabrikam.example        Tier B   Warming      [Pass] [Claim]
 
-Northwind Traders · claimed by Jane · drafts ready
+Northwind Traders · claimed by Jane · 3 sourced · drafts ready
   Priya Raman, VP Revenue Operations · priya@northwind.example
-  why now: Series B two weeks ago and a RevOps manager role open; routing is likely on her plate.
-  subject: routing after the round
-  [Send]  → sent from jane@example-outreach.com · logged on GTM activities
-  Omar Haddad, CMO · no work email found
+    first-touch writer
+      why now: Series B two weeks ago and a RevOps manager role open
+      subject: routing after the round
+      body:    Hi Priya, congrats on the round. A new RevOps hire usually means
+               routing gets rebuilt next. Who owns that today?
+    [Send]  → sent from jane@example-outreach.com · logged on GTM activities
+  Leo Martins, Head of Sales · leo@northwind.example · draft ready    [Send]
+  Omar Haddad, CMO · no work email found · draft kept, Send off
 ```
 
-Three people sourced and drafted on the claim; two had a work email and were sent after the rep
-edited one line; the third waits for the rep to find another way in.
+Three people sourced and three drafts from the first-touch writer: one sent after the rep edited a
+line, one waiting for review, one with no work email for the rep to reach another way.
 
 ## Put it in your project
 
