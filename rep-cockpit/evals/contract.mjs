@@ -90,6 +90,35 @@ assert.ok(
   "the play must draft the follow-up with the writer",
 );
 
+// LinkedIn goes out from one tool, on a rep's click, never from the claim, the
+// play or a rewrite.
+const sendLinkedin = byId.get("tool:rep_cockpit_send_linkedin");
+assert.ok(sendLinkedin, "the LinkedIn send tool must exist");
+for (const slug of ["connectProfile", "messageProfile", "modelInsert"]) {
+  assert.ok(
+    nodeSlugs(sendLinkedin).includes(`"${slug}"`),
+    `the LinkedIn send must run ${slug}`,
+  );
+}
+for (const [label, graph] of [
+  ["claim", claimGraph],
+  ["play", watchGraph],
+]) {
+  for (const slug of ["connectProfile", "messageProfile"]) {
+    assert.equal(
+      graph.includes(`"${slug}"`),
+      false,
+      `the ${label} must never send on LinkedIn`,
+    );
+  }
+}
+assert.ok(
+  JSON.stringify(byId.get("agent:rep_cockpit_first_touch_writer").spec).includes(
+    "linkedin_note",
+  ),
+  "the writer must draft the LinkedIn note with the email",
+);
+
 // Regenerate and Find email and phone are tool runs, never connector calls
 // from the browser.
 const redraft = byId.get("tool:rep_cockpit_redraft");
@@ -129,6 +158,8 @@ assert.ok(app, "the app must exist");
 for (const [key, resourceId] of [
   ["VITE_CLAIM_TOOL_UUID", "tool:rep_cockpit_claim_account"],
   ["VITE_SEND_TOOL_UUID", "tool:rep_cockpit_send_draft"],
+  ["VITE_LINKEDIN_TOOL_UUID", "tool:rep_cockpit_send_linkedin"],
+  ["VITE_LINKEDIN_CONNECTOR_UUID", "connector:linkedin"],
   ["VITE_REDRAFT_TOOL_UUID", "tool:rep_cockpit_redraft"],
   ["VITE_ENRICH_TOOL_UUID", "tool:rep_cockpit_enrich_contact"],
   ["VITE_CLAIMS_MODEL_UUID", "model:cockpit_claims"],

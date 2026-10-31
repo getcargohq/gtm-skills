@@ -3,6 +3,7 @@ import { defineApp } from "@cargo-ai/cdk";
 import { relative, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { linkedin } from "../connectors/linkedin";
 import { appsFolder } from "../folders";
 import { cockpitClaims } from "../models/cockpit-claims";
 import { cockpitDrafts } from "../models/cockpit-drafts";
@@ -11,6 +12,7 @@ import { claimAccount } from "../tools/claim-account";
 import { enrichContact } from "../tools/enrich-contact";
 import { redraft } from "../tools/redraft";
 import { sendDraft } from "../tools/send-draft";
+import { sendLinkedin } from "../tools/send-linkedin";
 
 // The cockpit: the Vite app in `./cockpit/`, behind the Cargo login. Cargo
 // uploads the directory and builds it on deploy; the live URL is `cockpit.url`.
@@ -40,6 +42,8 @@ export const cockpit = defineApp("rep-cockpit", {
   env: {
     VITE_CLAIM_TOOL_UUID: claimAccount.uuid,
     VITE_SEND_TOOL_UUID: sendDraft.uuid,
+    VITE_LINKEDIN_TOOL_UUID: sendLinkedin.uuid,
+    VITE_LINKEDIN_CONNECTOR_UUID: linkedin.uuid,
     VITE_REDRAFT_TOOL_UUID: redraft.uuid,
     VITE_ENRICH_TOOL_UUID: enrichContact.uuid,
     VITE_CLAIMS_MODEL_UUID: cockpitClaims.uuid,

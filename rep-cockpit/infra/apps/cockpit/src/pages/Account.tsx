@@ -21,6 +21,7 @@ import {
   claimsModelUuid,
   draftsModelUuid,
   enrichToolUuid,
+  linkedinToolUuid,
   redraftToolUuid,
   sendToolUuid,
 } from "../config";
@@ -31,8 +32,10 @@ import {
   submitUpsert,
   waitForRun,
 } from "../lib/cargo";
+import { CompanyLogo, LinkedinLink } from "../components/CompanyLogo";
 import { heldClickFor, useHeldClicks } from "../lib/held";
 import {
+  accountLookupQuery,
   claimQuery,
   draftsQuery,
   hasText,
@@ -40,6 +43,7 @@ import {
   type Activity,
   type Claim,
   type Draft,
+  type HotLead,
 } from "../lib/queries";
 import { useRep, type Rep } from "../lib/rep";
 
@@ -125,6 +129,123 @@ const sendBlocker = (
     return "The claim is still being recorded.";
   }
   return undefined;
+};
+
+const linkedinNoteLimit = 300;
+
+const linkedinStatusLabel = (status: string | null | undefined): string => {
+  if (status === "invited") {
+    return "Invite sent";
+  }
+  if (status === "messaged") {
+    return "Message sent";
+  }
+  return "";
+};
+
+// The LinkedIn side of a person: the writer's connection note, editable, and
+// two sends from the rep's own LinkedIn identity. Invite is for someone not
+// yet connected, Message for a connection; LinkedIn refuses the other one,
+// and the reason shows here.
+const LinkedinPanel: React.FC<{
+  draft: Draft;
+  claim: Claim | undefined;
+  rep: Rep | undefined;
+  onChanged: () => void;
+}> = ({ draft, claim, rep, onChanged }) => {
+  const api = useCargoApi();
+  const [note, setNote] = React.useState(orEmpty(draft.linkedin_note));
+
+  const send = useMutation({
+    mutationFn: async (kind: "invite" | "message") => {
+      if (rep === undefined || rep.linkedinIdentityId === undefined) {
+        throw new Error("No LinkedIn identity to send from.");
+      }
+      if (claim === undefined || !hasText(claim.account_id)) {
+        throw new Error("The claim is still being recorded.");
+      }
+      const runUuid = await startTool(api, linkedinToolUuid, {
+        contact_id: draft.contact_id,
+        account_id: claim.account_id,
+        rep_email: rep.email,
+        identity_id: rep.linkedinIdentityId,
+        linkedin_url: draft.linkedin_url,
+        contact_name: draft.contact_name,
+        message: note,
+        kind,
+      });
+      await waitForRun(api, runUuid, 90);
+    },
+    onSuccess: onChanged,
+  });
+
+  if (!hasText(draft.linkedin_url)) {
+    return null;
+  }
+
+  let blocker: string | undefined;
+  if (rep !== undefined && rep.linkedinIdentityId === undefined) {
+    blocker =
+      "Connect LinkedIn with the Cargo Chrome extension to send from here.";
+  } else if (note.length > linkedinNoteLimit) {
+    blocker = `LinkedIn caps a note at ${linkedinNoteLimit} characters.`;
+  }
+  let sentLabel = linkedinStatusLabel(draft.linkedin_status);
+  if (send.isSuccess) {
+    sentLabel = "Sent";
+  }
+
+  return (
+    <div className="flex flex-col gap-2 rounded-md border p-3">
+      <div className="flex items-center justify-between text-xs text-muted-foreground">
+        <a
+          href={draft.linkedin_url}
+          target="_blank"
+          rel="noreferrer"
+          className="underline"
+        >
+          LinkedIn profile
+        </a>
+        <span>
+          {sentLabel === "" ? `${note.length}/${linkedinNoteLimit}` : sentLabel}
+        </span>
+      </div>
+      <Textarea
+        value={note}
+        rows={3}
+        placeholder="Connection note"
+        onChange={(event) => setNote(event.target.value)}
+      />
+      {send.error === null ? null : (
+        <p className="text-sm text-destructive">{String(send.error)}</p>
+      )}
+      <div className="flex flex-wrap items-center justify-end gap-2">
+        {blocker === undefined ? null : (
+          <span className="text-xs text-muted-foreground">{blocker}</span>
+        )}
+        <Button
+          size="sm"
+          variant="outline"
+          disabled={
+            blocker !== undefined || send.isLoading || rep === undefined
+          }
+          onClick={() => send.mutate("message")}
+        >
+          Send message
+        </Button>
+        <Button
+          size="sm"
+          variant="outline"
+          disabled={
+            blocker !== undefined || send.isLoading || rep === undefined
+          }
+          onClick={() => send.mutate("invite")}
+        >
+          {send.isLoading ? "Sending…" : "Send invite"}
+        </Button>
+      </div>
+    </div>
+  );
 };
 
 const DraftCard: React.FC<{
@@ -350,6 +471,12 @@ const DraftCard: React.FC<{
             </Button>
           </div>
         )}
+        <LinkedinPanel
+          draft={draft}
+          claim={claim}
+          rep={rep}
+          onChanged={onChanged}
+        />
       </CardContent>
     </Card>
   );
@@ -437,6 +564,16 @@ export const Account: React.FC = () => {
   const isSourcing =
     claim.data === undefined || claim.data.sourcing_status !== "ready";
 
+  // The company's LinkedIn page, from tam-building when it holds the domain.
+  const company = useQuery({
+    queryKey: ["company", accountDomain],
+    queryFn: async () => {
+      const rows = await sql<HotLead>(api, accountLookupQuery(accountDomain));
+      return rows[0];
+    },
+    staleTime: 60 * 60 * 1000,
+  });
+
   const drafts = useQuery({
     queryKey: ["drafts", accountDomain],
     queryFn: () => sql<Draft>(api, draftsQuery(accountDomain)),
@@ -500,8 +637,14 @@ export const Account: React.FC = () => {
     <div className="flex flex-col gap-4 p-6">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-xl font-semibold">{name}</h1>
-          <p className="text-sm text-muted-foreground">{accountDomain}</p>
+          <div className="flex items-center gap-3">
+            <CompanyLogo domain={accountDomain} name={name} />
+            <h1 className="text-xl font-semibold">{name}</h1>
+          </div>
+          <div className="flex gap-2 text-sm text-muted-foreground">
+            <span>{accountDomain}</span>
+            <LinkedinLink url={company.data?.linkedin_url} />
+          </div>
         </div>
         <Button
           size="sm"

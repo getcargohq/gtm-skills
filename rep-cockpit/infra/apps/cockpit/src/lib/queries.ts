@@ -14,6 +14,7 @@ export const hasText = (value: string | null | undefined): value is string => {
 export type HotLead = {
   domain: string;
   name: string;
+  linkedin_url?: string | null;
   tier?: string | null;
   tier_reason?: string | null;
   readiness_score?: number | null;
@@ -33,6 +34,7 @@ export const hotLeadsQuery = `
 SELECT
   a.domain AS domain,
   COALESCE(MAX(t.name), a.domain) AS name,
+  MAX(t.linkedin_url) AS linkedin_url,
   MAX(t.custom__tier) AS tier,
   MAX(t.custom__tier_reason) AS tier_reason,
   a.metric__readiness_score AS readiness_score,
@@ -48,7 +50,7 @@ HAVING MAX(t.custom__tier) IS NULL OR MAX(t.custom__tier) IN ('A', 'B')
 ORDER BY
   CASE MAX(t.custom__tier) WHEN 'A' THEN 0 WHEN 'B' THEN 1 ELSE 2 END,
   a.metric__readiness_score DESC
-LIMIT 50`;
+LIMIT 200`;
 
 export type Signal = {
   domain: string;
@@ -85,6 +87,7 @@ export const accountLookupQuery = (domain: string): string => {
 SELECT
   ${quote(domain)} AS domain,
   COALESCE(MAX(t.name), ${quote(domain)}) AS name,
+  MAX(t.linkedin_url) AS linkedin_url,
   MAX(t.custom__tier) AS tier,
   MAX(t.custom__tier_reason) AS tier_reason,
   MAX(a.metric__readiness_score) AS readiness_score,
@@ -153,6 +156,8 @@ export type Draft = {
   subject: string;
   body: string;
   why_now?: string | null;
+  linkedin_note?: string | null;
+  linkedin_status?: string | null;
   status: string;
   drafted_at?: string | null;
   rfc_message_id?: string | null;
@@ -164,7 +169,8 @@ export type Draft = {
 export const draftsQuery = (domain: string): string => {
   return `
 SELECT contact_id, contact_name, contact_title, contact_email, contact_phone,
-  linkedin_url, rep_name, subject, body, why_now, status,
+  linkedin_url, rep_name, subject, body, why_now, linkedin_note,
+  linkedin_status, status,
   CAST(drafted_at AS STRING) AS drafted_at, rfc_message_id,
   touches, reply_snippet, CAST(replied_at AS STRING) AS replied_at
 FROM object.cockpit_drafts

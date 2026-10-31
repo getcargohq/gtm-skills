@@ -16,6 +16,10 @@ import { modelsFolder } from "../folders";
 //   replied        a reply landed: `reply_snippet`, `replied_at`
 //   no_reply       the last touch got no reply
 //   meeting_booked the rep booked a meeting from the reply
+//
+// LinkedIn runs beside the email on the same row: `linkedin_note` is the
+// writer's connection note, `linkedin_status` invited or messaged once the
+// rep sends it. LinkedIn replies are not watched: they are in the rep's inbox.
 export const cockpitDrafts = defineModel("cockpit_drafts", {
   name: "Cockpit drafts",
   kind: "native",
@@ -39,6 +43,10 @@ export const cockpitDrafts = defineModel("cockpit_drafts", {
       { slug: "subject", type: "string" },
       { slug: "body", type: "string" },
       { slug: "why_now", type: "string" },
+      { slug: "linkedin_note", type: "string" },
+      // invited | messaged
+      { slug: "linkedin_status", type: "string" },
+      { slug: "linkedin_sent_at", type: "date" },
       { slug: "status", type: "string" },
       { slug: "drafted_at", type: "date" },
       { slug: "sent_at", type: "date" },

@@ -2125,8 +2125,8 @@
     {
       "name": "rep-cockpit",
       "kind": "cookbook",
-      "job": "Deploy the app your reps work from: hot leads (ready now or warming, best fit first, with the signals behind them) to claim or pass, a claim that sources the account's buying committee, finds work emails and drafts a first touch per person, a send from the rep's own Cargo mailbox, and the replies and follow-ups that come after.",
-      "description": "Deploy the app your reps work from: hot leads (ready now or warming, best fit first, with the signals behind them) to claim or pass, a claim that sources the account's buying committee, finds work emails and drafts a first touch per person, a send from the rep's own Cargo mailbox, and the replies and follow-ups that come after. Triggers: \"build a rep cockpit\", \"a daily surface for my reps to claim accounts\", \"let reps claim hot accounts and send from Cargo\", \"one screen per rep with their accounts and drafts\", \"claim, source, draft, send\". Cargo project, defineApp, app-sdk, defineMailbox, defineMember, sendEmail, AI Ark, Prospeo. Skip when: a readiness score with no app, which is readiness-scoring; tiering accounts, which is account-scoring; an agent that answers replies, which is agentic-engagement; one account's stakeholders once, which is find-stakeholders.",
+      "job": "Deploy the app your reps work from: hot leads (ready now or warming, best fit first, with the signals behind them) to claim or pass, a claim that sources the account's buying committee, finds work emails and drafts a first touch per person, a send from the rep's own Cargo mailbox or LinkedIn, and the replies and follow-ups that come after.",
+      "description": "Deploy the app your reps work from: hot leads (ready now or warming, best fit first, with the signals behind them) to claim or pass, a claim that sources the account's buying committee, finds work emails and drafts a first touch per person, a send from the rep's own Cargo mailbox or LinkedIn, and the replies and follow-ups that come after. Triggers: \"build a rep cockpit\", \"a daily surface for my reps to claim accounts\", \"let reps claim hot accounts and send from Cargo\", \"one screen per rep with their accounts and drafts\", \"claim, source, draft, send\". Cargo project, defineApp, app-sdk, defineMailbox, defineMember, sendEmail, AI Ark, Prospeo. Skip when: a readiness score with no app, which is readiness-scoring; tiering accounts, which is account-scoring; an agent that answers replies, which is agentic-engagement; one account's stakeholders once, which is find-stakeholders.",
       "version": "0.1.0",
       "homepage": "https://github.com/getcargohq/gtm-skills/tree/main/rep-cockpit",
       "group": "Engagement",
@@ -2140,11 +2140,12 @@
       "integrations": [
         "aiArk",
         "anthropic",
+        "linkedin",
         "prospeo"
       ],
       "example": {
         "prompt": "Build a cockpit where my SDRs claim hot accounts, get the buying committee with drafts, and send from their own mailbox.",
-        "output": "```\nHot leads                      Fit     Why now\nNorthwind Traders              Tier A  Ready now · funding 2026-10-14 · job post 2026-10-20\nFabrikam                       Tier B  Warming · product launch 2026-10-09         [Pass] [Claim]\n\nNorthwind Traders · claimed by Jane · 3 sourced\n  Priya Raman, VP Revenue Operations · priya@northwind.example\n    first-touch writer\n      why now: Series B two weeks ago and a RevOps manager role open\n      subject: routing after the round\n      body:    A new RevOps hire usually means routing gets rebuilt next.\n               Who owns that today?\n    [Send] → sent from jane@example-outreach.com → replied two days later  [Meeting booked]\n  Leo Martins, Head of Sales · no reply in four days · follow-up drafted in the thread  [Send]\n  Omar Haddad, CMO · no work email · [Find email and phone] → found · draft ready  [Send]\n\nTimeline  email to Priya · reply from Priya · meeting with Priya · email to Leo\n```\n\nThree people sourced and drafted on one claim: Priya replied and a meeting is logged, Leo's\nfollow-up waits in his thread for Jane's click, and Omar's email turned up on a second lookup."
+        "output": "```\nHot leads                      Fit     Why now\nNorthwind Traders              Tier A  Ready now · funding 2026-10-14 · job post 2026-10-20\nFabrikam                       Tier B  Warming · product launch 2026-10-09         [Pass] [Claim]\n\nNorthwind Traders · claimed by Jane · 3 sourced\n  Priya Raman, VP Revenue Operations · priya@northwind.example · LinkedIn\n    first-touch writer\n      why now: Series B two weeks ago and a RevOps manager role open\n      subject: routing after the round\n      body:    A new RevOps hire usually means routing gets rebuilt next.\n               Who owns that today?\n      note:    Saw the RevOps opening at Northwind, routing is a topic I follow.\n    [Send] → sent from jane@example-outreach.com → replied two days later  [Meeting booked]\n    [Send invite] → LinkedIn invite with the note, from Jane's LinkedIn\n  Leo Martins, Head of Sales · no reply in four days · follow-up drafted in the thread  [Send]\n  Omar Haddad, CMO · no work email · [Find email and phone] → found · draft ready  [Send]\n\nTimeline  email to Priya · LinkedIn invite to Priya · reply from Priya · meeting with Priya\n```\n\nThree people sourced and drafted on one claim: Priya replied and a meeting is logged, Leo's\nfollow-up waits in his thread for Jane's click, and Omar's email turned up on a second lookup."
       },
       "state": "to-be-approved",
       "chain": 28,
@@ -2180,10 +2181,16 @@
           "cost": "The second provider's price on every miss"
         },
         {
-          "id": "more-channels",
-          "when": "Reps also work LinkedIn",
-          "how": "More fields on the writer's output (a connection note) and on `cockpit_drafts`, and a LinkedIn sender the rep clicks like Send",
-          "cost": "A LinkedIn connector per rep, and a longer draft per person"
+          "id": "email-only",
+          "when": "Reps do not work LinkedIn",
+          "how": "Drop `send-linkedin.ts`, the LinkedIn connector and `linkedin_note` from the writer's output; the panel hides with no tool id",
+          "cost": "One channel fewer per person"
+        },
+        {
+          "id": "stored-logo",
+          "when": "The browser may not call a favicon service",
+          "how": "enrichCompanyFromDomain` on LinkedIn in the claim tool, the logo stored on `cockpit_claims`, read instead of the favicon",
+          "cost": "A company lookup per claim, and Hot leads rows (unclaimed) show initials"
         },
         {
           "id": "phone-on-claim",
@@ -2214,6 +2221,7 @@
         "**Every send is one click by the rep it is from.** (`infra/tools/send-draft.ts`, called from the account page only) A scheduled or bulk send from this cockpit is a sequencer with no review step, and the first bad draft goes to everyone.",
         "**The claim runs on the server, in one tool run.** (`infra/tools/claim-account.ts`) Orchestrated from the browser, closing the tab mid-claim leaves an account claimed with nothing sourced, and nobody notices because the claim row looks fine.",
         "**Inside the per-person loop, values come from the claim row, never `input`.** (`infra/tools/claim-account.ts`) Each iteration of a `for…of` runs as a child run whose input is the person, so `input.account_domain` there is empty: the email lookup fails on every person and the writer drafts with no account context, while the claim still ends `ready`.",
+        "**LinkedIn goes out as the rep, on a click.** (`infra/tools/send-linkedin.ts`) The identity comes from the rep's member like the mailbox. A shared LinkedIn seat sends as the wrong person, and an invite sent by a play is the automation LinkedIn restricts accounts for.",
         "**The watch play never sends.** (`infra/plays/watch-replies.ts`) It waits, logs and drafts; the follow-up goes out on the rep's click. A play that sent the follow-up would be a sequence running on four-day-old judgement about a person.",
         "**A follow-up replies in its thread.** (`in_reply_to` in `infra/tools/send-draft.ts`) Sent as a new email, it reads as a second cold email, and the play's next wait keys off a thread with no history.",
         "**The send and its log are one run.** (`infra/tools/send-draft.ts`) Logged from the browser after the send, a closed tab loses the activity row, and every pipeline reading GTM activities misses a touch that happened.",
@@ -2229,12 +2237,13 @@
         "one claim landed the account on `gtm_accounts`, the committee on `gtm_contacts`, a draft per person on `cockpit_drafts`, and `sourcing_status` ready on its claim, within a few minutes",
         "the claimed account left Hot leads for every rep once SQL caught up, and showed under My accounts",
         "one send to an address the operator owns arrived from the rep's mailbox with the unsubscribe link, the draft read `sent`, and one `email` row landed on `gtm_activities`",
+        "one LinkedIn invite with the writer's note went out from the rep's own LinkedIn and logged a `note` on GTM activities",
         "Regenerate with an instruction changed one draft's text, and Find email and phone wrote what it found onto the card",
         "the watch play started a run on that send; a reply from the address you own landed on the card and the timeline as a reply (or, with no reply, the follow-up was drafted after `followUpAfterHours`), and Meeting booked wrote a `meeting` row",
         "a rep with no mailbox saw why Send was off",
         "`node --import tsx evals/contract.mjs` passes against the adapted resources"
       ],
-      "cost": "**A claim** bills one people search per person returned, one email lookup per person, and one\nwriter run per person (an LLM call that reads a few context files). Read the current prices with\n`cargo-ai connection integration get aiArk` and `cargo-ai connection integration get prospeo`, and\nthe writer's cost from the pilot claim's run (`cargo-ai orchestration run get`), and give the\noperator a per-claim estimate at `contactsPerClaim`.\n\n**A send** is the native `sendEmail` price per message, and its **watch** is one wait on the\nthread plus, when nobody replies, one writer run for the follow-up. **Regenerate** is one writer\nrun per click. **Find email and phone** is one email lookup and one phone lookup per click; the\nphone is several times the email's price (`cargo-ai connection integration get prospeo`). **Each mailbox** is a recurring monthly\ncharge for as long as it exists (`cargo-ai mailboxManagement pricing get`), and the app is a hosted\napp on the workspace's hosting plan. Hot leads, My accounts, the account page and the timeline are\nSQL reads and bill nothing.",
+      "cost": "**A claim** bills one people search per person returned, one email lookup per person, and one\nwriter run per person (an LLM call that reads a few context files). Read the current prices with\n`cargo-ai connection integration get aiArk` and `cargo-ai connection integration get prospeo`, and\nthe writer's cost from the pilot claim's run (`cargo-ai orchestration run get`), and give the\noperator a per-claim estimate at `contactsPerClaim`.\n\n**A send** is the native `sendEmail` price per message, and its **watch** is one wait on the\nthread plus, when nobody replies, one writer run for the follow-up. **Regenerate** is one writer\nrun per click. **Find email and phone** is one email lookup and one phone lookup per click; the\nphone is several times the email's price (`cargo-ai connection integration get prospeo`).\n**A LinkedIn invite or message** is one `linkedin` action per click\n(`cargo-ai connection integration get linkedin`). Logos are the domain's favicon, loaded by the\nbrowser, and bill nothing. **Each mailbox** is a recurring monthly\ncharge for as long as it exists (`cargo-ai mailboxManagement pricing get`), and the app is a hosted\napp on the workspace's hosting plan. Hot leads, My accounts, the account page and the timeline are\nSQL reads and bill nothing.",
       "composesInto": "`account-scoring` and `readiness-scoring` feed the queue (fit and timing); `tam-building` feeds\nthe companies they score. Every send lands on `gtm_activities`, which `meeting-prep`,\n`next-step-tracker` and readiness-scoring's first-party events read. `agentic-engagement` can take\nthe thread over once a prospect replies."
     },
     {

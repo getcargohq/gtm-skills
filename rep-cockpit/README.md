@@ -12,8 +12,9 @@ cargo-ai project add cookbook/rep-cockpit
 
 1. **Hot leads.** One SQL query over Unify Accounts (readiness-scoring's stage and score) and the
    tiered companies (account-scoring's tier): ready now or warming, tier A then B, nobody holding
-   it. Each row lists the three signals adding most to its score, from Account Events. Claim, Pass
-   with a reason (a "not now" returns in 90 days), or add an account by its website.
+   it. Each row shows the company's logo and LinkedIn page and the three signals adding most to its
+   score, from Account Events, and filters by tier, readiness, signals or name. Claim, Pass with a
+   reason (a "not now" returns in 90 days), or add an account by its website.
 2. **Claim.** The app starts one tool run, `rep_cockpit_claim_account`: the account is upserted on
    `gtm_accounts`, AI Ark searches the buying committee at its domain, each person lands on
    `gtm_contacts`, Prospeo finds the work email, and the first-touch writer drafts one email per
@@ -22,7 +23,9 @@ cargo-ai project add cookbook/rep-cockpit
    rewrite (`rep_cockpit_redraft`), or looks up a missing email and a mobile
    (`rep_cockpit_enrich_contact`), and clicks Send. `rep_cockpit_send_draft` sends it with native
    `sendEmail` from the mailbox attached to the rep's member, marks the draft sent, and writes an
-   `email` row on `gtm_activities`. The Timeline beside it reads every activity on the account.
+   `email` row on `gtm_activities`. Under each email, the writer's LinkedIn note goes out as an
+   invite or a message from the rep's own LinkedIn identity (`rep_cockpit_send_linkedin`). The
+   Timeline beside it reads every activity on the account.
 4. **Replies and follow-ups.** The play `rep_cockpit_watch_replies` starts on every draft that
    becomes sent and waits on its thread with `waitEmailEvent`. A reply marks the card replied, with
    its first lines, and logs it on the timeline; the rep's Meeting booked logs the meeting. No reply
@@ -47,6 +50,8 @@ outcome lands on the same row the account page reads.
 The app finds the signed-in rep's revenue-organization member by login email and sends from its
 first mailbox. `defineMember(email, { mailboxes })` is where that link lives, in the project, so
 adding a rep is a reviewed change to `infra/members/reps.ts` and no rep table hides in the app.
+The LinkedIn identity is found the same way: the member's entry under the LinkedIn connector,
+written when the rep connects LinkedIn with the Cargo Chrome extension.
 
 ## How it works
 
@@ -67,6 +72,8 @@ flowchart LR
   watch -- no reply --> w
   app -- Regenerate --> rd[redraft tool] --> w
   app -- Find email and phone --> en[enrich_contact tool] --> d
+  app -- Send invite / message --> li[send_linkedin tool]
+  li --> act
   app -- Pass / Release --> cl[cockpit_claims]
 ```
 
@@ -76,6 +83,7 @@ flowchart LR
 | `infra/apps/cockpit/`                   | Vite app       | Hot leads, My accounts, the account page and its timeline  |
 | `infra/tools/claim-account.ts`          | `defineTool`   | account, committee, emails, drafts, in one run             |
 | `infra/tools/send-draft.ts`             | `defineTool`   | the send (a follow-up in its thread), the two writes       |
+| `infra/tools/send-linkedin.ts`          | `defineTool`   | a LinkedIn invite or message as the rep, and its log       |
 | `infra/tools/redraft.ts`                | `defineTool`   | a rewrite of one draft, as the rep asks                    |
 | `infra/tools/enrich-contact.ts`         | `defineTool`   | one person's work email and mobile, on a click             |
 | `infra/plays/watch-replies.ts`          | `definePlay`   | the wait on each sent thread: reply logged, or follow-up   |

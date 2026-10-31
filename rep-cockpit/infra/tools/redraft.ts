@@ -7,7 +7,8 @@ import { cockpitDrafts } from "../models/cockpit-drafts";
 
 // Regenerate: the rep says what is wrong with a draft ("shorter", "lead with
 // the hire, not the round") and the writer rewrites it from the same input.
-// Only the text changes: the status, a follow-up included, stays as it was.
+// Only the text changes, the LinkedIn note with it: the status, a follow-up
+// included, stays as it was.
 const redraftWorkflow = defineWorkflow(
   "redraft",
   {
@@ -49,6 +50,7 @@ REP INSTRUCTION: ${input.instruction}`,
         { columnSlug: "subject", value: draft.answer.subject },
         { columnSlug: "body", value: draft.answer.body },
         { columnSlug: "why_now", value: draft.answer.why_now },
+        { columnSlug: "linkedin_note", value: draft.answer.linkedin_note },
         { columnSlug: "drafted_at", value: new Date() },
       ],
     });

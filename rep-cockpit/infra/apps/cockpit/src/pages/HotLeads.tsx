@@ -24,6 +24,7 @@ import {
   type PassReason,
 } from "../config";
 import { sql, startTool, submitUpsert } from "../lib/cargo";
+import { CompanyLogo, LinkedinLink } from "../components/CompanyLogo";
 import { heldClickFor, useHeldClicks } from "../lib/held";
 import {
   accountLookupQuery,
@@ -90,6 +91,115 @@ const toDomain = (website: string): string => {
     .replace(/^[a-z]+:\/\//, "")
     .replace(/^www\./, "")
     .split(/[/?#]/)[0];
+};
+
+type Filters = {
+  search: string;
+  tier: string;
+  stage: string;
+  withSignals: boolean;
+};
+
+const noFilters: Filters = {
+  search: "",
+  tier: "all",
+  stage: "all",
+  withSignals: false,
+};
+
+// The filters narrow what the query already returned, in the browser: the
+// query is the queue, the filters are how one rep reads it today.
+const matchesFilters = (
+  lead: HotLead,
+  filters: Filters,
+  signals: Signal[],
+): boolean => {
+  const search = filters.search.trim().toLowerCase();
+  if (
+    search !== "" &&
+    !lead.name.toLowerCase().includes(search) &&
+    !lead.domain.includes(search)
+  ) {
+    return false;
+  }
+  if (filters.tier === "none" && hasText(lead.tier)) {
+    return false;
+  }
+  if (
+    filters.tier !== "all" &&
+    filters.tier !== "none" &&
+    lead.tier !== filters.tier
+  ) {
+    return false;
+  }
+  if (filters.stage !== "all" && lead.readiness_stage !== filters.stage) {
+    return false;
+  }
+  if (filters.withSignals && signals.length === 0) {
+    return false;
+  }
+  return true;
+};
+
+const selectClass =
+  "h-9 rounded-md border border-input bg-background px-2 text-sm";
+
+const FilterBar: React.FC<{
+  filters: Filters;
+  onChange: (filters: Filters) => void;
+  shown: number;
+  total: number;
+}> = ({ filters, onChange, shown, total }) => {
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <Input
+        value={filters.search}
+        placeholder="Search name or domain"
+        className="w-56"
+        onChange={(event) =>
+          onChange({ ...filters, search: event.target.value })
+        }
+      />
+      <select
+        className={selectClass}
+        value={filters.tier}
+        onChange={(event) => onChange({ ...filters, tier: event.target.value })}
+      >
+        <option value="all">Any tier</option>
+        <option value="A">Tier A</option>
+        <option value="B">Tier B</option>
+        <option value="C">Tier C</option>
+        <option value="none">Not tiered</option>
+      </select>
+      <select
+        className={selectClass}
+        value={filters.stage}
+        onChange={(event) =>
+          onChange({ ...filters, stage: event.target.value })
+        }
+      >
+        <option value="all">Any readiness</option>
+        <option value="ready_now">Ready now</option>
+        <option value="warming">Warming</option>
+      </select>
+      <label className="flex items-center gap-1 text-sm">
+        <input
+          type="checkbox"
+          checked={filters.withSignals}
+          onChange={(event) =>
+            onChange({ ...filters, withSignals: event.target.checked })
+          }
+        />
+        With signals
+      </label>
+      <span className="text-xs text-muted-foreground">
+        {shown} of {total}
+      </span>
+      <Button size="sm" variant="ghost" onClick={() => onChange(noFilters)}>
+        Clear
+      </Button>
+    </div>
+  );
 };
 
 const signalsByDomain = (signals: Signal[]): Map<string, Signal[]> => {
@@ -198,6 +308,7 @@ export const HotLeads: React.FC = () => {
   const navigate = useNavigate();
   const { clicks, hold } = useHeldClicks();
   const [passing, setPassing] = React.useState<string | undefined>(undefined);
+  const [filters, setFilters] = React.useState<Filters>(noFilters);
 
   const leads = useQuery({
     queryKey: ["hot-leads"],
@@ -286,6 +397,9 @@ export const HotLeads: React.FC = () => {
     }
     return click.status === "released";
   });
+  const shown = open.filter((lead) =>
+    matchesFilters(lead, filters, signalsOf.get(lead.domain) ?? []),
+  );
 
   const failure = claim.error === null ? pass.error : claim.error;
 
@@ -304,12 +418,25 @@ export const HotLeads: React.FC = () => {
       {failure === null ? null : (
         <p className="text-sm text-destructive">{String(failure)}</p>
       )}
+      <FilterBar
+        filters={filters}
+        onChange={setFilters}
+        shown={shown.length}
+        total={open.length}
+      />
       {open.length === 0 ? (
         <CargoEmpty
           title="No hot leads to claim"
           description="Nothing is ready now or warming that nobody holds. Readiness rebuilds every hour."
         />
-      ) : (
+      ) : null}
+      {open.length > 0 && shown.length === 0 ? (
+        <CargoEmpty
+          title="No hot leads match these filters"
+          description="Clear the filters to see the whole queue."
+        />
+      ) : null}
+      {shown.length === 0 ? null : (
         <Table>
           <TableHeader>
             <TableRow>
@@ -320,12 +447,18 @@ export const HotLeads: React.FC = () => {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {open.map((lead) => (
+            {shown.map((lead) => (
               <TableRow key={lead.domain}>
                 <TableCell>
-                  <div className="font-medium">{lead.name}</div>
-                  <div className="text-xs text-muted-foreground">
-                    {lead.domain}
+                  <div className="flex items-center gap-3">
+                    <CompanyLogo domain={lead.domain} name={lead.name} />
+                    <div>
+                      <div className="font-medium">{lead.name}</div>
+                      <div className="flex gap-2 text-xs text-muted-foreground">
+                        <span>{lead.domain}</span>
+                        <LinkedinLink url={lead.linkedin_url} />
+                      </div>
+                    </div>
                   </div>
                 </TableCell>
                 <TableCell className="max-w-sm">
