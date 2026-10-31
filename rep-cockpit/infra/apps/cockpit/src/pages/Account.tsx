@@ -24,7 +24,7 @@ import { Timeline } from "../components/Timeline";
 import { claimsModelUuid } from "../config";
 import { sql, submitUpsert } from "../lib/cargo";
 import { byAttention } from "../lib/drafts";
-import { heldClickFor, useHeldClicks } from "../lib/held";
+import { heldClickFor, isClaimRowCurrent, useHeldClicks } from "../lib/held";
 import {
   accountLookupQuery,
   claimQuery,
@@ -35,6 +35,8 @@ import {
   type HotLead,
 } from "../lib/queries";
 import { useRep } from "../lib/rep";
+
+const sourcingSteps = "three people in the buying committee";
 
 const countWhere = (drafts: Draft[], statuses: string[]): number => {
   return drafts.filter((draft) => statuses.includes(draft.status)).length;
@@ -58,8 +60,12 @@ export const Account: React.FC = () => {
     refetchInterval: 20 * 1000,
   });
 
+  const click = heldClickFor(clicks, accountDomain);
+  const isStarting = !isClaimRowCurrent(claim.data, click);
   const isSourcing =
-    claim.data === undefined || claim.data.sourcing_status !== "ready";
+    isStarting ||
+    claim.data === undefined ||
+    claim.data.sourcing_status !== "ready";
 
   // The company's LinkedIn page, from tam-building when it holds the domain.
   const company = useQuery({
@@ -124,7 +130,6 @@ export const Account: React.FC = () => {
     );
   }
 
-  const click = heldClickFor(clicks, accountDomain);
   let name = accountDomain;
   if (claim.data !== undefined) {
     name = claim.data.account_name;
@@ -174,6 +179,21 @@ export const Account: React.FC = () => {
       {release.error === null ? null : (
         <p className="text-sm text-destructive">{String(release.error)}</p>
       )}
+      {isSourcing ? (
+        <div className="flex items-start gap-3 rounded-lg border border-primary/30 bg-primary/5 p-4">
+          <Spinner />
+          <div className="flex flex-col gap-1 text-sm">
+            <span className="font-medium">
+              {isStarting ? "Claim started" : "Sourcing the buying committee"}
+            </span>
+            <span className="text-muted-foreground">
+              Finding up to {sourcingSteps} and drafting a first touch for each.
+              It usually takes 2 to 4 minutes, and keeps going if you leave this
+              page. People appear below as they are ready.
+            </span>
+          </div>
+        </div>
+      ) : null}
       <div className="grid items-start gap-6 lg:grid-cols-[22rem_minmax(0,1fr)]">
         <aside className="lg:sticky lg:top-6">
           <CompanySidebar domain={accountDomain} company={company.data} />
@@ -184,13 +204,6 @@ export const Account: React.FC = () => {
             <TabsTrigger value="activity">Activity</TabsTrigger>
           </TabsList>
           <TabsContent value="people" className="mt-0 flex flex-col gap-4">
-            {isSourcing ? (
-              <div className="flex items-center gap-3 rounded-md border p-4 text-sm text-muted-foreground">
-                <Spinner />
-                Finding the buying committee and drafting a first touch for each
-                person. It takes a few minutes; people appear as they are ready.
-              </div>
-            ) : null}
             {people.length === 0 && !isSourcing ? (
               <CargoEmpty
                 title="Nobody found"

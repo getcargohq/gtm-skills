@@ -53,6 +53,26 @@ export const useHeldClicks = (): HeldClicks => {
   return context;
 };
 
+// Whether the claim row in SQL already describes the rep's latest click. A
+// re-claim of an account released earlier still reads that old row ("released",
+// sourcing "ready") until the claim run's first write reaches SQL; until then
+// the claim is starting, not done. A minute of slack covers clock drift.
+export const isClaimRowCurrent = (
+  row: { status: string; status_at_ms?: number | string | null } | undefined,
+  click: HeldClick | undefined,
+): boolean => {
+  if (row === undefined) {
+    return false;
+  }
+  if (click === undefined || click.status !== "claimed") {
+    return true;
+  }
+  if (row.status !== "claimed") {
+    return false;
+  }
+  return Number(row.status_at_ms) >= click.heldAtMs - 60 * 1000;
+};
+
 // The rep's own recent click on this domain, while it is still worth holding.
 export const heldClickFor = (
   clicks: Map<string, HeldClick>,

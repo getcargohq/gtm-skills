@@ -153,6 +153,7 @@ export type Claim = {
   sourcing_status?: string | null;
   contacts_found?: number | null;
   status_at?: string | null;
+  status_at_ms?: number | string | null;
 };
 
 export type MyClaim = Claim & {
@@ -185,7 +186,8 @@ export const claimQuery = (domain: string): string => {
   return `
 SELECT account_domain, account_name, account_id, account_context, rep_email,
   status, sourcing_status, contacts_found,
-  CAST(status_at AS STRING) AS status_at
+  CAST(status_at AS STRING) AS status_at,
+  UNIX_MILLIS(CAST(status_at AS TIMESTAMP)) AS status_at_ms
 FROM object.cockpit_claims
 WHERE account_domain = ${quote(domain)}
 LIMIT 1`;
