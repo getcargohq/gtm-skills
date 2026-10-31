@@ -228,3 +228,9 @@
 {"prompt": "Track our Ora score against our competitors in Slack", "expect": "website-auditing"}
 {"prompt": "Make our website readable by AI agents: llms.txt, structured data, agent discovery files", "expect": "website-auditing"}
 {"prompt": "Build our company website on Cargo and make it agent-ready from the start", "expect": "website-building", "why": "Building and hosting the site is website-building; agent-readiness audits and fixes a site that already exists."}
+// rep-cockpit is a worked project example (cookbook): the app reps work from, on top of fit and readiness
+{"prompt": "Build a cockpit where my SDRs claim hot accounts and send the first email from their own mailbox", "expect": "rep-cockpit", "why": "A standing app reps claim from and send in is rep-cockpit; readiness-scoring only scores."}
+{"prompt": "One screen per rep with their claimed accounts, the buying committee and a draft for each person", "expect": "rep-cockpit"}
+{"prompt": "Let reps claim accounts so two people never work the same company", "expect": "rep-cockpit"}
+{"prompt": "Who's on the buying committee at northwind.example?", "expect": "find-stakeholders", "why": "One account's committee, once, is the one-off; rep-cockpit sources it on every claim."}
+{"prompt": "Deploy an agent that answers leads who reply to our first emails", "expect": "agentic-engagement", "why": "Answering replies is the conversation agent; rep-cockpit stops at the rep's first send."}

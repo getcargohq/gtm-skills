@@ -148,5 +148,11 @@
     "chain": 27,
     "demoWorkspace": "2026-10-30",
     "implementations": []
+  },
+  "rep-cockpit": {
+    "state": "to-be-approved",
+    "chain": 28,
+    "demoWorkspace": null,
+    "implementations": []
   }
 }

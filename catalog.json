@@ -82,9 +82,10 @@
     },
     {
       "title": "Engagement",
-      "description": "Deployed pipelines that hold the conversation: every demo request answered on the page, and an agent answering every lead who replies.",
+      "description": "Deployed pipelines that hold the conversation: every demo request answered on the page, a cockpit where reps claim hot accounts and send the first touch, and an agent answering every lead who replies.",
       "skills": [
         "inbound-qualification",
+        "rep-cockpit",
         "agentic-engagement"
       ]
     },
@@ -2120,6 +2121,108 @@
       ],
       "cost": "**The score itself bills nothing in credits.** It is three columns recomputed hourly in the\nworkspace's own warehouse, with no LLM and no connector call. The Slack post is one action per account that\ncrosses the line.\n\n**Cargo Signals bills per event delivered**, per feed, on the watched accounts only. The first\ndelivery on a new watchlist looks back months, so the first days cost the most; each feed's\n`dailyLeadLimit` caps them. Read the current per-event price with\n`cargo-ai connection integration get cargoSignals` before the deploy, multiply by the watched\naccounts and the events the pilot week delivered, and give the operator that estimate. First-party\nevents the workspace already has cost nothing to add.",
       "composesInto": "`account-scoring` (the fit gate: route only accounts that are both ready and tier A),\n`contact-sourcing` and `agentic-engagement` (what happens after the ping, on `ready_now_accounts`),\nand every other Signals pipeline: once its model unifies as an account event, its events count as\nsoon as its slug has a weight."
+    },
+    {
+      "name": "rep-cockpit",
+      "kind": "cookbook",
+      "job": "Deploy a cockpit your reps work from every day: a hosted app behind the Cargo login listing the hot leads (ready now or warming, best fit first) for a rep to claim or pass, a claim that sources the account's buying committee, finds each person's work email and drafts a first-touch email per person, and a send from the rep's own Cargo mailbox that logs the touch on GTM activities.",
+      "description": "Deploy a cockpit your reps work from every day: a hosted app behind the Cargo login listing the hot leads (ready now or warming, best fit first) for a rep to claim or pass, a claim that sources the account's buying committee, finds each person's work email and drafts a first-touch email per person, and a send from the rep's own Cargo mailbox that logs the touch on GTM activities. Triggers: \"build a rep cockpit\", \"a daily surface for my reps to claim accounts\", \"let reps claim hot accounts and send from Cargo\", \"one screen per rep with their accounts and drafts\", \"SDR workspace on top of our scores\", \"claim, source, draft, send\". Cargo project, defineApp, @cargo-ai/app-sdk, defineMailbox, defineMember, sendEmail, AI Ark, Prospeo, Unify Accounts. Skip when: you want a decaying readiness score with no app, which is readiness-scoring; tiering accounts, which is account-scoring; a conversation agent that answers replies, which is agentic-engagement; a one-time list of stakeholders, which is find-stakeholders.",
+      "version": "0.1.0",
+      "homepage": "https://github.com/getcargohq/gtm-skills/tree/main/rep-cockpit",
+      "group": "Engagement",
+      "install": "cargo-ai project add cookbook/rep-cockpit",
+      "partOf": [],
+      "personas": [
+        "sales-development",
+        "account-executive",
+        "revops"
+      ],
+      "integrations": [
+        "aiArk",
+        "anthropic",
+        "prospeo"
+      ],
+      "example": {
+        "prompt": "Build a cockpit where my SDRs claim hot accounts, get the buying committee with drafts, and send from their own mailbox.",
+        "output": "```\nHot leads                                   Fit      Readiness\nNorthwind Traders   northwind.example       Tier A   Ready now    [Pass] [Claim]\nFabrikam            fabrikam.example        Tier B   Warming      [Pass] [Claim]\n\nNorthwind Traders · claimed by Jane · drafts ready\n  Priya Raman, VP Revenue Operations · priya@northwind.example\n  why now: Series B two weeks ago and a RevOps manager role open; routing is likely on her plate.\n  subject: routing after the round\n  [Send]  → sent from jane@example-outreach.com · logged on GTM activities\n  Omar Haddad, CMO · no work email found\n```\n\nThree people sourced and drafted on the claim; two had a work email and were sent after the rep\nedited one line; the third waits for the rep to find another way in."
+      },
+      "state": "to-be-approved",
+      "chain": 28,
+      "resources": [
+        "agents",
+        "apps",
+        "connectors",
+        "domains",
+        "folders",
+        "mailboxes",
+        "models",
+        "tools"
+      ],
+      "asked": [],
+      "canChange": [
+        {
+          "id": "tier-only-queue",
+          "when": "readiness-scoring is not installed",
+          "how": "Drop the readiness join and filter in `queries.ts`; rank tier A then B by `tiered_at",
+          "cost": "No \"why now\": the queue is every good fit, and reps pick by fit alone"
+        },
+        {
+          "id": "crm-backed",
+          "when": "Reps live in HubSpot, Salesforce or Attio",
+          "how": "Swap `gtm_accounts`/`gtm_contacts` for the CRM's companies and contacts (`fetchRecords`, every column), upsert there in the claim tool, and log the send as a CRM email engagement in the send tool",
+          "cost": "One CRM write per sourced person and per send, and a CRM grant to deploy"
+        },
+        {
+          "id": "waterfall-email",
+          "when": "Prospeo misses too many in your market",
+          "how": "A second email provider in the claim tool, called only when the first returned nothing",
+          "cost": "The second provider's price on every miss"
+        },
+        {
+          "id": "more-channels",
+          "when": "Reps also work LinkedIn or the phone",
+          "how": "More fields on the writer's output (a connection note, a call opener) and on `cockpit_drafts`; a phone lookup in the claim tool",
+          "cost": "A longer draft per person, and a phone lookup is several times an email's price"
+        },
+        {
+          "id": "tam-map",
+          "when": "Leadership wants the whole market on the same screen",
+          "how": "A third page over `tam_companies` with counts by tier and readiness, and Claim from any row",
+          "cost": "A heavier query on every load; keep it one aggregated SQL, never the rows"
+        },
+        {
+          "id": "book-of-business",
+          "when": "Reps also manage open deals here",
+          "how": "A page over `gtm_opportunities` where `owner_id` is the rep",
+          "cost": "Owner ids must map to reps, which is a second identity table to keep"
+        },
+        {
+          "id": "follow-ups",
+          "when": "A rep wants the next touch drafted too",
+          "how": "A play on `cockpit_drafts` sent more than N days ago with no reply event, re-running the writer with the thread",
+          "cost": "One more draft per silent thread; the rep still sends it"
+        }
+      ],
+      "shouldNotChange": [
+        "**Every send is one click by the rep it is from.** (`infra/tools/send-draft.ts`, called from the account page only) A scheduled or bulk send from this cockpit is a sequencer with no review step, and the first bad draft goes to everyone.",
+        "**The claim runs on the server, in one tool run.** (`infra/tools/claim-account.ts`) Orchestrated from the browser, closing the tab mid-claim leaves an account claimed with nothing sourced, and nobody notices because the claim row looks fine.",
+        "**The send and its log are one run.** (`infra/tools/send-draft.ts`) Logged from the browser after the send, a closed tab loses the activity row, and every pipeline reading GTM activities misses a touch that happened.",
+        "**The mailbox comes from the rep's member, not from the app.** (`src/lib/rep.ts`) A rep table in the app source is a redeploy per hire, and a missing row reads as a dead Send button.",
+        "**Claims are keyed by domain, one row per account.** (`cockpit_claims`) Two keys and the queue and the account page disagree about who owns an account.",
+        "**The writer has no write access and no web search.** (`infra/agents/first-touch-writer.ts`) It gets what the claim knows and returns JSON; the tool persists it. With search, every draft pays for research the queue already did, and with write access a missing draft could be a choice.",
+        "**Reads are SQL, and a rep's own clicks are held in the browser.** (`src/lib/held.tsx`) Waiting on the write before moving the UI is how a claim gets clicked twice and sourced twice."
+      ],
+      "doneWhen": [
+        "the plan showed the five models, the two tools, the writer agent, the mailboxes on the adopted domain, the members with their mailboxes and the app, and the operator approved the deploy and each mailbox's price",
+        "the app URL (`cockpit.url`, or `cargo-ai hosting app list`) loads behind the Cargo login and Hot leads lists accounts that match the query run by hand",
+        "one claim landed the account on `gtm_accounts`, the committee on `gtm_contacts`, a draft per person on `cockpit_drafts`, and `sourcing_status` ready on its claim, within a few minutes",
+        "the claimed account left Hot leads for every rep once SQL caught up, and showed under My accounts",
+        "one send to an address the operator owns arrived from the rep's mailbox with the unsubscribe link, the draft read `sent`, and one `email` row landed on `gtm_activities`",
+        "a rep with no mailbox saw why Send was off",
+        "`node --import tsx evals/contract.mjs` passes against the adapted resources"
+      ],
+      "cost": "**A claim** bills one people search per person returned, one email lookup per person, and one\nwriter run per person (an LLM call that reads a few context files). Read the current prices with\n`cargo-ai connection integration get aiArk` and `cargo-ai connection integration get prospeo`, and\nthe writer's cost from the pilot claim's run (`cargo-ai orchestration run get`), and give the\noperator a per-claim estimate at `contactsPerClaim`.\n\n**A send** is the native `sendEmail` price per message. **Each mailbox** is a recurring monthly\ncharge for as long as it exists (`cargo-ai mailboxManagement pricing get`), and the app is a hosted\napp on the workspace's hosting plan. Hot leads, My accounts and the account page are SQL reads and\nbill nothing.",
+      "composesInto": "`account-scoring` and `readiness-scoring` feed the queue (fit and timing); `tam-building` feeds\nthe companies they score. Every send lands on `gtm_activities`, which `meeting-prep`,\n`next-step-tracker` and readiness-scoring's first-party events read. `agentic-engagement` can take\nthe thread over once a prospect replies."
     },
     {
       "name": "research-account",
