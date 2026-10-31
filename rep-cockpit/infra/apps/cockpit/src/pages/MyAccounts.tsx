@@ -11,8 +11,9 @@ import {
   useCargoApi,
 } from "@cargo-ai/app-sdk";
 import { useQuery } from "@tanstack/react-query";
+import { ChevronRight } from "lucide-react";
 import React from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 import { CompanyLogo } from "../components/CompanyLogo";
 import { sql } from "../lib/cargo";
@@ -59,6 +60,7 @@ export const MyAccounts: React.FC = () => {
   const api = useCargoApi();
   const rep = useRep();
   const { clicks } = useHeldClicks();
+  const navigate = useNavigate();
 
   const claims = useQuery({
     queryKey: ["my-claims", rep === undefined ? "" : rep.email],
@@ -134,11 +136,18 @@ export const MyAccounts: React.FC = () => {
             <TableHead>Company</TableHead>
             <TableHead>Status</TableHead>
             <TableHead>Needs you</TableHead>
+            <TableHead>
+              <span className="sr-only">Open</span>
+            </TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {rows.map((row) => (
-            <TableRow key={row.domain}>
+            <TableRow
+              key={row.domain}
+              className="cursor-pointer"
+              onClick={() => navigate(`/accounts/${row.domain}`)}
+            >
               <TableCell>
                 <div className="flex items-center gap-3">
                   <CompanyLogo domain={row.domain} name={row.name} />
@@ -159,11 +168,20 @@ export const MyAccounts: React.FC = () => {
                 <Badge variant="outline">{row.sourcing}</Badge>
               </TableCell>
               <TableCell>
-                <div className="flex gap-2">
-                  {row.needs.map((need) => (
-                    <Badge key={need}>{need}</Badge>
-                  ))}
-                </div>
+                {row.needs.length === 0 ? (
+                  <span className="text-sm text-muted-foreground">
+                    Nothing waiting
+                  </span>
+                ) : (
+                  <div className="flex gap-2">
+                    {row.needs.map((need) => (
+                      <Badge key={need}>{need}</Badge>
+                    ))}
+                  </div>
+                )}
+              </TableCell>
+              <TableCell className="w-8 text-right">
+                <ChevronRight className="h-4 w-4 text-muted-foreground" />
               </TableCell>
             </TableRow>
           ))}
