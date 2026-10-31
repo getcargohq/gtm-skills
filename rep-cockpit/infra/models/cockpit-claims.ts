@@ -6,7 +6,7 @@ import { modelsFolder } from "../folders";
 // cockpit reads it to hide what a teammate already claimed, and writes it on
 // Claim, Pass and Release; the claim tool writes it again when sourcing ends.
 // A pass carries its reason, and a pass on timing a date: past it, the
-// account is back in Hot leads.
+// account is back in Hot accounts.
 //
 // Keyed by domain, not by an account id, because the queue reads Unify
 // Accounts and the claim lands on gtm_accounts: the domain is the one key both
@@ -34,7 +34,7 @@ export const cockpitClaims = defineModel("cockpit_claims", {
       { slug: "status_at", type: "date" },
       // no_fit | not_now | in_touch, on a pass.
       { slug: "pass_reason", type: "string" },
-      // When a not_now pass returns the account to Hot leads.
+      // When a not_now pass returns the account to Hot accounts.
       { slug: "parked_until", type: "date" },
       // running | ready | failed, while and after the claim tool sources.
       { slug: "sourcing_status", type: "string" },

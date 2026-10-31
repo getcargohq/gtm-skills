@@ -15,7 +15,7 @@ import { ChevronRight } from "lucide-react";
 import React from "react";
 import { Link, useNavigate } from "react-router-dom";
 
-import { CompanyLogo } from "../components/CompanyLogo";
+import { CompanyLogo, LinkedinLink } from "../components/CompanyLogo";
 import { sql } from "../lib/cargo";
 import { heldClickFor, useHeldClicks } from "../lib/held";
 import { myClaimsQuery, type MyClaim } from "../lib/queries";
@@ -24,6 +24,7 @@ import { useRep } from "../lib/rep";
 type Row = {
   domain: string;
   name: string;
+  linkedinUrl?: string | null;
   sourcing: string;
   needs: string[];
 };
@@ -102,6 +103,7 @@ export const MyAccounts: React.FC = () => {
     rows.push({
       domain: claim.account_domain,
       name: claim.account_name,
+      linkedinUrl: claim.linkedin_url,
       sourcing: sourcingLabel(claim.sourcing_status),
       needs: needsOf(claim),
     });
@@ -122,7 +124,7 @@ export const MyAccounts: React.FC = () => {
     return (
       <CargoEmpty
         title="No claimed accounts"
-        description="Claim one from Hot leads: it lands here while its buying committee is sourced."
+        description="Claim one from Hot accounts: it lands here while its buying committee is sourced."
       />
     );
   }
@@ -158,8 +160,9 @@ export const MyAccounts: React.FC = () => {
                     >
                       {row.name}
                     </Link>
-                    <div className="text-xs text-muted-foreground">
-                      {row.domain}
+                    <div className="flex gap-2 text-xs text-muted-foreground">
+                      <span>{row.domain}</span>
+                      <LinkedinLink url={row.linkedinUrl} />
                     </div>
                   </div>
                 </div>

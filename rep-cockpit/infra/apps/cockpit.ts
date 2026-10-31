@@ -36,7 +36,7 @@ const path = relative(
 export const cockpit = defineApp("rep-cockpit", {
   name: "Rep cockpit",
   description:
-    "Hot leads to claim, the buying committee sourced on claim, and a first-touch email per person to review and send from the rep's mailbox.",
+    "Hot accounts to claim, the buying committee sourced on claim, and a first-touch email per person to review and send from the rep's mailbox.",
   path,
   folder: appsFolder,
   env: {

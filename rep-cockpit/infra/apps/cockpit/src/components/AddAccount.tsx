@@ -17,17 +17,17 @@ import { useNavigate } from "react-router-dom";
 
 import { sql } from "../lib/cargo";
 import { useHeldClicks } from "../lib/held";
-import { accountContextOf, startClaim, toDomain } from "../lib/leads";
+import { accountContextOf, startClaim, toDomain } from "../lib/hot-accounts";
 import {
   accountLookupQuery,
   claimQuery,
   type Claim,
-  type HotLead,
+  type HotAccount,
 } from "../lib/queries";
 import type { Rep } from "../lib/rep";
 
-// An account the queue did not surface: a rep's own lead, a referral, an
-// inbound. It goes through the same claim as a Hot lead, with what the queue
+// An account the queue did not surface: a rep's own pick, a referral, an
+// inbound. It goes through the same claim as a Hot account, with what the queue
 // knows about the domain, unless a teammate already holds it.
 export const AddAccount: React.FC<{ rep: Rep | undefined }> = ({ rep }) => {
   const api = useCargoApi();
@@ -51,17 +51,17 @@ export const AddAccount: React.FC<{ rep: Rep | undefined }> = ({ rep }) => {
           `${claims[0].account_name} is already claimed by ${claims[0].rep_email}.`,
         );
       }
-      const found = await sql<HotLead>(api, accountLookupQuery(domain));
-      let lead: HotLead = { domain, name: domain };
+      const found = await sql<HotAccount>(api, accountLookupQuery(domain));
+      let account: HotAccount = { domain, name: domain };
       if (found.length > 0) {
-        lead = found[0];
+        account = found[0];
       }
-      hold(domain, { status: "claimed", accountName: lead.name });
+      hold(domain, { status: "claimed", accountName: account.name });
       await startClaim(
         api,
         rep,
-        lead,
-        `Added by the rep, not surfaced by the queue. ${accountContextOf(lead, [])}`,
+        account,
+        `Added by the rep, not surfaced by the queue. ${accountContextOf(account, [])}`,
       );
       return domain;
     },
@@ -90,9 +90,9 @@ export const AddAccount: React.FC<{ rep: Rep | undefined }> = ({ rep }) => {
             <DialogHeader>
               <DialogTitle>Add an account</DialogTitle>
               <DialogDescription>
-                A company the queue did not surface: your own lead, a referral,
-                an inbound. It is claimed for you and its buying committee is
-                sourced.
+                A company the queue did not surface: your own account, a
+                referral, an inbound. It is claimed for you and its buying
+                committee is sourced.
               </DialogDescription>
             </DialogHeader>
             <div className="flex flex-col gap-1.5">

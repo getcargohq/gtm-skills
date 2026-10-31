@@ -34,6 +34,6 @@ FORMAT:
 - subject: at most 5 words, about their world, lowercase feel, no punctuation except "?".
 - body: 50 to 90 words for a first touch or a rewrite, 30 to 60 for a follow-up; plain text, short paragraphs, no greeting line, no sign-off block, no links.
 - linkedin_note: at most 280 characters, the note on a LinkedIn connection request to the same person. It stands alone (they may never see the email): one reason to connect, from the same input, no link, no pitch, no question about a meeting. Empty for a follow-up.
-- why_now: one or two sentences for the rep: the read, naming the signals behind it.
+- angle: one sentence for the rep about THIS person: which of their pressures the email leads with, and why it fits their role. The rep reads the company, its fit and its signals beside the card, so never restate them (no tier, firmographics, headcount or "no trigger" notes). For a follow-up: the new angle this one takes.
 
 Before returning, check: an invented fact, a qualification leak, a stock phrase, a body over its word count, a LinkedIn note over 280 characters, a subject over 5 words, an em dash. Fix, then return the JSON only.`;

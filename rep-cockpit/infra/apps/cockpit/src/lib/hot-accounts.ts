@@ -2,7 +2,7 @@ import type { Api } from "@cargo-ai/api";
 
 import { claimToolUuid } from "../config";
 import { startTool } from "./cargo";
-import { hasText, type HotLead, type Signal } from "./queries";
+import { hasText, type HotAccount, type Signal } from "./queries";
 import type { Rep } from "./rep";
 
 export const signalLabel = (signal: Signal): string => {
@@ -13,14 +13,17 @@ export const signalLabel = (signal: Signal): string => {
 };
 
 // What the writer is told about the account: everything the queue knew.
-export const accountContextOf = (lead: HotLead, signals: Signal[]): string => {
+export const accountContextOf = (
+  account: HotAccount,
+  signals: Signal[],
+): string => {
   const parts: string[] = [];
-  if (hasText(lead.tier)) {
-    parts.push(`Fit tier ${lead.tier}: ${lead.tier_reason}`);
+  if (hasText(account.tier)) {
+    parts.push(`Fit tier ${account.tier}: ${account.tier_reason}`);
   }
-  if (hasText(lead.readiness_stage)) {
+  if (hasText(account.readiness_stage)) {
     parts.push(
-      `Readiness ${lead.readiness_stage} (score ${lead.readiness_score})`,
+      `Readiness ${account.readiness_stage} (score ${account.readiness_score})`,
     );
   }
   if (signals.length > 0) {
@@ -91,29 +94,29 @@ export const noFilters: Filters = {
 // The filters narrow what the query already returned, in the browser: the
 // query is the queue, the filters are how one rep reads it today.
 export const matchesFilters = (
-  lead: HotLead,
+  account: HotAccount,
   filters: Filters,
   signals: Signal[],
 ): boolean => {
   const search = filters.search.trim().toLowerCase();
   if (
     search !== "" &&
-    !lead.name.toLowerCase().includes(search) &&
-    !lead.domain.includes(search)
+    !account.name.toLowerCase().includes(search) &&
+    !account.domain.includes(search)
   ) {
     return false;
   }
-  if (filters.tier === "none" && hasText(lead.tier)) {
+  if (filters.tier === "none" && hasText(account.tier)) {
     return false;
   }
   if (
     filters.tier !== "all" &&
     filters.tier !== "none" &&
-    lead.tier !== filters.tier
+    account.tier !== filters.tier
   ) {
     return false;
   }
-  if (filters.stage !== "all" && lead.readiness_stage !== filters.stage) {
+  if (filters.stage !== "all" && account.readiness_stage !== filters.stage) {
     return false;
   }
   if (filters.withSignals && signals.length === 0) {
@@ -125,12 +128,12 @@ export const matchesFilters = (
 export const startClaim = async (
   api: Api,
   rep: Rep,
-  lead: HotLead,
+  account: HotAccount,
   accountContext: string,
 ): Promise<void> => {
   await startTool(api, claimToolUuid, {
-    account_domain: lead.domain,
-    account_name: lead.name,
+    account_domain: account.domain,
+    account_name: account.name,
     rep_email: rep.email,
     rep_first_name: rep.firstName,
     account_context: accountContext,

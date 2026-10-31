@@ -9,6 +9,9 @@ import {
   TabsContent,
   TabsList,
   TabsTrigger,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
   useCargoApi,
 } from "@cargo-ai/app-sdk";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -32,7 +35,7 @@ import {
   hasText,
   type Claim,
   type Draft,
-  type HotLead,
+  type HotAccount,
 } from "../lib/queries";
 import { useRep } from "../lib/rep";
 
@@ -71,7 +74,10 @@ export const Account: React.FC = () => {
   const company = useQuery({
     queryKey: ["company", accountDomain],
     queryFn: async () => {
-      const rows = await sql<HotLead>(api, accountLookupQuery(accountDomain));
+      const rows = await sql<HotAccount>(
+        api,
+        accountLookupQuery(accountDomain),
+      );
       return rows[0];
     },
     staleTime: 60 * 60 * 1000,
@@ -166,14 +172,23 @@ export const Account: React.FC = () => {
         </div>
         <div className="flex items-center gap-2">
           <AddPerson claim={claim.data} rep={rep} onAdded={refresh} />
-          <Button
-            variant="ghost"
-            disabled={release.isLoading}
-            onClick={() => release.mutate()}
-          >
-            <Undo2 className="mr-2 h-4 w-4" />
-            Release
-          </Button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                disabled={release.isLoading}
+                onClick={() => release.mutate()}
+              >
+                <Undo2 className="mr-2 h-4 w-4" />
+                Release
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent className="max-w-64">
+              Hand the account back. It leaves My accounts and returns to Hot
+              accounts for any rep to claim. Its people and sent emails stay on
+              record.
+            </TooltipContent>
+          </Tooltip>
         </div>
       </header>
       {release.error === null ? null : (

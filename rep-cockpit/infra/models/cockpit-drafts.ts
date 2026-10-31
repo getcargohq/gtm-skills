@@ -42,7 +42,7 @@ export const cockpitDrafts = defineModel("cockpit_drafts", {
       { slug: "linkedin_url", type: "string" },
       { slug: "subject", type: "string" },
       { slug: "body", type: "string" },
-      { slug: "why_now", type: "string" },
+      { slug: "angle", type: "string" },
       { slug: "linkedin_note", type: "string" },
       // invited | messaged
       { slug: "linkedin_status", type: "string" },

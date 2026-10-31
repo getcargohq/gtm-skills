@@ -4,7 +4,7 @@ Walk every line. A checked template without an evidence-backed consumer adaptati
 
 ## Queue
 
-- The Hot leads query in `infra/apps/cockpit/src/lib/queries.ts` names tables and columns that
+- The Hot accounts query in `infra/apps/cockpit/src/lib/queries.ts` names tables and columns that
   `cargo-ai storage dataset list` and `column list` returned in this workspace. None was guessed.
 - It was run by hand before the deploy, and its rows were shown to the operator.
 
@@ -41,7 +41,7 @@ Walk every line. A checked template without an evidence-backed consumer adaptati
   landed.
 - A reply to the test send landed on its card and the timeline, and Meeting booked logged a
   `meeting` row; or, with no reply, the follow-up was drafted and arrived in the same thread.
-- A "Not now" pass left Hot leads with its reason and date.
+- A "Not now" pass left Hot accounts with its reason and date.
 - The per-claim cost from the pilot run was given to the operator, with the price of a follow-up,
   a rewrite and a phone lookup.
 

@@ -95,7 +95,7 @@ ${input.body}`,
           matchingValue: input.contact_id,
           mappings: [
             { columnSlug: "body", value: next.answer.body },
-            { columnSlug: "why_now", value: next.answer.why_now },
+            { columnSlug: "angle", value: next.answer.angle },
             { columnSlug: "status", value: "follow_up" },
             { columnSlug: "drafted_at", value: new Date() },
           ],

@@ -5,8 +5,8 @@ have been read by a person.
 
 ## Queue
 
-The Hot leads query is `infra/apps/cockpit/src/lib/queries.ts` (`hotLeadsQuery`, and
-`signalsQuery` for the why-now column). They read four tables:
+The Hot accounts query is `infra/apps/cockpit/src/lib/queries.ts` (`hotAccountsQuery`, and
+`signalsQuery` for the Readiness column). They read four tables:
 
 | Table                   | Owned by          | Columns read                                                   |
 | ----------------------- | ----------------- | -------------------------------------------------------------- |
@@ -28,10 +28,10 @@ Then run the query by hand, with `cockpit_claims` removed from it if the model i
 yet, and read the rows:
 
 ```sh
-cargo-ai storage query execute "<hotLeadsQuery>"
+cargo-ai storage query execute "<hotAccountsQuery>"
 ```
 
-An empty result here is an empty Hot leads page in the app, not an error. The usual causes: no
+An empty result here is an empty Hot accounts page in the app, not an error. The usual causes: no
 account is `ready_now` or `warming` yet (readiness-scoring's thresholds), the tiered model's
 domains carry a scheme or `www.` and match nothing, or the dataset slug differs.
 
@@ -39,7 +39,7 @@ domains carry a scheme or `www.` and match nothing, or the dataset slug differs.
 
 1. Open the app (`cargo-ai hosting app list` gives the URL) and sign in as a rep listed in
    `infra/members/reps.ts`.
-2. Claim one account from Hot leads. The page moves to the account and says it is sourcing.
+2. Claim one account from Hot accounts. The page moves to the account and says it is sourcing.
    To pilot from the terminal instead, run the claim tool directly (the tool's uuid is in
    `cargo-ai orchestration tool list`):
 

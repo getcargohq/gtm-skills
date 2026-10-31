@@ -23,8 +23,8 @@ export const claimsModelUuid = readEnv("VITE_CLAIMS_MODEL_UUID");
 export const draftsModelUuid = readEnv("VITE_DRAFTS_MODEL_UUID");
 export const activitiesModelUuid = readEnv("VITE_ACTIVITIES_MODEL_UUID");
 
-// Why a rep passes on a Hot lead. A pass with `parkDays` comes back to Hot
-// leads after that many days; the others stay passed until someone releases
+// Why a rep passes on a Hot account. A pass with `parkDays` comes back to Hot
+// accounts after that many days; the others stay passed until someone releases
 // the account. Read together, the reasons say what the queue gets wrong.
 export type PassReason = {
   slug: "no_fit" | "not_now" | "in_touch";

@@ -299,7 +299,7 @@ const EmailTab: React.FC<CardProps> = ({ draft, claim, rep, onChanged }) => {
           <Input
             value={instruction}
             autoFocus
-            placeholder="What should change? e.g. shorter, lead with the hire"
+            placeholder="What should change? e.g. shorter, account with the hire"
             className="min-w-64 flex-1"
             onChange={(event) => setInstruction(event.target.value)}
           />
@@ -355,7 +355,7 @@ const EmailTab: React.FC<CardProps> = ({ draft, claim, rep, onChanged }) => {
   );
 };
 
-// One person on the account: who they are, why now, where the thread stands,
+// One person on the account: who they are, the angle, where the thread stands,
 // and the email and LinkedIn note to send.
 export const DraftCard: React.FC<CardProps> = (props) => {
   const { draft } = props;
@@ -381,12 +381,12 @@ export const DraftCard: React.FC<CardProps> = (props) => {
           <Badge variant={badge.variant}>{badge.label}</Badge>
         </div>
         <ContactLine {...props} />
-        {!hasText(draft.why_now) ? null : (
+        {!hasText(draft.angle) ? null : (
           <div className="flex gap-2 rounded-md bg-amber-50 p-3 text-sm text-amber-950 dark:bg-amber-950/30 dark:text-amber-100">
             <Lightbulb className="mt-0.5 h-4 w-4 shrink-0" />
             <p>
-              <span className="font-medium">Why now: </span>
-              {draft.why_now}
+              <span className="font-medium">Angle: </span>
+              {draft.angle}
             </p>
           </div>
         )}

@@ -49,7 +49,7 @@ REP INSTRUCTION: ${input.instruction}`,
       mappings: [
         { columnSlug: "subject", value: draft.answer.subject },
         { columnSlug: "body", value: draft.answer.body },
-        { columnSlug: "why_now", value: draft.answer.why_now },
+        { columnSlug: "angle", value: draft.answer.angle },
         { columnSlug: "linkedin_note", value: draft.answer.linkedin_note },
         { columnSlug: "drafted_at", value: new Date() },
       ],

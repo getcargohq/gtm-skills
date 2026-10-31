@@ -11,19 +11,19 @@ import {
 import React from "react";
 
 import { passReasons, type PassReason } from "../config";
-import { signalLabel, stageLabel, stageVariant } from "../lib/leads";
-import { hasText, type HotLead, type Signal } from "../lib/queries";
+import { signalLabel, stageLabel, stageVariant } from "../lib/hot-accounts";
+import { hasText, type HotAccount, type Signal } from "../lib/queries";
 import { CompanyAbout } from "./CompanyAbout";
 import { CompanyLogo, LinkedinLink } from "./CompanyLogo";
 import { FitSection } from "./FitSection";
 
 type PreviewProps = {
-  lead: HotLead | undefined;
+  account: HotAccount | undefined;
   signals: Signal[];
   isBusy: boolean;
   onClose: () => void;
-  onClaim: (lead: HotLead) => void;
-  onPass: (lead: HotLead, reason: PassReason) => void;
+  onClaim: (account: HotAccount) => void;
+  onPass: (account: HotAccount, reason: PassReason) => void;
 };
 
 const Section: React.FC<{ title: string; children: React.ReactNode }> = ({
@@ -40,10 +40,10 @@ const Section: React.FC<{ title: string; children: React.ReactNode }> = ({
   );
 };
 
-// Everything the queue knows about one Hot lead, to decide before claiming:
+// Everything the queue knows about one Hot account, to decide before claiming:
 // why it fits, why now, and what the company is.
 export const AccountPreview: React.FC<PreviewProps> = ({
-  lead,
+  account,
   signals,
   isBusy,
   onClose,
@@ -54,7 +54,7 @@ export const AccountPreview: React.FC<PreviewProps> = ({
 
   return (
     <Sheet
-      open={lead !== undefined}
+      open={account !== undefined}
       onOpenChange={(isOpen) => {
         if (!isOpen) {
           setIsPassing(false);
@@ -63,37 +63,37 @@ export const AccountPreview: React.FC<PreviewProps> = ({
       }}
     >
       <SheetContent className="flex w-full flex-col gap-6 overflow-y-auto sm:max-w-lg">
-        {lead === undefined ? null : (
+        {account === undefined ? null : (
           <>
             <SheetHeader>
               <div className="flex items-center gap-3">
-                <CompanyLogo domain={lead.domain} name={lead.name} />
+                <CompanyLogo domain={account.domain} name={account.name} />
                 <div className="text-left">
-                  <SheetTitle>{lead.name}</SheetTitle>
+                  <SheetTitle>{account.name}</SheetTitle>
                   <SheetDescription className="flex gap-3">
                     <a
-                      href={`https://${lead.domain}`}
+                      href={`https://${account.domain}`}
                       target="_blank"
                       rel="noreferrer"
                       className="text-xs underline"
                     >
-                      {lead.domain}
+                      {account.domain}
                     </a>
-                    <LinkedinLink url={lead.linkedin_url} />
+                    <LinkedinLink url={account.linkedin_url} />
                   </SheetDescription>
                 </div>
               </div>
             </SheetHeader>
             <Section title="Fit">
-              <FitSection company={lead} />
+              <FitSection company={account} />
             </Section>
             <Section title="Readiness">
-              {hasText(lead.readiness_stage) ? (
+              {hasText(account.readiness_stage) ? (
                 <Badge
-                  variant={stageVariant(lead.readiness_stage)}
+                  variant={stageVariant(account.readiness_stage)}
                   className="w-fit"
                 >
-                  {stageLabel(lead.readiness_stage)}
+                  {stageLabel(account.readiness_stage)}
                 </Badge>
               ) : null}
               {signals.length > 0 ? (
@@ -112,7 +112,7 @@ export const AccountPreview: React.FC<PreviewProps> = ({
               )}
             </Section>
             <Section title="About">
-              <CompanyAbout domain={lead.domain} />
+              <CompanyAbout domain={account.domain} />
             </Section>
             <SheetFooter className="mt-auto flex-col gap-2 sm:flex-col">
               {isPassing ? (
@@ -126,7 +126,7 @@ export const AccountPreview: React.FC<PreviewProps> = ({
                       size="sm"
                       variant="outline"
                       disabled={isBusy}
-                      onClick={() => onPass(lead, reason)}
+                      onClick={() => onPass(account, reason)}
                     >
                       {reason.label}
                     </Button>
@@ -148,7 +148,7 @@ export const AccountPreview: React.FC<PreviewProps> = ({
                   >
                     Pass
                   </Button>
-                  <Button disabled={isBusy} onClick={() => onClaim(lead)}>
+                  <Button disabled={isBusy} onClick={() => onClaim(account)}>
                     Claim
                   </Button>
                 </div>

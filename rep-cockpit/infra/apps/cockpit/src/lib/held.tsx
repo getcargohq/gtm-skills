@@ -2,7 +2,7 @@ import React from "react";
 
 // A rep's own clicks, held in the browser until SQL catches up. A native write
 // takes up to a minute or two to reach SQL, so without this a claimed account
-// stays in Hot leads after the click and invites a second claim. One store
+// stays in Hot accounts after the click and invites a second claim. One store
 // for every page: a claim shows everywhere the moment it is clicked.
 
 export type HeldClick = {

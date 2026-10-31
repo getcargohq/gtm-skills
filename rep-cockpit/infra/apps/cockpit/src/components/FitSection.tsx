@@ -3,7 +3,7 @@ import { useMutation } from "@tanstack/react-query";
 import { RefreshCw } from "lucide-react";
 import React from "react";
 
-import { hasText, type HotLead } from "../lib/queries";
+import { hasText, type HotAccount } from "../lib/queries";
 import { queueRescore } from "../lib/rescore";
 
 const dateLabel = (value: string): string => {
@@ -20,7 +20,7 @@ const dateLabel = (value: string): string => {
 
 // The fit tier, when account scoring judged it and why, and a rescore that
 // queues the company for account scoring's next hourly run.
-export const FitSection: React.FC<{ company: HotLead | undefined }> = ({
+export const FitSection: React.FC<{ company: HotAccount | undefined }> = ({
   company,
 }) => {
   const api = useCargoApi();

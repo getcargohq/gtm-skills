@@ -11,7 +11,7 @@ export const hasText = (value: string | null | undefined): value is string => {
 // connector tam-building sources through. Check both with
 // `cargo-ai storage dataset list` before the first deploy.
 
-export type HotLead = {
+export type HotAccount = {
   domain: string;
   name: string;
   linkedin_url?: string | null;
@@ -29,11 +29,11 @@ export type HotLead = {
 const isOpen = `(c.status IS NULL OR c.status = 'released'
     OR (c.status = 'passed' AND CAST(c.parked_until AS TIMESTAMP) < CURRENT_TIMESTAMP()))`;
 
-// Hot leads: accounts that are ready now or warming (readiness-scoring, on
+// Hot accounts: accounts that are ready now or warming (readiness-scoring, on
 // Unify Accounts), best fit first (account-scoring's tier on tam_companies),
 // and open to claim. An account with no tier yet still shows, after the tiered
 // ones: readiness alone is a reason to look.
-export const hotLeadsQuery = `
+export const hotAccountsQuery = `
 SELECT
   a.domain AS domain,
   COALESCE(MAX(t.name), a.domain) AS name,
@@ -64,7 +64,7 @@ export type Signal = {
   occurred?: string | null;
 };
 
-// Why now: the three events adding most to each account's readiness today,
+// The Readiness column: the three events adding most to each account's readiness today,
 // from readiness-scoring's Account Events. The same rows the score sums, so
 // the list can never disagree with the stage next to it.
 export const signalsQuery = (domains: string[]): string => {
@@ -87,7 +87,7 @@ ORDER BY domain, signal_rank`;
 };
 
 // Every event on one account, newest first: what the account page lists as
-// its signals. The Hot leads row shows only the three that count most.
+// its signals. The Hot accounts row shows only the three that count most.
 export const accountSignalsQuery = (domain: string): string => {
   return `
 SELECT
@@ -166,19 +166,25 @@ export type Claim = {
 };
 
 export type MyClaim = Claim & {
+  linkedin_url?: string | null;
   replies?: number | null;
   follow_ups?: number | null;
 };
 
-// The rep's accounts, with what waits for them on each: replies to read and
-// follow-ups to send.
+// The rep's accounts, with their LinkedIn page and what waits on each:
+// replies to read and follow-ups to send.
 export const myClaimsQuery = (repEmail: string): string => {
   return `
 SELECT c.account_domain, c.account_name, c.account_id, c.status,
   c.sourcing_status, c.contacts_found,
   CAST(c.status_at AS STRING) AS status_at,
-  d.replies, d.follow_ups
+  d.replies, d.follow_ups, t.linkedin_url
 FROM object.cockpit_claims c
+LEFT JOIN (
+  SELECT domain, MAX(linkedin_url) AS linkedin_url
+  FROM ai_ark.tam_companies
+  GROUP BY domain
+) t ON t.domain = c.account_domain
 LEFT JOIN (
   SELECT account_domain,
     COUNTIF(status = 'replied') AS replies,
@@ -212,7 +218,7 @@ export type Draft = {
   rep_name?: string | null;
   subject: string;
   body: string;
-  why_now?: string | null;
+  angle?: string | null;
   linkedin_note?: string | null;
   linkedin_status?: string | null;
   status: string;
@@ -227,7 +233,7 @@ export type Draft = {
 export const draftsQuery = (domain: string): string => {
   return `
 SELECT contact_id, contact_name, contact_title, contact_email, contact_phone,
-  linkedin_url, rep_name, subject, body, why_now, linkedin_note,
+  linkedin_url, rep_name, subject, body, angle, linkedin_note,
   linkedin_status, status,
   CAST(drafted_at AS STRING) AS drafted_at, message_uuid, rfc_message_id,
   touches, reply_snippet, CAST(replied_at AS STRING) AS replied_at

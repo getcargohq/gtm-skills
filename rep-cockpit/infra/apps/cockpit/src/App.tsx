@@ -1,18 +1,19 @@
-import { CargoRefineApp, CargoSiderLayout } from "@cargo-ai/app-sdk";
+import { CargoRefineApp, TooltipProvider } from "@cargo-ai/app-sdk";
 import { Briefcase, Flame } from "lucide-react";
 import React from "react";
 import { Route, Routes } from "react-router-dom";
 
+import { AppLayout } from "./components/AppLayout";
 import { HeldClicksProvider } from "./lib/held";
 import { Account } from "./pages/Account";
-import { HotLeads } from "./pages/HotLeads";
+import { HotAccounts } from "./pages/HotAccounts";
 import { MyAccounts } from "./pages/MyAccounts";
 
 const resources = [
   {
-    name: "hot-leads",
+    name: "hot-accounts",
     list: "/",
-    meta: { label: "Hot leads", icon: <Flame className="h-4 w-4" /> },
+    meta: { label: "Hot accounts", icon: <Flame className="h-4 w-4" /> },
   },
   {
     name: "accounts",
@@ -25,15 +26,17 @@ const resources = [
 export const App: React.FC = () => {
   return (
     <CargoRefineApp resources={resources}>
-      <HeldClicksProvider>
-        <CargoSiderLayout title="Rep cockpit">
-          <Routes>
-            <Route path="/" element={<HotLeads />} />
-            <Route path="/accounts" element={<MyAccounts />} />
-            <Route path="/accounts/:domain" element={<Account />} />
-          </Routes>
-        </CargoSiderLayout>
-      </HeldClicksProvider>
+      <TooltipProvider>
+        <HeldClicksProvider>
+          <AppLayout title="Rep cockpit">
+            <Routes>
+              <Route path="/" element={<HotAccounts />} />
+              <Route path="/accounts" element={<MyAccounts />} />
+              <Route path="/accounts/:domain" element={<Account />} />
+            </Routes>
+          </AppLayout>
+        </HeldClicksProvider>
+      </TooltipProvider>
     </CargoRefineApp>
   );
 };

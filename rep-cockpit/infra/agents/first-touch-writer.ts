@@ -45,13 +45,13 @@ export const firstTouchWriter = defineAgent("rep_cockpit_first_touch_writer", {
           description:
             "At most 280 characters: a LinkedIn connection note to the same person, standalone, no link and no pitch. Empty for a follow-up.",
         },
-        why_now: {
+        angle: {
           type: "string",
           description:
-            "One or two sentences for the rep: the read on this account and person, naming the signals behind it.",
+            "One sentence for the rep about this person: which of their pressures the email leads with. Never restates the company's fit or signals.",
         },
       },
-      required: ["subject", "body", "linkedin_note", "why_now"],
+      required: ["subject", "body", "linkedin_note", "angle"],
       additionalProperties: false,
     },
   },

@@ -1,10 +1,16 @@
-import { Button, Input } from "@cargo-ai/app-sdk";
+import {
+  Button,
+  Checkbox,
+  Input,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@cargo-ai/app-sdk";
 import React from "react";
 
-import { noFilters, type Filters } from "../lib/leads";
-
-const selectClass =
-  "h-9 rounded-md border border-input bg-background px-2 text-sm";
+import { noFilters, type Filters } from "../lib/hot-accounts";
 
 const isFiltered = (filters: Filters): boolean => {
   return (
@@ -32,36 +38,39 @@ export const FilterBar: React.FC<{
           onChange({ ...filters, search: event.target.value })
         }
       />
-      <select
-        className={selectClass}
-        aria-label="Fit tier"
+      <Select
         value={filters.tier}
-        onChange={(event) => onChange({ ...filters, tier: event.target.value })}
+        onValueChange={(tier) => onChange({ ...filters, tier })}
       >
-        <option value="all">Any tier</option>
-        <option value="A">Tier A</option>
-        <option value="B">Tier B</option>
-        <option value="C">Tier C</option>
-        <option value="none">Not tiered</option>
-      </select>
-      <select
-        className={selectClass}
-        aria-label="Readiness"
+        <SelectTrigger aria-label="Fit tier" className="w-36 bg-background">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="all">Any tier</SelectItem>
+          <SelectItem value="A">Tier A</SelectItem>
+          <SelectItem value="B">Tier B</SelectItem>
+          <SelectItem value="C">Tier C</SelectItem>
+          <SelectItem value="none">Not tiered</SelectItem>
+        </SelectContent>
+      </Select>
+      <Select
         value={filters.stage}
-        onChange={(event) =>
-          onChange({ ...filters, stage: event.target.value })
-        }
+        onValueChange={(stage) => onChange({ ...filters, stage })}
       >
-        <option value="all">Any readiness</option>
-        <option value="ready_now">Ready now</option>
-        <option value="warming">Warming</option>
-      </select>
-      <label className="flex h-9 items-center gap-2 rounded-md border border-input bg-background px-3 text-sm">
-        <input
-          type="checkbox"
+        <SelectTrigger aria-label="Readiness" className="w-40 bg-background">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="all">Any readiness</SelectItem>
+          <SelectItem value="ready_now">Ready now</SelectItem>
+          <SelectItem value="warming">Warming</SelectItem>
+        </SelectContent>
+      </Select>
+      <label className="flex h-9 cursor-pointer items-center gap-2 rounded-md border border-input bg-background px-3 text-sm">
+        <Checkbox
           checked={filters.withSignals}
-          onChange={(event) =>
-            onChange({ ...filters, withSignals: event.target.checked })
+          onCheckedChange={(checked) =>
+            onChange({ ...filters, withSignals: checked === true })
           }
         />
         With signals

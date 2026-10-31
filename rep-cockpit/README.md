@@ -10,7 +10,7 @@ drafted in the thread for the rep to send.
 cargo-ai project add cookbook/rep-cockpit
 ```
 
-1. **Hot leads.** One SQL query over Unify Accounts (readiness-scoring's stage and score) and the
+1. **Hot accounts.** One SQL query over Unify Accounts (readiness-scoring's stage and score) and the
    tiered companies (account-scoring's tier): ready now or warming, tier A then B, nobody holding
    it. Each row shows the company's logo and LinkedIn page and the three signals adding most to its
    score, from Account Events, and filters by tier, readiness, signals or name. Claim, Pass with a
@@ -60,7 +60,7 @@ Cargo user (`webExtensionData.edgesIdentityUid`), and the app reads it from the 
 
 ```mermaid
 flowchart LR
-  ra[readiness-scoring<br/>Unify Accounts] --> q[Hot leads query]
+  ra[readiness-scoring<br/>Unify Accounts] --> q[Hot accounts query]
   as[account-scoring<br/>tam_companies tier] --> q
   q --> app[rep-cockpit app]
   app -- Claim --> claim[claim_account tool]
@@ -84,7 +84,7 @@ flowchart LR
 | File                                    | Resource       | Role                                                       |
 | --------------------------------------- | -------------- | ---------------------------------------------------------- |
 | `infra/apps/cockpit.ts`                 | `defineApp`    | the app, with the tool and model ids it calls as `env`     |
-| `infra/apps/cockpit/`                   | Vite app       | Hot leads, My accounts, the account page and its timeline  |
+| `infra/apps/cockpit/`                   | Vite app       | Hot accounts, My accounts, the account page and its timeline  |
 | `infra/tools/claim-account.ts`          | `defineTool`   | account, committee, emails, drafts, in one run             |
 | `infra/tools/send-draft.ts`             | `defineTool`   | the send (a follow-up in its thread), the two writes       |
 | `infra/tools/send-linkedin.ts`          | `defineTool`   | a LinkedIn invite or message as the rep, and its log       |

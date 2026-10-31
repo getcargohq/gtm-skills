@@ -1,7 +1,7 @@
 import { Card, CardContent } from "@cargo-ai/app-sdk";
 import React from "react";
 
-import type { HotLead } from "../lib/queries";
+import type { HotAccount } from "../lib/queries";
 import { AccountSignals } from "./AccountSignals";
 import { CompanyAbout } from "./CompanyAbout";
 import { FitSection } from "./FitSection";
@@ -21,10 +21,10 @@ const Section: React.FC<{ title: string; children: React.ReactNode }> = ({
 };
 
 // The company, read once at the top of the account: what it does, why it fits
-// and every signal on it. The people cards below only say why now for them.
+// and every signal on it. The people cards below only give the angle for each person.
 export const CompanySidebar: React.FC<{
   domain: string;
-  company: HotLead | undefined;
+  company: HotAccount | undefined;
 }> = ({ domain, company }) => {
   return (
     <Card>

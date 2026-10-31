@@ -32,36 +32,36 @@ import {
   stageVariant,
   startClaim,
   type Filters,
-} from "../lib/leads";
+} from "../lib/hot-accounts";
 import {
   hasText,
-  hotLeadsQuery,
+  hotAccountsQuery,
   signalsQuery,
-  type HotLead,
+  type HotAccount,
   type Signal,
 } from "../lib/queries";
 import { useRep } from "../lib/rep";
 
 const dayMs = 24 * 60 * 60 * 1000;
 
-export const HotLeads: React.FC = () => {
+export const HotAccounts: React.FC = () => {
   const api = useCargoApi();
   const rep = useRep();
   const navigate = useNavigate();
   const { clicks, hold } = useHeldClicks();
   const [passing, setPassing] = React.useState<string | undefined>(undefined);
   const [filters, setFilters] = React.useState<Filters>(noFilters);
-  const [previewing, setPreviewing] = React.useState<HotLead | undefined>(
+  const [previewing, setPreviewing] = React.useState<HotAccount | undefined>(
     undefined,
   );
 
-  const leads = useQuery({
-    queryKey: ["hot-leads"],
-    queryFn: () => sql<HotLead>(api, hotLeadsQuery),
+  const accounts = useQuery({
+    queryKey: ["hot-accounts"],
+    queryFn: () => sql<HotAccount>(api, hotAccountsQuery),
     refetchInterval: 90 * 1000,
   });
 
-  const domains = (leads.data ?? []).map((lead) => lead.domain);
+  const domains = (accounts.data ?? []).map((account) => account.domain);
   const signals = useQuery({
     queryKey: ["signals", domains.join(",")],
     queryFn: () => sql<Signal>(api, signalsQuery(domains)),
@@ -71,34 +71,39 @@ export const HotLeads: React.FC = () => {
   const signalsOf = signalsByDomain(signals.data ?? []);
 
   const claim = useMutation({
-    mutationFn: async (lead: HotLead) => {
+    mutationFn: async (account: HotAccount) => {
       if (rep === undefined) {
         throw new Error("Still loading who you are.");
       }
-      hold(lead.domain, { status: "claimed", accountName: lead.name });
-      const leadSignals = signalsOf.get(lead.domain) ?? [];
-      await startClaim(api, rep, lead, accountContextOf(lead, leadSignals));
+      hold(account.domain, { status: "claimed", accountName: account.name });
+      const accountSignals = signalsOf.get(account.domain) ?? [];
+      await startClaim(
+        api,
+        rep,
+        account,
+        accountContextOf(account, accountSignals),
+      );
     },
-    onSuccess: (_, lead) => navigate(`/accounts/${lead.domain}`),
+    onSuccess: (_, account) => navigate(`/accounts/${account.domain}`),
   });
 
   const pass = useMutation({
     mutationFn: async ({
-      lead,
+      account,
       reason,
     }: {
-      lead: HotLead;
+      account: HotAccount;
       reason: PassReason;
     }) => {
       if (rep === undefined) {
         throw new Error("Still loading who you are.");
       }
-      hold(lead.domain, { status: "passed", accountName: lead.name });
+      hold(account.domain, { status: "passed", accountName: account.name });
       setPassing(undefined);
       setPreviewing(undefined);
       const values: Record<string, unknown> = {
-        account_domain: lead.domain,
-        account_name: lead.name,
+        account_domain: account.domain,
+        account_name: account.name,
         rep_email: rep.email,
         status: "passed",
         status_at: new Date().toISOString(),
@@ -113,13 +118,13 @@ export const HotLeads: React.FC = () => {
         api,
         claimsModelUuid,
         "account_domain",
-        lead.domain,
+        account.domain,
         values,
       );
     },
   });
 
-  if (leads.isLoading) {
+  if (accounts.isLoading) {
     return (
       <div className="flex justify-center p-12">
         <Spinner />
@@ -127,24 +132,24 @@ export const HotLeads: React.FC = () => {
     );
   }
 
-  if (leads.isError) {
+  if (accounts.isError) {
     return (
       <CargoEmpty
-        title="Could not load Hot leads"
-        description={String(leads.error)}
+        title="Could not load Hot accounts"
+        description={String(accounts.error)}
       />
     );
   }
 
-  const open = leads.data.filter((lead) => {
-    const click = heldClickFor(clicks, lead.domain);
+  const open = accounts.data.filter((account) => {
+    const click = heldClickFor(clicks, account.domain);
     if (click === undefined) {
       return true;
     }
     return click.status === "released";
   });
-  const shown = open.filter((lead) =>
-    matchesFilters(lead, filters, signalsOf.get(lead.domain) ?? []),
+  const shown = open.filter((account) =>
+    matchesFilters(account, filters, signalsOf.get(account.domain) ?? []),
   );
   const failure = claim.error === null ? pass.error : claim.error;
 
@@ -152,7 +157,7 @@ export const HotLeads: React.FC = () => {
     <div className="flex flex-col gap-4 p-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-xl font-semibold">Hot leads</h1>
+          <h1 className="text-xl font-semibold">Hot accounts</h1>
           <p className="text-sm text-muted-foreground">
             Best fit first, then readiness. Click a company to read about it;
             claim it and its buying committee is found with a draft for each
@@ -172,13 +177,13 @@ export const HotLeads: React.FC = () => {
       )}
       {open.length === 0 ? (
         <CargoEmpty
-          title="No hot leads to claim"
+          title="No hot accounts to claim"
           description="Nothing ready now or warming is open. Readiness rebuilds every hour."
         />
       ) : null}
       {open.length > 0 && shown.length === 0 ? (
         <CargoEmpty
-          title="No hot leads match these filters"
+          title="No hot accounts match these filters"
           description="Clear the filters to see the whole queue."
         />
       ) : null}
@@ -195,44 +200,44 @@ export const HotLeads: React.FC = () => {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {shown.map((lead) => (
+            {shown.map((account) => (
               <TableRow
-                key={lead.domain}
+                key={account.domain}
                 className="cursor-pointer"
-                onClick={() => setPreviewing(lead)}
+                onClick={() => setPreviewing(account)}
               >
                 <TableCell>
                   <div className="flex items-center gap-3">
-                    <CompanyLogo domain={lead.domain} name={lead.name} />
+                    <CompanyLogo domain={account.domain} name={account.name} />
                     <div>
                       <button
                         type="button"
                         className="text-left font-medium hover:underline"
                         onClick={(event) => {
                           event.stopPropagation();
-                          setPreviewing(lead);
+                          setPreviewing(account);
                         }}
                       >
-                        {lead.name}
+                        {account.name}
                       </button>
                       <div className="flex gap-2 text-xs text-muted-foreground">
-                        <span>{lead.domain}</span>
-                        <LinkedinLink url={lead.linkedin_url} />
+                        <span>{account.domain}</span>
+                        <LinkedinLink url={account.linkedin_url} />
                       </div>
                     </div>
                   </div>
                 </TableCell>
                 <TableCell className="max-w-xs">
-                  {hasText(lead.tier) ? (
+                  {hasText(account.tier) ? (
                     <div className="flex flex-col gap-1">
                       <Badge variant="outline" className="w-fit">
-                        Tier {lead.tier}
+                        Tier {account.tier}
                       </Badge>
                       <span
                         className="line-clamp-2 text-xs text-muted-foreground"
-                        title={lead.tier_reason ?? ""}
+                        title={account.tier_reason ?? ""}
                       >
-                        {lead.tier_reason}
+                        {account.tier_reason}
                       </span>
                     </div>
                   ) : (
@@ -243,21 +248,21 @@ export const HotLeads: React.FC = () => {
                 </TableCell>
                 <TableCell className="max-w-xs">
                   <div className="flex flex-col gap-1">
-                    {hasText(lead.readiness_stage) ? (
+                    {hasText(account.readiness_stage) ? (
                       <Badge
-                        variant={stageVariant(lead.readiness_stage)}
+                        variant={stageVariant(account.readiness_stage)}
                         className="w-fit"
                       >
-                        {stageLabel(lead.readiness_stage)}
+                        {stageLabel(account.readiness_stage)}
                       </Badge>
                     ) : null}
-                    {!hasText(lead.readiness_stage) &&
-                    (signalsOf.get(lead.domain) ?? []).length === 0 ? (
+                    {!hasText(account.readiness_stage) &&
+                    (signalsOf.get(account.domain) ?? []).length === 0 ? (
                       <span className="text-xs text-muted-foreground">
                         No signal yet
                       </span>
                     ) : null}
-                    {(signalsOf.get(lead.domain) ?? []).map((signal) => (
+                    {(signalsOf.get(account.domain) ?? []).map((signal) => (
                       <span
                         key={`${signal.signal}-${signal.occurred}`}
                         className="text-xs text-muted-foreground"
@@ -271,7 +276,7 @@ export const HotLeads: React.FC = () => {
                   className="text-right"
                   onClick={(event) => event.stopPropagation()}
                 >
-                  {passing === lead.domain ? (
+                  {passing === account.domain ? (
                     <div className="flex flex-wrap justify-end gap-2">
                       <span className="self-center text-xs text-muted-foreground">
                         Why pass?
@@ -281,7 +286,7 @@ export const HotLeads: React.FC = () => {
                           key={reason.slug}
                           size="sm"
                           variant="outline"
-                          onClick={() => pass.mutate({ lead, reason })}
+                          onClick={() => pass.mutate({ account, reason })}
                         >
                           {reason.label}
                         </Button>
@@ -300,14 +305,14 @@ export const HotLeads: React.FC = () => {
                         size="sm"
                         variant="ghost"
                         disabled={pass.isLoading || claim.isLoading}
-                        onClick={() => setPassing(lead.domain)}
+                        onClick={() => setPassing(account.domain)}
                       >
                         Pass
                       </Button>
                       <Button
                         size="sm"
                         disabled={claim.isLoading || rep === undefined}
-                        onClick={() => claim.mutate(lead)}
+                        onClick={() => claim.mutate(account)}
                       >
                         Claim
                       </Button>
@@ -320,12 +325,12 @@ export const HotLeads: React.FC = () => {
         </Table>
       )}
       <AccountPreview
-        lead={previewing}
+        account={previewing}
         signals={signalsOf.get(previewing?.domain ?? "") ?? []}
         isBusy={claim.isLoading || pass.isLoading || rep === undefined}
         onClose={() => setPreviewing(undefined)}
-        onClaim={(lead) => claim.mutate(lead)}
-        onPass={(lead, reason) => pass.mutate({ lead, reason })}
+        onClaim={(account) => claim.mutate(account)}
+        onPass={(account, reason) => pass.mutate({ account, reason })}
       />
     </div>
   );
