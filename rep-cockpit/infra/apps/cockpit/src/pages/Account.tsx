@@ -9,6 +9,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import React from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
+import { CompanyAbout } from "../components/CompanyAbout";
 import { CompanyLogo, LinkedinLink } from "../components/CompanyLogo";
 import { DraftCard } from "../components/DraftCard";
 import { Timeline } from "../components/Timeline";
@@ -183,7 +184,9 @@ export const Account: React.FC = () => {
           ))}
         </div>
         <aside className="flex flex-col gap-3">
-          <h2 className="text-sm font-semibold">Timeline</h2>
+          <h2 className="text-sm font-semibold">About</h2>
+          <CompanyAbout domain={accountDomain} />
+          <h2 className="pt-3 text-sm font-semibold">Timeline</h2>
           {claim.data !== undefined && hasText(claim.data.account_id) ? (
             <Timeline accountId={claim.data.account_id} />
           ) : (

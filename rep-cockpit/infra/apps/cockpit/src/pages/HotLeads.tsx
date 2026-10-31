@@ -15,6 +15,7 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import React from "react";
 import { useNavigate } from "react-router-dom";
 
+import { AccountPreview } from "../components/AccountPreview";
 import { AddAccount } from "../components/AddAccount";
 import { CompanyLogo, LinkedinLink } from "../components/CompanyLogo";
 import { FilterBar } from "../components/FilterBar";
@@ -50,6 +51,9 @@ export const HotLeads: React.FC = () => {
   const { clicks, hold } = useHeldClicks();
   const [passing, setPassing] = React.useState<string | undefined>(undefined);
   const [filters, setFilters] = React.useState<Filters>(noFilters);
+  const [previewing, setPreviewing] = React.useState<HotLead | undefined>(
+    undefined,
+  );
 
   const leads = useQuery({
     queryKey: ["hot-leads"],
@@ -91,6 +95,7 @@ export const HotLeads: React.FC = () => {
       }
       hold(lead.domain, { status: "passed", accountName: lead.name });
       setPassing(undefined);
+      setPreviewing(undefined);
       const values: Record<string, unknown> = {
         account_domain: lead.domain,
         account_name: lead.name,
@@ -149,8 +154,9 @@ export const HotLeads: React.FC = () => {
         <div>
           <h1 className="text-xl font-semibold">Hot leads</h1>
           <p className="text-sm text-muted-foreground">
-            Best fit first, with why now. Claim one and its buying committee is
-            found with a draft for each person.
+            Best fit first, with why now. Click a company to read about it;
+            claim one and its buying committee is found with a draft for each
+            person.
           </p>
         </div>
         <AddAccount rep={rep} />
@@ -190,12 +196,25 @@ export const HotLeads: React.FC = () => {
           </TableHeader>
           <TableBody>
             {shown.map((lead) => (
-              <TableRow key={lead.domain}>
+              <TableRow
+                key={lead.domain}
+                className="cursor-pointer"
+                onClick={() => setPreviewing(lead)}
+              >
                 <TableCell>
                   <div className="flex items-center gap-3">
                     <CompanyLogo domain={lead.domain} name={lead.name} />
                     <div>
-                      <div className="font-medium">{lead.name}</div>
+                      <button
+                        type="button"
+                        className="text-left font-medium hover:underline"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          setPreviewing(lead);
+                        }}
+                      >
+                        {lead.name}
+                      </button>
                       <div className="flex gap-2 text-xs text-muted-foreground">
                         <span>{lead.domain}</span>
                         <LinkedinLink url={lead.linkedin_url} />
@@ -224,12 +243,20 @@ export const HotLeads: React.FC = () => {
                 </TableCell>
                 <TableCell className="max-w-xs">
                   <div className="flex flex-col gap-1">
-                    <Badge
-                      variant={stageVariant(lead.readiness_stage)}
-                      className="w-fit"
-                    >
-                      {stageLabel(lead.readiness_stage)}
-                    </Badge>
+                    {hasText(lead.readiness_stage) ? (
+                      <Badge
+                        variant={stageVariant(lead.readiness_stage)}
+                        className="w-fit"
+                      >
+                        {stageLabel(lead.readiness_stage)}
+                      </Badge>
+                    ) : null}
+                    {!hasText(lead.readiness_stage) &&
+                    (signalsOf.get(lead.domain) ?? []).length === 0 ? (
+                      <span className="text-xs text-muted-foreground">
+                        No signal yet
+                      </span>
+                    ) : null}
                     {(signalsOf.get(lead.domain) ?? []).map((signal) => (
                       <span
                         key={`${signal.signal}-${signal.occurred}`}
@@ -240,7 +267,10 @@ export const HotLeads: React.FC = () => {
                     ))}
                   </div>
                 </TableCell>
-                <TableCell className="text-right">
+                <TableCell
+                  className="text-right"
+                  onClick={(event) => event.stopPropagation()}
+                >
                   {passing === lead.domain ? (
                     <div className="flex flex-wrap justify-end gap-2">
                       <span className="self-center text-xs text-muted-foreground">
@@ -289,6 +319,14 @@ export const HotLeads: React.FC = () => {
           </TableBody>
         </Table>
       )}
+      <AccountPreview
+        lead={previewing}
+        signals={signalsOf.get(previewing?.domain ?? "") ?? []}
+        isBusy={claim.isLoading || pass.isLoading || rep === undefined}
+        onClose={() => setPreviewing(undefined)}
+        onClaim={(lead) => claim.mutate(lead)}
+        onPass={(lead, reason) => pass.mutate({ lead, reason })}
+      />
     </div>
   );
 };

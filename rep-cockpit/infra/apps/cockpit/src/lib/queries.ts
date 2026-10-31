@@ -97,6 +97,37 @@ LEFT JOIN ai_ark.tam_companies t ON t.domain = ${quote(domain)}
 LEFT JOIN object.accounts a ON a.domain = ${quote(domain)}`;
 };
 
+export type CompanyProfile = {
+  domain: string;
+  website?: string | null;
+  industry?: string | null;
+  description?: string | null;
+  employee_count?: string | null;
+  city?: string | null;
+  country?: string | null;
+  founded_year?: string | null;
+  revenue?: string | null;
+  funding_type?: string | null;
+  funding_date?: string | null;
+  funding_amount?: string | null;
+};
+
+// What tam-building sourced about the company, for a rep deciding whether to
+// claim it: the description and the firmographics the tier was judged on.
+export const companyProfileQuery = (domain: string): string => {
+  return `
+SELECT domain, website, industry, description,
+  CAST(employee_count AS STRING) AS employee_count, city, country,
+  CAST(founded_year AS STRING) AS founded_year,
+  CAST(revenue AS STRING) AS revenue,
+  JSON_VALUE(financial, '$.funding.type') AS funding_type,
+  JSON_VALUE(financial, '$.funding.date') AS funding_date,
+  JSON_VALUE(financial, '$.funding.last_amount') AS funding_amount
+FROM ai_ark.tam_companies
+WHERE domain = ${quote(domain)}
+LIMIT 1`;
+};
+
 export type Claim = {
   account_domain: string;
   account_name: string;
