@@ -15,6 +15,7 @@ import { signalLabel, stageLabel, stageVariant } from "../lib/leads";
 import { hasText, type HotLead, type Signal } from "../lib/queries";
 import { CompanyAbout } from "./CompanyAbout";
 import { CompanyLogo, LinkedinLink } from "./CompanyLogo";
+import { FitSection } from "./FitSection";
 
 type PreviewProps = {
   lead: HotLead | undefined;
@@ -84,20 +85,9 @@ export const AccountPreview: React.FC<PreviewProps> = ({
               </div>
             </SheetHeader>
             <Section title="Fit">
-              {hasText(lead.tier) ? (
-                <>
-                  <Badge variant="outline" className="w-fit">
-                    Tier {lead.tier}
-                  </Badge>
-                  <p className="text-sm">{lead.tier_reason}</p>
-                </>
-              ) : (
-                <p className="text-sm text-muted-foreground">
-                  Not tiered yet. Account scoring has not judged this company.
-                </p>
-              )}
+              <FitSection company={lead} />
             </Section>
-            <Section title="Why now">
+            <Section title="Readiness">
               {hasText(lead.readiness_stage) ? (
                 <Badge
                   variant={stageVariant(lead.readiness_stage)}

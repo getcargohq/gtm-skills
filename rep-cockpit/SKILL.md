@@ -41,8 +41,9 @@ person lands on GTM contacts with a work email when one is found, and the writer
 first touch for each, from the account's tier, readiness and signals and the company's own
 positioning in context.
 
-Clicking a Hot lead opens its preview: the full fit reason, why now, and what the company is, with
-Claim and Pass. **My accounts** holds what the rep claimed, with the replies and follow-ups waiting
+Clicking a Hot lead opens its preview: the fit tier with when it was scored and why, its readiness
+and signals, and what the company is, with Claim and Pass. **Rescore** queues a stale tier for
+account scoring's next hourly run, by clearing the company's `tiered_at` stamp. **My accounts** holds what the rep claimed, with the replies and follow-ups waiting
 on each. An account page opens on the company (description, firmographics, fit and every signal),
 with **Add person** for someone the search missed, and shows each person with the draft, editable, with **Regenerate** (the rep says what to
 change), **Find email and phone**, and **Send**, from the rep's own Cargo mailbox. Under each
@@ -79,7 +80,7 @@ is in the rep's mailbox, not on the card.
 Illustrative output, fictional records:
 
 ```
-Hot leads                      Fit     Why now
+Hot leads                      Fit     Readiness
 Northwind Traders              Tier A  Ready now · funding 2026-10-14 · job post 2026-10-20
 Fabrikam                       Tier B  Warming · product launch 2026-10-09         [Pass] [Claim]
 
@@ -262,7 +263,8 @@ operator a per-claim estimate at `contactsPerClaim`.
 
 **A send** is the native `sendEmail` price per message, and its **watch** is one wait on the
 thread plus, when nobody replies, one writer run for the follow-up. **Regenerate** and **Add
-person** are one writer run per click. **Find email and phone** is one email lookup and one phone lookup per click; the
+person** are one writer run per click. **Rescore** bills nothing in the cockpit: account scoring
+re-tiers the company on its next run at its own per-company price. **Find email and phone** is one email lookup and one phone lookup per click; the
 phone is several times the email's price (`cargo-ai connection integration get prospeo`).
 **A LinkedIn invite or message** is one `linkedin` action per click
 (`cargo-ai connection integration get linkedin`). Logos are the domain's favicon, loaded by the

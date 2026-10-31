@@ -22,12 +22,12 @@ export const FilterBar: React.FC<{
   total: number;
 }> = ({ filters, onChange, shown, total }) => {
   return (
-    <div className="flex flex-wrap items-center gap-2">
+    <div className="flex flex-wrap items-center gap-2 rounded-lg border bg-muted/40 p-2">
       <Input
         value={filters.search}
         placeholder="Search a company"
         aria-label="Search a company"
-        className="w-56"
+        className="w-56 bg-background"
         onChange={(event) =>
           onChange({ ...filters, search: event.target.value })
         }
@@ -56,7 +56,7 @@ export const FilterBar: React.FC<{
         <option value="ready_now">Ready now</option>
         <option value="warming">Warming</option>
       </select>
-      <label className="flex h-9 items-center gap-2 rounded-md border border-input px-3 text-sm">
+      <label className="flex h-9 items-center gap-2 rounded-md border border-input bg-background px-3 text-sm">
         <input
           type="checkbox"
           checked={filters.withSignals}
@@ -66,14 +66,14 @@ export const FilterBar: React.FC<{
         />
         With signals
       </label>
-      <span className="text-sm text-muted-foreground">
-        {shown} of {total}
-      </span>
       {isFiltered(filters) ? (
         <Button size="sm" variant="ghost" onClick={() => onChange(noFilters)}>
           Clear filters
         </Button>
       ) : null}
+      <span className="ml-auto pr-2 text-sm text-muted-foreground">
+        {shown} of {total} companies
+      </span>
     </div>
   );
 };

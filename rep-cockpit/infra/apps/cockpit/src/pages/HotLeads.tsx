@@ -154,8 +154,8 @@ export const HotLeads: React.FC = () => {
         <div>
           <h1 className="text-xl font-semibold">Hot leads</h1>
           <p className="text-sm text-muted-foreground">
-            Best fit first, with why now. Click a company to read about it;
-            claim one and its buying committee is found with a draft for each
+            Best fit first, then readiness. Click a company to read about it;
+            claim it and its buying committee is found with a draft for each
             person.
           </p>
         </div>
@@ -188,7 +188,7 @@ export const HotLeads: React.FC = () => {
             <TableRow>
               <TableHead>Company</TableHead>
               <TableHead>Fit</TableHead>
-              <TableHead>Why now</TableHead>
+              <TableHead>Readiness</TableHead>
               <TableHead className="text-right">
                 <span className="sr-only">Actions</span>
               </TableHead>

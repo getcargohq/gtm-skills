@@ -17,6 +17,9 @@ export type HotLead = {
   linkedin_url?: string | null;
   tier?: string | null;
   tier_reason?: string | null;
+  tier_evidence_url?: string | null;
+  tiered_at?: string | null;
+  company_id?: string | null;
   readiness_score?: number | null;
   readiness_stage?: string | null;
 };
@@ -37,6 +40,9 @@ SELECT
   MAX(t.linkedin_url) AS linkedin_url,
   MAX(t.custom__tier) AS tier,
   MAX(t.custom__tier_reason) AS tier_reason,
+  MAX(t.custom__tier_evidence_url) AS tier_evidence_url,
+  CAST(MAX(t.custom__tiered_at) AS STRING) AS tiered_at,
+  MAX(t.id) AS company_id,
   a.metric__readiness_score AS readiness_score,
   a.computed__readiness_stage AS readiness_stage
 FROM object.accounts a
@@ -105,6 +111,9 @@ SELECT
   MAX(t.linkedin_url) AS linkedin_url,
   MAX(t.custom__tier) AS tier,
   MAX(t.custom__tier_reason) AS tier_reason,
+  MAX(t.custom__tier_evidence_url) AS tier_evidence_url,
+  CAST(MAX(t.custom__tiered_at) AS STRING) AS tiered_at,
+  MAX(t.id) AS company_id,
   MAX(a.metric__readiness_score) AS readiness_score,
   MAX(a.computed__readiness_stage) AS readiness_stage
 FROM (SELECT 1) AS one

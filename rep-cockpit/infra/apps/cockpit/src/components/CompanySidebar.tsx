@@ -1,9 +1,10 @@
-import { Badge, Card, CardContent } from "@cargo-ai/app-sdk";
+import { Card, CardContent } from "@cargo-ai/app-sdk";
 import React from "react";
 
-import { hasText, type HotLead } from "../lib/queries";
+import type { HotLead } from "../lib/queries";
 import { AccountSignals } from "./AccountSignals";
 import { CompanyAbout } from "./CompanyAbout";
+import { FitSection } from "./FitSection";
 
 const Section: React.FC<{ title: string; children: React.ReactNode }> = ({
   title,
@@ -32,18 +33,7 @@ export const CompanySidebar: React.FC<{
           <CompanyAbout domain={domain} />
         </Section>
         <Section title="Fit">
-          {company !== undefined && hasText(company.tier) ? (
-            <>
-              <Badge variant="outline" className="w-fit">
-                Tier {company.tier}
-              </Badge>
-              <p className="text-sm">{company.tier_reason}</p>
-            </>
-          ) : (
-            <p className="text-sm text-muted-foreground">
-              Not tiered yet. Account scoring has not judged this company.
-            </p>
-          )}
+          <FitSection company={company} />
         </Section>
         <Section title="Signals">
           <AccountSignals domain={domain} />
