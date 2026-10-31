@@ -39,10 +39,13 @@ export const startTool = async (
 
 // Polls a run until it ends. A failed run throws its own error message, which
 // for a refused send is the reason (recipientSuppressed, dailyLimitReached…).
+// With `stepSlug`, it returns once that step succeeds: a send is done when the
+// message is out, and the writes that follow it finish on their own.
 export const waitForRun = async (
   api: Api,
   runUuid: string,
   attempts: number,
+  stepSlug?: string,
 ): Promise<void> => {
   for (let attempt = 0; attempt < attempts; attempt += 1) {
     const { run } = await api.orchestration.run.get(runUuid);
@@ -55,9 +58,23 @@ export const waitForRun = async (
       }
       throw new Error(run.errorMessage);
     }
+    if (stepSlug !== undefined && hasStepSucceeded(run.executions, stepSlug)) {
+      return;
+    }
     await pause(2000);
   }
   throw new Error("Still running: check again in a minute.");
+};
+
+// Node slugs carry a suffix when a step appears twice (sendEmail_2).
+const hasStepSucceeded = (
+  executions: { nodeSlug: string; status: string }[],
+  stepSlug: string,
+): boolean => {
+  return executions.some(
+    (execution) =>
+      execution.nodeSlug.startsWith(stepSlug) && execution.status === "success",
+  );
 };
 
 // One row written by the native modelUpsert action. Submitted, not awaited:

@@ -228,7 +228,7 @@ const EmailTab: React.FC<CardProps> = ({ draft, claim, rep, onChanged }) => {
       const runUuid = await startTool(api, sendToolUuid, data);
       // A mailbox spaces its sends one to three minutes apart, so a send can
       // wait its turn: poll for up to five minutes.
-      await waitForRun(api, runUuid, 150);
+      await waitForRun(api, runUuid, 150, "sendEmail");
     },
     onSuccess: onChanged,
   });

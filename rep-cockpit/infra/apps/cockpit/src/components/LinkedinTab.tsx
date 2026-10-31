@@ -52,7 +52,7 @@ export const LinkedinTab: React.FC<{
         message: note,
         kind,
       });
-      await waitForRun(api, runUuid, 90);
+      await waitForRun(api, runUuid, 90, "linkedin");
     },
     onSuccess: onChanged,
   });
@@ -71,6 +71,14 @@ export const LinkedinTab: React.FC<{
   }
   const isBlocked =
     blocker !== undefined || send.isLoading || rep === undefined;
+  let messageLabel = "Send as message";
+  let inviteLabel = "Send connection request";
+  if (send.isLoading && send.variables === "message") {
+    messageLabel = "Sending…";
+  }
+  if (send.isLoading && send.variables === "invite") {
+    inviteLabel = "Sending…";
+  }
 
   return (
     <div className="flex flex-col gap-3">
@@ -95,7 +103,7 @@ export const LinkedinTab: React.FC<{
             onClick={() => send.mutate("message")}
           >
             <MessageSquare className="mr-1.5 h-3.5 w-3.5" />
-            Send as message
+            {messageLabel}
           </Button>
           <Button
             size="sm"
@@ -103,7 +111,7 @@ export const LinkedinTab: React.FC<{
             onClick={() => send.mutate("invite")}
           >
             <UserPlus className="mr-1.5 h-3.5 w-3.5" />
-            {send.isLoading ? "Sending…" : "Send connection request"}
+            {inviteLabel}
           </Button>
         </div>
       </div>
