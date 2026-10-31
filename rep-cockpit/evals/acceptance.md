@@ -26,8 +26,8 @@ Walk every line. A checked template without an evidence-backed consumer adaptati
 - The send is one tool run: `sendEmail`, the draft marked sent, one `gtm_activities` row.
 - No play, schedule or bulk action sends email. The one play, `rep_cockpit_watch_replies`, waits,
   logs and drafts; a follow-up is sent by the send tool, as a reply in its thread.
-- Regenerate and Find email and phone are tool runs; the app never calls the writer or Prospeo
-  itself.
+- Regenerate, Find email and phone and Add person are tool runs; the app never calls the writer or
+  Prospeo itself. Add person drafts only: no lookup and no send.
 - The writer agent has read-only context, no web search and no model in `uses`, and writes the
   first touch, the rewrite and the follow-up.
 - The app reads the tool and model ids from `defineApp` `env`, never from a hard-coded uuid.

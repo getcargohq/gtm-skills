@@ -1,16 +1,24 @@
 import {
   Badge,
   Button,
+  Card,
+  CardContent,
   CargoEmpty,
   Spinner,
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
   useCargoApi,
 } from "@cargo-ai/app-sdk";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Undo2 } from "lucide-react";
 import React from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
-import { CompanyAbout } from "../components/CompanyAbout";
+import { AddPerson } from "../components/AddPerson";
 import { CompanyLogo, LinkedinLink } from "../components/CompanyLogo";
+import { CompanySidebar } from "../components/CompanySidebar";
 import { DraftCard } from "../components/DraftCard";
 import { Timeline } from "../components/Timeline";
 import { claimsModelUuid } from "../config";
@@ -129,72 +137,90 @@ export const Account: React.FC = () => {
 
   return (
     <div className="flex flex-col gap-6 p-6">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <CompanyLogo domain={accountDomain} name={name} />
-          <div>
-            <h1 className="text-xl font-semibold">{name}</h1>
-            <div className="flex gap-3 text-sm text-muted-foreground">
-              <span>{accountDomain}</span>
+      <header className="flex flex-wrap items-center justify-between gap-4 border-b pb-6">
+        <div className="flex items-center gap-4">
+          <CompanyLogo domain={accountDomain} name={name} size="lg" />
+          <div className="flex flex-col gap-1">
+            <h1 className="text-2xl font-semibold">{name}</h1>
+            <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
+              <a
+                href={`https://${accountDomain}`}
+                target="_blank"
+                rel="noreferrer"
+                className="hover:underline"
+              >
+                {accountDomain}
+              </a>
               <LinkedinLink url={company.data?.linkedin_url} />
+              {replies > 0 ? <Badge>{replies} to read</Badge> : null}
+              {toSend > 0 ? (
+                <Badge variant="secondary">{toSend} to send</Badge>
+              ) : null}
             </div>
           </div>
         </div>
         <div className="flex items-center gap-2">
-          {replies > 0 ? <Badge>{replies} to read</Badge> : null}
-          {toSend > 0 ? (
-            <Badge variant="secondary">{toSend} to send</Badge>
-          ) : null}
+          <AddPerson claim={claim.data} rep={rep} onAdded={refresh} />
           <Button
-            size="sm"
             variant="ghost"
             disabled={release.isLoading}
             onClick={() => release.mutate()}
           >
-            Release to the team
+            <Undo2 className="mr-2 h-4 w-4" />
+            Release
           </Button>
         </div>
-      </div>
+      </header>
       {release.error === null ? null : (
         <p className="text-sm text-destructive">{String(release.error)}</p>
       )}
-      {isSourcing ? (
-        <div className="flex items-center gap-3 rounded-md border p-3 text-sm text-muted-foreground">
-          <Spinner />
-          Finding the buying committee and drafting a first touch for each
-          person. It takes a few minutes; people appear as they are ready.
-        </div>
-      ) : null}
-      <div className="grid gap-8 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
-        <div className="flex flex-col gap-4">
-          {people.length === 0 && !isSourcing ? (
-            <CargoEmpty
-              title="Nobody found"
-              description="The people search found no one in your buying committee at this domain. Release the account, or widen the committee in settings."
-            />
-          ) : null}
-          {people.map((draft) => (
-            <DraftCard
-              key={`${draft.contact_id}:${draft.status}:${draft.drafted_at}:${draft.contact_email}`}
-              draft={draft}
-              claim={claim.data}
-              rep={rep}
-              onChanged={refresh}
-            />
-          ))}
-        </div>
-        <aside className="flex flex-col gap-3">
-          <h2 className="text-sm font-semibold">About</h2>
-          <CompanyAbout domain={accountDomain} />
-          <h2 className="pt-3 text-sm font-semibold">Timeline</h2>
-          {claim.data !== undefined && hasText(claim.data.account_id) ? (
-            <Timeline accountId={claim.data.account_id} />
-          ) : (
-            <p className="text-sm text-muted-foreground">
-              The timeline starts once the claim is recorded.
-            </p>
-          )}
+      <div className="grid items-start gap-6 lg:grid-cols-[22rem_minmax(0,1fr)]">
+        <aside className="lg:sticky lg:top-6">
+          <CompanySidebar domain={accountDomain} company={company.data} />
         </aside>
+        <Tabs defaultValue="people" className="flex flex-col gap-4">
+          <TabsList className="w-fit">
+            <TabsTrigger value="people">People ({people.length})</TabsTrigger>
+            <TabsTrigger value="activity">Activity</TabsTrigger>
+          </TabsList>
+          <TabsContent value="people" className="mt-0 flex flex-col gap-4">
+            {isSourcing ? (
+              <div className="flex items-center gap-3 rounded-md border p-4 text-sm text-muted-foreground">
+                <Spinner />
+                Finding the buying committee and drafting a first touch for each
+                person. It takes a few minutes; people appear as they are ready.
+              </div>
+            ) : null}
+            {people.length === 0 && !isSourcing ? (
+              <CargoEmpty
+                title="Nobody found"
+                description="The people search found no one in your buying committee at this domain. Add someone you know, or release the account."
+              />
+            ) : null}
+            {people.map((draft) => (
+              <DraftCard
+                key={`${draft.contact_id}:${draft.status}:${draft.drafted_at}:${draft.contact_email}`}
+                draft={draft}
+                claim={claim.data}
+                rep={rep}
+                onChanged={refresh}
+              />
+            ))}
+          </TabsContent>
+          <TabsContent value="activity" className="mt-0">
+            <Card>
+              <CardContent className="p-6">
+                {claim.data !== undefined && hasText(claim.data.account_id) ? (
+                  <Timeline accountId={claim.data.account_id} />
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    The timeline starts once the claim is recorded.
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );

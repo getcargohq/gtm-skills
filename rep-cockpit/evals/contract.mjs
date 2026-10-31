@@ -137,6 +137,18 @@ for (const slug of ["findEmail", "findPhone"]) {
   );
 }
 
+// A rep-added person is drafted, never looked up or sent on add: a paid lookup
+// stays the rep's Find email and phone click.
+const addContact = byId.get("tool:rep_cockpit_add_contact");
+assert.ok(addContact, "the add-contact tool must exist");
+for (const slug of ["sendEmail", "findEmail", "findPhone"]) {
+  assert.equal(
+    nodeSlugs(addContact).includes(`"${slug}"`),
+    false,
+    `adding a person must not run ${slug}`,
+  );
+}
+
 // The writer judges, the tool persists.
 const writer = byId.get("agent:rep_cockpit_first_touch_writer");
 assert.ok(writer, "the first-touch writer must exist");
@@ -161,6 +173,7 @@ for (const [key, resourceId] of [
   ["VITE_LINKEDIN_TOOL_UUID", "tool:rep_cockpit_send_linkedin"],
   ["VITE_REDRAFT_TOOL_UUID", "tool:rep_cockpit_redraft"],
   ["VITE_ENRICH_TOOL_UUID", "tool:rep_cockpit_enrich_contact"],
+  ["VITE_ADD_CONTACT_TOOL_UUID", "tool:rep_cockpit_add_contact"],
   ["VITE_CLAIMS_MODEL_UUID", "model:cockpit_claims"],
   ["VITE_DRAFTS_MODEL_UUID", "model:cockpit_drafts"],
   ["VITE_ACTIVITIES_MODEL_UUID", "model:gtm_activities"],

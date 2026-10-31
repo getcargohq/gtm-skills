@@ -13,6 +13,15 @@ import {
   useCargoApi,
 } from "@cargo-ai/app-sdk";
 import { useMutation } from "@tanstack/react-query";
+import {
+  Lightbulb,
+  Linkedin,
+  Mail,
+  Phone,
+  Search,
+  Send,
+  Sparkles,
+} from "lucide-react";
 import React from "react";
 
 import {
@@ -73,10 +82,19 @@ const ContactLine: React.FC<CardProps> = ({ draft, claim, onChanged }) => {
     (!hasText(draft.contact_email) || !hasText(draft.contact_phone));
 
   return (
-    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
-      {hasText(draft.contact_email) ? <span>{draft.contact_email}</span> : null}
+    <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted-foreground">
+      {hasText(draft.contact_email) ? (
+        <span className="flex items-center gap-1.5">
+          <Mail className="h-3.5 w-3.5" />
+          {draft.contact_email}
+        </span>
+      ) : null}
       {hasText(draft.contact_phone) ? (
-        <a href={`tel:${draft.contact_phone}`} className="hover:underline">
+        <a
+          href={`tel:${draft.contact_phone}`}
+          className="flex items-center gap-1.5 hover:underline"
+        >
+          <Phone className="h-3.5 w-3.5" />
           {draft.contact_phone}
         </a>
       ) : null}
@@ -85,19 +103,21 @@ const ContactLine: React.FC<CardProps> = ({ draft, claim, onChanged }) => {
           href={draft.linkedin_url}
           target="_blank"
           rel="noreferrer"
-          className="hover:underline"
+          className="flex items-center gap-1.5 hover:underline"
         >
-          LinkedIn
+          <Linkedin className="h-3.5 w-3.5" />
+          Profile
         </a>
       ) : null}
       {canLookUp ? (
         <Button
           size="sm"
-          variant="link"
-          className="h-auto p-0"
+          variant="outline"
+          className="h-7"
           disabled={enrich.isLoading}
           onClick={() => enrich.mutate()}
         >
+          <Search className="mr-1.5 h-3.5 w-3.5" />
           {enrich.isLoading ? "Looking up…" : "Find email and phone"}
         </Button>
       ) : null}
@@ -247,7 +267,7 @@ const EmailTab: React.FC<CardProps> = ({ draft, claim, rep, onChanged }) => {
 
   const blocker = sendBlocker(rep, draft, claim);
   const failure = send.error === null ? redraft.error : send.error;
-  let sendLabel = "Send";
+  let sendLabel = "Send email";
   if (isFollowUp) {
     sendLabel = "Send follow-up";
   }
@@ -307,9 +327,10 @@ const EmailTab: React.FC<CardProps> = ({ draft, claim, rep, onChanged }) => {
         ) : (
           <Button
             size="sm"
-            variant="ghost"
+            variant="outline"
             onClick={() => setIsRewriting(true)}
           >
+            <Sparkles className="mr-1.5 h-3.5 w-3.5" />
             Rewrite with AI
           </Button>
         )}
@@ -322,6 +343,7 @@ const EmailTab: React.FC<CardProps> = ({ draft, claim, rep, onChanged }) => {
             disabled={blocker !== undefined || send.isLoading}
             onClick={() => send.mutate()}
           >
+            <Send className="mr-1.5 h-3.5 w-3.5" />
             {sendLabel}
           </Button>
         </div>
@@ -345,19 +367,28 @@ export const DraftCard: React.FC<CardProps> = (props) => {
     <Card>
       <CardHeader className="gap-2 pb-3">
         <div className="flex items-start justify-between gap-4">
-          <div>
-            <div className="font-semibold">{draft.contact_name}</div>
-            <div className="text-sm text-muted-foreground">
-              {draft.contact_title}
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-muted font-medium">
+              {draft.contact_name.charAt(0).toUpperCase()}
+            </div>
+            <div>
+              <div className="font-semibold">{draft.contact_name}</div>
+              <div className="text-sm text-muted-foreground">
+                {draft.contact_title}
+              </div>
             </div>
           </div>
           <Badge variant={badge.variant}>{badge.label}</Badge>
         </div>
         <ContactLine {...props} />
         {!hasText(draft.why_now) ? null : (
-          <p className="border-l-2 pl-3 text-sm text-muted-foreground">
-            {draft.why_now}
-          </p>
+          <div className="flex gap-2 rounded-md bg-amber-50 p-3 text-sm text-amber-950 dark:bg-amber-950/30 dark:text-amber-100">
+            <Lightbulb className="mt-0.5 h-4 w-4 shrink-0" />
+            <p>
+              <span className="font-medium">Why now: </span>
+              {draft.why_now}
+            </p>
+          </div>
         )}
       </CardHeader>
       <CardContent className="flex flex-col gap-3">
@@ -366,11 +397,15 @@ export const DraftCard: React.FC<CardProps> = (props) => {
         ) : null}
         <Tabs defaultValue="email">
           <TabsList>
-            <TabsTrigger value="email">Email</TabsTrigger>
+            <TabsTrigger value="email">
+              <Mail className="mr-1.5 h-3.5 w-3.5" />
+              Email
+            </TabsTrigger>
             <TabsTrigger
               value="linkedin"
               disabled={!hasText(draft.linkedin_url)}
             >
+              <Linkedin className="mr-1.5 h-3.5 w-3.5" />
               LinkedIn
             </TabsTrigger>
           </TabsList>

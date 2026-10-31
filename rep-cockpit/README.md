@@ -19,13 +19,15 @@ cargo-ai project add cookbook/rep-cockpit
    `gtm_accounts`, AI Ark searches the buying committee at its domain, each person lands on
    `gtm_contacts`, Prospeo finds the work email, and the first-touch writer drafts one email per
    person onto `cockpit_drafts`. The claim row on `cockpit_claims` reads `ready` when it is done.
-3. **Work the account.** On the account page the rep edits a draft, or asks the writer for a
+3. **Work the account.** The account page opens on the company: what it does, its firmographics,
+   its fit and every signal on it, beside the people. The rep adds someone the search missed
+   (`rep_cockpit_add_contact`: the writer drafts their first touch, no lookup runs), edits a draft, or asks the writer for a
    rewrite (`rep_cockpit_redraft`), or looks up a missing email and a mobile
    (`rep_cockpit_enrich_contact`), and clicks Send. `rep_cockpit_send_draft` sends it with native
    `sendEmail` from the mailbox attached to the rep's member, marks the draft sent, and writes an
    `email` row on `gtm_activities`. Under each email, the writer's LinkedIn note goes out as an
    invite or a message from the rep's own LinkedIn identity (`rep_cockpit_send_linkedin`). The
-   Timeline beside it reads every activity on the account.
+   Activity tab reads every activity on the account.
 4. **Replies and follow-ups.** The play `rep_cockpit_watch_replies` starts on every draft that
    becomes sent and waits on its thread with `waitEmailEvent`. A reply marks the card replied, with
    its first lines, and logs it on the timeline; the rep's Meeting booked logs the meeting. No reply
@@ -72,6 +74,7 @@ flowchart LR
   watch -- no reply --> w
   app -- Regenerate --> rd[redraft tool] --> w
   app -- Find email and phone --> en[enrich_contact tool] --> d
+  app -- Add person --> ac[add_contact tool] --> w
   app -- Send invite / message --> li[send_linkedin tool]
   li --> act
   app -- Pass / Release --> cl[cockpit_claims]
@@ -86,6 +89,7 @@ flowchart LR
 | `infra/tools/send-linkedin.ts`          | `defineTool`   | a LinkedIn invite or message as the rep, and its log       |
 | `infra/tools/redraft.ts`                | `defineTool`   | a rewrite of one draft, as the rep asks                    |
 | `infra/tools/enrich-contact.ts`         | `defineTool`   | one person's work email and mobile, on a click             |
+| `infra/tools/add-contact.ts`            | `defineTool`   | a person the rep names, with a first touch drafted         |
 | `infra/plays/watch-replies.ts`          | `definePlay`   | the wait on each sent thread: reply logged, or follow-up   |
 | `infra/agents/first-touch-writer.ts`    | `defineAgent`  | first touches, rewrites and follow-ups, no writes          |
 | `infra/models/cockpit-claims.ts`        | `defineModel`  | who works which account, by domain                         |

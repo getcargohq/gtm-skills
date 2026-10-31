@@ -41,11 +41,13 @@ person lands on GTM contacts with a work email when one is found, and the writer
 first touch for each, from the account's tier, readiness and signals and the company's own
 positioning in context.
 
-**My accounts** holds what the rep claimed, with the replies and follow-ups waiting on each. An
-account page shows each person with the draft, editable, with **Regenerate** (the rep says what to
+Clicking a Hot lead opens its preview: the full fit reason, why now, and what the company is, with
+Claim and Pass. **My accounts** holds what the rep claimed, with the replies and follow-ups waiting
+on each. An account page opens on the company (description, firmographics, fit and every signal),
+with **Add person** for someone the search missed, and shows each person with the draft, editable, with **Regenerate** (the rep says what to
 change), **Find email and phone**, and **Send**, from the rep's own Cargo mailbox. Under each
 email sits the writer's LinkedIn connection note, with **Send invite** and **Send message** from
-the rep's own LinkedIn identity. Next to it, the account's **Timeline** from GTM activities. The send writes an `email` row on GTM activities, so
+the rep's own LinkedIn identity. The **Activity** tab holds the account's timeline from GTM activities. The send writes an `email` row on GTM activities, so
 meeting-prep, next-step-tracker and the readiness score see the touch.
 
 Then one play waits on each sent thread. A **reply** lands on the person's card with its first
@@ -243,6 +245,7 @@ it if you still want it, and records why under `## Decisions` in your copy of th
   `note` on GTM activities
 - Regenerate with an instruction changed one draft's text, and Find email and phone wrote what it
   found onto the card
+- Add person with a LinkedIn profile drafted a first touch for that person on the account
 - the watch play started a run on that send; a reply from the address you own landed on the card
   and the timeline as a reply (or, with no reply, the follow-up was drafted after
   `followUpAfterHours`), and Meeting booked wrote a `meeting` row
@@ -258,15 +261,15 @@ the writer's cost from the pilot claim's run (`cargo-ai orchestration run get`),
 operator a per-claim estimate at `contactsPerClaim`.
 
 **A send** is the native `sendEmail` price per message, and its **watch** is one wait on the
-thread plus, when nobody replies, one writer run for the follow-up. **Regenerate** is one writer
-run per click. **Find email and phone** is one email lookup and one phone lookup per click; the
+thread plus, when nobody replies, one writer run for the follow-up. **Regenerate** and **Add
+person** are one writer run per click. **Find email and phone** is one email lookup and one phone lookup per click; the
 phone is several times the email's price (`cargo-ai connection integration get prospeo`).
 **A LinkedIn invite or message** is one `linkedin` action per click
 (`cargo-ai connection integration get linkedin`). Logos are the domain's favicon, loaded by the
 browser, and bill nothing. **Each mailbox** is a recurring monthly
 charge for as long as it exists (`cargo-ai mailboxManagement pricing get`), and the app is a hosted
-app on the workspace's hosting plan. Hot leads, My accounts, the account page and the timeline are
-SQL reads and bill nothing.
+app on the workspace's hosting plan. Hot leads, the preview, My accounts, the account page, its
+signals and the timeline are SQL reads and bill nothing.
 
 ## Composes into
 

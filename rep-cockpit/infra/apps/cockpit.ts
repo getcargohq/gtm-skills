@@ -7,6 +7,7 @@ import { appsFolder } from "../folders";
 import { cockpitClaims } from "../models/cockpit-claims";
 import { cockpitDrafts } from "../models/cockpit-drafts";
 import { gtmActivities } from "../models/gtm-activities";
+import { addContact } from "../tools/add-contact";
 import { claimAccount } from "../tools/claim-account";
 import { enrichContact } from "../tools/enrich-contact";
 import { redraft } from "../tools/redraft";
@@ -44,6 +45,7 @@ export const cockpit = defineApp("rep-cockpit", {
     VITE_LINKEDIN_TOOL_UUID: sendLinkedin.uuid,
     VITE_REDRAFT_TOOL_UUID: redraft.uuid,
     VITE_ENRICH_TOOL_UUID: enrichContact.uuid,
+    VITE_ADD_CONTACT_TOOL_UUID: addContact.uuid,
     VITE_CLAIMS_MODEL_UUID: cockpitClaims.uuid,
     VITE_DRAFTS_MODEL_UUID: cockpitDrafts.uuid,
     VITE_ACTIVITIES_MODEL_UUID: gtmActivities.uuid,

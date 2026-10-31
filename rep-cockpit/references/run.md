@@ -95,9 +95,9 @@ cargo-ai orchestration run list --workflow-uuid <watch-replies-workflow-uuid> --
    Follow-up with a new draft; send it and check that it arrives in the same thread. Set
    `followUpAfterHours` to 1 on a pilot project to see it the same day, then set it back.
 
-Run Regenerate once with an instruction and Find email and phone once on a person with no email:
-each is one tool run (`rep_cockpit_redraft`, `rep_cockpit_enrich_contact`) and the card changes when
-it ends.
+Run Regenerate once with an instruction, Find email and phone once on a person with no email, and
+Add person once with a LinkedIn profile: each is one tool run (`rep_cockpit_redraft`,
+`rep_cockpit_enrich_contact`, `rep_cockpit_add_contact`) and the cards change when it ends.
 
 ## After the pilot
 

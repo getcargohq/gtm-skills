@@ -18,6 +18,7 @@ export const sendToolUuid = readEnv("VITE_SEND_TOOL_UUID");
 export const linkedinToolUuid = readEnv("VITE_LINKEDIN_TOOL_UUID");
 export const redraftToolUuid = readEnv("VITE_REDRAFT_TOOL_UUID");
 export const enrichToolUuid = readEnv("VITE_ENRICH_TOOL_UUID");
+export const addContactToolUuid = readEnv("VITE_ADD_CONTACT_TOOL_UUID");
 export const claimsModelUuid = readEnv("VITE_CLAIMS_MODEL_UUID");
 export const draftsModelUuid = readEnv("VITE_DRAFTS_MODEL_UUID");
 export const activitiesModelUuid = readEnv("VITE_ACTIVITIES_MODEL_UUID");

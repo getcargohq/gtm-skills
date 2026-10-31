@@ -1,5 +1,6 @@
 import { Button, Textarea, useCargoApi } from "@cargo-ai/app-sdk";
 import { useMutation } from "@tanstack/react-query";
+import { MessageSquare, UserPlus } from "lucide-react";
 import React from "react";
 
 import { linkedinToolUuid } from "../config";
@@ -93,6 +94,7 @@ export const LinkedinTab: React.FC<{
             disabled={isBlocked}
             onClick={() => send.mutate("message")}
           >
+            <MessageSquare className="mr-1.5 h-3.5 w-3.5" />
             Send as message
           </Button>
           <Button
@@ -100,7 +102,8 @@ export const LinkedinTab: React.FC<{
             disabled={isBlocked}
             onClick={() => send.mutate("invite")}
           >
-            {send.isLoading ? "Sending…" : "Send invite"}
+            <UserPlus className="mr-1.5 h-3.5 w-3.5" />
+            {send.isLoading ? "Sending…" : "Send connection request"}
           </Button>
         </div>
       </div>

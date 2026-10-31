@@ -80,6 +80,21 @@ WHERE signal_rank <= 3
 ORDER BY domain, signal_rank`;
 };
 
+// Every event on one account, newest first: what the account page lists as
+// its signals. The Hot leads row shows only the three that count most.
+export const accountSignalsQuery = (domain: string): string => {
+  return `
+SELECT
+  a.domain AS domain,
+  COALESCE(JSON_VALUE(e.properties, '$.signal_type'), e.event_name, e.model_slug) AS signal,
+  CAST(DATE(CAST(e.occurred_at AS TIMESTAMP)) AS STRING) AS occurred
+FROM object.accounts a
+JOIN object.account_events e ON e.account_id = a.id
+WHERE a.domain = ${quote(domain)}
+ORDER BY e.occurred_at DESC
+LIMIT 100`;
+};
+
 // What the queue knows about one domain, for an account a rep adds by hand:
 // its name and tier when tam-building has it, its readiness when it is scored.
 export const accountLookupQuery = (domain: string): string => {

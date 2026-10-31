@@ -3,24 +3,31 @@ import React from "react";
 // The company's logo, from its domain's favicon: no lookup and no credits,
 // which is what a list of two hundred accounts needs. A domain with no icon
 // falls back to its first letter.
-export const CompanyLogo: React.FC<{ domain: string; name: string }> = ({
-  domain,
-  name,
-}) => {
+export const CompanyLogo: React.FC<{
+  domain: string;
+  name: string;
+  size?: "md" | "lg";
+}> = ({ domain, name, size = "md" }) => {
   const [failed, setFailed] = React.useState(false);
+  let box = "h-8 w-8 text-sm";
+  if (size === "lg") {
+    box = "h-14 w-14 text-xl";
+  }
 
   if (failed) {
     return (
-      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-muted text-sm font-medium">
+      <div
+        className={`flex ${box} shrink-0 items-center justify-center rounded-md bg-muted font-medium`}
+      >
         {name.charAt(0).toUpperCase()}
       </div>
     );
   }
   return (
     <img
-      src={`https://www.google.com/s2/favicons?domain=${encodeURIComponent(domain)}&sz=64`}
+      src={`https://www.google.com/s2/favicons?domain=${encodeURIComponent(domain)}&sz=128`}
       alt=""
-      className="h-8 w-8 shrink-0 rounded-md"
+      className={`${box} shrink-0 rounded-md border bg-background p-1`}
       onError={() => setFailed(true)}
     />
   );
