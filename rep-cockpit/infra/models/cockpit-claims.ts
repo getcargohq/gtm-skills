@@ -22,6 +22,11 @@ export const cockpitClaims = defineModel("cockpit_claims", {
       { slug: "account_id", type: "string" },
       // The Cargo login email of the rep who clicked.
       { slug: "rep_email", type: "string" },
+      // The rep's name as the writer signs with it.
+      { slug: "rep_name", type: "string" },
+      // What the queue knew when the account was claimed: tier and its reason,
+      // readiness and its signals. The writer reads it for every draft.
+      { slug: "account_context", type: "string" },
       // claimed | passed | released
       { slug: "status", type: "string" },
       { slug: "status_at", type: "date" },

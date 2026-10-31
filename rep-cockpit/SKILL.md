@@ -172,6 +172,10 @@ it if you still want it, and records why under `## Decisions` in your copy of th
 - **The claim runs on the server, in one tool run.** (`infra/tools/claim-account.ts`) Orchestrated
   from the browser, closing the tab mid-claim leaves an account claimed with nothing sourced, and
   nobody notices because the claim row looks fine.
+- **Inside the per-person loop, values come from the claim row, never `input`.**
+  (`infra/tools/claim-account.ts`) Each iteration of a `for…of` runs as a child run whose input is
+  the person, so `input.account_domain` there is empty: the email lookup fails on every person and
+  the writer drafts with no account context, while the claim still ends `ready`.
 - **The send and its log are one run.** (`infra/tools/send-draft.ts`) Logged from the browser after
   the send, a closed tab loses the activity row, and every pipeline reading GTM activities misses a
   touch that happened.

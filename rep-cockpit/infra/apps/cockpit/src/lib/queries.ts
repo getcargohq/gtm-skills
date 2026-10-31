@@ -1,6 +1,12 @@
 import { quote } from "./cargo";
 
-// Every read the cockpit makes, in one file. Tables are `<dataset>.<model>`:
+export const hasText = (value: string | null | undefined): value is string => {
+  return value !== null && value !== undefined && value !== "";
+};
+
+// Every read the cockpit makes, in one file. The storage SQL leaves a NULL
+// column out of the row entirely, so every nullable field below is optional
+// and is read with `hasText`, never compared to null alone. Tables are `<dataset>.<model>`:
 // `object` is the workspace's native dataset, `ai_ark` the dataset of the
 // connector tam-building sources through. Check both with
 // `cargo-ai storage dataset list` before the first deploy.
@@ -8,10 +14,10 @@ import { quote } from "./cargo";
 export type HotLead = {
   domain: string;
   name: string;
-  tier: string | null;
-  tier_reason: string | null;
-  readiness_score: number | null;
-  readiness_stage: string | null;
+  tier?: string | null;
+  tier_reason?: string | null;
+  readiness_score?: number | null;
+  readiness_stage?: string | null;
 };
 
 // Hot leads: accounts that are ready now or warming (readiness-scoring, on
@@ -42,11 +48,11 @@ LIMIT 50`;
 export type Claim = {
   account_domain: string;
   account_name: string;
-  account_id: string | null;
+  account_id?: string | null;
   status: string;
-  sourcing_status: string | null;
-  contacts_found: number | null;
-  status_at: string | null;
+  sourcing_status?: string | null;
+  contacts_found?: number | null;
+  status_at?: string | null;
 };
 
 export const myClaimsQuery = (repEmail: string): string => {
@@ -71,12 +77,12 @@ LIMIT 1`;
 export type Draft = {
   contact_id: string;
   contact_name: string;
-  contact_title: string | null;
-  contact_email: string | null;
-  linkedin_url: string | null;
+  contact_title?: string | null;
+  contact_email?: string | null;
+  linkedin_url?: string | null;
   subject: string;
   body: string;
-  why_now: string | null;
+  why_now?: string | null;
   status: string;
 };
 

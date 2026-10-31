@@ -21,7 +21,7 @@ import { useRep } from "../lib/rep";
 
 type Row = { domain: string; name: string; sourcing: string };
 
-const sourcingLabel = (sourcingStatus: string | null): string => {
+const sourcingLabel = (sourcingStatus: string | null | undefined): string => {
   if (sourcingStatus === "ready") {
     return "Drafts ready";
   }

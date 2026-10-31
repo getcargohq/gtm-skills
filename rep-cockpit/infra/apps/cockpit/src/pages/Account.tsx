@@ -22,6 +22,7 @@ import { heldClickFor, useHeldClicks } from "../lib/held";
 import {
   claimQuery,
   draftsQuery,
+  hasText,
   type Claim,
   type Draft,
 } from "../lib/queries";
@@ -56,10 +57,10 @@ const sendBlocker = (
   if (rep.mailboxUuid === undefined) {
     return `No mailbox is attached to ${rep.email}. Ask an admin to attach one to your member.`;
   }
-  if (draft.contact_email === null || draft.contact_email === "") {
+  if (!hasText(draft.contact_email)) {
     return "No work email was found for this person.";
   }
-  if (claim === undefined || claim.account_id === null) {
+  if (claim === undefined || !hasText(claim.account_id)) {
     return "The claim is still being recorded.";
   }
   return undefined;
@@ -79,7 +80,7 @@ const DraftCard: React.FC<{
       if (rep === undefined || rep.mailboxUuid === undefined) {
         throw new Error("No mailbox to send from.");
       }
-      if (claim === undefined || claim.account_id === null) {
+      if (claim === undefined || !hasText(claim.account_id)) {
         throw new Error("The claim is still being recorded.");
       }
       const runUuid = await startTool(api, sendToolUuid, {
@@ -109,12 +110,12 @@ const DraftCard: React.FC<{
             <CardTitle className="text-base">{draft.contact_name}</CardTitle>
             <CardDescription>
               {draft.contact_title}
-              {draft.contact_email === null ? "" : ` · ${draft.contact_email}`}
+              {hasText(draft.contact_email) ? ` · ${draft.contact_email}` : ""}
             </CardDescription>
           </div>
           {isSent ? <Badge>Sent</Badge> : null}
         </div>
-        {draft.why_now === null ? null : (
+        {!hasText(draft.why_now) ? null : (
           <p className="text-sm text-muted-foreground">{draft.why_now}</p>
         )}
       </CardHeader>

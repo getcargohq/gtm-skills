@@ -39,6 +39,16 @@ domains carry a scheme or `www.` and match nothing, or the dataset slug differs.
 1. Open the app (`cargo-ai hosting app list` gives the URL) and sign in as a rep listed in
    `infra/members/reps.ts`.
 2. Claim one account from Hot leads. The page moves to the account and says it is sourcing.
+   To pilot from the terminal instead, run the claim tool directly (the tool's uuid is in
+   `cargo-ai orchestration tool list`):
+
+```sh
+cargo-ai orchestration action execute \
+  --action '{"kind":"tool","toolUuid":"<claim-tool-uuid>"}' \
+  --data '{"account_domain":"<domain>","account_name":"<name>","rep_email":"<your login>","rep_first_name":"<first name>","account_context":"Fit tier B"}' \
+  --wait-until-finished
+```
+
 3. Follow the run:
 
 ```sh

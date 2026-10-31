@@ -40,6 +40,23 @@ assert.equal(
   "a claim must never send: the rep sends, one click per email",
 );
 
+// Inside the per-person loop, `input` is the person, not the tool's input: a
+// loop that reads `input.account_domain` sends an empty domain to every lookup.
+const claimSource = readFileSync(
+  new URL("../infra/tools/claim-account.ts", import.meta.url),
+  "utf8",
+);
+const loopStart = claimSource.indexOf("for (const person of people)");
+const loopBody = claimSource.slice(
+  loopStart,
+  claimSource.indexOf("modelUuid: cockpitClaims.uuid", loopStart),
+);
+assert.equal(
+  loopBody.includes("input."),
+  false,
+  "the loop must read the claim from the claim row's output, never from input",
+);
+
 // The send: the email, the draft marked sent, the activity row, in one run.
 const send = byId.get("tool:rep_cockpit_send_draft");
 assert.ok(send, "the send tool must exist");

@@ -60,6 +60,6 @@ flowchart LR
 | `infra/models/gtm-*.ts`                 | `defineModel`  | the shared accounts, contacts and activities               |
 | `infra/domains/`, `infra/mailboxes/`    | domain/mailbox | the sending domain and one mailbox per rep                 |
 | `infra/members/reps.ts`                 | `defineMember` | each rep's mailbox                                         |
-| `infra/settings.ts`                     | —              | people per claim and the buying committee filters          |
+| `infra/settings.ts`                     | settings       | people per claim and the buying committee filters          |
 
 The skill: [`SKILL.md`](SKILL.md). The pilot: [`references/run.md`](references/run.md).

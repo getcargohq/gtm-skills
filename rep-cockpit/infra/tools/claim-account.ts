@@ -15,6 +15,29 @@ import {
   contactsPerClaim,
 } from "../settings";
 
+// The claim row and the people search's row, as far as this workflow reads
+// them. With the project's integration types generated, the search returns a
+// typed reference that TypeScript will not iterate; naming the row type makes
+// the loop typecheck, and the cast is stripped before the body is parsed.
+type ClaimRow = {
+  account_domain: string;
+  account_name: string;
+  rep_email: string;
+  rep_name: string;
+  account_context: string;
+};
+
+type SourcedPerson = {
+  linkedin_url: string;
+  full_name: string;
+  first_name: string;
+  last_name: string;
+  title: string;
+  headline: string;
+  city: string;
+  country: string;
+};
+
 // One claim, server-side, in one run: the cockpit starts it and never
 // orchestrates the steps itself, so closing the tab never stops sourcing.
 //
@@ -61,7 +84,11 @@ const claimAccountWorkflow = defineWorkflow(
       ],
     });
 
-    model.upsert({
+    // Inside the loop below, `input` is the person being iterated, not this
+    // tool's input: every value the loop needs from the claim is read from
+    // this row instead. An earlier node's output is the one thing a loop
+    // iteration can see.
+    const claims = model.upsert<ClaimRow>({
       modelUuid: cockpitClaims.uuid,
       matchingColumnSlug: "account_domain",
       matchingValue: input.account_domain,
@@ -70,6 +97,8 @@ const claimAccountWorkflow = defineWorkflow(
         { columnSlug: "account_name", value: input.account_name },
         { columnSlug: "account_id", value: accounts[0].id },
         { columnSlug: "rep_email", value: input.rep_email },
+        { columnSlug: "rep_name", value: input.rep_first_name },
+        { columnSlug: "account_context", value: input.account_context },
         { columnSlug: "status", value: "claimed" },
         { columnSlug: "status_at", value: new Date() },
         { columnSlug: "sourcing_status", value: "running" },
@@ -83,7 +112,7 @@ const claimAccountWorkflow = defineWorkflow(
         department_or: committeeDepartments,
       },
       limit: contactsPerClaim,
-    });
+    }) as unknown as SourcedPerson[];
 
     for (const person of people) {
       const contacts = model.upsert<{ id: string }>({
@@ -107,15 +136,15 @@ const claimAccountWorkflow = defineWorkflow(
         {
           firstName: person.first_name,
           lastName: person.last_name,
-          companyDomain: input.account_domain,
+          companyDomain: claims[0].account_domain,
         },
         { continueOnFailure: true },
       );
 
       const draft = uses.firstTouchWriter({
-        prompt: `SENDER: ${input.rep_first_name}
-ACCOUNT: ${input.account_name} (${input.account_domain})
-ACCOUNT CONTEXT: ${input.account_context}
+        prompt: `SENDER: ${claims[0].rep_name}
+ACCOUNT: ${claims[0].account_name} (${claims[0].account_domain})
+ACCOUNT CONTEXT: ${claims[0].account_context}
 PERSON: ${person.full_name}, ${person.title}
 HEADLINE: ${person.headline}
 LOCATION: ${person.city}, ${person.country}
@@ -135,8 +164,8 @@ LINKEDIN: ${person.linkedin_url}`,
           matchingValue: contacts[0].id,
           mappings: [
             { columnSlug: "contact_id", value: contacts[0].id },
-            { columnSlug: "account_domain", value: input.account_domain },
-            { columnSlug: "rep_email", value: input.rep_email },
+            { columnSlug: "account_domain", value: claims[0].account_domain },
+            { columnSlug: "rep_email", value: claims[0].rep_email },
             { columnSlug: "contact_name", value: person.full_name },
             { columnSlug: "contact_title", value: person.title },
             { columnSlug: "contact_email", value: found.person.email.email },
@@ -155,8 +184,8 @@ LINKEDIN: ${person.linkedin_url}`,
           matchingValue: contacts[0].id,
           mappings: [
             { columnSlug: "contact_id", value: contacts[0].id },
-            { columnSlug: "account_domain", value: input.account_domain },
-            { columnSlug: "rep_email", value: input.rep_email },
+            { columnSlug: "account_domain", value: claims[0].account_domain },
+            { columnSlug: "rep_email", value: claims[0].rep_email },
             { columnSlug: "contact_name", value: person.full_name },
             { columnSlug: "contact_title", value: person.title },
             { columnSlug: "linkedin_url", value: person.linkedin_url },

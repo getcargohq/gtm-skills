@@ -18,16 +18,16 @@ import { useNavigate } from "react-router-dom";
 import { claimToolUuid, claimsModelUuid } from "../config";
 import { sql, startTool, submitUpsert } from "../lib/cargo";
 import { heldClickFor, useHeldClicks } from "../lib/held";
-import { hotLeadsQuery, type HotLead } from "../lib/queries";
+import { hasText, hotLeadsQuery, type HotLead } from "../lib/queries";
 import { useRep } from "../lib/rep";
 
 // What the writer is told about the account: everything the queue knew.
 const accountContextOf = (lead: HotLead): string => {
   const parts: string[] = [];
-  if (lead.tier !== null) {
+  if (hasText(lead.tier)) {
     parts.push(`Fit tier ${lead.tier}: ${lead.tier_reason}`);
   }
-  if (lead.readiness_stage !== null) {
+  if (hasText(lead.readiness_stage)) {
     parts.push(
       `Readiness ${lead.readiness_stage} (score ${lead.readiness_score})`,
     );
@@ -35,17 +35,19 @@ const accountContextOf = (lead: HotLead): string => {
   return parts.join(". ");
 };
 
-const stageLabel = (stage: string | null): string => {
+const stageLabel = (stage: string | null | undefined): string => {
   if (stage === "ready_now") {
     return "Ready now";
   }
   if (stage === "warming") {
     return "Warming";
   }
-  return "—";
+  return "Not scored";
 };
 
-const stageVariant = (stage: string | null): "default" | "secondary" => {
+const stageVariant = (
+  stage: string | null | undefined,
+): "default" | "secondary" => {
   if (stage === "ready_now") {
     return "default";
   }
@@ -164,7 +166,7 @@ export const HotLeads: React.FC = () => {
                 </div>
               </TableCell>
               <TableCell className="max-w-md">
-                {lead.tier === null ? (
+                {!hasText(lead.tier) ? (
                   <span className="text-muted-foreground">Not tiered</span>
                 ) : (
                   <div className="flex flex-col gap-1">
