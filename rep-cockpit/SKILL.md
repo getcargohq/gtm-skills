@@ -160,7 +160,7 @@ cargo-ai project plan` from the project root. Show the diff, and deploy only on 
 | buying committee     | derived | Proposed from the ICP and personas in context as AI Ark seniorities and departments, confirmed by the operator                | It is who every claim pays to find and draft for                                                     |
 | queue tables         | derived | `cargo-ai storage dataset list` and `column list` on Unify Accounts and the tiered model                                      | A wrong table name is an empty Hot leads page, not an error the deploy catches                       |
 | contacts per claim   | derived | 3 by default; raised only on the operator's word                                                                              | It multiplies every per-claim cost                                                                   |
-| LinkedIn identities  | derived | Each rep's member under the LinkedIn connector (`cargo-ai revenue-organization member list`); a rep with none connects LinkedIn with the Cargo Chrome extension | Without one the rep's LinkedIn buttons are off, with the reason on the card                          |
+| LinkedIn identities  | derived | Each rep's own Cargo user, `webExtensionData.edgesIdentityUid` (`cargo-ai user-management user get-current` as that rep); a rep with none connects LinkedIn with the Cargo Chrome extension | Without one the rep's LinkedIn buttons are off, with the reason on the card                          |
 | follow-up timing     | derived | `followUpAfterHours` 96 and `touchesPerContact` 2 in `infra/settings.ts`; changed only on the operator's word                | A shorter wait reads as nagging; each extra touch is one more email from a rep to a silent person    |
 | positioning in context | derived | The ICP, persona and positioning files in the context repository (`cargo-ai context graph`); flagged when missing         | The writer reads them for every draft; without them every draft pitches something generic            |
 
@@ -204,8 +204,8 @@ it if you still want it, and records why under `## Decisions` in your copy of th
   (`infra/tools/claim-account.ts`) Each iteration of a `for…of` runs as a child run whose input is
   the person, so `input.account_domain` there is empty: the email lookup fails on every person and
   the writer drafts with no account context, while the claim still ends `ready`.
-- **LinkedIn goes out as the rep, on a click.** (`infra/tools/send-linkedin.ts`) The identity comes
-  from the rep's member like the mailbox. A shared LinkedIn seat sends as the wrong person, and an
+- **LinkedIn goes out as the rep, on a click.** (`infra/tools/send-linkedin.ts`) The identity is the
+  signed-in user's own, from the Cargo Chrome extension. A shared LinkedIn seat sends as the wrong person, and an
   invite sent by a play is the automation LinkedIn restricts accounts for.
 - **The watch play never sends.** (`infra/plays/watch-replies.ts`) It waits, logs and drafts; the
   follow-up goes out on the rep's click. A play that sent the follow-up would be a sequence running

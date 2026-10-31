@@ -12,6 +12,7 @@ import {
   Textarea,
   useCargoApi,
 } from "@cargo-ai/app-sdk";
+import type { Api } from "@cargo-ai/api";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import React from "react";
 import { useNavigate, useParams } from "react-router-dom";
@@ -248,6 +249,29 @@ const LinkedinPanel: React.FC<{
   );
 };
 
+// A reply reaches the mailbox minutes after it is sent, and can land after
+// the play drafted the follow-up. Before a follow-up goes out, ask the mailbox
+// whether the email it follows got one: if so, mark the card replied and send
+// nothing.
+const stopIfReplied = async (api: Api, draft: Draft): Promise<void> => {
+  const { events } = await api.mailboxManagement.event.list({
+    messageUuid: orEmpty(draft.message_uuid),
+    kinds: ["replied"],
+    limit: 1,
+  });
+  if (events.length === 0) {
+    return;
+  }
+  await submitUpsert(api, draftsModelUuid, "contact_id", draft.contact_id, {
+    status: "replied",
+    reply_snippet: orEmpty(events[0].snippet),
+    replied_at: events[0].occurredAt,
+  });
+  throw new Error(
+    `${draft.contact_name} replied before this follow-up went out: nothing was sent. The card shows the reply in a minute.`,
+  );
+};
+
 const DraftCard: React.FC<{
   draft: Draft;
   claim: Claim | undefined;
@@ -286,6 +310,9 @@ const DraftCard: React.FC<{
       };
       if (isFollowUp && hasText(draft.rfc_message_id)) {
         data.in_reply_to = draft.rfc_message_id;
+      }
+      if (isFollowUp && hasText(draft.message_uuid)) {
+        await stopIfReplied(api, draft);
       }
       const runUuid = await startTool(api, sendToolUuid, data);
       // A mailbox spaces its sends one to three minutes apart, so a send can

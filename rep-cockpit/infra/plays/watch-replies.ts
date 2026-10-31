@@ -114,10 +114,13 @@ ${input.body}`,
   },
 );
 
-// Every draft that becomes `sent`. `changeKinds: ["added"]` starts one watch
-// per send: a row that leaves `sent` (follow_up, replied) and comes back with
-// the next send is added again. Runs are concurrent by default, which a wait
-// of days needs.
+// Every send: a draft that becomes `sent` is added, and a follow-up sent on a
+// row already `sent` changes its `message_uuid`, which the play tracks. A row
+// that leaves `sent` and comes back between two ticks is never seen leaving,
+// so tracking the message, not the status, is what starts the second watch.
+// A wait matches a reply already on the thread, so a reply that lands before
+// the watch starts is still caught. Runs are concurrent by default, which a
+// wait of days needs.
 //
 // Enabled on deploy: it is the reply half of the loop, and it never sends.
 // Its cost is at most one writer call per sent email.
@@ -144,6 +147,7 @@ export const watchReplies = definePlay("rep_cockpit_watch_replies", {
     ],
   },
   isEnabled: true,
-  changeKinds: ["added"],
+  changeKinds: ["added", "updated"],
+  trackingColumnSlugs: ["message_uuid"],
   schedule: { type: "cron", cron: "*/15 * * * *" },
 });

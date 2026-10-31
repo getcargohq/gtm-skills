@@ -50,8 +50,8 @@ outcome lands on the same row the account page reads.
 The app finds the signed-in rep's revenue-organization member by login email and sends from its
 first mailbox. `defineMember(email, { mailboxes })` is where that link lives, in the project, so
 adding a rep is a reviewed change to `infra/members/reps.ts` and no rep table hides in the app.
-The LinkedIn identity is found the same way: the member's entry under the LinkedIn connector,
-written when the rep connects LinkedIn with the Cargo Chrome extension.
+The LinkedIn identity needs no table either: the Cargo Chrome extension writes it to the rep's own
+Cargo user (`webExtensionData.edgesIdentityUid`), and the app reads it from the signed-in user.
 
 ## How it works
 

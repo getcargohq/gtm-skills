@@ -160,6 +160,7 @@ export type Draft = {
   linkedin_status?: string | null;
   status: string;
   drafted_at?: string | null;
+  message_uuid?: string | null;
   rfc_message_id?: string | null;
   touches?: number | null;
   reply_snippet?: string | null;
@@ -171,7 +172,7 @@ export const draftsQuery = (domain: string): string => {
 SELECT contact_id, contact_name, contact_title, contact_email, contact_phone,
   linkedin_url, rep_name, subject, body, why_now, linkedin_note,
   linkedin_status, status,
-  CAST(drafted_at AS STRING) AS drafted_at, rfc_message_id,
+  CAST(drafted_at AS STRING) AS drafted_at, message_uuid, rfc_message_id,
   touches, reply_snippet, CAST(replied_at AS STRING) AS replied_at
 FROM object.cockpit_drafts
 WHERE account_domain = ${quote(domain)}

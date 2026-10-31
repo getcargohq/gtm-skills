@@ -159,7 +159,6 @@ for (const [key, resourceId] of [
   ["VITE_CLAIM_TOOL_UUID", "tool:rep_cockpit_claim_account"],
   ["VITE_SEND_TOOL_UUID", "tool:rep_cockpit_send_draft"],
   ["VITE_LINKEDIN_TOOL_UUID", "tool:rep_cockpit_send_linkedin"],
-  ["VITE_LINKEDIN_CONNECTOR_UUID", "connector:linkedin"],
   ["VITE_REDRAFT_TOOL_UUID", "tool:rep_cockpit_redraft"],
   ["VITE_ENRICH_TOOL_UUID", "tool:rep_cockpit_enrich_contact"],
   ["VITE_CLAIMS_MODEL_UUID", "model:cockpit_claims"],
