@@ -2206,6 +2206,7 @@
       "shouldNotChange": [
         "**Every send is one click by the rep it is from.** (`infra/tools/send-draft.ts`, called from the account page only) A scheduled or bulk send from this cockpit is a sequencer with no review step, and the first bad draft goes to everyone.",
         "**The claim runs on the server, in one tool run.** (`infra/tools/claim-account.ts`) Orchestrated from the browser, closing the tab mid-claim leaves an account claimed with nothing sourced, and nobody notices because the claim row looks fine.",
+        "**Inside the per-person loop, values come from the claim row, never `input`.** (`infra/tools/claim-account.ts`) Each iteration of a `for…of` runs as a child run whose input is the person, so `input.account_domain` there is empty: the email lookup fails on every person and the writer drafts with no account context, while the claim still ends `ready`.",
         "**The send and its log are one run.** (`infra/tools/send-draft.ts`) Logged from the browser after the send, a closed tab loses the activity row, and every pipeline reading GTM activities misses a touch that happened.",
         "**The mailbox comes from the rep's member, not from the app.** (`src/lib/rep.ts`) A rep table in the app source is a redeploy per hire, and a missing row reads as a dead Send button.",
         "**Claims are keyed by domain, one row per account.** (`cockpit_claims`) Two keys and the queue and the account page disagree about who owns an account.",
