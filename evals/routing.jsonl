@@ -232,5 +232,6 @@
 {"prompt": "Build a cockpit where my SDRs claim hot accounts and send the first email from their own mailbox", "expect": "rep-cockpit", "why": "A standing app reps claim from and send in is rep-cockpit; readiness-scoring only scores."}
 {"prompt": "One screen per rep with their claimed accounts, the buying committee and a draft for each person", "expect": "rep-cockpit"}
 {"prompt": "Let reps claim accounts so two people never work the same company", "expect": "rep-cockpit"}
+{"prompt": "In the cockpit, show my reps the replies to the emails they sent and draft a follow-up they send themselves when nobody answers", "expect": "rep-cockpit", "why": "Replies and rep-sent follow-ups on the cockpit's own threads are rep-cockpit; an agent that answers the replies itself is agentic-engagement."}
 {"prompt": "Who's on the buying committee at northwind.example?", "expect": "find-stakeholders", "why": "One account's committee, once, is the one-off; rep-cockpit sources it on every claim."}
 {"prompt": "Deploy an agent that answers leads who reply to our first emails", "expect": "agentic-engagement", "why": "Answering replies is the conversation agent; rep-cockpit stops at the rep's first send."}

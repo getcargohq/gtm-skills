@@ -5,14 +5,15 @@ have been read by a person.
 
 ## Queue
 
-The Hot leads query is `infra/apps/cockpit/src/lib/queries.ts` (`hotLeadsQuery`). It reads three
-tables:
+The Hot leads query is `infra/apps/cockpit/src/lib/queries.ts` (`hotLeadsQuery`, and
+`signalsQuery` for the why-now column). They read four tables:
 
 | Table                   | Owned by          | Columns read                                                   |
 | ----------------------- | ----------------- | -------------------------------------------------------------- |
 | `object.accounts`       | readiness-scoring | `domain`, `metric__readiness_score`, `computed__readiness_stage` |
 | `ai_ark.tam_companies`  | account-scoring   | `domain`, `name`, `custom__tier`, `custom__tier_reason`        |
-| `object.cockpit_claims` | this skill        | `account_domain`, `status`                                     |
+| `object.account_events` | readiness-scoring | `account_id`, `properties`, `event_name`, `occurred_at`, `computed__readiness_contribution` |
+| `object.cockpit_claims` | this skill        | `account_domain`, `status`, `parked_until`                     |
 
 `object` is the workspace's native dataset; `ai_ark` is the dataset of the connector tam-building
 sources through. Confirm both, and the columns:
@@ -77,9 +78,37 @@ A refused send fails the run with its reason and marks nothing sent: `recipientS
 remove the suppression to get around it), `mailboxNotActive` (the mailbox is still provisioning or
 was disabled), `dailyLimitReached` (the warm-up ramp; it lifts on its own).
 
+## Pilot reply
+
+The send marked the draft `sent`, and within fifteen minutes `rep_cockpit_watch_replies` starts a
+run on it that waits on the thread:
+
+```sh
+cargo-ai orchestration play list
+cargo-ai orchestration run list --workflow-uuid <watch-replies-workflow-uuid> --limit 1
+```
+
+1. Reply to the test email from the address you own. Within a few minutes of the reply the run
+   ends: the card reads Replied with the reply's first lines, and the timeline lists it.
+2. Click Meeting booked, and check the `meeting` row on `gtm_activities`.
+3. To pilot the follow-up instead, do not reply. After `followUpAfterHours` the card reads
+   Follow-up with a new draft; send it and check that it arrives in the same thread. Set
+   `followUpAfterHours` to 1 on a pilot project to see it the same day, then set it back.
+
+Run Regenerate once with an instruction and Find email and phone once on a person with no email:
+each is one tool run (`rep_cockpit_redraft`, `rep_cockpit_enrich_contact`) and the card changes when
+it ends.
+
 ## After the pilot
 
-Hand the URL to the reps. Watch the first week's claims for runs that end `failed`
+Hand the URL to the reps. Read the pass reasons after the first week: many `no_fit` passes on
+one tier means the tiering, not the reps, needs the change.
+
+```sh
+cargo-ai storage query execute "SELECT pass_reason, COUNT(*) AS passes FROM object.cockpit_claims WHERE status = 'passed' GROUP BY 1"
+```
+
+Watch the first week's claims for runs that end `failed`
 (`cargo-ai orchestration run list` on the claim tool's workflow) and for accounts whose committee
 search returned nobody: both usually mean the committee filters in `infra/settings.ts` are too
 narrow for that market.

@@ -3,6 +3,15 @@ import type { Api, Orchestration } from "@cargo-ai/api";
 // The three ways this app talks to Cargo: SQL to read, a tool run to do
 // something that takes steps, and a native record write for a single click.
 
+const toMappings = (
+  values: Record<string, unknown>,
+): { columnSlug: string; value: unknown }[] => {
+  return Object.entries(values).map(([columnSlug, value]) => ({
+    columnSlug,
+    value,
+  }));
+};
+
 export const sql = async <T>(api: Api, query: string): Promise<T[]> => {
   const result = await api.storage.query.execute({ query });
   return result.rows as T[];
@@ -64,12 +73,29 @@ export const submitUpsert = async (
     kind: "native",
     actionSlug: "modelUpsert",
   };
-  const mappings = Object.entries(values).map(([columnSlug, value]) => ({
-    columnSlug,
-    value,
-  }));
   await api.orchestration.action.execute({
     action,
-    data: { modelUuid, matchingColumnSlug, matchingValue, mappings },
+    data: {
+      modelUuid,
+      matchingColumnSlug,
+      matchingValue,
+      mappings: toMappings(values),
+    },
+  });
+};
+
+// One new row, by the native modelInsert action, submitted like an upsert.
+export const submitInsert = async (
+  api: Api,
+  modelUuid: string,
+  values: Record<string, unknown>,
+): Promise<void> => {
+  const action: Orchestration.Action = {
+    kind: "native",
+    actionSlug: "modelInsert",
+  };
+  await api.orchestration.action.execute({
+    action,
+    data: { modelUuid, mappings: toMappings(values) },
   });
 };

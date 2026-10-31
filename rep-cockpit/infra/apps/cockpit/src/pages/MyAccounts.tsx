@@ -16,10 +16,33 @@ import { Link } from "react-router-dom";
 
 import { sql } from "../lib/cargo";
 import { heldClickFor, useHeldClicks } from "../lib/held";
-import { myClaimsQuery, type Claim } from "../lib/queries";
+import { myClaimsQuery, type MyClaim } from "../lib/queries";
 import { useRep } from "../lib/rep";
 
-type Row = { domain: string; name: string; sourcing: string };
+type Row = {
+  domain: string;
+  name: string;
+  sourcing: string;
+  needs: string[];
+};
+
+// What waits for the rep on an account: replies to read, follow-ups to send.
+const needsOf = (claim: MyClaim): string[] => {
+  const needs: string[] = [];
+  const replies = Number(claim.replies ?? 0);
+  const followUps = Number(claim.follow_ups ?? 0);
+  if (replies === 1) {
+    needs.push("1 reply");
+  } else if (replies > 1) {
+    needs.push(`${replies} replies`);
+  }
+  if (followUps === 1) {
+    needs.push("1 follow-up to send");
+  } else if (followUps > 1) {
+    needs.push(`${followUps} follow-ups to send`);
+  }
+  return needs;
+};
 
 const sourcingLabel = (sourcingStatus: string | null | undefined): string => {
   if (sourcingStatus === "ready") {
@@ -42,7 +65,7 @@ export const MyAccounts: React.FC = () => {
       if (rep === undefined) {
         return [];
       }
-      return sql<Claim>(api, myClaimsQuery(rep.email));
+      return sql<MyClaim>(api, myClaimsQuery(rep.email));
     },
     enabled: rep !== undefined,
     refetchInterval: 60 * 1000,
@@ -77,12 +100,18 @@ export const MyAccounts: React.FC = () => {
       domain: claim.account_domain,
       name: claim.account_name,
       sourcing: sourcingLabel(claim.sourcing_status),
+      needs: needsOf(claim),
     });
   }
   // Claimed in this browser, not yet in SQL.
   for (const [domain, click] of clicks) {
     if (click.status === "claimed" && !seen.has(domain)) {
-      rows.unshift({ domain, name: click.accountName, sourcing: "Sourcing" });
+      rows.unshift({
+        domain,
+        name: click.accountName,
+        sourcing: "Sourcing",
+        needs: [],
+      });
     }
   }
 
@@ -103,6 +132,7 @@ export const MyAccounts: React.FC = () => {
           <TableRow>
             <TableHead>Account</TableHead>
             <TableHead>Status</TableHead>
+            <TableHead>Needs you</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -121,6 +151,13 @@ export const MyAccounts: React.FC = () => {
               </TableCell>
               <TableCell>
                 <Badge variant="outline">{row.sourcing}</Badge>
+              </TableCell>
+              <TableCell>
+                <div className="flex gap-2">
+                  {row.needs.map((need) => (
+                    <Badge key={need}>{need}</Badge>
+                  ))}
+                </div>
               </TableCell>
             </TableRow>
           ))}

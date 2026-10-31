@@ -12,3 +12,13 @@ export const contactsPerClaim = 3;
 // empty list.
 export const committeeSeniorities = ["c_suite", "vp", "director", "head"];
 export const committeeDepartments = ["sales", "marketing", "operations"];
+
+// How long a sent email waits for a reply before the writer drafts the next
+// touch, in hours. The wait is one play run per sent email, so a reply that
+// lands later than this, after the last touch, is not logged on the account.
+export const followUpAfterHours = 96;
+
+// How many emails one person gets in all, the first touch included. The play
+// drafts a follow-up while a person is under it, and marks them no_reply at it.
+// Every follow-up is still a draft: the rep reads it and clicks Send.
+export const touchesPerContact = 2;

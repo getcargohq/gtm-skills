@@ -5,6 +5,7 @@ import { resetRegistry, resources } from "@cargo-ai/cdk";
 resetRegistry();
 await import(`../infra/apps/cockpit.ts?contract=${Date.now()}`);
 await import(`../infra/members/reps.ts?contract=${Date.now()}`);
+await import(`../infra/plays/watch-replies.ts?contract=${Date.now()}`);
 
 const all = resources();
 const byId = new Map(all.map((resource) => [resource.id, resource]));
@@ -65,12 +66,47 @@ for (const slug of ["sendEmail", "modelUpsert", "modelInsert"]) {
   assert.ok(sendGraph.includes(`"${slug}"`), `the send must run ${slug}`);
 }
 
-// Nothing sends on a schedule.
-assert.equal(
-  all.some((resource) => resource.kind === "play"),
-  false,
-  "no play: every send is a rep's click",
+// A follow-up threads under the email before it.
+assert.ok(
+  sendGraph.includes("inReplyTo"),
+  "a follow-up must be sent as a reply in its thread",
 );
+
+// Nothing sends on a schedule: the one play waits for replies and drafts.
+const plays = all.filter((resource) => resource.kind === "play");
+assert.equal(plays.length, 1, "one play: the reply watch");
+const watchGraph = JSON.stringify(plays[0].spec);
+assert.ok(
+  watchGraph.includes('"waitEmailEvent"'),
+  "the play must wait on the thread for a reply",
+);
+assert.equal(
+  watchGraph.includes('"sendEmail"'),
+  false,
+  "the play must never send: every send is a rep's click",
+);
+assert.ok(
+  watchGraph.includes("rep_cockpit_first_touch_writer"),
+  "the play must draft the follow-up with the writer",
+);
+
+// Regenerate and Find email and phone are tool runs, never connector calls
+// from the browser.
+const redraft = byId.get("tool:rep_cockpit_redraft");
+assert.ok(redraft, "the redraft tool must exist");
+assert.equal(
+  nodeSlugs(redraft).includes('"sendEmail"'),
+  false,
+  "a redraft must never send",
+);
+const enrich = byId.get("tool:rep_cockpit_enrich_contact");
+assert.ok(enrich, "the enrich tool must exist");
+for (const slug of ["findEmail", "findPhone"]) {
+  assert.ok(
+    nodeSlugs(enrich).includes(`"${slug}"`),
+    `the enrich tool must run ${slug}`,
+  );
+}
 
 // The writer judges, the tool persists.
 const writer = byId.get("agent:rep_cockpit_first_touch_writer");
@@ -93,7 +129,11 @@ assert.ok(app, "the app must exist");
 for (const [key, resourceId] of [
   ["VITE_CLAIM_TOOL_UUID", "tool:rep_cockpit_claim_account"],
   ["VITE_SEND_TOOL_UUID", "tool:rep_cockpit_send_draft"],
+  ["VITE_REDRAFT_TOOL_UUID", "tool:rep_cockpit_redraft"],
+  ["VITE_ENRICH_TOOL_UUID", "tool:rep_cockpit_enrich_contact"],
   ["VITE_CLAIMS_MODEL_UUID", "model:cockpit_claims"],
+  ["VITE_DRAFTS_MODEL_UUID", "model:cockpit_drafts"],
+  ["VITE_ACTIVITIES_MODEL_UUID", "model:gtm_activities"],
 ]) {
   assert.equal(
     app.spec.env[key].resourceId,

@@ -24,8 +24,12 @@ Walk every line. A checked template without an evidence-backed consumer adaptati
 - The claim is one tool run: account, people search, contact, email lookup, draft, claim marked
   ready. The app never calls a connector action itself.
 - The send is one tool run: `sendEmail`, the draft marked sent, one `gtm_activities` row.
-- No play, schedule or bulk action sends email.
-- The writer agent has read-only context, no web search and no model in `uses`.
+- No play, schedule or bulk action sends email. The one play, `rep_cockpit_watch_replies`, waits,
+  logs and drafts; a follow-up is sent by the send tool, as a reply in its thread.
+- Regenerate and Find email and phone are tool runs; the app never calls the writer or Prospeo
+  itself.
+- The writer agent has read-only context, no web search and no model in `uses`, and writes the
+  first touch, the rewrite and the follow-up.
 - The app reads the tool and model ids from `defineApp` `env`, never from a hard-coded uuid.
 - `node --import tsx evals/contract.mjs`, `npm run type:check` in the app, `cargo-ai project types`,
   `cargo-ai project check` and `cargo-ai project plan` pass.
@@ -35,7 +39,11 @@ Walk every line. A checked template without an evidence-backed consumer adaptati
 - One claim reached `ready`, with a draft per sourced person, and the drafts were read by hand.
 - One send to an address the operator owns arrived with the unsubscribe link, and both writes
   landed.
-- The per-claim cost from the pilot run was given to the operator.
+- A reply to the test send landed on its card and the timeline, and Meeting booked logged a
+  `meeting` row; or, with no reply, the follow-up was drafted and arrived in the same thread.
+- A "Not now" pass left Hot leads with its reason and date.
+- The per-claim cost from the pilot run was given to the operator, with the price of a follow-up,
+  a rewrite and a phone lookup.
 
 ## Guided handoff
 

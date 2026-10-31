@@ -29,3 +29,8 @@ export const appsFolder = defineFolder("rep_cockpit_apps", {
   kind: "app",
   name: "Rep cockpit",
 });
+
+export const playsFolder = defineFolder("rep_cockpit_plays", {
+  kind: "play",
+  name: "Rep cockpit",
+});
