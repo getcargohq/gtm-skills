@@ -19,6 +19,7 @@ import { AccountPreview } from "../components/AccountPreview";
 import { AddAccount } from "../components/AddAccount";
 import { CompanyLogo, LinkedinLink } from "../components/CompanyLogo";
 import { FilterBar } from "../components/FilterBar";
+import { ReadinessScore } from "../components/ReadinessScore";
 import { claimsModelUuid, passReasons, type PassReason } from "../config";
 import { sql, submitUpsert } from "../lib/cargo";
 import { heldClickFor, useHeldClicks } from "../lib/held";
@@ -26,10 +27,7 @@ import {
   accountContextOf,
   matchesFilters,
   noFilters,
-  signalLabel,
   signalsByDomain,
-  stageLabel,
-  stageVariant,
   startClaim,
   type Filters,
 } from "../lib/hot-accounts";
@@ -41,8 +39,32 @@ import {
   type Signal,
 } from "../lib/queries";
 import { useRep } from "../lib/rep";
+import { signalName, timeAgo } from "../lib/signals";
 
 const dayMs = 24 * 60 * 60 * 1000;
+
+// The signals that count most on a row, newest wording first, with the detail
+// on hover. The preview lists them all.
+const SignalCell: React.FC<{ signals: Signal[] }> = ({ signals }) => {
+  if (signals.length === 0) {
+    return <span className="text-sm text-muted-foreground">None yet</span>;
+  }
+  return (
+    <ul className="flex flex-col gap-0.5 text-sm">
+      {signals.map((signal) => (
+        <li
+          key={`${signal.signal}-${signal.occurred}`}
+          title={signal.summary ?? ""}
+        >
+          {signalName(signal)}{" "}
+          <span className="text-xs text-muted-foreground">
+            {timeAgo(signal.occurred)}
+          </span>
+        </li>
+      ))}
+    </ul>
+  );
+};
 
 export const HotAccounts: React.FC = () => {
   const api = useCargoApi();
@@ -159,8 +181,8 @@ export const HotAccounts: React.FC = () => {
         <div>
           <h1 className="text-xl font-semibold">Hot accounts</h1>
           <p className="text-sm text-muted-foreground">
-            Best fit first, then readiness. Click a company to read about it;
-            claim it and its buying committee is found with a draft for each
+            Best fit first, then readiness score. Click a company to read about
+            it; claim it and its buying committee is found with a draft for each
             person.
           </p>
         </div>
@@ -194,6 +216,7 @@ export const HotAccounts: React.FC = () => {
               <TableHead>Company</TableHead>
               <TableHead>Fit</TableHead>
               <TableHead>Readiness</TableHead>
+              <TableHead>Signals</TableHead>
               <TableHead className="text-right">
                 <span className="sr-only">Actions</span>
               </TableHead>
@@ -246,31 +269,14 @@ export const HotAccounts: React.FC = () => {
                     </span>
                   )}
                 </TableCell>
+                <TableCell>
+                  <ReadinessScore
+                    stage={account.readiness_stage}
+                    score={account.readiness_score}
+                  />
+                </TableCell>
                 <TableCell className="max-w-xs">
-                  <div className="flex flex-col gap-1">
-                    {hasText(account.readiness_stage) ? (
-                      <Badge
-                        variant={stageVariant(account.readiness_stage)}
-                        className="w-fit"
-                      >
-                        {stageLabel(account.readiness_stage)}
-                      </Badge>
-                    ) : null}
-                    {!hasText(account.readiness_stage) &&
-                    (signalsOf.get(account.domain) ?? []).length === 0 ? (
-                      <span className="text-xs text-muted-foreground">
-                        No signal yet
-                      </span>
-                    ) : null}
-                    {(signalsOf.get(account.domain) ?? []).map((signal) => (
-                      <span
-                        key={`${signal.signal}-${signal.occurred}`}
-                        className="text-xs text-muted-foreground"
-                      >
-                        {signalLabel(signal)}
-                      </span>
-                    ))}
-                  </div>
+                  <SignalCell signals={signalsOf.get(account.domain) ?? []} />
                 </TableCell>
                 <TableCell
                   className="text-right"
@@ -326,7 +332,6 @@ export const HotAccounts: React.FC = () => {
       )}
       <AccountPreview
         account={previewing}
-        signals={signalsOf.get(previewing?.domain ?? "") ?? []}
         isBusy={claim.isLoading || pass.isLoading || rep === undefined}
         onClose={() => setPreviewing(undefined)}
         onClaim={(account) => claim.mutate(account)}

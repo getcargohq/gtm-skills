@@ -35,6 +35,32 @@ export const needsOf = (counts: NeedCounts): string[] => {
   return needs;
 };
 
+// The same needs, said as what to do next, for the alert on the account page.
+export const nextStepsOf = (counts: NeedCounts): string[] => {
+  const steps: string[] = [];
+  if (counts.replies > 0) {
+    steps.push(
+      `Read ${plural(counts.replies, "reply", "replies")} below, then answer or mark the meeting booked.`,
+    );
+  }
+  if (counts.followUps > 0) {
+    steps.push(
+      `Send ${plural(counts.followUps, "follow-up", "follow-ups")}: each is drafted in its thread, ready to review.`,
+    );
+  }
+  if (counts.drafts > 0) {
+    steps.push(
+      `Review ${plural(counts.drafts, "first email", "first emails")}, edit if needed, and press Send email.`,
+    );
+  }
+  if (counts.noEmail > 0) {
+    steps.push(
+      `${plural(counts.noEmail, "person has", "people have")} no email yet: press Find email and phone on their card, or reach them on LinkedIn.`,
+    );
+  }
+  return steps;
+};
+
 export const countNeeds = (drafts: Draft[]): NeedCounts => {
   const countStatus = (status: string): number => {
     return drafts.filter((draft) => draft.status === status).length;

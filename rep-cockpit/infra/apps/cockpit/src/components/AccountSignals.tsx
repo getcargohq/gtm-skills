@@ -5,8 +5,10 @@ import React from "react";
 
 import { sql } from "../lib/cargo";
 import { accountSignalsQuery, hasText, type Signal } from "../lib/queries";
+import { signalName, timeAgo } from "../lib/signals";
 
-// Every signal on the account, newest first.
+// Every signal on the account, newest first: what happened, when, the detail
+// the source gave, and which feed it came from.
 export const AccountSignals: React.FC<{ domain: string }> = ({ domain }) => {
   const api = useCargoApi();
   const signals = useQuery({
@@ -29,19 +31,32 @@ export const AccountSignals: React.FC<{ domain: string }> = ({ domain }) => {
     );
   }
   return (
-    <ul className="flex flex-col gap-2">
+    <ul className="flex flex-col gap-3">
       {signals.data.map((signal, index) => (
         <li
           key={`${signal.signal}-${signal.occurred}-${index}`}
           className="flex items-start gap-2 text-sm"
         >
           <Zap className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-500" />
-          <span className="flex-1">{signal.signal}</span>
-          {hasText(signal.occurred) ? (
-            <span className="shrink-0 text-xs text-muted-foreground">
-              {signal.occurred}
-            </span>
-          ) : null}
+          <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+            <div className="flex items-baseline justify-between gap-2">
+              <span className="font-medium">{signalName(signal)}</span>
+              <span
+                className="shrink-0 text-xs text-muted-foreground"
+                title={signal.occurred ?? ""}
+              >
+                {timeAgo(signal.occurred)}
+              </span>
+            </div>
+            {hasText(signal.summary) ? (
+              <p className="text-muted-foreground">{signal.summary}</p>
+            ) : null}
+            {hasText(signal.source) ? (
+              <span className="text-xs text-muted-foreground">
+                From {signal.source}
+              </span>
+            ) : null}
+          </div>
         </li>
       ))}
     </ul>

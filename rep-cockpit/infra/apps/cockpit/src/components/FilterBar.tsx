@@ -64,6 +64,7 @@ export const FilterBar: React.FC<{
           <SelectItem value="all">Any readiness</SelectItem>
           <SelectItem value="ready_now">Ready now</SelectItem>
           <SelectItem value="warming">Warming</SelectItem>
+          <SelectItem value="none">Not scored</SelectItem>
         </SelectContent>
       </Select>
       <label className="flex h-9 cursor-pointer items-center gap-2 rounded-md border border-input bg-background px-3 text-sm">

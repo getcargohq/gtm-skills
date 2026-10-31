@@ -15,7 +15,7 @@ cargo-ai project add cookbook/rep-cockpit
    it. Each row shows the company's logo and LinkedIn page and the three signals adding most to its
    score, from Account Events, and filters by tier, readiness, signals or name. Claim, Pass with a
    reason (a "not now" returns in 90 days), or add an account by its website. A row opens a preview
-   with the fit (scored when, why, and Rescore), readiness, signals and the company's description.
+   with the fit (scored when, why, and Rescore), readiness score, every signal with its detail, and the company's description.
 2. **Claim.** The app starts one tool run, `rep_cockpit_claim_account`: the account is upserted on
    `gtm_accounts`, AI Ark searches the buying committee at its domain, each person lands on
    `gtm_contacts`, Prospeo finds the work email, and the first-touch writer drafts one email per

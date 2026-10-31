@@ -1,4 +1,7 @@
 import {
+  Alert,
+  AlertDescription,
+  AlertTitle,
   Badge,
   Button,
   Card,
@@ -15,7 +18,7 @@ import {
   useCargoApi,
 } from "@cargo-ai/app-sdk";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Undo2 } from "lucide-react";
+import { ListTodo, Undo2 } from "lucide-react";
 import React from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
@@ -28,7 +31,7 @@ import { claimsModelUuid } from "../config";
 import { sql, submitUpsert } from "../lib/cargo";
 import { byAttention } from "../lib/drafts";
 import { heldClickFor, isClaimRowCurrent, useHeldClicks } from "../lib/held";
-import { countNeeds, needsOf, sourcingLabel } from "../lib/needs";
+import { countNeeds, nextStepsOf, sourcingLabel } from "../lib/needs";
 import {
   accountLookupQuery,
   claimQuery,
@@ -140,7 +143,7 @@ export const Account: React.FC = () => {
     name = click.accountName;
   }
   const people = [...drafts.data].sort(byAttention);
-  const needs = needsOf(countNeeds(people));
+  const nextSteps = nextStepsOf(countNeeds(people));
   let status = "Sourcing";
   if (!isStarting && claim.data !== undefined) {
     status = sourcingLabel(claim.data.sourcing_status);
@@ -164,11 +167,6 @@ export const Account: React.FC = () => {
               </a>
               <LinkedinLink url={company.data?.linkedin_url} />
               <Badge variant="outline">{status}</Badge>
-              {needs.length === 0 ? (
-                <span>Nothing waiting</span>
-              ) : (
-                needs.map((need) => <Badge key={need}>{need}</Badge>)
-              )}
             </div>
           </div>
         </div>
@@ -196,6 +194,19 @@ export const Account: React.FC = () => {
       {release.error === null ? null : (
         <p className="text-sm text-destructive">{String(release.error)}</p>
       )}
+      {!isSourcing && nextSteps.length > 0 ? (
+        <Alert>
+          <ListTodo className="h-4 w-4" />
+          <AlertTitle>Next steps</AlertTitle>
+          <AlertDescription>
+            <ul className="mt-1 flex list-disc flex-col gap-1 pl-4">
+              {nextSteps.map((step) => (
+                <li key={step}>{step}</li>
+              ))}
+            </ul>
+          </AlertDescription>
+        </Alert>
+      ) : null}
       {isSourcing ? (
         <div className="flex items-start gap-3 rounded-lg border border-primary/30 bg-primary/5 p-4">
           <Spinner />

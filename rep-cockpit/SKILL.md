@@ -33,7 +33,7 @@ for this skill until it is approved.
 
 One screen your reps open in the morning, at a URL behind the Cargo login. **Hot accounts** lists the
 accounts that are ready now or warming, best fit first, with each company's logo and LinkedIn
-page and the dated signals behind it, that nobody holds; a rep filters it by tier, readiness,
+page, its fit tier, its readiness score and the signals behind it, that nobody holds; a rep filters it by tier, readiness,
 signals or name. A rep clicks **Claim**, or **Pass** with a reason (a "not now" comes back in 90
 days), or adds an account the queue never surfaced by its website. A claim is one tool run on the
 server: the account lands on GTM accounts, the buying committee is searched at its domain, each
@@ -42,10 +42,10 @@ first touch for each, from the account's tier, readiness and signals and the com
 positioning in context.
 
 Clicking a Hot account opens its preview: the fit tier with when it was scored and why, its readiness
-and signals, and what the company is, with Claim and Pass. **Rescore** queues a stale tier for
+score, every signal with its detail and source, and what the company is, with Claim and Pass. **Rescore** queues a stale tier for
 account scoring's next hourly run, by clearing the company's `tiered_at` stamp. **My accounts** holds what the rep claimed, with what needs the rep on
-each (replies to read, follow-ups and drafts to send, emails to find), the same line the account
-page heads with. An account page opens on the company (description, firmographics, fit and every signal),
+each (replies to read, follow-ups and drafts to send, emails to find). An account page turns the same counts into a **Next steps** alert, and opens on
+the company (description, firmographics, fit, readiness score and every signal),
 with **Add person** for someone the search missed, and shows each person with the draft, editable, with **Regenerate** (the rep says what to
 change), **Find email and phone**, and **Send**, from the rep's own Cargo mailbox. Under each
 email sits the writer's LinkedIn connection note, with **Send invite** and **Send message** from
@@ -81,9 +81,9 @@ is in the rep's mailbox, not on the card.
 Illustrative output, fictional records:
 
 ```
-Hot accounts                      Fit     Readiness
-Northwind Traders              Tier A  Ready now · funding 2026-10-14 · job post 2026-10-20
-Fabrikam                       Tier B  Warming · product launch 2026-10-09         [Pass] [Claim]
+Hot accounts       Fit     Readiness        Signals
+Northwind Traders  Tier A  Ready now · 82   Funding round 2 weeks ago, Job posting 11 days ago
+Fabrikam           Tier B  Warming · 41     Product launch 3 weeks ago        [Pass] [Claim]
 
 Northwind Traders · claimed by Jane · 3 sourced
   Priya Raman, VP Revenue Operations · priya@northwind.example · LinkedIn

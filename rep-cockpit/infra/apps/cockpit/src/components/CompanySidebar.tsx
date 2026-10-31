@@ -5,6 +5,7 @@ import type { HotAccount } from "../lib/queries";
 import { AccountSignals } from "./AccountSignals";
 import { CompanyAbout } from "./CompanyAbout";
 import { FitSection } from "./FitSection";
+import { ReadinessScore } from "./ReadinessScore";
 
 const Section: React.FC<{ title: string; children: React.ReactNode }> = ({
   title,
@@ -21,7 +22,7 @@ const Section: React.FC<{ title: string; children: React.ReactNode }> = ({
 };
 
 // The company, read once at the top of the account: what it does, why it fits
-// and every signal on it. The people cards below only give the angle for each person.
+// how ready it is and every signal on it. The people cards below only give the angle for each person.
 export const CompanySidebar: React.FC<{
   domain: string;
   company: HotAccount | undefined;
@@ -34,6 +35,13 @@ export const CompanySidebar: React.FC<{
         </Section>
         <Section title="Fit">
           <FitSection company={company} />
+        </Section>
+        <Section title="Readiness">
+          <ReadinessScore
+            stage={company?.readiness_stage}
+            score={company?.readiness_score}
+            explain
+          />
         </Section>
         <Section title="Signals">
           <AccountSignals domain={domain} />

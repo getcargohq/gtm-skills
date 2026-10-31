@@ -1,5 +1,4 @@
 import {
-  Badge,
   Button,
   Sheet,
   SheetContent,
@@ -11,15 +10,15 @@ import {
 import React from "react";
 
 import { passReasons, type PassReason } from "../config";
-import { signalLabel, stageLabel, stageVariant } from "../lib/hot-accounts";
-import { hasText, type HotAccount, type Signal } from "../lib/queries";
+import { type HotAccount } from "../lib/queries";
+import { AccountSignals } from "./AccountSignals";
 import { CompanyAbout } from "./CompanyAbout";
 import { CompanyLogo, LinkedinLink } from "./CompanyLogo";
 import { FitSection } from "./FitSection";
+import { ReadinessScore } from "./ReadinessScore";
 
 type PreviewProps = {
   account: HotAccount | undefined;
-  signals: Signal[];
   isBusy: boolean;
   onClose: () => void;
   onClaim: (account: HotAccount) => void;
@@ -41,10 +40,9 @@ const Section: React.FC<{ title: string; children: React.ReactNode }> = ({
 };
 
 // Everything the queue knows about one Hot account, to decide before claiming:
-// why it fits, why now, and what the company is.
+// why it fits, how ready it is, its signals, and what the company is.
 export const AccountPreview: React.FC<PreviewProps> = ({
   account,
-  signals,
   isBusy,
   onClose,
   onClaim,
@@ -88,28 +86,14 @@ export const AccountPreview: React.FC<PreviewProps> = ({
               <FitSection company={account} />
             </Section>
             <Section title="Readiness">
-              {hasText(account.readiness_stage) ? (
-                <Badge
-                  variant={stageVariant(account.readiness_stage)}
-                  className="w-fit"
-                >
-                  {stageLabel(account.readiness_stage)}
-                </Badge>
-              ) : null}
-              {signals.length > 0 ? (
-                <ul className="flex flex-col gap-1 text-sm">
-                  {signals.map((signal) => (
-                    <li key={`${signal.signal}-${signal.occurred}`}>
-                      {signalLabel(signal)}
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="text-sm text-muted-foreground">
-                  No buying signal on file yet: no hire, funding, visit or
-                  engagement has been recorded for this company.
-                </p>
-              )}
+              <ReadinessScore
+                stage={account.readiness_stage}
+                score={account.readiness_score}
+                explain
+              />
+            </Section>
+            <Section title="Signals">
+              <AccountSignals domain={account.domain} />
             </Section>
             <Section title="About">
               <CompanyAbout domain={account.domain} />

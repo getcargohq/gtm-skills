@@ -62,18 +62,22 @@ export type Signal = {
   domain: string;
   signal: string;
   occurred?: string | null;
+  summary?: string | null;
+  source?: string | null;
 };
 
-// The Readiness column: the three events adding most to each account's readiness today,
+// The Signals column: the three events adding most to each account's readiness today,
 // from readiness-scoring's Account Events. The same rows the score sums, so
 // the list can never disagree with the stage next to it.
 export const signalsQuery = (domains: string[]): string => {
   return `
-SELECT domain, signal, occurred FROM (
+SELECT domain, signal, occurred, summary, source FROM (
   SELECT
     a.domain AS domain,
     COALESCE(JSON_VALUE(e.properties, '$.signal_type'), e.event_name, e.model_slug) AS signal,
     CAST(DATE(CAST(e.occurred_at AS TIMESTAMP)) AS STRING) AS occurred,
+    COALESCE(JSON_VALUE(e.properties, '$.summary'), JSON_VALUE(e.properties, '$.title'), JSON_VALUE(e.properties, '$.description')) AS summary,
+    e.event_name AS source,
     ROW_NUMBER() OVER (
       PARTITION BY a.domain ORDER BY e.computed__readiness_contribution DESC
     ) AS signal_rank
@@ -93,7 +97,9 @@ export const accountSignalsQuery = (domain: string): string => {
 SELECT
   a.domain AS domain,
   COALESCE(JSON_VALUE(e.properties, '$.signal_type'), e.event_name, e.model_slug) AS signal,
-  CAST(DATE(CAST(e.occurred_at AS TIMESTAMP)) AS STRING) AS occurred
+  CAST(DATE(CAST(e.occurred_at AS TIMESTAMP)) AS STRING) AS occurred,
+  COALESCE(JSON_VALUE(e.properties, '$.summary'), JSON_VALUE(e.properties, '$.title'), JSON_VALUE(e.properties, '$.description')) AS summary,
+  e.event_name AS source
 FROM object.accounts a
 JOIN object.account_events e ON e.account_id = a.id
 WHERE a.domain = ${quote(domain)}

@@ -6,7 +6,7 @@ have been read by a person.
 ## Queue
 
 The Hot accounts query is `infra/apps/cockpit/src/lib/queries.ts` (`hotAccountsQuery`, and
-`signalsQuery` for the Readiness column). They read four tables:
+`signalsQuery` for the Signals column). They read four tables:
 
 | Table                   | Owned by          | Columns read                                                   |
 | ----------------------- | ----------------- | -------------------------------------------------------------- |

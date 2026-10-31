@@ -4,13 +4,7 @@ import { claimToolUuid } from "../config";
 import { startTool } from "./cargo";
 import { hasText, type HotAccount, type Signal } from "./queries";
 import type { Rep } from "./rep";
-
-export const signalLabel = (signal: Signal): string => {
-  if (!hasText(signal.occurred)) {
-    return signal.signal;
-  }
-  return `${signal.signal} · ${signal.occurred}`;
-};
+import { signalLine } from "./signals";
 
 // What the writer is told about the account: everything the queue knew.
 export const accountContextOf = (
@@ -27,7 +21,7 @@ export const accountContextOf = (
     );
   }
   if (signals.length > 0) {
-    parts.push(`Recent signals: ${signals.map(signalLabel).join("; ")}`);
+    parts.push(`Recent signals: ${signals.map(signalLine).join("; ")}`);
   }
   return parts.join(". ");
 };
@@ -116,7 +110,14 @@ export const matchesFilters = (
   ) {
     return false;
   }
-  if (filters.stage !== "all" && account.readiness_stage !== filters.stage) {
+  if (filters.stage === "none" && hasText(account.readiness_stage)) {
+    return false;
+  }
+  if (
+    filters.stage !== "all" &&
+    filters.stage !== "none" &&
+    account.readiness_stage !== filters.stage
+  ) {
     return false;
   }
   if (filters.withSignals && signals.length === 0) {
