@@ -5,7 +5,7 @@ import React from "react";
 // stays in Hot accounts after the click and invites a second claim. One store
 // for every page: a claim shows everywhere the moment it is clicked.
 
-export type HeldClick = {
+type HeldClick = {
   status: "claimed" | "passed" | "released";
   accountName: string;
   heldAtMs: number;

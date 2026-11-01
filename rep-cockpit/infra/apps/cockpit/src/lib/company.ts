@@ -43,7 +43,7 @@ const fundingLabel = (profile: CompanyProfile): string | undefined => {
   return parts.join(", ");
 };
 
-export type Fact = { label: string; value: string };
+type Fact = { label: string; value: string };
 
 // The firmographics worth a glance, in the order a rep reads them; a fact the
 // source did not return is left out rather than shown empty.

@@ -1,6 +1,6 @@
 import type { Draft } from "./queries";
 
-export type NeedCounts = {
+type NeedCounts = {
   replies: number;
   drafts: number;
   followUps: number;
