@@ -221,6 +221,12 @@
           "when": "The market is stable and nobody reads a tier older than a quarter anyway",
           "how": "Remove the `lowerThan` condition from the play's filter",
           "cost": "A company that changed (hired the persona, got acquired) keeps its old tier until someone re-tiers it by hand"
+        },
+        {
+          "id": "unified-account",
+          "when": "Other pipelines (a rep cockpit, routing) read accounts from Unify Accounts and should find the fit on the same row",
+          "how": "Declare Unify Accounts (`unifyAccounts`, once per project) with the four tier columns, run the play over it filtered to rows whose `ai_ark___tam_companies___id` is set, read the company facts from those columns, and write the tier onto the unified account. Copy existing tiers across with the native `modelCustomColumn` action, which costs no agent run",
+          "cost": "Unify Accounts is shared by every pipeline: its `additionalColumns` list is authoritative, so copy the live columns in first"
         }
       ],
       "shouldNotChange": [
