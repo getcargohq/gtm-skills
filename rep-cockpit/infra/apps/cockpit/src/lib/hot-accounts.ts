@@ -33,6 +33,9 @@ export const stageLabel = (stage: string | null | undefined): string => {
   if (stage === "warming") {
     return "Warming";
   }
+  if (stage === "cold") {
+    return "Cold";
+  }
   return "Not scored";
 };
 

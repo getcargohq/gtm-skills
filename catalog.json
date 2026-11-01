@@ -2164,9 +2164,9 @@
       "canChange": [
         {
           "id": "tier-only-queue",
-          "when": "readiness-scoring is not installed",
-          "how": "Drop the readiness join and filter in `queries.ts` and the signals query; rank tier A then B by `tiered_at",
-          "cost": "No readiness: the queue is every good fit, and reps pick by fit alone"
+          "when": "readiness-scoring is not installed, or too few accounts have signals yet",
+          "how": "Drop the readiness filter in `queries.ts`; rank tier A then B, then readiness score where there is one",
+          "cost": "Reps pick by fit first; readiness only orders the queue"
         },
         {
           "id": "crm-backed",

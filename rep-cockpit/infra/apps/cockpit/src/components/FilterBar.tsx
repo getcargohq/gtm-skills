@@ -64,6 +64,7 @@ export const FilterBar: React.FC<{
           <SelectItem value="all">Any readiness</SelectItem>
           <SelectItem value="ready_now">Ready now</SelectItem>
           <SelectItem value="warming">Warming</SelectItem>
+          <SelectItem value="cold">Cold</SelectItem>
           <SelectItem value="none">Not scored</SelectItem>
         </SelectContent>
       </Select>
