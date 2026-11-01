@@ -26,10 +26,10 @@ export const FitSection: React.FC<{ company: HotAccount | undefined }> = ({
   const api = useCargoApi();
   const rescore = useMutation({
     mutationFn: async () => {
-      if (company === undefined || !hasText(company.company_id)) {
+      if (company === undefined || !hasText(company.unified_account_id)) {
         throw new Error("This company is not in the sourced market.");
       }
-      await queueRescore(api, company.company_id);
+      await queueRescore(api, company.unified_account_id);
     },
   });
 
@@ -54,7 +54,7 @@ export const FitSection: React.FC<{ company: HotAccount | undefined }> = ({
           <Badge variant="outline">Tier {company.tier}</Badge>
           <span className="text-xs text-muted-foreground">{scored}</span>
         </div>
-        {isQueued || !hasText(company.company_id) ? null : (
+        {isQueued || !hasText(company.unified_account_id) ? null : (
           <Button
             size="sm"
             variant="outline"

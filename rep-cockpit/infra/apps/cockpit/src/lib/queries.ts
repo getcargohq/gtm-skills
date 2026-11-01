@@ -6,10 +6,12 @@ export const hasText = (value: string | null | undefined): value is string => {
 
 // Every read the cockpit makes, in one file. The storage SQL leaves a NULL
 // column out of the row entirely, so every nullable field below is optional
-// and is read with `hasText`, never compared to null alone. Tables are `<dataset>.<model>`:
-// `object` is the workspace's native dataset, `ai_ark` the dataset of the
-// connector tam-building sources through. Check both with
-// `cargo-ai storage dataset list` before the first deploy.
+// and is read with `hasText`, never compared to null alone. Tables are
+// `<dataset>.<model>` in `object`, the workspace's native dataset. Accounts are
+// read only from Unify Accounts (`object.accounts`): the fit tier and the
+// readiness score are columns on it, and the companies tam-building sourced
+// show through it as `ai_ark___tam_companies___<column>`. Check those names with
+// `cargo-ai storage model get` on Unify Accounts before the first deploy.
 
 export type HotAccount = {
   domain: string;
@@ -19,7 +21,7 @@ export type HotAccount = {
   tier_reason?: string | null;
   tier_evidence_url?: string | null;
   tiered_at?: string | null;
-  company_id?: string | null;
+  unified_account_id?: string | null;
   readiness_score?: number | null;
   readiness_stage?: string | null;
 };
@@ -29,32 +31,34 @@ export type HotAccount = {
 const isOpen = `(c.status IS NULL OR c.status = 'released'
     OR (c.status = 'passed' AND CAST(c.parked_until AS TIMESTAMP) < CURRENT_TIMESTAMP()))`;
 
-// Hot accounts: accounts that are ready now or warming (readiness-scoring, on
-// Unify Accounts), best fit first (account-scoring's tier on tam_companies),
-// and open to claim. An account with no tier yet still shows, after the tiered
-// ones: readiness alone is a reason to look.
+// tam-building's company columns as Unify Accounts exposes them:
+// `<dataset>___<model>___<column>`.
+const tam = "a.ai_ark___tam_companies___";
+
+// Hot accounts: unified accounts that are ready now or warming
+// (readiness-scoring), best fit first (account-scoring's tier, on the same
+// row), and open to claim. An account with no tier yet still shows, after the
+// tiered ones: readiness alone is a reason to look.
 export const hotAccountsQuery = `
 SELECT
   a.domain AS domain,
-  COALESCE(MAX(t.name), a.domain) AS name,
-  MAX(t.linkedin_url) AS linkedin_url,
-  MAX(t.custom__tier) AS tier,
-  MAX(t.custom__tier_reason) AS tier_reason,
-  MAX(t.custom__tier_evidence_url) AS tier_evidence_url,
-  CAST(MAX(t.custom__tiered_at) AS STRING) AS tiered_at,
-  MAX(t.id) AS company_id,
+  COALESCE(${tam}name, a.gtm_accounts___name, a.domain) AS name,
+  ${tam}linkedin_url AS linkedin_url,
+  a.custom__tier AS tier,
+  a.custom__tier_reason AS tier_reason,
+  a.custom__tier_evidence_url AS tier_evidence_url,
+  CAST(a.custom__tiered_at AS STRING) AS tiered_at,
+  a.id AS unified_account_id,
   a.metric__readiness_score AS readiness_score,
   a.computed__readiness_stage AS readiness_stage
 FROM object.accounts a
-LEFT JOIN ai_ark.tam_companies t ON t.domain = a.domain
 LEFT JOIN object.cockpit_claims c ON c.account_domain = a.domain
 WHERE a.computed__readiness_stage IN ('ready_now', 'warming')
   AND a.domain IS NOT NULL
+  AND (a.custom__tier IS NULL OR a.custom__tier IN ('A', 'B'))
   AND ${isOpen}
-GROUP BY a.domain, a.metric__readiness_score, a.computed__readiness_stage
-HAVING MAX(t.custom__tier) IS NULL OR MAX(t.custom__tier) IN ('A', 'B')
 ORDER BY
-  CASE MAX(t.custom__tier) WHEN 'A' THEN 0 WHEN 'B' THEN 1 ELSE 2 END,
+  CASE a.custom__tier WHEN 'A' THEN 0 WHEN 'B' THEN 1 ELSE 2 END,
   a.metric__readiness_score DESC
 LIMIT 200`;
 
@@ -84,6 +88,7 @@ SELECT domain, signal, occurred, summary, source FROM (
   FROM object.accounts a
   JOIN object.account_events e ON e.account_id = a.id
   WHERE a.domain IN (${domains.map(quote).join(", ")})
+    AND e.model_slug != 'gtm_activities'
     AND e.computed__readiness_contribution > 0
 )
 WHERE signal_rank <= 3
@@ -91,7 +96,8 @@ ORDER BY domain, signal_rank`;
 };
 
 // Every event on one account, newest first: what the account page lists as
-// its signals. The Hot accounts row shows only the three that count most.
+// its signals. The team's own touches (gtm_activities) are left out: the
+// Activity tab lists them. The Hot accounts row shows only the three that count most.
 export const accountSignalsQuery = (domain: string): string => {
   return `
 SELECT
@@ -103,27 +109,27 @@ SELECT
 FROM object.accounts a
 JOIN object.account_events e ON e.account_id = a.id
 WHERE a.domain = ${quote(domain)}
+  AND e.model_slug != 'gtm_activities'
 ORDER BY e.occurred_at DESC
 LIMIT 100`;
 };
 
-// What the queue knows about one domain, for an account a rep adds by hand:
-// its name and tier when tam-building has it, its readiness when it is scored.
+// One unified account by domain, for an account a rep adds by hand or opens:
+// its name, tier and readiness when it has them, the domain alone when not.
 export const accountLookupQuery = (domain: string): string => {
   return `
 SELECT
   ${quote(domain)} AS domain,
-  COALESCE(MAX(t.name), ${quote(domain)}) AS name,
-  MAX(t.linkedin_url) AS linkedin_url,
-  MAX(t.custom__tier) AS tier,
-  MAX(t.custom__tier_reason) AS tier_reason,
-  MAX(t.custom__tier_evidence_url) AS tier_evidence_url,
-  CAST(MAX(t.custom__tiered_at) AS STRING) AS tiered_at,
-  MAX(t.id) AS company_id,
-  MAX(a.metric__readiness_score) AS readiness_score,
-  MAX(a.computed__readiness_stage) AS readiness_stage
+  COALESCE(${tam}name, a.gtm_accounts___name, ${quote(domain)}) AS name,
+  ${tam}linkedin_url AS linkedin_url,
+  a.custom__tier AS tier,
+  a.custom__tier_reason AS tier_reason,
+  a.custom__tier_evidence_url AS tier_evidence_url,
+  CAST(a.custom__tiered_at AS STRING) AS tiered_at,
+  a.id AS unified_account_id,
+  a.metric__readiness_score AS readiness_score,
+  a.computed__readiness_stage AS readiness_stage
 FROM (SELECT 1) AS one
-LEFT JOIN ai_ark.tam_companies t ON t.domain = ${quote(domain)}
 LEFT JOIN object.accounts a ON a.domain = ${quote(domain)}`;
 };
 
@@ -142,19 +148,22 @@ export type CompanyProfile = {
   funding_amount?: string | null;
 };
 
-// What tam-building sourced about the company, for a rep deciding whether to
-// claim it: the description and the firmographics the tier was judged on.
+// What tam-building sourced about the company, read off the unified account,
+// for a rep deciding whether to claim it: the description and the
+// firmographics the tier was judged on.
 export const companyProfileQuery = (domain: string): string => {
   return `
-SELECT domain, website, industry, description,
-  CAST(employee_count AS STRING) AS employee_count, city, country,
-  CAST(founded_year AS STRING) AS founded_year,
-  CAST(revenue AS STRING) AS revenue,
-  JSON_VALUE(financial, '$.funding.type') AS funding_type,
-  JSON_VALUE(financial, '$.funding.date') AS funding_date,
-  JSON_VALUE(financial, '$.funding.last_amount') AS funding_amount
-FROM ai_ark.tam_companies
-WHERE domain = ${quote(domain)}
+SELECT a.domain AS domain, ${tam}website AS website, ${tam}industry AS industry,
+  ${tam}description AS description,
+  CAST(${tam}employee_count AS STRING) AS employee_count,
+  ${tam}city AS city, ${tam}country AS country,
+  CAST(${tam}founded_year AS STRING) AS founded_year,
+  CAST(${tam}revenue AS STRING) AS revenue,
+  JSON_VALUE(${tam}financial, '$.funding.type') AS funding_type,
+  JSON_VALUE(${tam}financial, '$.funding.date') AS funding_date,
+  JSON_VALUE(${tam}financial, '$.funding.last_amount') AS funding_amount
+FROM object.accounts a
+WHERE a.domain = ${quote(domain)}
 LIMIT 1`;
 };
 
@@ -186,13 +195,10 @@ export const myClaimsQuery = (repEmail: string): string => {
 SELECT c.account_domain, c.account_name, c.account_id, c.status,
   c.sourcing_status, c.contacts_found,
   CAST(c.status_at AS STRING) AS status_at,
-  d.replies, d.follow_ups, d.drafts, d.no_email, t.linkedin_url
+  d.replies, d.follow_ups, d.drafts, d.no_email,
+  ${tam}linkedin_url AS linkedin_url
 FROM object.cockpit_claims c
-LEFT JOIN (
-  SELECT domain, MAX(linkedin_url) AS linkedin_url
-  FROM ai_ark.tam_companies
-  GROUP BY domain
-) t ON t.domain = c.account_domain
+LEFT JOIN object.accounts a ON a.domain = c.account_domain
 LEFT JOIN (
   SELECT account_domain,
     COUNTIF(status = 'replied') AS replies,

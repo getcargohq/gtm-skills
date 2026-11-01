@@ -4,8 +4,10 @@ Walk every line. A checked template without an evidence-backed consumer adaptati
 
 ## Queue
 
-- The Hot accounts query in `infra/apps/cockpit/src/lib/queries.ts` names tables and columns that
-  `cargo-ai storage dataset list` and `column list` returned in this workspace. None was guessed.
+- Every account read in `infra/apps/cockpit/src/lib/queries.ts` goes through Unify Accounts, with
+  column names `cargo-ai storage model get` returned in this workspace. None was guessed.
+- The fit tier is on Unify Accounts (account-scoring's `unified-account` variation), not only on
+  `tam_companies`.
 - It was run by hand before the deploy, and its rows were shown to the operator.
 
 ## Senders

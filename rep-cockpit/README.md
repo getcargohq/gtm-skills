@@ -10,9 +10,9 @@ drafted in the thread for the rep to send.
 cargo-ai project add cookbook/rep-cockpit
 ```
 
-1. **Hot accounts.** One SQL query over Unify Accounts (readiness-scoring's stage and score) and the
-   tiered companies (account-scoring's tier): ready now or warming, tier A then B, nobody holding
-   it. Each row shows the company's logo and LinkedIn page and the three signals adding most to its
+1. **Hot accounts.** One SQL query over Unify Accounts, which carries the company (tam-building),
+   its fit tier (account-scoring) and its readiness (readiness-scoring): ready now or warming, tier
+   A then B, nobody holding it. Each row shows the company's logo and LinkedIn page and the three signals adding most to its
    score, from Account Events, and filters by tier, readiness, signals or name. Claim, Pass with a
    reason (a "not now" returns in 90 days), or add an account by its website. A row opens a preview
    with the fit (scored when, why, and Rescore), readiness score, every signal with its detail, and the company's description.
@@ -60,8 +60,10 @@ Cargo user (`webExtensionData.edgesIdentityUid`), and the app reads it from the 
 
 ```mermaid
 flowchart LR
-  ra[readiness-scoring<br/>Unify Accounts] --> q[Hot accounts query]
-  as[account-scoring<br/>tam_companies tier] --> q
+  tb[tam-building<br/>tam_companies] --> ua[Unify Accounts]
+  as[account-scoring<br/>tier] --> ua
+  ra[readiness-scoring<br/>score] --> ua
+  ua --> q[Hot accounts query]
   q --> app[rep-cockpit app]
   app -- Claim --> claim[claim_account tool]
   claim --> acc[gtm_accounts]

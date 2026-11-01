@@ -2201,7 +2201,7 @@
         {
           "id": "tam-map",
           "when": "Leadership wants the whole market on the same screen",
-          "how": "A third page over `tam_companies` with counts by tier and readiness, and Claim from any row",
+          "how": "A third page over Unify Accounts with counts by tier and readiness, and Claim from any row",
           "cost": "A heavier query on every load; keep it one aggregated SQL, never the rows"
         },
         {

@@ -6,22 +6,22 @@ have been read by a person.
 ## Queue
 
 The Hot accounts query is `infra/apps/cockpit/src/lib/queries.ts` (`hotAccountsQuery`, and
-`signalsQuery` for the Signals column). They read four tables:
+`signalsQuery` for the Signals column). Every account read goes through Unify Accounts:
 
-| Table                   | Owned by          | Columns read                                                   |
-| ----------------------- | ----------------- | -------------------------------------------------------------- |
-| `object.accounts`       | readiness-scoring | `domain`, `metric__readiness_score`, `computed__readiness_stage` |
-| `ai_ark.tam_companies`  | account-scoring   | `domain`, `name`, `custom__tier`, `custom__tier_reason`        |
-| `object.account_events` | readiness-scoring | `account_id`, `properties`, `event_name`, `occurred_at`, `computed__readiness_contribution` |
-| `object.cockpit_claims` | this skill        | `account_domain`, `status`, `parked_until`                     |
+| Table                   | Owned by                     | Columns read                                                                                     |
+| ----------------------- | ---------------------------- | ------------------------------------------------------------------------------------------------ |
+| `object.accounts`       | Cargo (Unify Accounts)       | `id`, `domain`, `ai_ark___tam_companies___*` (name, LinkedIn, description, firmographics)         |
+|                         | account-scoring              | `custom__tier`, `custom__tier_reason`, `custom__tier_evidence_url`, `custom__tiered_at`          |
+|                         | readiness-scoring            | `metric__readiness_score`, `computed__readiness_stage`                                           |
+| `object.account_events` | readiness-scoring            | `account_id`, `properties`, `event_name`, `model_slug`, `occurred_at`, `computed__readiness_contribution` |
+| `object.cockpit_claims` | this skill                   | `account_domain`, `status`, `parked_until`                                                       |
 
-`object` is the workspace's native dataset; `ai_ark` is the dataset of the connector tam-building
-sources through. Confirm both, and the columns:
+The tier is on Unify Accounts only with account-scoring's `unified-account` variation; by default
+it writes `tam_companies`. tam-building's columns show on Unify Accounts as
+`<dataset>___<model>___<column>`, custom columns excluded. Confirm them:
 
 ```sh
-cargo-ai storage dataset list
-cargo-ai storage column list --model-uuid <unify-accounts-uuid>
-cargo-ai storage column list --model-uuid <tam-companies-uuid>
+cargo-ai storage model get <unify-accounts-uuid>
 ```
 
 Then run the query by hand, with `cockpit_claims` removed from it if the model is not deployed
@@ -32,8 +32,8 @@ cargo-ai storage query execute "<hotAccountsQuery>"
 ```
 
 An empty result here is an empty Hot accounts page in the app, not an error. The usual causes: no
-account is `ready_now` or `warming` yet (readiness-scoring's thresholds), the tiered model's
-domains carry a scheme or `www.` and match nothing, or the dataset slug differs.
+account is `ready_now` or `warming` yet (readiness-scoring's thresholds), the tier is still on
+`tam_companies` rather than Unify Accounts, or tam-building's dataset slug differs from `ai_ark`.
 
 ## Pilot claim
 
