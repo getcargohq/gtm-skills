@@ -1,0 +1,145 @@
+import type { Api } from "@cargo-ai/api";
+
+import { claimToolUuid } from "../config";
+import { startTool } from "./cargo";
+import { hasText, type HotAccount, type Signal } from "./queries";
+import type { Rep } from "./rep";
+import { signalLine } from "./signals";
+
+// What the writer is told about the account: everything the queue knew.
+export const accountContextOf = (
+  account: HotAccount,
+  signals: Signal[],
+): string => {
+  const parts: string[] = [];
+  if (hasText(account.tier)) {
+    parts.push(`Fit tier ${account.tier}: ${account.tier_reason}`);
+  }
+  if (hasText(account.readiness_stage)) {
+    parts.push(
+      `Readiness ${account.readiness_stage} (score ${account.readiness_score})`,
+    );
+  }
+  if (signals.length > 0) {
+    parts.push(`Recent signals: ${signals.map(signalLine).join("; ")}`);
+  }
+  return parts.join(". ");
+};
+
+export const stageLabel = (stage: string | null | undefined): string => {
+  if (stage === "ready_now") {
+    return "Ready now";
+  }
+  if (stage === "warming") {
+    return "Warming";
+  }
+  if (stage === "cold") {
+    return "Cold";
+  }
+  return "Not scored";
+};
+
+export const stageVariant = (
+  stage: string | null | undefined,
+): "default" | "secondary" | "outline" => {
+  if (stage === "ready_now") {
+    return "default";
+  }
+  if (stage === "warming") {
+    return "secondary";
+  }
+  return "outline";
+};
+
+// "https://www.Northwind.example/about" -> "northwind.example".
+export const toDomain = (website: string): string => {
+  return website
+    .trim()
+    .toLowerCase()
+    .replace(/^[a-z]+:\/\//, "")
+    .replace(/^www\./, "")
+    .split(/[/?#]/)[0];
+};
+
+export const signalsByDomain = (signals: Signal[]): Map<string, Signal[]> => {
+  const byDomain = new Map<string, Signal[]>();
+  for (const signal of signals) {
+    const list = byDomain.get(signal.domain);
+    if (list === undefined) {
+      byDomain.set(signal.domain, [signal]);
+    } else {
+      list.push(signal);
+    }
+  }
+  return byDomain;
+};
+
+export type Filters = {
+  search: string;
+  tier: string;
+  stage: string;
+  withSignals: boolean;
+};
+
+export const noFilters: Filters = {
+  search: "",
+  tier: "all",
+  stage: "all",
+  withSignals: false,
+};
+
+// The filters narrow what the query already returned, in the browser: the
+// query is the queue, the filters are how one rep reads it today.
+export const matchesFilters = (
+  account: HotAccount,
+  filters: Filters,
+  signals: Signal[],
+): boolean => {
+  const search = filters.search.trim().toLowerCase();
+  if (
+    search !== "" &&
+    !account.name.toLowerCase().includes(search) &&
+    !account.domain.includes(search)
+  ) {
+    return false;
+  }
+  if (filters.tier === "none" && hasText(account.tier)) {
+    return false;
+  }
+  if (
+    filters.tier !== "all" &&
+    filters.tier !== "none" &&
+    account.tier !== filters.tier
+  ) {
+    return false;
+  }
+  if (filters.stage === "none" && hasText(account.readiness_stage)) {
+    return false;
+  }
+  if (
+    filters.stage !== "all" &&
+    filters.stage !== "none" &&
+    account.readiness_stage !== filters.stage
+  ) {
+    return false;
+  }
+  if (filters.withSignals && signals.length === 0) {
+    return false;
+  }
+  return true;
+};
+
+export const startClaim = async (
+  api: Api,
+  rep: Rep,
+  account: HotAccount,
+  accountContext: string,
+): Promise<void> => {
+  await startTool(api, claimToolUuid, {
+    account_domain: account.domain,
+    account_name: account.name,
+    rep_email: rep.email,
+    rep_first_name: rep.firstName,
+    account_context: accountContext,
+  });
+};
