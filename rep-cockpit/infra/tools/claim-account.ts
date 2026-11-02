@@ -95,7 +95,6 @@ const claimAccountWorkflow = defineWorkflow(
       mappings: [
         { columnSlug: "account_domain", value: input.account_domain },
         { columnSlug: "account_name", value: input.account_name },
-        { columnSlug: "account_id", value: accounts[0].id },
         { columnSlug: "rep_email", value: input.rep_email },
         { columnSlug: "rep_name", value: input.rep_first_name },
         { columnSlug: "account_context", value: input.account_context },
@@ -121,7 +120,6 @@ const claimAccountWorkflow = defineWorkflow(
         matchingValue: person.linkedin_url,
         mappings: [
           { columnSlug: "linkedin_url", value: person.linkedin_url },
-          { columnSlug: "account_id", value: accounts[0].id },
           { columnSlug: "name", value: person.full_name },
           { columnSlug: "first_name", value: person.first_name },
           { columnSlug: "last_name", value: person.last_name },
@@ -165,7 +163,6 @@ LINKEDIN: ${person.linkedin_url}`,
           mappings: [
             { columnSlug: "contact_id", value: contacts[0].id },
             { columnSlug: "account_domain", value: claims[0].account_domain },
-            { columnSlug: "account_id", value: accounts[0].id },
             { columnSlug: "account_name", value: claims[0].account_name },
             { columnSlug: "rep_email", value: claims[0].rep_email },
             { columnSlug: "rep_name", value: claims[0].rep_name },
@@ -190,7 +187,6 @@ LINKEDIN: ${person.linkedin_url}`,
           mappings: [
             { columnSlug: "contact_id", value: contacts[0].id },
             { columnSlug: "account_domain", value: claims[0].account_domain },
-            { columnSlug: "account_id", value: accounts[0].id },
             { columnSlug: "account_name", value: claims[0].account_name },
             { columnSlug: "rep_email", value: claims[0].rep_email },
             { columnSlug: "rep_name", value: claims[0].rep_name },

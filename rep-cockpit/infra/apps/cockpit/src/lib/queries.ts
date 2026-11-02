@@ -170,7 +170,7 @@ LIMIT 1`;
 export type Claim = {
   account_domain: string;
   account_name: string;
-  account_id?: string | null;
+  gtm_account_id?: string | null;
   account_context?: string | null;
   rep_email?: string | null;
   status: string;
@@ -192,7 +192,7 @@ export type MyClaim = Claim & {
 // replies to read, follow-ups and drafts to send, emails to find.
 export const myClaimsQuery = (repEmail: string): string => {
   return `
-SELECT c.account_domain, c.account_name, c.account_id, c.status,
+SELECT c.account_domain, c.account_name, c.status,
   c.sourcing_status, c.contacts_found,
   CAST(c.status_at AS STRING) AS status_at,
   d.replies, d.follow_ups, d.drafts, d.no_email,
@@ -213,14 +213,18 @@ ORDER BY d.replies DESC, d.follow_ups DESC, d.drafts DESC, c.status_at DESC
 LIMIT 200`;
 };
 
+// The claim on one account, and the GTM account it unified with: a meeting
+// booked from a reply is logged against that one.
 export const claimQuery = (domain: string): string => {
   return `
-SELECT account_domain, account_name, account_id, account_context, rep_email,
-  status, sourcing_status, contacts_found,
-  CAST(status_at AS STRING) AS status_at,
-  UNIX_MILLIS(CAST(status_at AS TIMESTAMP)) AS status_at_ms
-FROM object.cockpit_claims
-WHERE account_domain = ${quote(domain)}
+SELECT c.account_domain, c.account_name, c.account_context, c.rep_email,
+  c.status, c.sourcing_status, c.contacts_found,
+  CAST(c.status_at AS STRING) AS status_at,
+  UNIX_MILLIS(CAST(c.status_at AS TIMESTAMP)) AS status_at_ms,
+  a.gtm_accounts___id AS gtm_account_id
+FROM object.cockpit_claims c
+LEFT JOIN object.accounts a ON a.domain = c.account_domain
+WHERE c.account_domain = ${quote(domain)}
 LIMIT 1`;
 };
 
@@ -269,13 +273,16 @@ export type Activity = {
 
 // Everything logged on the account, by any pipeline: the cockpit's emails and
 // replies, and the meetings, calls and notes others write to gtm_activities.
-export const timelineQuery = (accountId: string): string => {
+// The activities hang off a GTM account, found through the unified account
+// that domain matched.
+export const timelineQuery = (domain: string): string => {
   return `
-SELECT CAST(a.occurred_at AS STRING) AS occurred_at, a.kind, a.subject,
-  a.body, a.owner_email, c.name AS contact_name
-FROM object.gtm_activities a
-LEFT JOIN object.gtm_contacts c ON c.id = a.contact_id
-WHERE a.account_id = ${quote(accountId)}
-ORDER BY a.occurred_at DESC
+SELECT CAST(t.occurred_at AS STRING) AS occurred_at, t.kind, t.subject,
+  t.body, t.owner_email, p.name AS contact_name
+FROM object.accounts a
+JOIN object.gtm_activities t ON t.account_id = a.gtm_accounts___id
+LEFT JOIN object.gtm_contacts p ON p.id = t.contact_id
+WHERE a.domain = ${quote(domain)}
+ORDER BY t.occurred_at DESC
 LIMIT 50`;
 };

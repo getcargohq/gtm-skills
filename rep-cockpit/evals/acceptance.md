@@ -25,6 +25,8 @@ Walk every line. A checked template without an evidence-backed consumer adaptati
   `scripts/native-models.json`.
 - The claim is one tool run: account, people search, contact, email lookup, draft, claim marked
   ready. The app never calls a connector action itself.
+- `cockpit_claims` and `cockpit_drafts` hold no account id: the domain is their only account key,
+  and the tools resolve the `gtm_accounts` row from it.
 - The send is one tool run: `sendEmail`, the draft marked sent, one `gtm_activities` row.
 - No play, schedule or bulk action sends email. The one play, `rep_cockpit_watch_replies`, waits,
   logs and drafts; a follow-up is sent by the send tool, as a reply in its thread.

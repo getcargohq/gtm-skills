@@ -60,11 +60,11 @@ const whenLabel = (occurredAt: string): string => {
 };
 
 // Everything logged on the account, newest first, by any pipeline.
-export const Timeline: React.FC<{ accountId: string }> = ({ accountId }) => {
+export const Timeline: React.FC<{ domain: string }> = ({ domain }) => {
   const api = useCargoApi();
   const activities = useQuery({
-    queryKey: ["timeline", accountId],
-    queryFn: () => sql<Activity>(api, timelineQuery(accountId)),
+    queryKey: ["timeline", domain],
+    queryFn: () => sql<Activity>(api, timelineQuery(domain)),
     refetchInterval: 60 * 1000,
   });
 

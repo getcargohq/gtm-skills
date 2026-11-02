@@ -6,7 +6,7 @@ import React from "react";
 import { linkedinToolUuid } from "../config";
 import { startTool, waitForRun } from "../lib/cargo";
 import { orEmpty } from "../lib/drafts";
-import { hasText, type Claim, type Draft } from "../lib/queries";
+import { type Claim, type Draft } from "../lib/queries";
 import type { Rep } from "../lib/rep";
 
 const noteLimit = 300;
@@ -39,12 +39,12 @@ export const LinkedinTab: React.FC<{
       if (rep === undefined || rep.linkedinIdentityId === undefined) {
         throw new Error("No LinkedIn identity to send from.");
       }
-      if (claim === undefined || !hasText(claim.account_id)) {
+      if (claim === undefined) {
         throw new Error("The claim is still being recorded.");
       }
       const runUuid = await startTool(api, linkedinToolUuid, {
         contact_id: draft.contact_id,
-        account_id: claim.account_id,
+        account_domain: claim.account_domain,
         rep_email: rep.email,
         identity_id: rep.linkedinIdentityId,
         linkedin_url: draft.linkedin_url,

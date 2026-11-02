@@ -36,7 +36,6 @@ import {
   accountLookupQuery,
   claimQuery,
   draftsQuery,
-  hasText,
   type Claim,
   type Draft,
   type HotAccount,
@@ -251,13 +250,7 @@ export const Account: React.FC = () => {
           <TabsContent value="activity" className="mt-0">
             <Card>
               <CardContent className="p-6">
-                {claim.data !== undefined && hasText(claim.data.account_id) ? (
-                  <Timeline accountId={claim.data.account_id} />
-                ) : (
-                  <p className="text-sm text-muted-foreground">
-                    The timeline starts once the claim is recorded.
-                  </p>
-                )}
+                <Timeline domain={accountDomain} />
               </CardContent>
             </Card>
           </TabsContent>

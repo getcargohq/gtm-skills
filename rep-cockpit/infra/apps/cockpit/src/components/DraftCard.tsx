@@ -141,11 +141,16 @@ const ReplyBox: React.FC<CardProps & { isBooked: boolean }> = ({
       if (rep === undefined || claim === undefined) {
         throw new Error("Still loading the account.");
       }
+      if (!hasText(claim.gtm_account_id)) {
+        throw new Error(
+          "The account is still being unified: try again in a minute.",
+        );
+      }
       await submitUpsert(api, draftsModelUuid, "contact_id", draft.contact_id, {
         status: "meeting_booked",
       });
       await submitInsert(api, activitiesModelUuid, {
-        account_id: claim.account_id,
+        account_id: claim.gtm_account_id,
         contact_id: draft.contact_id,
         occurred_at: new Date().toISOString(),
         kind: "meeting",
@@ -205,12 +210,12 @@ const EmailTab: React.FC<CardProps> = ({ draft, claim, rep, onChanged }) => {
       if (rep === undefined || rep.mailboxUuid === undefined) {
         throw new Error("No mailbox to send from.");
       }
-      if (claim === undefined || !hasText(claim.account_id)) {
+      if (claim === undefined) {
         throw new Error("The claim is still being recorded.");
       }
       const data: Record<string, unknown> = {
         contact_id: draft.contact_id,
-        account_id: claim.account_id,
+        account_domain: claim.account_domain,
         rep_email: rep.email,
         mailbox_uuid: rep.mailboxUuid,
         to: draft.contact_email,

@@ -17,7 +17,7 @@ import React from "react";
 import { addContactToolUuid } from "../config";
 import { startTool, waitForRun } from "../lib/cargo";
 import { orEmpty } from "../lib/drafts";
-import { hasText, type Claim } from "../lib/queries";
+import { type Claim } from "../lib/queries";
 import type { Rep } from "../lib/rep";
 
 type Person = {
@@ -65,13 +65,9 @@ export const AddPerson: React.FC<{
       if (rep === undefined || claim === undefined) {
         throw new Error("Still loading the account.");
       }
-      if (!hasText(claim.account_id)) {
-        throw new Error("The claim is still being recorded.");
-      }
       const runUuid = await startTool(api, addContactToolUuid, {
         account_domain: claim.account_domain,
         account_name: claim.account_name,
-        account_id: claim.account_id,
         account_context: orEmpty(claim.account_context),
         rep_email: rep.email,
         rep_name: rep.firstName,

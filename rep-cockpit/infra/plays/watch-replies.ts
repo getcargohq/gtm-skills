@@ -4,6 +4,7 @@ import { z } from "zod";
 import { firstTouchWriter } from "../agents/first-touch-writer";
 import { playsFolder } from "../folders";
 import { cockpitDrafts } from "../models/cockpit-drafts";
+import { gtmAccounts } from "../models/gtm-accounts";
 import { gtmActivities } from "../models/gtm-activities";
 import { followUpAfterHours, touchesPerContact } from "../settings";
 
@@ -23,7 +24,6 @@ const watchReply = defineWorkflow(
   {
     input: z.object({
       contact_id: z.string(),
-      account_id: z.string(),
       account_name: z.string(),
       account_domain: z.string(),
       rep_email: z.string(),
@@ -39,6 +39,7 @@ const watchReply = defineWorkflow(
     output: z.object({ status: z.enum(["watched"]) }),
     uses: { firstTouchWriter },
     imports: {
+      gtmAccounts,
       cockpitDrafts,
       gtmActivities,
       followUpAfterHours,
@@ -56,6 +57,14 @@ const watchReply = defineWorkflow(
     );
 
     if (reply.matched) {
+      // The GTM account the reply activity hangs off, by the website key the
+      // claim tool upserted it on: the cockpit's own tables hold the domain.
+      const accounts = model.upsert<{ id: string }>({
+        modelUuid: gtmAccounts.uuid,
+        matchingColumnSlug: "website",
+        matchingValue: input.account_domain,
+        mappings: [{ columnSlug: "website", value: input.account_domain }],
+      });
       model.upsert({
         modelUuid: cockpitDrafts.uuid,
         matchingColumnSlug: "contact_id",
@@ -69,7 +78,7 @@ const watchReply = defineWorkflow(
       model.insert({
         modelUuid: gtmActivities.uuid,
         mappings: [
-          { columnSlug: "account_id", value: input.account_id },
+          { columnSlug: "account_id", value: accounts[0].id },
           { columnSlug: "contact_id", value: input.contact_id },
           { columnSlug: "occurred_at", value: reply.occurredAt },
           { columnSlug: "kind", value: "email" },

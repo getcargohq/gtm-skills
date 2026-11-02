@@ -29,8 +29,6 @@ export const cockpitDrafts = defineModel("cockpit_drafts", {
       // gtm_contacts.id
       { slug: "contact_id", type: "string" },
       { slug: "account_domain", type: "string" },
-      // gtm_accounts.id, for the activity rows the play writes.
-      { slug: "account_id", type: "string" },
       { slug: "account_name", type: "string" },
       { slug: "rep_email", type: "string" },
       // The name the writer signs with.

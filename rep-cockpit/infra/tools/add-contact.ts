@@ -4,6 +4,7 @@ import { z } from "zod";
 import { firstTouchWriter } from "../agents/first-touch-writer";
 import { toolsFolder } from "../folders";
 import { cockpitDrafts } from "../models/cockpit-drafts";
+import { gtmAccounts } from "../models/gtm-accounts";
 import { gtmContacts } from "../models/gtm-contacts";
 
 // A person the committee search missed: a champion the rep already knows, a
@@ -17,7 +18,6 @@ const addContactWorkflow = defineWorkflow(
     input: z.object({
       account_domain: z.string(),
       account_name: z.string(),
-      account_id: z.string(),
       account_context: z.string().optional(),
       rep_email: z.string(),
       rep_name: z.string(),
@@ -28,16 +28,25 @@ const addContactWorkflow = defineWorkflow(
     }),
     output: z.object({ status: z.enum(["added"]) }),
     uses: { firstTouchWriter },
-    imports: { gtmContacts, cockpitDrafts },
+    imports: { gtmAccounts, gtmContacts, cockpitDrafts },
   },
   ({ input, uses, model }) => {
+    // The GTM account the person hangs off, by the website key
+    // the claim tool upserted it on: the cockpit's own tables hold the domain.
+    const accounts = model.upsert<{ id: string }>({
+      modelUuid: gtmAccounts.uuid,
+      matchingColumnSlug: "website",
+      matchingValue: input.account_domain,
+      mappings: [{ columnSlug: "website", value: input.account_domain }],
+    });
+
     const contacts = model.upsert<{ id: string }>({
       modelUuid: gtmContacts.uuid,
       matchingColumnSlug: "linkedin_url",
       matchingValue: input.linkedin_url,
       mappings: [
         { columnSlug: "linkedin_url", value: input.linkedin_url },
-        { columnSlug: "account_id", value: input.account_id },
+        { columnSlug: "account_id", value: accounts[0].id },
         { columnSlug: "name", value: input.contact_name },
         { columnSlug: "title", value: input.contact_title },
         { columnSlug: "email", value: input.contact_email },
@@ -61,7 +70,6 @@ LINKEDIN: ${input.linkedin_url}`,
         mappings: [
           { columnSlug: "contact_id", value: contacts[0].id },
           { columnSlug: "account_domain", value: input.account_domain },
-          { columnSlug: "account_id", value: input.account_id },
           { columnSlug: "account_name", value: input.account_name },
           { columnSlug: "rep_email", value: input.rep_email },
           { columnSlug: "rep_name", value: input.rep_name },
@@ -86,7 +94,6 @@ LINKEDIN: ${input.linkedin_url}`,
         mappings: [
           { columnSlug: "contact_id", value: contacts[0].id },
           { columnSlug: "account_domain", value: input.account_domain },
-          { columnSlug: "account_id", value: input.account_id },
           { columnSlug: "account_name", value: input.account_name },
           { columnSlug: "rep_email", value: input.rep_email },
           { columnSlug: "rep_name", value: input.rep_name },

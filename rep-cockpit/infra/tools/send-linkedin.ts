@@ -4,6 +4,7 @@ import { z } from "zod";
 import { linkedin } from "../connectors/linkedin";
 import { toolsFolder } from "../folders";
 import { cockpitDrafts } from "../models/cockpit-drafts";
+import { gtmAccounts } from "../models/gtm-accounts";
 import { gtmActivities } from "../models/gtm-activities";
 
 // One LinkedIn touch, as the rep edited it, from the rep's own LinkedIn
@@ -20,7 +21,7 @@ const sendLinkedinWorkflow = defineWorkflow(
   {
     input: z.object({
       contact_id: z.string(),
-      account_id: z.string(),
+      account_domain: z.string(),
       rep_email: z.string(),
       identity_id: z.string(),
       linkedin_url: z.string(),
@@ -31,9 +32,18 @@ const sendLinkedinWorkflow = defineWorkflow(
     }),
     output: z.object({ status: z.enum(["sent"]) }),
     uses: { linkedin },
-    imports: { cockpitDrafts, gtmActivities },
+    imports: { gtmAccounts, cockpitDrafts, gtmActivities },
   },
   ({ input, uses, model }) => {
+    // The GTM account the LinkedIn activity hangs off, by the website key
+    // the claim tool upserted it on: the cockpit's own tables hold the domain.
+    const accounts = model.upsert<{ id: string }>({
+      modelUuid: gtmAccounts.uuid,
+      matchingColumnSlug: "website",
+      matchingValue: input.account_domain,
+      mappings: [{ columnSlug: "website", value: input.account_domain }],
+    });
+
     if (input.kind === "message") {
       uses.linkedin.messageProfile({
         linkedinProfileUrl: input.linkedin_url,
@@ -71,7 +81,7 @@ const sendLinkedinWorkflow = defineWorkflow(
     model.insert({
       modelUuid: gtmActivities.uuid,
       mappings: [
-        { columnSlug: "account_id", value: input.account_id },
+        { columnSlug: "account_id", value: accounts[0].id },
         { columnSlug: "contact_id", value: input.contact_id },
         { columnSlug: "occurred_at", value: new Date() },
         { columnSlug: "kind", value: "note" },

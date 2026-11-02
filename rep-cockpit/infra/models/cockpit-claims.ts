@@ -8,9 +8,9 @@ import { modelsFolder } from "../folders";
 // A pass carries its reason, and a pass on timing a date: past it, the
 // account is back in Hot accounts.
 //
-// Keyed by domain, not by an account id, because the queue reads Unify
-// Accounts and the claim lands on gtm_accounts: the domain is the one key both
-// sides hold. One row per domain means the newest click wins, which is what
+// Keyed by domain, the key Unify Accounts matches companies on: the cockpit
+// joins every table it reads to the unified account by it, and holds no other
+// account id. One row per domain means the newest click wins, which is what
 // "release it back to the team" needs.
 export const cockpitClaims = defineModel("cockpit_claims", {
   name: "Cockpit claims",
@@ -20,8 +20,6 @@ export const cockpitClaims = defineModel("cockpit_claims", {
     columns: [
       { slug: "account_domain", type: "string" },
       { slug: "account_name", type: "string" },
-      // gtm_accounts.id, once the claim tool has upserted the account.
-      { slug: "account_id", type: "string" },
       // The Cargo login email of the rep who clicked.
       { slug: "rep_email", type: "string" },
       // The rep's name as the writer signs with it.

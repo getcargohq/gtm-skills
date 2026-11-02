@@ -212,6 +212,11 @@ it if you still want it, and records why under `## Decisions` in your copy of th
 - **LinkedIn goes out as the rep, on a click.** (`infra/tools/send-linkedin.ts`) The identity is the
   signed-in user's own, from the Cargo Chrome extension. A shared LinkedIn seat sends as the wrong person, and an
   invite sent by a play is the automation LinkedIn restricts accounts for.
+- **The cockpit's tables key on the domain, nothing else.** (`infra/models/cockpit-claims.ts`,
+  `cockpit-drafts.ts`) The domain is what Unify Accounts matches companies on, so every read joins
+  through it, and a tool that writes `gtm_contacts` or `gtm_activities` resolves the GTM account by
+  upserting it on `website`. A second account id copied onto a claim is blank until the claim tool
+  has run and wrong once accounts merge, and every button that needs it waits on it.
 - **The watch play never sends.** (`infra/plays/watch-replies.ts`) It waits, logs and drafts; the
   follow-up goes out on the rep's click. A play that sent the follow-up would be a sequence running
   on four-day-old judgement about a person.

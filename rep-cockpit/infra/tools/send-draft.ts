@@ -3,6 +3,7 @@ import { z } from "zod";
 
 import { toolsFolder } from "../folders";
 import { cockpitDrafts } from "../models/cockpit-drafts";
+import { gtmAccounts } from "../models/gtm-accounts";
 import { gtmActivities } from "../models/gtm-activities";
 
 // One send, as the rep edited it, from the rep's own mailbox, then the two
@@ -27,7 +28,7 @@ const sendDraftWorkflow = defineWorkflow(
   {
     input: z.object({
       contact_id: z.string(),
-      account_id: z.string(),
+      account_domain: z.string(),
       rep_email: z.string(),
       mailbox_uuid: z.string(),
       to: z.string(),
@@ -39,9 +40,18 @@ const sendDraftWorkflow = defineWorkflow(
       in_reply_to: z.string().optional(),
     }),
     output: z.object({ status: z.enum(["sent"]) }),
-    imports: { cockpitDrafts, gtmActivities },
+    imports: { gtmAccounts, cockpitDrafts, gtmActivities },
   },
   ({ input, model, sendEmail }) => {
+    // The GTM account the email activity hangs off, by the website key
+    // the claim tool upserted it on: the cockpit's own tables hold the domain.
+    const accounts = model.upsert<{ id: string }>({
+      modelUuid: gtmAccounts.uuid,
+      matchingColumnSlug: "website",
+      matchingValue: input.account_domain,
+      mappings: [{ columnSlug: "website", value: input.account_domain }],
+    });
+
     if (input.in_reply_to) {
       const reply = sendEmail({
         mailboxUuid: input.mailbox_uuid,
@@ -95,7 +105,7 @@ const sendDraftWorkflow = defineWorkflow(
     model.insert({
       modelUuid: gtmActivities.uuid,
       mappings: [
-        { columnSlug: "account_id", value: input.account_id },
+        { columnSlug: "account_id", value: accounts[0].id },
         { columnSlug: "contact_id", value: input.contact_id },
         { columnSlug: "occurred_at", value: new Date() },
         { columnSlug: "kind", value: "email" },

@@ -15,6 +15,7 @@ The Hot accounts query is `infra/apps/cockpit/src/lib/queries.ts` (`hotAccountsQ
 |                         | readiness-scoring            | `metric__readiness_score`, `computed__readiness_stage`                                           |
 | `object.account_events` | readiness-scoring            | `account_id`, `properties`, `event_name`, `model_slug`, `occurred_at`, `computed__readiness_contribution` |
 | `object.cockpit_claims` | this skill                   | `account_domain`, `status`, `parked_until`                                                       |
+| `object.gtm_activities` | this skill and others        | joined on `account_id = accounts.gtm_accounts___id`, for the Activity tab                        |
 
 The tier is on Unify Accounts only with account-scoring's `unified-account` variation; by default
 it writes `tam_companies`. tam-building's columns show on Unify Accounts as

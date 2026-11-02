@@ -110,7 +110,7 @@ export const sendBlocker = (
   if (!hasText(draft.contact_email)) {
     return "No work email yet: try Find email and phone.";
   }
-  if (claim === undefined || !hasText(claim.account_id)) {
+  if (claim === undefined) {
     return "The claim is still being recorded.";
   }
   return undefined;
