@@ -100,7 +100,7 @@ skips the file with a warning nobody reads.
 
 Copy the structure of `enrich-company-data/SKILL.md`:
 
-- Setup (CLI install, login, session stamp)
+- Setup (CLI install, login)
 - Do the job (exact `cargo-ai orchestration action execute` / `execute-batch`)
 - Example (see below)
 - What it costs (table of `integration.action` → credits)
@@ -111,7 +111,7 @@ Slugs and prices are not yours to invent. `validate.ts` asserts every
 `getcargohq/cargo-skills` playbooks. Copy from a sibling, then run
 `node scripts/validate.ts`.
 
-Register: `skills.sh.json`, `hooks/skill-loads.sh`, root `README.md` table.
+Register: `skills.sh.json`, root `README.md` table.
 
 ### Pipeline
 
@@ -195,7 +195,7 @@ pass. Create parents first and read the id back from the create.
   with fake timers.
 
 Register: `skills.sh.json` (its stage, at its place in the order: the order is
-what an agent suggests next), `hooks/skill-loads.sh`,
+what an agent suggests next),
 root README pipeline table, `.github/data/approvals.json` with
 `state: to-be-approved` and empty evidence.
 

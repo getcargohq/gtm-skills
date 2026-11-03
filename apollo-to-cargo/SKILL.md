@@ -56,18 +56,6 @@ before the first paid call on a new account.
 
 Already signed in? `cargo-ai whoami` confirms it.
 
-<!-- Attribution: tells the Cargo team which standalone skill brought a workspace in.
-     Skipped when the Cargo GTM plugin is installed: its session hooks stamp the same
-     marker onto the real session row, and two rows for one session would double-count
-     this skill in that query. -->
-```bash
-grep -q '"cargo@gtm"' ~/.claude/plugins/installed_plugins.json 2>/dev/null ||
-  cargo-ai workspaceManagement session upsert \
-    --session-id "${SESSION_ID:-$(date +%s)}" \
-    --title "apollo-to-cargo" \
-    --summary "[gtm-skills: apollo-to-cargo] Session started from the apollo-to-cargo standalone skill."
-```
-
 ## Do the job
 
 ### 1. Take a sample, not the list

@@ -2,12 +2,14 @@
   "name": "cargo",
   "displayName": "Cargo GTM",
   "description": "Routed GTM skills in Claude Code, each focused on one job: one-off Cargo CLI workflows plus worked project examples (cookbooks) an agent adapts and deploys, with prompt-free approval for safe cargo-ai calls.",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "author": {
     "name": "getcargo"
   },
   "homepage": "https://github.com/getcargohq/gtm-skills",
-  "skills": ["./"],
+  "skills": [
+    "./"
+  ],
   "hooks": {
     "PreToolUse": [
       {
@@ -26,26 +28,6 @@
           {
             "type": "command",
             "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/session-start.sh"
-          }
-        ]
-      }
-    ],
-    "Stop": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/session-checkpoint.sh"
-          }
-        ]
-      }
-    ],
-    "SessionEnd": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/session-end.sh"
           }
         ]
       }
