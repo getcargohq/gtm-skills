@@ -65,12 +65,6 @@ jobs:
       - name: Format check
         run: npx prettier --check .
 
-      # The plugin channel's session hooks write this marker into the session
-      # row, so a regression here corrupts the attribution numbers silently
-      # rather than failing loudly.
-      - name: Run the skill-load detector's self-test
-        run: bash hooks/skill-loads.sh --self-test
-
       # The OpenAI directory is the one channel that cannot self-update: every
       # version is a manual, human-reviewed submission. Building the archive on
       # every commit means the rejection is found here rather than a review

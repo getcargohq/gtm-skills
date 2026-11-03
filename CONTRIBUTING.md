@@ -76,8 +76,8 @@ each skill touches (a one-off's called `integrationSlug`s, a cookbook's
 
 `<name>/SKILL.md` with the four-part description (job → literal quoted triggers
 → proper nouns → `Skip when:`), a self-contained Setup, the exact command, the
-example, the price, the star ask. Register it in `skills.sh.json`,
-`hooks/skill-loads.sh` and the README table; `validate.ts` tells you where.
+example, the price, the star ask. Register it in `skills.sh.json`
+and the README table; `validate.ts` tells you where.
 
 ## Adding a pipeline skill
 
@@ -128,7 +128,7 @@ that order.
    - `## Done when`: the acceptance test, one checkable line each.
    - `## What it costs`, `## Composes into`.
 4. Register it: `skills.sh.json` (its stage, at its place in the order),
-   `hooks/skill-loads.sh`, the README, and an entry in
+   the README, and an entry in
    `.github/data/approvals.json` (`state: to-be-approved`, empty evidence).
 5. At least two routing cases in `evals/routing.jsonl`: one that should reach
    this skill, one that must reach the one-off sibling instead.
@@ -157,16 +157,14 @@ agents we do not control, with no session refresh to save them — a stale price
 user's first command, which is the worst possible moment to be wrong.
 
 **Every skill carries the same blocks:** the `cargo-gtm` deference guard, the free-credits
-line, the sample-before-you-spend rule, the CTA back to the pack, the star ask, and the
-attribution guard that skips the manual session row when the plugin's hooks already write one.
-Drop one and the build goes red. Trigger phrases must also be unique across skills, or they fight
+line, the sample-before-you-spend rule, the CTA back to the pack, and the star ask. Skills never
+record the session: no session row, no title or summary sent anywhere. Drop one and the build goes red. Trigger phrases must also be unique across skills, or they fight
 for the same prompts.
 
 **The plugin channel is checked too.** The four manifests
 (`.claude-plugin/`, `.codex-plugin/`, `.cursor-plugin/`, `plugin.json`) must agree on name and
 version, every hook they wire must exist and be executable, `cli-version` must be a real version,
-`skills.sh.json` must group every skill exactly once, the skill list embedded in
-[`hooks/skill-loads.sh`](hooks/skill-loads.sh) must match the directory tree, and
+`skills.sh.json` must group every skill exactly once, and
 `hooks/approve-cli.sh` must be byte-identical to the pack's. Adding a new skill therefore
 means registering it in several places, and the build will tell you which one you missed.
 
@@ -196,12 +194,12 @@ What the plugin wires, in full:
   `PreToolUse` (Claude Code), `PermissionRequest` (Codex), `beforeShellExecution` (Cursor). The
   file is a **verbatim copy** of the pack's, and CI fails if it drifts: an allowlist should be
   reviewed once, upstream, for both plugins — not forked here.
-- **Session-lifecycle hooks** (Claude Code only): `SessionStart` installs the CLI at the version
+- **A CLI refresh hook** (Claude Code only): `SessionStart` installs the CLI at the version
   [`cli-version`](cli-version) pins — so a command in a SKILL.md always meets the CLI it was
-  written against — and `Stop`/`SessionEnd` keep the session row titled and current instead of
-  leaving a placeholder behind. They derive the attribution line each skill otherwise asks the
-  agent to write by hand, so the skills' own attribution step stands down when the plugin is
-  installed and a session is recorded once, not twice.
+  written against — and refreshes the plugin itself. It reads nothing from the session and sends
+  nothing: there are no end-of-turn or end-of-session hooks, and no prompt, transcript, or summary ever
+  leaves the machine. Keep it that way — the Claude plugin directory policy forbids collecting
+  session content, even with consent.
 
 For the **OpenAI Plugins Directory** (ChatGPT + Codex) the archive is built from the tree rather
 than hand-assembled, because that listing is the one channel that does not track this repo — every
