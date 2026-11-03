@@ -1,7 +1,7 @@
 ---
 name: extract-sales-navigator-search
 description: "Extract a Sales Navigator search that is bigger than one extraction can hold: count it, split it under the cap, merge the pieces back to the fewest searches, and load them into a handful of models, for accounts (1,000 per search) or people (2,500 per search), powered by Cargo. Triggers: \"my Sales Nav search has 30,000 results\", \"extract more than 1,000 accounts from Sales Navigator\", \"get past the 2,500 lead limit\", \"split a large LinkedIn search\", \"Sales Navigator search optimizer\", \"the extraction stopped at 1,000\", \"pull every company in this Sales Nav search\". Providers: salesNavigator. Skip when: the search is already under the cap or you want a quick list today — use build-tam-list for companies or find-b2b-leads for people; or you want the list kept current — use tam-building."
-version: "1.0.0"
+version: "1.0.1"
 compatibility: Requires @cargo-ai/cli (npm). Sign in or create an account with `cargo-ai login --email` (emailed code, no browser), `--oauth`, or an API token
 homepage: https://github.com/getcargohq/gtm-skills
 metadata:
