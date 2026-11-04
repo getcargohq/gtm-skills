@@ -1,7 +1,7 @@
 ---
 name: track-job-changes
 description: "Detect which of your contacts have changed jobs, and where they went, powered by Cargo. Triggers: \"who changed jobs\", \"track job changes in my CRM\", \"did any of my contacts move companies\", \"alert me when a champion leaves\", \"find people who recently started a new role\", \"job changes\", \"job change signals\". Providers: waterfall. Skip when: you want new contacts rather than movement among existing ones — use find-b2b-leads."
-version: "1.1.4"
+version: "1.1.5"
 compatibility: Requires @cargo-ai/cli (npm). Sign in or create an account with `cargo-ai login --email` (emailed code, no browser), `--oauth`, or an API token
 homepage: https://github.com/getcargohq/gtm-skills
 metadata:
@@ -54,7 +54,7 @@ Already signed in? `cargo-ai whoami` confirms it.
 
 ```bash
 cargo-ai orchestration action execute-batch \
-  --action '{"kind":"connector","integrationSlug":"waterfall","actionSlug":"detectJobChange","config":{}}' \
+  --action '{"kind":"connector","integrationSlug":"waterfall","actionSlug":"detectJobChange"}' \
   --records '[{"professional_email":"john@acme.com","company_domain":"acme.com"}]' \
   --wait-until-finished
 ```

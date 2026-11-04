@@ -1,7 +1,7 @@
 ---
 name: waterfall-enrichment
 description: "Cascade one lookup through several vendors in priority order, so a row the first source misses falls through to the next instead of being lost, powered by Cargo. Triggers: \"waterfall enrichment\", \"cascade through providers\", \"fallback chain\", \"my single vendor has bad coverage\", \"try another source when the first one misses\", \"improve my match rate\", \"multi-vendor fallback\". Providers: waterfall. Skip when: you want one address for one name and domain — use find-work-email, the cheaper single job; or you hold addresses and only want them checked — use verify-email-list."
-version: "1.0.3"
+version: "1.0.4"
 compatibility: Requires @cargo-ai/cli (npm). Sign in or create an account with `cargo-ai login --email` (emailed code, no browser), `--oauth`, or an API token
 homepage: https://github.com/getcargohq/gtm-skills
 metadata:
@@ -58,7 +58,7 @@ Contact enrichment across the stack. One call, several sources behind it:
 
 ```bash
 cargo-ai orchestration action execute-batch \
-  --action '{"kind":"connector","integrationSlug":"waterfall","actionSlug":"enrichContact","config":{}}' \
+  --action '{"kind":"connector","integrationSlug":"waterfall","actionSlug":"enrichContact"}' \
   --records '[{"full_name":"Jane Doe","domain":"acme.com"},{"linkedin":"https://linkedin.com/in/someone"}]' \
   --wait-until-finished
 ```
@@ -67,7 +67,7 @@ Company side, when the domain is all you hold:
 
 ```bash
 cargo-ai orchestration action execute-batch \
-  --action '{"kind":"connector","integrationSlug":"waterfall","actionSlug":"enrichCompany","config":{}}' \
+  --action '{"kind":"connector","integrationSlug":"waterfall","actionSlug":"enrichCompany"}' \
   --records '[{"domain":"acme.com"},{"linkedin":"https://linkedin.com/company/acme"}]' \
   --wait-until-finished
 ```
@@ -76,7 +76,7 @@ Then verify what came back, because an enriched address is still a guess until i
 
 ```bash
 cargo-ai orchestration action execute-batch \
-  --action '{"kind":"connector","integrationSlug":"waterfall","actionSlug":"verifyEmail","config":{}}' \
+  --action '{"kind":"connector","integrationSlug":"waterfall","actionSlug":"verifyEmail"}' \
   --records '[{"email":"jane@acme.com"}]' \
   --wait-until-finished
 ```

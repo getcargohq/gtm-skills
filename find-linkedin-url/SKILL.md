@@ -1,7 +1,7 @@
 ---
 name: find-linkedin-url
 description: "Resolve a person's LinkedIn profile URL from their name and company, with an identity-validation gate that rejects wrong matches, powered by Cargo. Triggers: \"find the LinkedIn for John Smith at Acme\", \"get LinkedIn URLs for these contacts\", \"what's this person's LinkedIn\", \"add LinkedIn profiles to my list\". Providers: linkedin. Skip when: you already have the LinkedIn URL and want the profile data — use enrich-linkedin-profile."
-version: "1.0.4"
+version: "1.0.5"
 compatibility: Requires @cargo-ai/cli (npm). Sign in or create an account with `cargo-ai login --email` (emailed code, no browser), `--oauth`, or an API token
 homepage: https://github.com/getcargohq/gtm-skills
 metadata:
@@ -55,7 +55,7 @@ Already signed in? `cargo-ai whoami` confirms it.
 ```bash
 # 1. Resolve a candidate URL
 cargo-ai orchestration action execute-batch \
-  --action '{"kind":"connector","integrationSlug":"linkedin","actionSlug":"findProfileUrl","config":{}}' \
+  --action '{"kind":"connector","integrationSlug":"linkedin","actionSlug":"findProfileUrl"}' \
   --records '[{"fullName":"John Smith","companyName":"Acme"}]' \
   --wait-until-finished > candidates.json
 
@@ -65,7 +65,7 @@ curl -s "$(cargo-ai orchestration batch download --uuid "$(jq -r .batch.uuid can
 
 # 2. Validate it — enrich each non-empty cargo_linkedin_profile_url and confirm the company matches
 cargo-ai orchestration action execute-batch \
-  --action '{"kind":"connector","integrationSlug":"linkedin","actionSlug":"enrichProfile","config":{}}' \
+  --action '{"kind":"connector","integrationSlug":"linkedin","actionSlug":"enrichProfile"}' \
   --records '[{"linkedinUrl":"https://www.linkedin.com/in/john-smith-acme"}]' \
   --wait-until-finished
 ```

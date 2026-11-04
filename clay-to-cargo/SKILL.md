@@ -1,7 +1,7 @@
 ---
 name: clay-to-cargo
 description: "Rebuild a Clay table on Cargo, powered by Cargo — map every Clay enrichment column to its provider action, price the run before it happens, and keep the result as version-controlled code instead of a spreadsheet. Triggers: \"migrate from Clay\", \"move my Clay table to Cargo\", \"Clay alternative\", \"replace Clay\", \"I have a Clay export\", \"what does Clay's enrichment column map to\", \"my Clay bill is too high\", \"Clay but as code\". Migration, mapping, parity, spreadsheet, declarative. Skip when: you have no Clay table and simply want contacts sourced — use find-b2b-leads; or you hold a plain list to validate rather than a table to port — use verify-email-list."
-version: "1.0.3"
+version: "1.0.4"
 compatibility: Requires @cargo-ai/cli (npm). Sign in or create an account with `cargo-ai login --email` (emailed code, no browser), `--oauth`, or an API token
 homepage: https://github.com/getcargohq/gtm-skills
 metadata:
@@ -117,31 +117,31 @@ pipeline.
 ```bash
 # Cheaper rung first — escalate only the misses
 cargo-ai orchestration action execute-batch \
-  --action '{"kind":"connector","integrationSlug":"prospeo","actionSlug":"findEmail","config":{}}' \
+  --action '{"kind":"connector","integrationSlug":"prospeo","actionSlug":"findEmail"}' \
   --records '[{"firstName":"John","lastName":"Smith","companyDomain":"acme.com"}]' \
   --wait-until-finished
 
 # Escalate the rows that came back empty
 cargo-ai orchestration action execute-batch \
-  --action '{"kind":"connector","integrationSlug":"FullEnrich","actionSlug":"findEmail","config":{}}' \
+  --action '{"kind":"connector","integrationSlug":"FullEnrich","actionSlug":"findEmail"}' \
   --records '[{"firstName":"John","lastName":"Smith","domainName":"acme.com"}]' \
   --wait-until-finished
 
 # Verify what resolved, before anyone sends to it
 cargo-ai orchestration action execute-batch \
-  --action '{"kind":"connector","integrationSlug":"waterfall","actionSlug":"verifyEmail","config":{}}' \
+  --action '{"kind":"connector","integrationSlug":"waterfall","actionSlug":"verifyEmail"}' \
   --records '[{"email":"john.smith@acme.com"}]' \
   --wait-until-finished
 
 # Firmographics for the accounts behind those people
 cargo-ai orchestration action execute-batch \
-  --action '{"kind":"connector","integrationSlug":"companyEnrich","actionSlug":"enrichByDomain","config":{}}' \
+  --action '{"kind":"connector","integrationSlug":"companyEnrich","actionSlug":"enrichByDomain"}' \
   --records '[{"domain":"acme.com"}]' \
   --wait-until-finished
 
 # Person records where the export already carries LinkedIn URLs
 cargo-ai orchestration action execute-batch \
-  --action '{"kind":"connector","integrationSlug":"prospeo","actionSlug":"enrichLinkedin","config":{}}' \
+  --action '{"kind":"connector","integrationSlug":"prospeo","actionSlug":"enrichLinkedin"}' \
   --records '[{"url":"https://www.linkedin.com/in/johnsmith"}]' \
   --wait-until-finished
 ```

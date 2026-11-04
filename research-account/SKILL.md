@@ -1,7 +1,7 @@
 ---
 name: research-account
 description: "Research one company and its public website before a meeting and hand back a briefing, powered by Cargo — what it does, what it publicly says is hard right now, and who it names as competition, each line traceable to where it came from. Triggers: \"research this company\", \"brief me on this account\", \"prep me for this meeting\", \"what should I know about them\", \"write me a one-pager on\", \"what are they struggling with\", \"who do they compete with\". Meeting prep, briefing, dossier, talking points. Skip when: you want many companies filtered rather than one understood — use build-tam-list; or you want the people to contact there — use find-stakeholders."
-version: "1.0.4"
+version: "1.0.5"
 compatibility: Requires @cargo-ai/cli (npm). Sign in or create an account with `cargo-ai login --email` (emailed code, no browser), `--oauth`, or an API token
 homepage: https://github.com/getcargohq/gtm-skills
 metadata:
@@ -68,25 +68,25 @@ where its money went.
 ```bash
 # 1. The baseline: what they are, how big, what they say they do
 cargo-ai orchestration action execute-batch \
-  --action '{"kind":"connector","integrationSlug":"linkedin","actionSlug":"enrichCompanyFromDomain","config":{}}' \
+  --action '{"kind":"connector","integrationSlug":"linkedin","actionSlug":"enrichCompanyFromDomain"}' \
   --records '[{"domain":"acme.com"}]' \
   --wait-until-finished
 
 # 2. Their own words, read from their own pages
 cargo-ai orchestration action execute-batch \
-  --action '{"kind":"connector","integrationSlug":"parallel","actionSlug":"extract","config":{}}' \
+  --action '{"kind":"connector","integrationSlug":"parallel","actionSlug":"extract"}' \
   --records '[{"urls":["https://acme.com","https://acme.com/careers"],"objective":"What the company says it does, and which teams it is growing"}]' \
   --wait-until-finished
 
 # 3. The research question, structured, with its sources
 cargo-ai orchestration action execute-batch \
-  --action '{"kind":"connector","integrationSlug":"parallel","actionSlug":"createTask","config":{}}' \
+  --action '{"kind":"connector","integrationSlug":"parallel","actionSlug":"createTask"}' \
   --records '[{"input":"What has Acme publicly said about its priorities and challenges in the last 12 months, and who does it name as competitors?","processor":"lite","outputSchema":"{\"type\":\"object\",\"properties\":{\"priorities\":{\"type\":\"array\",\"items\":{\"type\":\"string\"}},\"competitors\":{\"type\":\"array\",\"items\":{\"type\":\"string\"}},\"sources\":{\"type\":\"array\",\"items\":{\"type\":\"string\"}}}}"}]' \
   --wait-until-finished
 
 # 4. What they are hiring for, which is what they are spending on
 cargo-ai orchestration action execute \
-  --action '{"kind":"connector","integrationSlug":"theirStack","actionSlug":"searchJobs","config":{}}' \
+  --action '{"kind":"connector","integrationSlug":"theirStack","actionSlug":"searchJobs"}' \
   --data '{
     "companyFields": {"company_domain_or": ["acme.com"]},
     "fields": {"posted_at_max_age_days": 90},
@@ -177,7 +177,7 @@ list. `parallel.extract` bills per URL, so two pages is 0.05 and ten is 0.25.
 
 - **Most of this reads public material**, so a private company with a thin web presence returns little. That is a real answer: report the gap rather than padding the page.
 - **`processor` on `createTask` defaults to `core` (0.625) and the ladder runs to 60 credits a record.** Pin `lite`. Escalate to `base` (0.25) on a specific hard target, never across a list.
-- `theirStack.searchJobs` takes the domain as `companyFields.company_domain_or`. Unknown keys (`company_domains`, a top-level `domain`) are stripped without an error, so the search runs unfiltered and bills 0.5 for every job in the page.
+- `theirStack.searchJobs` takes the domain as `companyFields.company_domain_or`. Unknown keys (`company_domains`, a top-level `domain`) are refused before the run starts (`Unknown field: …`); inside a workflow node they are dropped silently instead, so the search runs unfiltered and bills 0.5 for every job in the page.
 - `execute-batch` takes its inputs in `--records`, one object per run, and has no `--data` flag; `--data` belongs to the single-run `execute`, which is why the job search above is an `execute`. Inputs inside the `--action` object's `config` are ignored.
 - Ask for the domain, not the company name. Every call here keys off it.
 - For a renewal, drop steps 2 and 3 and keep the baseline and the roles. The account team already knows the story; what they want is what changed.

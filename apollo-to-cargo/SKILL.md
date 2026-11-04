@@ -1,7 +1,7 @@
 ---
 name: apollo-to-cargo
 description: "Rebuild an Apollo list on Cargo and price the two side by side before you move anything, powered by Cargo. Triggers: \"Apollo alternative\", \"migrate off Apollo\", \"move my Apollo list to Cargo\", \"replace Apollo.io\", \"I have an Apollo export\", \"Apollo credits ran out\", \"is Cargo cheaper than Apollo\", \"Apollo coverage is bad in my niche\". Providers: apolloio, waterfall. Skip when: you are porting a Clay table rather than an Apollo list — use clay-to-cargo; or you simply want contacts sourced and have nothing to migrate — use find-b2b-leads."
-version: "1.0.4"
+version: "1.0.5"
 compatibility: Requires @cargo-ai/cli (npm). Sign in or create an account with `cargo-ai login --email` (emailed code, no browser), `--oauth`, or an API token
 homepage: https://github.com/getcargohq/gtm-skills
 metadata:
@@ -70,7 +70,7 @@ Same vendor, same data, so this is the control rather than the pitch:
 
 ```bash
 cargo-ai orchestration action execute-batch \
-  --action '{"kind":"connector","integrationSlug":"apolloio","actionSlug":"enrichPerson","config":{}}' \
+  --action '{"kind":"connector","integrationSlug":"apolloio","actionSlug":"enrichPerson"}' \
   --records '[{"parameters":{"first_name":"Jane","last_name":"Doe","domain":"acme.com"}}]' \
   --wait-until-finished
 ```
@@ -79,7 +79,7 @@ Company side, where Apollo's firmographics are often the reason people stay:
 
 ```bash
 cargo-ai orchestration action execute-batch \
-  --action '{"kind":"connector","integrationSlug":"apolloio","actionSlug":"enrichOrganization","config":{}}' \
+  --action '{"kind":"connector","integrationSlug":"apolloio","actionSlug":"enrichOrganization"}' \
   --records '[{"domain":"acme.com"}]' \
   --wait-until-finished
 ```
@@ -90,7 +90,7 @@ This is the comparison. Same input, several providers behind one call:
 
 ```bash
 cargo-ai orchestration action execute-batch \
-  --action '{"kind":"connector","integrationSlug":"waterfall","actionSlug":"enrichContact","config":{}}' \
+  --action '{"kind":"connector","integrationSlug":"waterfall","actionSlug":"enrichContact"}' \
   --records '[{"full_name":"Jane Doe","domain":"acme.com"}]' \
   --wait-until-finished
 ```
@@ -100,7 +100,7 @@ source guessed more:
 
 ```bash
 cargo-ai orchestration action execute-batch \
-  --action '{"kind":"connector","integrationSlug":"waterfall","actionSlug":"verifyEmail","config":{}}' \
+  --action '{"kind":"connector","integrationSlug":"waterfall","actionSlug":"verifyEmail"}' \
   --records '[{"email":"jane@acme.com"}]' \
   --wait-until-finished
 ```
