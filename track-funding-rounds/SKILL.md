@@ -1,7 +1,7 @@
 ---
 name: track-funding-rounds
 description: "Track which companies recently raised funding, with round, amount, and investors, powered by Cargo. Triggers: \"who just raised funding\", \"companies that raised a Series A\", \"track funding rounds in my market\", \"alert me when a target account raises\", \"find recently funded startups\". Providers: cargo. Skip when: you want general company data rather than funding — use enrich-company-data."
-version: "1.0.3"
+version: "1.0.4"
 compatibility: Requires @cargo-ai/cli (npm). Sign in or create an account with `cargo-ai login --email` (emailed code, no browser), `--oauth`, or an API token
 homepage: https://github.com/getcargohq/gtm-skills
 metadata:
@@ -54,7 +54,7 @@ Already signed in? `cargo-ai whoami` confirms it.
 
 ```bash
 cargo-ai orchestration action execute-batch \
-  --action '{"kind":"connector","integrationSlug":"enrichCrm","actionSlug":"getFunding","config":{}}' \
+  --action '{"kind":"connector","integrationSlug":"enrichCrm","actionSlug":"getFunding"}' \
   --records '[{"domain":"acme.com"},{"domain":"globex.com"}]' \
   --wait-until-finished
 ```

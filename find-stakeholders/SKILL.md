@@ -1,7 +1,7 @@
 ---
 name: find-stakeholders
 description: "Find the buying committee at a target account — every stakeholder matching a set of titles, seniorities, and departments, powered by Cargo. Triggers: \"find the buying committee at Acme\", \"who are the decision makers at this company\", \"find stakeholders\", \"multi-thread this account\", \"who else should I be talking to at this account\". Providers: aiArk. Skip when: you are sourcing across many companies rather than going deep on a few — use find-b2b-leads."
-version: "1.0.4"
+version: "1.0.5"
 compatibility: Requires @cargo-ai/cli (npm). Sign in or create an account with `cargo-ai login --email` (emailed code, no browser), `--oauth`, or an API token
 homepage: https://github.com/getcargohq/gtm-skills
 metadata:
@@ -54,7 +54,7 @@ Already signed in? `cargo-ai whoami` confirms it.
 
 ```bash
 cargo-ai orchestration action execute \
-  --action '{"kind":"connector","integrationSlug":"aiArk","actionSlug":"searchPeople","config":{}}' \
+  --action '{"kind":"connector","integrationSlug":"aiArk","actionSlug":"searchPeople"}' \
   --data '{
     "companyInfo": {"domain_or": ["acme.com"]},
     "jobRole": {

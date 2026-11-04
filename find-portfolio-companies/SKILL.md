@@ -1,7 +1,7 @@
 ---
 name: find-portfolio-companies
 description: "Find every portfolio company of an investor or accelerator, then the people inside them, powered by Cargo. Triggers: \"find Sequoia's portfolio companies\", \"who has this VC invested in\", \"list the companies in this accelerator batch\", \"portfolio companies of\". Providers: theirStack. Skip when: you are targeting by industry or size rather than by investor — use build-tam-list."
-version: "1.0.4"
+version: "1.0.5"
 compatibility: Requires @cargo-ai/cli (npm). Sign in or create an account with `cargo-ai login --email` (emailed code, no browser), `--oauth`, or an API token
 homepage: https://github.com/getcargohq/gtm-skills
 metadata:
@@ -54,7 +54,7 @@ Already signed in? `cargo-ai whoami` confirms it.
 
 ```bash
 cargo-ai orchestration action execute \
-  --action '{"kind":"connector","integrationSlug":"theirStack","actionSlug":"searchCompanies","config":{}}' \
+  --action '{"kind":"connector","integrationSlug":"theirStack","actionSlug":"searchCompanies"}' \
   --data '{
     "fields": {"company_investors_partial_match_or": ["Sequoia"]},
     "limit": 20
