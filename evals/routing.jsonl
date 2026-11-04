@@ -228,3 +228,8 @@
 {"prompt": "Track our Ora score against our competitors in Slack", "expect": "website-auditing"}
 {"prompt": "Make our website readable by AI agents: llms.txt, structured data, agent discovery files", "expect": "website-auditing"}
 {"prompt": "Build our company website on Cargo and make it agent-ready from the start", "expect": "website-building", "why": "Building and hosting the site is website-building; agent-readiness audits and fixes a site that already exists."}
+{"prompt": "An agent that answers on our pull requests when someone mentions it", "expect": "pull-request-agent", "why": "Mentions on pull requests are pull-request-agent; Slack mentions are ask-cargo."}
+{"prompt": "Let reviewers mention cargo on a PR to get it fixed", "expect": "pull-request-agent"}
+{"prompt": "Tell me what this PR would deploy every time someone asks on it", "expect": "pull-request-agent"}
+{"prompt": "A github reviewer that knows our repo and plans every infra pull request", "expect": "pull-request-agent"}
+{"prompt": "A slack bot that answers from our repo and opens pull requests when we ask", "expect": "ask-cargo", "why": "Asked from Slack is ask-cargo, even when the answer is a pull request; pull-request-agent answers on the pull request itself."}

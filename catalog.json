@@ -90,7 +90,7 @@
     },
     {
       "title": "Operations",
-      "description": "Deployed pipelines that run the team: the daily recap, a brief before every external meeting, every promise made on a call, a weekly nudge on deals gone quiet, the weekly plan, the pipelines the goal still needs, a morning check for anything broken, the week's LinkedIn drafts, and one agent everyone can ask.",
+      "description": "Deployed pipelines that run the team: the daily recap, a brief before every external meeting, every promise made on a call, a weekly nudge on deals gone quiet, the weekly plan, the pipelines the goal still needs, a morning check for anything broken, the week's LinkedIn drafts, one agent everyone can ask, and one on every pull request.",
       "skills": [
         "standup",
         "meeting-prep",
@@ -100,7 +100,8 @@
         "goal-coverage",
         "workspace-health",
         "linkedin-content",
-        "ask-cargo"
+        "ask-cargo",
+        "pull-request-agent"
       ]
     },
     {
@@ -2006,6 +2007,83 @@
       ],
       "cost": "The evidence reads are SQL over workspace models and bill nothing. The post is `slack.postMessage`\non the bound connector; immediately before the plan, run\n`cargo-ai orchestration action list postMessage --kind connector --integration-slug slack` and read\nthe current cost out loud. The recurring cost is the harness run itself, once each weekday, billed as\nLLM tokens through the Anthropic connector. It scales with the number of call entries in the window\nand open commitments to check, not with the size of the activity log, and the run posts at most once.",
       "composesInto": "`call-capture` (the call log it reads), and `standup` (the evening recap can cite what closed today)."
+    },
+    {
+      "name": "pull-request-agent",
+      "kind": "cookbook",
+      "job": "Put an agent on every pull request in your go-to-market repo: anyone who mentions @cargo on a pull request gets an agent with the branch checked out that explains the diff, says what merging would deploy (what it creates, replaces and removes), and pushes the fixes it is asked for to the branch, never merging or deploying.",
+      "description": "Put an agent on every pull request in your go-to-market repo: anyone who mentions @cargo on a pull request gets an agent with the branch checked out that explains the diff, says what merging would deploy (what it creates, replaces and removes), and pushes the fixes it is asked for to the branch, never merging or deploying. Triggers: \"an agent that answers on our pull requests\", \"mention cargo on a PR\", \"tell me what this PR would deploy\", \"reviewers mention cargo to fix the PR\", \"a github reviewer that knows our repo\", \"plan every infra pull request\". Cargo project, defineAgent, harness claudeCode, GitHub connector trigger, cargo-ai project plan. Skip when: the team asks from Slack, which is ask-cargo; or you want CI to gate merges, which is a GitHub Action running cargo-ai project plan.",
+      "version": "0.1.0",
+      "homepage": "https://github.com/getcargohq/gtm-skills/tree/main/pull-request-agent",
+      "group": "Operations",
+      "install": "cargo-ai project add cookbook/pull-request-agent",
+      "partOf": [],
+      "personas": [
+        "gtm-engineering",
+        "revops"
+      ],
+      "integrations": [
+        "anthropic",
+        "github"
+      ],
+      "example": {
+        "prompt": "Put an agent on our GTM repo's pull requests that tells reviewers what a merge would deploy and fixes what they ask.",
+        "output": "```text\nnorthwind-example/gtm #318  \"Score accounts on headcount growth\"\nPriya:  @cargo what would this deploy?\nCargo:  `cargo-ai project plan` on score-headcount-growth:\n        • update  play:score_accounts (new headcount_growth input)\n        • update  agent:tier_analyst (prompt)\n        • **replace model:account_scores — the column type changes, its 4,210 rows are rebuilt**\n        Check passes. Mention me to keep the old column instead.\nPriya:  @cargo keep the old column and add a new one\nCargo:  Pushed 3f2a91c: adds headcount_growth_pct beside the old column.\n        Plan is now update-only: nothing replaced or removed.\n```\n\nA replace nobody had noticed was caught in review and turned into an update-only change with one\nmore commit; nothing was merged or deployed by the agent."
+      },
+      "state": "to-be-approved",
+      "chain": 28,
+      "resources": [
+        "agents",
+        "connectors",
+        "folders"
+      ],
+      "asked": [],
+      "canChange": [
+        {
+          "id": "answer-only",
+          "when": "You want explanations and plans on pull requests, but nobody pushing through it",
+          "how": "In `infra/agents/pull-request-agent.prompt.ts`, replace §3 with \"put the change in the reply as a suggestion; never commit\"",
+          "cost": "Every fix is copied by hand out of a comment, and a suggestion nobody applies is a review that went nowhere."
+        },
+        {
+          "id": "own-prs-only",
+          "when": "Another agent already answers on every pull request",
+          "how": "Set `allPullRequests: false` in `infra/agents/pull-request-agent.ts`, and give the agent a Slack or cron trigger that opens pull requests",
+          "cost": "The agent answers only on pull requests it opened. With no other trigger it opens none, so it never answers: the contract fails on it for that reason."
+        },
+        {
+          "id": "no-check-fixing",
+          "when": "CI on this repository is slow or flaky",
+          "how": "Set `fixFailedChecks: false`; or lower `maxCheckFixAttempts` (default 3)",
+          "cost": "A red pull request the agent opened waits for a human. Each fix attempt is a harness turn."
+        },
+        {
+          "id": "opus-for-plans",
+          "when": "Pull requests change many resources and the plan summary needs judgment",
+          "how": "Set `languageModel` to a larger Anthropic model",
+          "cost": "Every turn costs more, including the one-line questions."
+        }
+      ],
+      "shouldNotChange": [
+        "**The sandbox runs as a viewer service user.** (`infra/users/index.ts`) Anyone who can comment on the repository steers this agent. With a write role, a comment that talks it past its prompt can deploy or edit a resource; with no `runAs`, `plan` fails on every turn. The contract fails on either.",
+        "**Nothing on `uses`, no capability.** (`infra/agents/pull-request-agent.ts`) A connector action, tool or sub-agent is a path to spend or send from a pull request comment, with no go and no record but the comment. The contract fails on any of them.",
+        "**It never merges, approves, deploys or force-pushes.** (`infra/agents/pull-request-agent.prompt.ts` §3) The merge is the approval, by a human, and the deploy follows the merge. An agent that merges its own commit reviews itself.",
+        "**`allPullRequests` stays on.** (`infra/agents/pull-request-agent.ts`) Without it the agent answers only on pull requests it opened, and it opens none on its own: the trigger deploys green and nothing ever answers.",
+        "**One workspace per repository.** (step 4 above) A second workspace binding the same repository silences the catch-all for both, with no error anywhere.",
+        "**Workspace data stays off public repositories.** (`infra/agents/pull-request-agent.prompt.ts` §5) A comment on a public repository is public. Usage, run details and model rows belong in Slack or the CLI."
+      ],
+      "doneWhen": [
+        "`node --import tsx evals/contract.mjs` passes: harness is `claudeCode` on an Anthropic connector, one GitHub trigger with `allPullRequests`, nothing on `uses`, no capability, `runAs` a viewer service user",
+        "`cargo-ai project plan` reports the agent, the two connectors, the folder, the `pull_request_agent` user and the adopted `viewer` role",
+        "\"@cargo what does this change?\" on a pull request a human opened got one comment that cites a file and line from the diff",
+        "\"@cargo what would this deploy?\" on a pull request touching `infra/` replied with the plan summary, every replace and remove in bold; on a branch where check fails, it replied with the error instead",
+        "\"@cargo rename X to Y\" pushed exactly one commit to that pull request's branch and replied with it; the same request on a fork's pull request replied with a suggestion and pushed nothing",
+        "\"@cargo merge this\" and \"@cargo deploy it\" were refused",
+        "a mention on a pull request Ask Cargo opened got Ask Cargo's reply, not this agent's",
+        "every mention produced exactly one comment"
+      ],
+      "cost": "Every mention is a harness run: a sandbox, a clone of the pull request's branch, and LLM tokens\nbilled through the bound Anthropic connector. `cargo-ai project check` and `plan` are API reads and\nbill nothing. Nothing runs on a schedule, and the agent runs no connector action, so a turn costs\nits tokens and nothing else. A failing check on a pull request it opened is one more turn per\nattempt, up to `maxCheckFixAttempts`.",
+      "composesInto": "Pairs with `ask-cargo`: a change asked for in Slack becomes a pull request there, and the review\nhappens here. It gets more useful with every pipeline whose resources live in `infra/`, because\neach one is one more thing a plan summary can catch before it is replaced."
     },
     {
       "name": "readiness-scoring",
