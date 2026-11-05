@@ -130,7 +130,7 @@ research or template work if the skill cannot be installed or read.
 
 1. **Install it: the CLI does the copy.** From inside the project (the folder holding `cargo.json`),
    `cargo-ai project add cookbook/tam-building` writes this example to `infra/tam-building/` and this
-   procedure to `.claude/skills/tam-building/`. No project yet?
+   procedure to `.agents/skills/tam-building/`. No project yet?
    `cargo-ai project init <dir> --cookbook tam-building && cd <dir> && npm install` does both; this
    folder never ships a shell. **If you are reading this from the project's `.claude/skills/`, the
    install already happened: start at step 2.** On a CLI too old to have `add`, copy this folder

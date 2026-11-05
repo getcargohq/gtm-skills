@@ -112,7 +112,7 @@ its authoring, state, plan, and deployment rules throughout this pipeline.
 
 1. **Install it: the CLI does the copy.** From inside the project (the folder holding `cargo.json`),
    `cargo-ai project add cookbook/crm-deduplication` writes this example to
-   `infra/crm-deduplication/` and this procedure to `.claude/skills/crm-deduplication/`. No project
+   `infra/crm-deduplication/` and this procedure to `.agents/skills/crm-deduplication/`. No project
    yet? `cargo-ai project init <dir> --cookbook crm-deduplication && cd <dir> && npm install` does both;
    this folder never ships a shell. **If you are reading this from the project's `.claude/skills/`,
    the install already happened. Start at step 2.** On a CLI too old to have `add`, copy this folder

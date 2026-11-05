@@ -91,7 +91,7 @@ this is enough.
 
 1. **Install it — the CLI does the copy.** From inside the project (the folder holding `cargo.json`),
    `cargo-ai project add cookbook/agentic-engagement` writes this example to
-   `infra/agentic-engagement/` and this procedure to `.claude/skills/agentic-engagement/`. No
+   `infra/agentic-engagement/` and this procedure to `.agents/skills/agentic-engagement/`. No
    project yet?
    `cargo-ai project init <dir> --cookbook agentic-engagement && cd <dir> && npm install` does both;
    this folder never ships a shell. **If you are reading this from the project's

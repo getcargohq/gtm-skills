@@ -78,7 +78,7 @@ is enough.
 
 1. **Install it: the CLI does the copy.** From inside the project (the folder holding `cargo.json`),
    `cargo-ai project add cookbook/workspace-health` writes this example to
-   `infra/workspace-health/` and this procedure to `.claude/skills/workspace-health/`. No project
+   `infra/workspace-health/` and this procedure to `.agents/skills/workspace-health/`. No project
    yet? `cargo-ai project init <dir> --cookbook workspace-health && cd <dir> && npm install` does
    both. **If you are reading this from the project's `.claude/skills/`, the install already
    happened, so start at step 2.** On a CLI too old to have `add`, copy this folder in as a sibling of

@@ -80,7 +80,7 @@ including CI that plans every pull request and deploys on merge; if not, this is
 
 1. **Install it: the CLI does the copy.** From inside the project (the folder holding `cargo.json`),
    `cargo-ai project add cookbook/website-building` writes this example to
-   `infra/website-building/` and this procedure to `.claude/skills/website-building/`. No project
+   `infra/website-building/` and this procedure to `.agents/skills/website-building/`. No project
    yet? `cargo-ai project init <dir> --cookbook website-building && cd <dir> && npm install` does
    both; this folder never ships a shell. **If you are reading this from the project's
    `.claude/skills/`, the install already happened; start at step 2.**

@@ -106,7 +106,7 @@ is enough.
 
 1. **Install it — the CLI does the copy.** From inside the project (the folder holding `cargo.json`),
    `cargo-ai project add cookbook/standup` writes this example to `infra/standup/` (resources
-   **and** `scripts/`) and this procedure to `.claude/skills/standup/`. No project yet?
+   **and** `scripts/`) and this procedure to `.agents/skills/standup/`. No project yet?
    `cargo-ai project init <dir> --cookbook standup && cd <dir> && npm install` does both; this
    folder never ships a shell. **If you are reading this from the project's `.claude/skills/`, the
    install already happened — start at step 2.** On a CLI too old to have `add`, copy this folder in

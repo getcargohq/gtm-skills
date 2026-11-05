@@ -120,7 +120,7 @@ template work if the skill cannot be installed or read.
 
 1. **Install it: the CLI does the copy.** From inside the project (the folder holding `cargo.json`),
    `cargo-ai project add cookbook/account-scoring` writes this example to `infra/account-scoring/` and
-   this procedure to `.claude/skills/account-scoring/`. No project yet?
+   this procedure to `.agents/skills/account-scoring/`. No project yet?
    `cargo-ai project init <dir> --cookbook account-scoring && cd <dir> && npm install` does both.
    **If you are reading this from the project's `.claude/skills/`, the install already happened:
    start at step 2.**

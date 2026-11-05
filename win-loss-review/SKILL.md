@@ -103,7 +103,7 @@ is enough.
 
 1. **Install it: the CLI does the copy.** From inside the project (the folder holding `cargo.json`),
    `cargo-ai project add cookbook/win-loss-review` writes the resources to `infra/win-loss-review/` and
-   this procedure to `.claude/skills/win-loss-review/`. No project yet?
+   this procedure to `.agents/skills/win-loss-review/`. No project yet?
    `cargo-ai project init <dir> --cookbook win-loss-review && cd <dir> && npm install` does both; this
    folder never ships a shell. **If you are reading this from the project's `.claude/skills/`, the
    install already happened: start at step 2.** On a CLI too old to have `add`, copy this folder in

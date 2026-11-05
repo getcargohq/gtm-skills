@@ -100,7 +100,7 @@ is enough.
 
 1. **Install it: the CLI does the copy.** From inside the project (the folder holding `cargo.json`),
    `cargo-ai project add cookbook/web-capture` writes the resources to `infra/web-capture/` and this
-   procedure to `.claude/skills/web-capture/`. No project yet?
+   procedure to `.agents/skills/web-capture/`. No project yet?
    `cargo-ai project init <dir> --cookbook web-capture && cd <dir> && npm install` does both; this
    folder never ships a shell. **If you are reading this from the project's `.claude/skills/`, the
    install already happened: start at step 2.** On a CLI too old to have `add`, copy this folder in
