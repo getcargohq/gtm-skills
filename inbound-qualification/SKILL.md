@@ -87,7 +87,7 @@ not, this is enough.
 1. **Install it: the CLI does the copy.** From inside the project (the folder holding `cargo.json`),
    `cargo-ai project add cookbook/inbound-qualification` writes the tool and models to
    `infra/inbound-qualification/` and this procedure, with the `site/` files, to
-   `.claude/skills/inbound-qualification/`. No project yet?
+   `.agents/skills/inbound-qualification/`. No project yet?
    `cargo-ai project init <dir> --cookbook inbound-qualification && cd <dir> && npm install`.
    **If you are reading this from the project's `.claude/skills/`, the install already happened;
    start at step 2.**

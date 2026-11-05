@@ -74,7 +74,7 @@ not, this is enough.
 1. **Install it: the CLI does the copy.** From inside the project (the folder holding `cargo.json`),
    `cargo-ai project add cookbook/visitor-identification` writes the models to
    `infra/visitor-identification/` and this procedure, with the `site/` files, to
-   `.claude/skills/visitor-identification/`. No project yet?
+   `.agents/skills/visitor-identification/`. No project yet?
    `cargo-ai project init <dir> --cookbook visitor-identification && cd <dir> && npm install`.
    **If you are reading this from the project's `.claude/skills/`, the install already happened;
    start at step 2.**

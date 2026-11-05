@@ -111,9 +111,11 @@ that order.
      (or `cargo-ai project init --cookbook <name>` when there is no project) is the copy step,
      then reconcile with what is already declared, adapt, plan and stop, deploy
      on a yes, verify. Copy it from `tam-building/SKILL.md`; each skill carries
-     its own, the way every one-off skill carries its own Setup. Say early that
-     a reader who found this in a project's `.claude/skills/` is past the copy —
-     the section is also what the CLI hands an agent after installing.
+     its own, the way every one-off skill carries its own Setup. The procedure
+     lands in `.agents/skills/<name>/`; `.claude/skills/<name>` is a symlink to
+     it, since Claude Code reads only that path. Say early that a reader who
+     found this in a project's `.claude/skills/` is past the copy — the
+     section is also what the CLI hands an agent after installing.
    - `## What you will be asked`: a table of inputs, **derive before ask**.
      An input that can be looked up (which connector is authenticated, what
      the CRM schema holds) is marked _derived_; if more than about four rows

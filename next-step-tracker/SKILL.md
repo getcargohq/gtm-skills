@@ -78,7 +78,7 @@ is enough.
 
 1. **Install it — the CLI does the copy.** From inside the project (the folder holding `cargo.json`),
    `cargo-ai project add cookbook/next-step-tracker` writes this example to `infra/next-step-tracker/`
-   and this procedure to `.claude/skills/next-step-tracker/`. No project yet?
+   and this procedure to `.agents/skills/next-step-tracker/`. No project yet?
    `cargo-ai project init <dir> --cookbook next-step-tracker && cd <dir> && npm install` does both.
    **If you are reading this from the project's `.claude/skills/`, the install already happened —
    start at step 2.** On a CLI too old to have `add`, copy this folder in as a sibling of what is

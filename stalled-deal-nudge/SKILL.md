@@ -83,7 +83,7 @@ is enough.
 
 1. **Install it — the CLI does the copy.** From inside the project (the folder holding `cargo.json`),
    `cargo-ai project add cookbook/stalled-deal-nudge` writes this example to
-   `infra/stalled-deal-nudge/` and this procedure to `.claude/skills/stalled-deal-nudge/`. No
+   `infra/stalled-deal-nudge/` and this procedure to `.agents/skills/stalled-deal-nudge/`. No
    project yet? `cargo-ai project init <dir> --cookbook stalled-deal-nudge && cd <dir> && npm install`
    does both. **If you are reading this from the project's `.claude/skills/`, the install already
    happened — start at step 2.** On a CLI too old to have `add`, copy this folder in as a sibling of

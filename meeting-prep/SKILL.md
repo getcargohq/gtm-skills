@@ -86,7 +86,7 @@ is enough.
 
 1. **Install it — the CLI does the copy.** From inside the project (the folder holding `cargo.json`),
    `cargo-ai project add cookbook/meeting-prep` writes this example to `infra/meeting-prep/` and this
-   procedure to `.claude/skills/meeting-prep/`. No project yet?
+   procedure to `.agents/skills/meeting-prep/`. No project yet?
    `cargo-ai project init <dir> --cookbook meeting-prep && cd <dir> && npm install` does both. **If you
    are reading this from the project's `.claude/skills/`, the install already happened — start at
    step 2.**

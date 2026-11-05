@@ -91,7 +91,7 @@ is enough.
 
 1. **Install it: the CLI does the copy.** From inside the project (the folder holding `cargo.json`),
    `cargo-ai project add cookbook/goal-coverage` writes this example to `infra/goal-coverage/`
-   and this procedure to `.claude/skills/goal-coverage/`. No project yet?
+   and this procedure to `.agents/skills/goal-coverage/`. No project yet?
    `cargo-ai project init <dir> --cookbook goal-coverage && cd <dir> && npm install` does both.
    **If you are reading this from the project's `.claude/skills/`, the install already happened, so
    start at step 2.** On a CLI too old to have `add`, copy this folder in as a sibling of what is

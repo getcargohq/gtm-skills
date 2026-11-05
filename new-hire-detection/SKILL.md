@@ -89,7 +89,7 @@ search or template work if the skill cannot be installed or read.
 
 1. **Install it: the CLI does the copy.** From inside the project (the folder holding `cargo.json`),
    `cargo-ai project add cookbook/new-hire-detection` writes this example to
-   `infra/new-hire-detection/` and this procedure to `.claude/skills/new-hire-detection/`. No
+   `infra/new-hire-detection/` and this procedure to `.agents/skills/new-hire-detection/`. No
    project yet? `cargo-ai project init <dir> --cookbook new-hire-detection && cd <dir> && npm install`
    does both; this folder never ships a shell. **If you are reading this from the project's
    `.claude/skills/`, the install already happened. Start at step 2.** On a CLI too old to have
