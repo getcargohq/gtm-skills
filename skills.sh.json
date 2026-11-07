@@ -73,10 +73,11 @@
     },
     {
       "title": "Signals",
-      "description": "Deployed pipelines that watch the market for the moment to reach out: who just took a role you sell to, which public conversations are worth joining, who is on your site, and which accounts are ready now.",
+      "description": "Deployed pipelines that watch the market for the moment to reach out: who just took a role you sell to, which public conversations are worth joining, who keeps engaging with your own posts, who is on your site, and which accounts are ready now.",
       "skills": [
         "new-hire-detection",
         "social-listening",
+        "post-engagement",
         "visitor-identification",
         "readiness-scoring"
       ]
