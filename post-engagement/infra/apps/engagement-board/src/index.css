@@ -1,0 +1,4 @@
+@import "@cargo-ai/app-sdk/styles.css";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
