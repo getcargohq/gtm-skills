@@ -16,31 +16,30 @@ const trackedProfiles = [
   "https://www.linkedin.com/in/sam-okafor",
 ];
 
-function contactColumn(slug: string, path: string): ModelAdditionalColumnSpec {
-  return {
-    kind: "computed",
-    slug,
-    type: "string",
-    label: slug,
-    expression: {
-      kind: "templateExpression",
-      expression: `{{ record.contact.${path} }}`,
-      fromRecipe: false,
-      instructTo: "none",
-    },
-    columnsUsed: ["contact"],
-  };
-}
-
 // Rows unify onto your contacts by LinkedIn handle, then email, so an engager
 // who is already in your CRM lands on that contact's timeline.
 const asContactEvent: {
   additionalColumns: ModelAdditionalColumnSpec[];
   unification: ModelUnificationSpec;
 } = {
+  // Functions, not template strings: the CDK ships each one's source to the
+  // warehouse and passes it the columns it reads as `record.<column>`.
   additionalColumns: [
-    contactColumn("contact_linkedin_url", "linkedin_profile_url"),
-    contactColumn("contact_email", "email"),
+    {
+      kind: "computed",
+      slug: "contact_linkedin_url",
+      type: "string",
+      label: "Contact LinkedIn URL",
+      expression: (record) =>
+        record.contact ? record.contact.linkedin_profile_url : null,
+    },
+    {
+      kind: "computed",
+      slug: "contact_email",
+      type: "string",
+      label: "Contact email",
+      expression: (record) => (record.contact ? record.contact.email : null),
+    },
   ],
   unification: {
     source: "custom",
