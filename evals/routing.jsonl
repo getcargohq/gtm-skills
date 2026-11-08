@@ -188,6 +188,10 @@
 {"prompt": "Every week tell me which LinkedIn posts about our problem we should comment on", "expect": "social-listening", "why": "Every week, public posts, worth joining: the standing tell."}
 {"prompt": "Set up social listening on LinkedIn for lead routing and our competitors", "expect": "social-listening"}
 {"prompt": "Who is engaging with LinkedIn posts in our category, as a weekly digest in Slack", "expect": "social-listening"}
+// post-engagement is the worked project example for engagement on your own posts; social-listening is posts by others about your problem
+{"prompt": "Build us a dashboard of everyone who likes and comments on our founder's LinkedIn posts", "expect": "post-engagement", "why": "Our own posts, kept and ranked on a board: the pipeline, not a digest of the market."}
+{"prompt": "Which accounts keep engaging with our CEO's LinkedIn content", "expect": "post-engagement"}
+{"prompt": "Every Monday, which LinkedIn conversations about our problem are worth joining", "expect": "social-listening", "why": "Other people's posts about the problem, judged weekly: not engagement on our own posts."}
 // call-capture, agentic-engagement, standup, weekly-planning, linkedin-content, ask-cargo,
 {"prompt": "Draft our founder's LinkedIn posts every week from our proof points", "expect": "linkedin-content", "why": "Every week, drafts for a person: the standing content pipeline."}
 {"prompt": "Turn our customer wins and insights into weekly LinkedIn drafts for the CEO", "expect": "linkedin-content"}
