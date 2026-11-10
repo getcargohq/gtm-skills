@@ -1,7 +1,7 @@
 ---
 name: research-account
 description: "Research one company and its public website before a meeting and hand back a briefing, powered by Cargo — what it does, what it publicly says is hard right now, and who it names as competition, each line traceable to where it came from. Triggers: \"research this company\", \"brief me on this account\", \"prep me for this meeting\", \"what should I know about them\", \"write me a one-pager on\", \"what are they struggling with\", \"who do they compete with\". Meeting prep, briefing, dossier, talking points. Skip when: you want many companies filtered rather than one understood — use build-tam-list; or you want the people to contact there — use find-stakeholders."
-version: "1.0.1"
+version: "1.0.5"
 compatibility: Requires @cargo-ai/cli (npm). Sign in or create an account with `cargo-ai login --email` (emailed code, no browser), `--oauth`, or an API token
 homepage: https://github.com/getcargohq/gtm-skills
 metadata:
@@ -50,18 +50,6 @@ before the first paid call on a new account.
 
 Already signed in? `cargo-ai whoami` confirms it.
 
-<!-- Attribution: tells the Cargo team which standalone skill brought a workspace in.
-     Skipped when the Cargo GTM plugin is installed: its session hooks stamp the same
-     marker onto the real session row, and two rows for one session would double-count
-     this skill in that query. -->
-```bash
-grep -q '"cargo@gtm"' ~/.claude/plugins/installed_plugins.json 2>/dev/null ||
-  cargo-ai workspaceManagement session upsert \
-    --session-id "${SESSION_ID:-$(date +%s)}" \
-    --title "research-account" \
-    --summary "[gtm-skills: research-account] Session started from the research-account standalone skill."
-```
-
 ## Step 1 — ask what the briefing is for
 
 Two sentences from the user changes what is worth pulling, so ask before
@@ -80,27 +68,27 @@ where its money went.
 ```bash
 # 1. The baseline: what they are, how big, what they say they do
 cargo-ai orchestration action execute-batch \
-  --action '{"kind":"connector","integrationSlug":"linkedin","actionSlug":"enrichCompanyFromDomain","config":{}}' \
+  --action '{"kind":"connector","integrationSlug":"linkedin","actionSlug":"enrichCompanyFromDomain"}' \
   --records '[{"domain":"acme.com"}]' \
   --wait-until-finished
 
 # 2. Their own words, read from their own pages
 cargo-ai orchestration action execute-batch \
-  --action '{"kind":"connector","integrationSlug":"parallel","actionSlug":"extract","config":{}}' \
+  --action '{"kind":"connector","integrationSlug":"parallel","actionSlug":"extract"}' \
   --records '[{"urls":["https://acme.com","https://acme.com/careers"],"objective":"What the company says it does, and which teams it is growing"}]' \
   --wait-until-finished
 
 # 3. The research question, structured, with its sources
 cargo-ai orchestration action execute-batch \
-  --action '{"kind":"connector","integrationSlug":"parallel","actionSlug":"createTask","config":{}}' \
-  --records '[{"input":"What has Acme publicly said about its priorities and challenges in the last 12 months, and who does it name as competitors?","processor":"lite","outputSchema":{"type":"object","properties":{"priorities":{"type":"array","items":{"type":"string"}},"competitors":{"type":"array","items":{"type":"string"}},"sources":{"type":"array","items":{"type":"string"}}}}}]' \
+  --action '{"kind":"connector","integrationSlug":"parallel","actionSlug":"createTask"}' \
+  --records '[{"input":"What has Acme publicly said about its priorities and challenges in the last 12 months, and who does it name as competitors?","processor":"lite","outputSchema":"{\"type\":\"object\",\"properties\":{\"priorities\":{\"type\":\"array\",\"items\":{\"type\":\"string\"}},\"competitors\":{\"type\":\"array\",\"items\":{\"type\":\"string\"}},\"sources\":{\"type\":\"array\",\"items\":{\"type\":\"string\"}}}}"}]' \
   --wait-until-finished
 
 # 4. What they are hiring for, which is what they are spending on
-cargo-ai orchestration action execute-batch \
-  --action '{"kind":"connector","integrationSlug":"theirStack","actionSlug":"searchJobs","config":{}}' \
+cargo-ai orchestration action execute \
+  --action '{"kind":"connector","integrationSlug":"theirStack","actionSlug":"searchJobs"}' \
   --data '{
-    "companyFields": {"company_domains": ["acme.com"]},
+    "companyFields": {"company_domain_or": ["acme.com"]},
     "fields": {"posted_at_max_age_days": 90},
     "limit": 25
   }' \
@@ -108,15 +96,17 @@ cargo-ai orchestration action execute-batch \
 ```
 
 **Two settings must not be dropped.** `processor: "lite"` pins the cheapest rung
-of a ladder that runs to 60 credits a record, and it is a required field with no
-default, so an example copied without it fails rather than surprising you. And
+of a ladder that runs to 60 credits a record. Leave it out and the task runs on
+the default, `core`, at 0.625 credits: five times the price, with no error to
+tell you. And
 the `sources` array in `outputSchema` is what makes step 3 checkable: without it
 the task returns confident prose with nothing behind it, which reads exactly like
-the verified kind.
+the verified kind. `outputSchema` is that JSON schema **as a string**: pass it as an object and
+every record fails validation while the batch itself reports success.
 
 Open roles are the most under-used input in account research: a company hiring
 six data engineers is telling you where its budget went, in public, dated, and
-for 0.5 credits.
+for 0.5 credits a posting.
 
 Operations are asynchronous. `--wait-until-finished` blocks until done; without it you get a run
 or batch UUID to poll with `cargo-ai orchestration run get <uuid>` (2s interval) or
@@ -162,7 +152,7 @@ Ask them:
   3. What will the Head of Data Reliability be measured on?
 ```
 
-One briefing for 1.175 credits (0.5 + 2 × 0.025 + 0.125 + 0.5): every line sourced, one marked Likely:, one marked unknown.
+One briefing for 4.175 credits (0.5 + 2 × 0.025 + 0.125 + 7 jobs × 0.5): every line sourced, one marked Likely:, one marked unknown.
 
 ## What it costs
 
@@ -171,29 +161,31 @@ One briefing for 1.175 credits (0.5 + 2 × 0.025 + 0.125 + 0.5): every line sour
 | `linkedin.enrichCompanyFromDomain` | 0.5 |
 | `parallel.extract` | 0.025 |
 | `parallel.createTask` | 0.125 |
-| `theirStack.searchJobs` | 0.5 |
+| `theirStack.searchJobs` | 0.5 per job returned |
 
 **Never run this across a full list on the first attempt.** Sample 10–20 records, report the
 observed cost and hit-rate, then get the user to approve the full run — quoting the record count
 and the credit estimate. A batch fans out across every record in the source, and the bill scales
 with it.
 
-One account is about 1.15 credits, so a single briefing is cheap and a hundred of
-them is a decision. Say the total before running a list. `parallel.extract` bills
-per URL, so two pages is 0.05 and ten is 0.25.
+One account is about 0.675 credits plus 0.5 for every job posting returned, so
+`limit` sets the ceiling: 25 postings is 12.5 credits on top. A single briefing
+is cheap and a hundred of them is a decision. Say the total before running a
+list. `parallel.extract` bills per URL, so two pages is 0.05 and ten is 0.25.
 
 ## Worth knowing
 
 - **Most of this reads public material**, so a private company with a thin web presence returns little. That is a real answer: report the gap rather than padding the page.
-- **`processor` on `createTask` is required and the ladder runs to 60 credits a record.** Pin `lite`. Escalate to `base` (0.25) on a specific hard target, never across a list.
-- `theirStack.searchJobs` filters on `--data`, not on `--records`. Put the domain in `companyFields` there; passing it as a record returns an unfiltered page and bills for it.
+- **`processor` on `createTask` defaults to `core` (0.625) and the ladder runs to 60 credits a record.** Pin `lite`. Escalate to `base` (0.25) on a specific hard target, never across a list.
+- `theirStack.searchJobs` takes the domain as `companyFields.company_domain_or`. Unknown keys (`company_domains`, a top-level `domain`) are refused before the run starts (`Unknown field: …`); inside a workflow node they are dropped silently instead, so the search runs unfiltered and bills 0.5 for every job in the page.
+- `execute-batch` takes its inputs in `--records`, one object per run, and has no `--data` flag; `--data` belongs to the single-run `execute`, which is why the job search above is an `execute`. Inputs inside the `--action` object's `config` are ignored.
 - Ask for the domain, not the company name. Every call here keys off it.
 - For a renewal, drop steps 2 and 3 and keep the baseline and the roles. The account team already knows the story; what they want is what changed.
 
 ## Going further
 
 This skill does one job. The full Cargo pack covers the rest of GTM — sourcing, waterfall
-enrichment, scoring, sequencing, CRM sync, signal monitoring, workspace-as-code, and cost
+enrichment, scoring, sequencing, CRM sync, signal monitoring, projects (GTM as Code), and cost
 diagnostics — and routes between them automatically:
 
 ```bash

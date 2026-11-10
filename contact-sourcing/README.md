@@ -12,6 +12,21 @@ and sorts numerically with stable ties. A configured N slices the qualified
 ranking before optional contact lookup; fewer qualifying people means fewer
 results. It preserves profile evidence and rank even when enrichment fails.
 
+## Optional email and phone enrichment
+
+Email and phone enrichment are included in the tool. During setup, ask whether
+to return verified work email, phone, both, or profiles and scores only. Reuse
+the workspace's existing enrichment tools and confirm their input/output
+contracts; [configure.md](references/configure.md) describes the bindings.
+
+Enrich only the selected qualified people: by default up to three per company,
+or the operator's chosen N. This avoids lookup spend on people outside the
+returned shortlist. Keep each selected person when a lookup fails, with an
+explicit missing/failed status; never backfill with lower-ranked people just
+to reach N. An email is marked verified only with matching verification evidence.
+
+## Setup and validation
+
 `SKILL.md` guides a practical building session: research the seller, propose and
 approve personas, choose input/count/enrichment and search coverage, review the graph,
 deploy with approval, and calibrate an explicitly priced sample. Closed-won
@@ -57,7 +72,7 @@ No paid provider run, deployment or fresh-workspace installation was performed
 for this build. Static contracts do not prove live coverage, classification
 quality, engine failure envelopes, or enrichment deliverability. State remains
 **to-be-approved** until a fresh demo and two customer or partner implementations
-supply the repository's required evidence.
+supply the evidence requested for this build.
 
 ## Migration from the historical example
 

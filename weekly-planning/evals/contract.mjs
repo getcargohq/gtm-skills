@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { resetRegistry, resources } from "@cargo-ai/cdk";
 
-// The boundaries CDK schema validation cannot express, checked against the
-// compiled registry. `cargo-cdk check` proves the resources are well formed;
+// The boundaries schema validation cannot express, checked against the
+// compiled registry. `cargo-ai project check` proves the resources are well formed;
 // this proves they are still the pipeline this skill describes after an agent
 // has adapted them.
 //
@@ -34,7 +34,7 @@ assert.equal(
   "weekly-planning must not wrap a Slack action in a tool",
 );
 
-const agent = byId.get("agent:weekly-planning");
+const agent = byId.get("agent:weekly_planning");
 assert.ok(agent, "defineAgent(weekly-planning) must exist");
 assert.equal(
   agent.spec.harnessSlug,

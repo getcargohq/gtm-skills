@@ -14,7 +14,7 @@ import { defineFolder } from "@cargo-ai/cdk";
 // Folders are per-kind, so a cookbook that also deployed models or plays would
 // declare `call-capture-models` and `call-capture-plays` beside this one, all
 // carrying the same display name.
-export const agentsFolder = defineFolder("call-capture-agents", {
+export const agentsFolder = defineFolder("call_capture_agents", {
   kind: "agent",
   name: "Call capture",
 });

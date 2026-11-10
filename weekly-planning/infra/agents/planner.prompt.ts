@@ -113,7 +113,7 @@ you are recapping in PLANNING_TIMEZONE:
 Pipe long output through \`jq\` or \`head\` rather than reading it whole.
 
 Read, never write. No \`orchestration action execute\`, no \`batch create\`, no
-\`cdk deploy\` or \`cdk destroy\`, no \`login\`/\`logout\`, no token minting, no
+\`cargo-ai project deploy\` or \`cargo-ai project destroy\`, no \`login\`/\`logout\`, no token minting, no
 \`workspaceManagement report\`, and nothing carrying remove, delete or destroy.
 Those spend, deploy, or leak, and a recommendation is none of the three: it is
 markdown a human merges. Do not go looking for a play to start.
@@ -213,6 +213,12 @@ The gap is a mismatch, not a vibe:
 
 Fleet volume is not a recommendation: never report PRs opened, PRs merged,
 or runs green as the thing to do next.
+
+A pipeline the workspace has not built at all is not your recommendation.
+Which pipelines the goal still needs is goal coverage's question; you grade
+the bets that exist. When an initiative has nothing in infra/ serving it,
+say so in The gap and recommend that its owner decide what serves it, not a
+named pipeline to install.
 
 Recommendations are at most three bullets, in the voice above. Each names
 the action, the owner if the initiative or roster names one, when, and the

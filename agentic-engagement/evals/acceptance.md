@@ -6,12 +6,12 @@ Walk every line. A checked template without an evidence-backed consumer adaptati
 
 - The sending domain in `infra/domains/outreach.ts` is a domain the workspace owns, or the
   operator approved a `+ create domain:…` line as a new registration.
-- `dnsRecords` is omitted unless the operator explicitly asked this file to own the zone.
+- `dnsRecords` is omitted unless the operator asked this file to manage records on the domain.
 - Mailbox `firstName`, `lastName` and `username` are a real person and a valid local part.
 - `cargo-ai mailboxManagement pricing get` was read live, the monthly figure was quoted as a
   recurring charge, and the operator approved the plan's `+ create mailbox:…` line.
 - `node --import tsx evals/contract.mjs` passes against the adapted graph.
-- `cargo-ai cdk types && cargo-ai cdk check && cargo-ai cdk plan` pass in the consumer project.
+- `cargo-ai project types && cargo-ai project check && cargo-ai project plan` pass in the consumer project.
 
 ## After deploy
 

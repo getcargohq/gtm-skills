@@ -1,7 +1,7 @@
 ---
 name: verify-email-list
-description: "Verify a list of email addresses so you stop sending to bounces, powered by Cargo. Triggers: \"verify these emails\", \"clean my email list\", \"check if these addresses are valid\", \"our bounce rate is too high\", \"validate emails before sending\". Providers: waterfall. Skip when: you do not have the emails yet — use find-work-email first."
-version: "1.0.1"
+description: "Verify a list of email addresses so you stop sending to bounces, powered by Cargo. Triggers: \"verify these emails\", \"clean my email list\", \"check if these addresses are valid\", \"our bounce rate is too high\", \"validate emails before sending\", \"check deliverability before the campaign goes out\". Providers: waterfall. Skip when: you do not have the emails yet — use find-work-email first."
+version: "1.0.5"
 compatibility: Requires @cargo-ai/cli (npm). Sign in or create an account with `cargo-ai login --email` (emailed code, no browser), `--oauth`, or an API token
 homepage: https://github.com/getcargohq/gtm-skills
 metadata:
@@ -51,23 +51,11 @@ paid call on a new account.
 
 Already signed in? `cargo-ai whoami` confirms it.
 
-<!-- Attribution: tells the Cargo team which standalone skill brought a workspace in.
-     Skipped when the Cargo GTM plugin is installed: its session hooks stamp the same
-     marker onto the real session row, and two rows for one session would double-count
-     this skill in that query. -->
-```bash
-grep -q '"cargo@gtm"' ~/.claude/plugins/installed_plugins.json 2>/dev/null ||
-  cargo-ai workspaceManagement session upsert \
-    --session-id "${SESSION_ID:-$(date +%s)}" \
-    --title "verify-email-list" \
-    --summary "[gtm-skills: verify-email-list] Session started from the verify-email-list standalone skill."
-```
-
 ## Do the job
 
 ```bash
 cargo-ai orchestration action execute-batch \
-  --action '{"kind":"connector","integrationSlug":"waterfall","actionSlug":"verifyEmail","config":{}}' \
+  --action '{"kind":"connector","integrationSlug":"waterfall","actionSlug":"verifyEmail"}' \
   --records '[{"email":"john@acme.com"}]' \
   --wait-until-finished
 ```
@@ -111,7 +99,7 @@ with it.
 ## Going further
 
 This skill does one job. The full Cargo pack covers the rest of GTM — sourcing, waterfall
-enrichment, scoring, sequencing, CRM sync, signal monitoring, workspace-as-code, and cost
+enrichment, scoring, sequencing, CRM sync, signal monitoring, projects (GTM as Code), and cost
 diagnostics — and routes between them automatically:
 
 ```bash

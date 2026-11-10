@@ -2,7 +2,7 @@
 
 Cargo serves the app on its own `*.app.getcargo.run` URL with `X-Robots-Tag: noindex`; the
 company's domain is what search engines index. The app always takes `www.<domain>`: the apex
-cannot CNAME to an app, and the CDK refuses a hostname with fewer than three labels. Set
+cannot CNAME to an app, and a project refuses a hostname with fewer than three labels. Set
 `site.json` `canonicalUrl` to `https://www.<domain>/`.
 
 ## Who holds the DNS
@@ -12,16 +12,39 @@ Ask which domain the site uses and where its DNS lives.
 - **Another provider**, the usual case for an existing company domain: delete
   `infra/domains/website.ts`, keep `domains` on the app, and follow [External DNS](#external-dns).
   Cargo never writes that zone.
-- **Cargo**, ideally a domain dedicated to the website: keep the file, run the mailbox check, then
-  adopt or purchase.
+- **Cargo**: keep the file, read [what the deploy changes](#what-the-deploy-changes-in-the-zone),
+  then adopt or purchase.
 
-## The mailbox check
+## What the deploy changes in the zone
 
-`dnsRecords` replaces the whole zone, so a domain Cargo mailboxes send from loses its MX, SPF,
-DKIM and DMARC records and mail stops. Before keeping the domain file, run
-`cargo-ai mailboxManagement mailbox list`. A mailbox on the domain means no adopt: give the website
-a dedicated domain, or treat the DNS as external. Record the output under `## Decisions`. The rule
-holds for the domain's life; a mailbox added to it later breaks the same way.
+`dnsRecords` is merged into the zone as it stands. The MX, SPF, DKIM and DMARC records a sending
+domain carries, and anything added in the Cargo UI, stay where they are, so a domain Cargo
+mailboxes send from can carry the website too. Two things are replaced, not added:
+
+- **`www`.** A name holds one CNAME, so the app's takes over whatever `www` pointed to.
+- **The apex forward.** `redirectUrl` replaces it. A sending domain usually forwards its apex to
+  the company's main site; after this it forwards to its own `www`.
+
+`cargo-ai project plan` reads the live zone and prints the diff record by record (`+` added, `~`
+changed, `-` deleted). Show it to the operator before the deploy, get a yes for every `~` and `-`,
+and record it under `## Decisions`. A record edited by hand after the deploy published it makes the
+plan stop and name both values; put the one to keep in the code.
+
+## The first deploy
+
+The hostname attaches during the first deploy, so that plan cannot list the app's records: it says
+the records "are not in the diff above" and are published with the zone. A `~` on `www` is
+therefore invisible the one time it matters. Look first: `dig +short www.<domain>`.
+
+- **Nothing answers:** one deploy is fine; the next plan shows the records as `= noop`.
+- **Something answers:** deploy in two steps. Leave `website.domainRecords` out of `dnsRecords`
+  (or leave `dnsRecords` off) and deploy: the hostname attaches and the zone is untouched. Put it
+  back and run `cargo-ai project plan`: the diff now lists every record, and the deploy waits for the
+  operator's yes on it.
+
+The registrar can take a few minutes to publish the records on its nameservers. A browser that
+looked up `www` before then keeps the "no such host" answer until it expires, so test with
+`dig @<nameserver>` and `curl --resolve` rather than a reload.
 
 ## Adopt or purchase
 
@@ -32,8 +55,9 @@ holds for the domain's life; a mailbox added to it later breaks the same way.
   needs its own explicit yes; never drop `adopt` on your own initiative.
 
 On deploy, `website.domainRecords` expands to the `_cargo-verify` TXT, the certificate-validation
-CNAME and the `www` CNAME. Any other record the domain needs goes in `dnsRecords` beside it;
-anything unlisted is removed. `redirectUrl` forwards the apex to `https://www.<domain>`.
+CNAME and the `www` CNAME. Any other record the domain needs goes in `dnsRecords` beside it, and
+dropping one from the list deletes it on the next deploy. Records the deploy did not write are never
+touched. `redirectUrl` forwards the apex to `https://www.<domain>`.
 
 ## External DNS
 
@@ -65,6 +89,8 @@ delivering. Record the path taken and the records; report anything pending as pe
 
 ## Changing or removing
 
-- Removing a hostname from `domains` leaves it attached; detach it in Cargo on purpose.
+- Removing a hostname from `domains` leaves it attached; detach it in Cargo on purpose. The
+  deploy keeps the app's records current but never deletes them, so the records a detached
+  hostname leaves behind are removed in Cargo too; `plan` names them.
 - A removed `defineDomain` is a deletion candidate: prune or destroy **releases** an adopted domain
   and **cancels** a purchased one. Never prune a purchased domain without its own explicit yes.

@@ -4,10 +4,10 @@ Every folder at the root of this repo is one skill, installed on its own with
 `npx skills add getcargohq/gtm-skills/<name>`. Two kinds live side by side and
 the validators tell them apart by one frontmatter line:
 
-| Kind     | Marker                      | What the folder holds                                                                                               | Validated by                                                         |
-| -------- | --------------------------- | ------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
-| one-off  | `metadata.source: one-off`  | `SKILL.md`: a job an agent runs in a turn, with the exact `cargo-ai` command and its price                          | `scripts/validate.ts` (slugs and prices against the Cargo playbooks) |
-| cookbook | `metadata.source: cookbook` | `SKILL.md` plus worked CDK resources (`models/`, `plays/`, `agents/`, …) an agent adapts into a project and deploys | `scripts/check-pipelines.mjs`                                        |
+| Kind     | Marker                      | What the folder holds                                                                                                   | Validated by                                                         |
+| -------- | --------------------------- | ----------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
+| one-off  | `metadata.source: one-off`  | `SKILL.md`: a job an agent runs in a turn, with the exact `cargo-ai` command and its price                              | `scripts/validate.ts` (slugs and prices against the Cargo playbooks) |
+| cookbook | `metadata.source: cookbook` | `SKILL.md` plus worked project resources (`models/`, `plays/`, `agents/`, …) an agent adapts into a project and deploys | `scripts/check-pipelines.mjs`                                        |
 
 `metadata.source` must be exactly one of those two values; a missing or
 unknown one fails `validate.ts`, so a typo cannot silently make a cookbook a
@@ -22,25 +22,25 @@ it).
 ## Local setup
 
 ```sh
-npm install            # repo tooling only: yaml, prettier, typescript, the CDK for typechecking the examples
+npm install            # repo tooling only: yaml, prettier, typescript, @cargo-ai/cdk for typechecking the examples
 npm run validate       # everything CI runs, minus the routing evals
-npm run typecheck      # the CDK examples against the installed package types
+npm run typecheck      # the cookbook examples against the installed package types
 ```
 
 Nothing in the root `package.json` ships to anyone. A customer's project shell
-comes from `cargo-ai cdk init`; a skill is a folder the CLI copies in for them.
+comes from `cargo-ai project init`; a skill is a folder the CLI copies in for them.
 
 ## Checks
 
-| Command                                     | What it does                                                                                                                                 |
-| ------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| `node scripts/validate.ts`                  | one-off skills: every slug and price against `getcargohq/cargo-skills` playbooks; every skill: personas and `## Example`; the plugin channel |
-| `node scripts/check-pipelines.mjs`          | pipeline skills: frontmatter and sections, folder isolation, no fixed credit amounts, isolated `infra/` CDK check and plan, approval state   |
-| `npm run typecheck`                         | repository TypeScript, including pipeline resource examples                                                                                  |
-| `node scripts/generate-llms-txt.ts --check` | `llms.txt` in sync                                                                                                                           |
-| `node scripts/build-catalog.mjs --check`    | `catalog.json` in sync (the one machine-readable view of the whole repo)                                                                     |
-| `npx prettier --check .`                    | the CDK example code and repo files, except the three generated or legacy scripts listed in `.prettierignore`                                |
-| routing evals                               | CI checks out `getcargohq/cargo-skills` and runs its `routing-eval.ts --skills-root .`                                                       |
+| Command                                     | What it does                                                                                                                                   |
+| ------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| `node scripts/validate.ts`                  | one-off skills: every slug and price against `getcargohq/cargo-skills` playbooks; every skill: personas and `## Example`; the plugin channel   |
+| `node scripts/check-pipelines.mjs`          | pipeline skills: frontmatter and sections, folder isolation, no fixed credit amounts, isolated `infra/` project check and plan, approval state |
+| `npm run typecheck`                         | repository TypeScript, including pipeline resource examples                                                                                    |
+| `node scripts/generate-llms-txt.ts --check` | `llms.txt` in sync                                                                                                                             |
+| `node scripts/build-catalog.mjs --check`    | `catalog.json` in sync (the one machine-readable view of the whole repo)                                                                       |
+| `npx prettier --check .`                    | the cookbook example code and repo files, except the three generated or legacy scripts listed in `.prettierignore`                             |
+| routing evals                               | CI checks out `getcargohq/cargo-skills` and runs its `routing-eval.ts --skills-root .`                                                         |
 
 When writing a new skill, follow
 [`.agents/skills/create-gtm-skill/SKILL.md`](.agents/skills/create-gtm-skill/SKILL.md).
@@ -76,8 +76,8 @@ each skill touches (a one-off's called `integrationSlug`s, a cookbook's
 
 `<name>/SKILL.md` with the four-part description (job → literal quoted triggers
 → proper nouns → `Skip when:`), a self-contained Setup, the exact command, the
-example, the price, the star ask. Register it in `skills.sh.json`,
-`hooks/skill-loads.sh` and the README table; `validate.ts` tells you where.
+example, the price, the star ask. Register it in `skills.sh.json`
+and the README table; `validate.ts` tells you where.
 
 ## Adding a pipeline skill
 
@@ -87,6 +87,13 @@ foundation and no requires graph. Two pipeline skills in one project will both c
 say, an `accounts` model, and that is fine: the agent placing the second one
 sees the first and rewires to it. Isolation is what lets a customer install
 exactly one skill and get exactly one working thing.
+
+What to set up next is not a graph either. The pipelines are grouped by stage
+in `skills.sh.json` — Context, Fundamentals, Signals, Engagement, Operations,
+CRM — and that order, stages and the pipelines within one, is the
+recommendation: whatever someone started with, the agent suggests the earliest
+pipelines they have not set up yet. Place a new pipeline where it belongs in
+that order.
 
 1. `<name>/` with the resource code (`models/`, `plays/`, `agents/`, or `infra/`) and a
    `README.md` that explains why the design is the way it is. Every value that
@@ -100,13 +107,15 @@ exactly one skill and get exactly one working thing.
    carries these sections in this order; the validator checks each exists:
    - `## The outcome`
    - `## Example` (see above)
-   - `## Put it in your project`: the compact procedure. `cdk add cookbook/<name>`
-     (or `cdk init --cookbook <name>` when there is no project) is the copy step,
+   - `## Put it in your project`: the compact procedure. `cargo-ai project add cookbook/<name>`
+     (or `cargo-ai project init --cookbook <name>` when there is no project) is the copy step,
      then reconcile with what is already declared, adapt, plan and stop, deploy
      on a yes, verify. Copy it from `tam-building/SKILL.md`; each skill carries
-     its own, the way every one-off skill carries its own Setup. Say early that
-     a reader who found this in a project's `.claude/skills/` is past the copy —
-     the section is also what the CLI hands an agent after installing.
+     its own, the way every one-off skill carries its own Setup. The procedure
+     lands in `.agents/skills/<name>/`; `.claude/skills/<name>` is a symlink to
+     it, since Claude Code reads only that path. Say early that a reader who
+     found this in a project's `.claude/skills/` is past the copy — the
+     section is also what the CLI hands an agent after installing.
    - `## What you will be asked`: a table of inputs, **derive before ask**.
      An input that can be looked up (which connector is authenticated, what
      the CRM schema holds) is marked _derived_; if more than about four rows
@@ -120,8 +129,8 @@ exactly one skill and get exactly one working thing.
      agent argues back with; an operator who still wants it gets it, recorded.
    - `## Done when`: the acceptance test, one checkable line each.
    - `## What it costs`, `## Composes into`.
-4. Register it: `skills.sh.json` (the "Make it run forever" grouping),
-   `hooks/skill-loads.sh`, the README, and an entry in
+4. Register it: `skills.sh.json` (its stage, at its place in the order),
+   the README, and an entry in
    `.github/data/approvals.json` (`state: to-be-approved`, empty evidence).
 5. At least two routing cases in `evals/routing.jsonl`: one that should reach
    this skill, one that must reach the one-off sibling instead.
@@ -150,16 +159,14 @@ agents we do not control, with no session refresh to save them — a stale price
 user's first command, which is the worst possible moment to be wrong.
 
 **Every skill carries the same blocks:** the `cargo-gtm` deference guard, the free-credits
-line, the sample-before-you-spend rule, the CTA back to the pack, the star ask, and the
-attribution guard that skips the manual session row when the plugin's hooks already write one.
-Drop one and the build goes red. Trigger phrases must also be unique across skills, or they fight
+line, the sample-before-you-spend rule, the CTA back to the pack, and the star ask. Skills never
+record the session: no session row, no title or summary sent anywhere. Drop one and the build goes red. Trigger phrases must also be unique across skills, or they fight
 for the same prompts.
 
 **The plugin channel is checked too.** The four manifests
 (`.claude-plugin/`, `.codex-plugin/`, `.cursor-plugin/`, `plugin.json`) must agree on name and
 version, every hook they wire must exist and be executable, `cli-version` must be a real version,
-`skills.sh.json` must group every skill exactly once, the skill list embedded in
-[`hooks/skill-loads.sh`](hooks/skill-loads.sh) must match the directory tree, and
+`skills.sh.json` must group every skill exactly once, and
 `hooks/approve-cli.sh` must be byte-identical to the pack's. Adding a new skill therefore
 means registering it in several places, and the build will tell you which one you missed.
 
@@ -189,12 +196,12 @@ What the plugin wires, in full:
   `PreToolUse` (Claude Code), `PermissionRequest` (Codex), `beforeShellExecution` (Cursor). The
   file is a **verbatim copy** of the pack's, and CI fails if it drifts: an allowlist should be
   reviewed once, upstream, for both plugins — not forked here.
-- **Session-lifecycle hooks** (Claude Code only): `SessionStart` installs the CLI at the version
+- **A CLI refresh hook** (Claude Code only): `SessionStart` installs the CLI at the version
   [`cli-version`](cli-version) pins — so a command in a SKILL.md always meets the CLI it was
-  written against — and `Stop`/`SessionEnd` keep the session row titled and current instead of
-  leaving a placeholder behind. They derive the attribution line each skill otherwise asks the
-  agent to write by hand, so the skills' own attribution step stands down when the plugin is
-  installed and a session is recorded once, not twice.
+  written against — and refreshes the plugin itself. It reads nothing from the session and sends
+  nothing: there are no end-of-turn or end-of-session hooks, and no prompt, transcript, or summary ever
+  leaves the machine. Keep it that way — the Claude plugin directory policy forbids collecting
+  session content, even with consent.
 
 For the **OpenAI Plugins Directory** (ChatGPT + Codex) the archive is built from the tree rather
 than hand-assembled, because that listing is the one channel that does not track this repo — every
@@ -204,7 +211,7 @@ version is a manual, human-reviewed submission that then serves whatever was app
 node scripts/build-codex-package.mjs      # -> dist/gtm-skills-codex.zip
 ```
 
-It stages the 28 skills under `skills/`, drops the OpenClaw `metadata` block OpenAI rejects,
+It stages the 40 skills under `skills/`, drops the OpenClaw `metadata` block OpenAI rejects,
 writes the directory manifest, and asserts every documented limit — description lengths, the
 30-char display fields, square icons, archive shape — against the finished zip rather than the
 staging directory. Skills only: the hooks are wired with `${CLAUDE_PLUGIN_ROOT}`, which nothing
@@ -218,13 +225,15 @@ of a reviewer. CI builds it on every commit; `dist/` holds the bytes that were u
 `automation/cargo-deps`, so a newer version refreshes one pull request rather than
 stacking a second.
 
-The gate is the interesting part. `tsc` cannot see a CDK contract change: the CDK
-validates inside `defineAgent` and friends, at call time, so a cookbook that
-stopped being deployable still typechecks green. The bump is therefore gated on
-`scripts/check-pipelines.mjs`, which runs `cargo-cdk check` and `plan` against
-every cookbook's `infra/`. When that fails, the pull request opens as a draft and
-a Replicas run is launched to fix the cookbooks on the branch — the CDK is
-usually right and the cookbook is usually stale. The prompt it runs on is
+The gate is the interesting part. `tsc` cannot see a contract change in
+`@cargo-ai/cdk`: it validates inside `defineAgent` and friends, at call time, so
+a cookbook that stopped being deployable still typechecks green. The bump is
+therefore gated on `scripts/check-pipelines.mjs`, which runs `cargo-ai project
+check` and `plan` against every cookbook's `infra/`, each cookbook as its own
+project (the script writes a temporary `cargo.json` naming `infra/` into the
+folder and removes it after). When that fails, the pull request opens as a draft
+and a Replicas run is launched to fix the cookbooks on the branch — the library
+is usually right and the cookbook is usually stale. The prompt it runs on is
 [`.replicas/prompts/fix-cookbooks.md`](.replicas/prompts/fix-cookbooks.md), and
 [`.replicas/README.md`](.replicas/README.md) covers the two secrets it needs.
 
@@ -234,8 +243,10 @@ not cause. `validate.yml` still runs it against the pull request.
 
 ## Approval
 
-Every pipeline skill is **to be approved** until Cargo has tested it in a
-fresh demo workspace **and** two customers or partners have implemented it.
+Every pipeline skill is **to be approved** until Cargo has deployed it end to
+end in a live workspace and walked its `Done when` line by line. That run's
+date is the evidence (`demoWorkspace`). Customer and partner implementations
+are recorded as they happen, but approval does not wait for them.
 That state and its evidence live in `.github/data/approvals.json`, which no
 customer sees. The customer sees the banner in `SKILL.md`, and the validator
 requires it exactly while the state is `to-be-approved` and refuses it once
@@ -276,7 +287,7 @@ weight: it deploys, it shows up in the workspace, and it rots.
   exported variable so the key stays out of argv and shell history. It is read
   on every run, so a rotation lands with no deploy. Workers, apps and agents
   inherit the whole catalog, which means a harness agent's `repository.env`
-  declares **nothing** for a key the workspace holds — and the CDK's type
+  declares **nothing** for a key the workspace holds — and `@cargo-ai/cdk`'s type
   refuses a pointer there for exactly that reason. A connector is better off
   with no credential at all: `default: true` binds the connection the workspace
   already authorized, which is what every connector in this repo does, and the
@@ -284,7 +295,7 @@ weight: it deploys, it shows up in the workspace, and it rots.
   fails at deploy rather than at plan, since binding declares no `config` to
   typecheck. When a connector genuinely has to be created, its credential field
   inherits nothing and reaches a catalog entry through `workspaceEnv("NAME")`
-  (CDK 1.0.72 or later). Keep `secret("NAME")` for a
+  (`@cargo-ai/cdk` 1.0.72 or later). Keep `secret("NAME")` for a
   value the deploy itself supplies: it resolves from the deploying machine's
   environment, so the variable has to be exported — or sit in a `.env` that the
   next machine does not have — by whoever deploys, and a rotation only lands on
@@ -301,12 +312,13 @@ weight: it deploys, it shows up in the workspace, and it rots.
 - A cookbook that ships runnable scripts puts them in `<name>/scripts/`, beside
   `<name>/infra/`. The install mirrors each top-level directory into its
   namesake in the project: `infra/` to `infra/<name>/`, `scripts/` to
-  `scripts/<name>/`, matching the layers `cargo-ai cdk init` scaffolds. They
+  `scripts/<name>/`, matching the layers `cargo-ai project init` scaffolds. They
   are node code, so they are typechecked by `tsconfig.scripts.json`
   (`types: ["node"]`) rather than the root config, which keeps `*/infra/**`
   node-free; `npm run typecheck` runs both. They carry a `package.json` and no
   tsconfig of their own — a nested one is never auto-discovered by `tsc -p`, and
   a consumer project already covers `scripts/**/*.ts` from its root config. Keep
-  the `package.json`: the CDK loader imports every `.ts` under the project root
-  **except** directories carrying one, so in a project whose CDK root is the
-  repo root, dropping it makes `cdk plan` execute the script.
+  the `package.json`: the loader imports only the resources folder `cargo.json`
+  names, but a project whose `cargo.json` names its root gets every `.ts` there
+  imported **except** directories carrying one, so dropping it there makes
+  `cargo-ai project plan` execute the script.

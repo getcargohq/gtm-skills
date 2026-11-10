@@ -5,7 +5,7 @@ review. Each path needs its own approved field contract, priced population, writ
 report. Approval for one path does not authorize the other.
 
 Before either pilot, run typechecking, pipeline validation, the compiled graph contract, and
-`cargo-ai cdk plan`. Confirm every selected play is disabled and uses `noConcurrency`. Fetch live
+`cargo-ai project plan`. Confirm every selected play is disabled and uses `noConcurrency`. Fetch live
 prices and recount eligibility from the current model snapshot immediately before approval.
 
 ## Path 1: Run account enrichment

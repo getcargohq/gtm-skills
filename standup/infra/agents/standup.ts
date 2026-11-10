@@ -28,7 +28,7 @@ import { agentsFolder } from "../folders";
 //
 // No `capabilities`, on purpose. The workspace half of the recap — whoami,
 // the day's runs, credits, what is even deployed — is read with Cargo's own
-// CLI, which the harness already has: it clones a CDK project, so `cargo-ai`
+// CLI, which the harness already has: it clones a Cargo project, so `cargo-ai`
 // (or its `npx @cargo-ai/cli` form) is right there next to the toolchain that
 // project pins, and the plugin's own approval hook already treats those reads
 // as the safe class. A capability would be a second path to the same data,
@@ -52,7 +52,7 @@ export const standup = defineAgent("standup", {
     // `@cargo-ai/cdk` — where node_modules is, and therefore the only place the
     // agent's `npx tsx …/collect/day.ts` resolves. In the scaffolded layout
     // that is the repository root, which is also where cadence/ lives.
-    // `cargo-ai cdk check` prints what it resolved; verify it names the
+    // `cargo-ai project check` prints what it resolved; verify it names the
     // repository root and not `infra/`.
     env: {
       // IANA timezone the recapped calendar day is computed in. Public, so a

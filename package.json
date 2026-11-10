@@ -1,21 +1,21 @@
 {
   "name": "gtm-skills",
   "private": true,
-  "description": "Repo tooling only. Nothing here ships to a customer: one-off skills are installed with `npx skills add`, cookbooks with `cargo-ai cdk add cookbook/<name>`, and the CDK project shell comes from `cargo-ai cdk init`.",
+  "description": "Repo tooling only. Nothing here ships to a customer: one-off skills are installed with `npx skills add`, cookbooks with `cargo-ai project add cookbook/<name>`, and the project shell comes from `cargo-ai project init`.",
   "type": "module",
   "engines": {
     "node": ">=22.18"
   },
   "scripts": {
-    "validate": "node scripts/validate.ts && node scripts/check-pipelines.mjs && node scripts/generate-llms-txt.ts --check && node scripts/build-catalog.mjs --check",
-    "validate:routing": "node .cargo-skills/.github/scripts/routing-eval.ts --skills-root . 2>/dev/null || node ../cargo-skills/.github/scripts/routing-eval.ts --skills-root .",
+    "validate": "node scripts/validate.ts && node scripts/check-pipelines.mjs && node --import tsx scripts/check-native-models.mjs && node scripts/generate-llms-txt.ts --check && node scripts/build-catalog.mjs --check",
+    "validate:routing": "node $(test -d .cargo-skills && echo .cargo-skills || echo ../cargo-skills)/.github/scripts/routing-eval.ts --skills-root .",
     "types": "cargo-cdk types",
     "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.scripts.json",
     "format": "prettier --write .",
     "format:check": "prettier --check ."
   },
   "dependencies": {
-    "@cargo-ai/cdk": "^1.0.89",
+    "@cargo-ai/cdk": "^1.0.139",
     "zod": "^4.4.3"
   },
   "devDependencies": {

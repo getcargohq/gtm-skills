@@ -1,7 +1,7 @@
 ---
 name: find-b2b-leads
 description: "Find B2B leads by job title, company, and keyword, and return them as a structured list, powered by Cargo. Triggers: \"find 50 VPs of Sales at fintech companies\", \"build me a list of leads\", \"who are the heads of engineering at Series B startups\", \"get me prospects matching this profile\", \"source leads for my outbound\", \"build a b2b lead list\", \"lead sourcing\". Providers: salesNavigator. Skip when: you need companies rather than people — use build-tam-list; or you already have the people and need contact details — use find-work-email."
-version: "1.1.1"
+version: "1.2.4"
 compatibility: Requires @cargo-ai/cli (npm). Sign in or create an account with `cargo-ai login --email` (emailed code, no browser), `--oauth`, or an API token
 homepage: https://github.com/getcargohq/gtm-skills
 metadata:
@@ -49,27 +49,14 @@ paid call on a new account.
 
 Already signed in? `cargo-ai whoami` confirms it.
 
-<!-- Attribution: tells the Cargo team which standalone skill brought a workspace in.
-     Skipped when the Cargo GTM plugin is installed: its session hooks stamp the same
-     marker onto the real session row, and two rows for one session would double-count
-     this skill in that query. -->
-```bash
-grep -q '"cargo@gtm"' ~/.claude/plugins/installed_plugins.json 2>/dev/null ||
-  cargo-ai workspaceManagement session upsert \
-    --session-id "${SESSION_ID:-$(date +%s)}" \
-    --title "find-b2b-leads" \
-    --summary "[gtm-skills: find-b2b-leads] Session started from the find-b2b-leads standalone skill."
-```
-
 ## Do the job
 
 ```bash
 cargo-ai orchestration action execute \
-  --action '{"kind":"connector","integrationSlug":"salesNavigator","actionSlug":"searchLeads","config":{}}' \
+  --action '{"kind":"connector","integrationSlug":"salesNavigator","actionSlug":"searchLeads"}' \
   --data '{
-    "keywords": "VP of Sales",
-    "company": {"industries": [43]},
-    "personal": {"locations": ["United States"]},
+    "role": {"titleKeywords": ["VP of Sales"]},
+    "personal": {"industryCodes": ["4"], "geoCodes": ["103644278"]},
     "limit": 25
   }' \
   --wait-until-finished
@@ -93,13 +80,13 @@ Illustrative output, fictional records:
 | Marcus Hale | VP Sales, North America | Contoso | Denver, CO | linkedin.com/in/marcus-hale-example |
 | Dana Whitfield | Vice President of Sales | Tailspin | Boston, MA | linkedin.com/in/dana-whitfield-example |
 
-One page of 25 leads for 0.5 credits (25 × 0.02); no emails yet — pipe the URLs into `enrich-linkedin-profile` for those.
+One page of 25 leads for 5 credits (25 × 0.2); no emails yet — pipe the URLs into `enrich-linkedin-profile` for those.
 
 ## What it costs
 
 | Action | Credits |
 |---|---|
-| `salesNavigator.searchLeads` | 0.02 |
+| `salesNavigator.searchLeads` | 0.2 |
 
 **Never run this across a full list on the first attempt.** Sample 10–20 records, report the
 observed cost and hit-rate, then get the user to approve the full run — quoting the record count
@@ -108,14 +95,16 @@ with it.
 
 ## Worth knowing
 
-- The cheapest at-scale people sourcing in the catalog — start here before any paid enrichment.
+- The default for LinkedIn-native people sourcing (title, function, seniority, geo), but not the cheapest. `FullEnrich.searchPeople` is **free** (0 credits) with plain-string filters — `jobRole.title_or`, `jobRole.seniority_or`, `personLocation`, `skills`, `tenure`, and the employer's `industry` / `headcount` / `companyInfo.domain_or` — up to 2,000 per run; `FullEnrich.fetchPeople`, also free, pulls up to 10,000 into a Cargo model as contacts. `aiArk.searchPeople` (0.05) is the cheapest paid option.
+- `FullEnrich.lookupPerson` (free) resolves one person from a LinkedIn URL, or from a full name plus company domain.
+- Filters take LinkedIn codes as strings: `personal.industryCodes` (`"4"` is Software Development), `personal.geoCodes` (`"103644278"` is the United States), `role.seniorityLevels` (`"300"` is Vice President, `"310"` CXO, `"220"` Director). Keys outside the schema, such as `company.industries` or `personal.locations`, are refused before the run starts (`Unknown field: …`); inside a workflow node they are dropped silently and the search runs unfiltered. Plain names in place of codes match nothing. Resolve names with `cargo-ai connection connector autocomplete --connector-uuid <uuid> --slug listIndustries --params '{}' --value software` (`listGeoCodes` for places).
 - Pages come back in blocks of 25; ask for a `limit` in multiples of 25.
 - Sourcing returns profiles, not emails. Pipe the LinkedIn URLs into `enrich-linkedin-profile` for verified emails.
 
 ## Going further
 
 This skill does one job. The full Cargo pack covers the rest of GTM — sourcing, waterfall
-enrichment, scoring, sequencing, CRM sync, signal monitoring, workspace-as-code, and cost
+enrichment, scoring, sequencing, CRM sync, signal monitoring, projects (GTM as Code), and cost
 diagnostics — and routes between them automatically:
 
 ```bash

@@ -151,14 +151,6 @@ const REQUIRED_BLOCKS: { label: string; needle: string }[] = [
     needle: "npx skills add getcargohq/cargo-skills",
   },
   {
-    // The plugin channel's session hooks write the same `[gtm-skills: …]` marker
-    // onto the real session row. Without this gate a plugin user produces two
-    // rows for one session and the attribution query counts the skill twice —
-    // silently, and in the direction that flatters it.
-    label: "the attribution guard (skips the manual session row when the plugin's hooks write one)",
-    needle: '"cargo@gtm"',
-  },
-  {
     // Pinned on the question, not on the `gh api` line: a skill that kept the
     // command and lost the question would still pass while quietly starring on
     // the user's behalf, which is the one outcome this section exists to prevent.
@@ -303,12 +295,12 @@ async function checkPluginChannel(skillNames: string[]): Promise<void> {
   }
 
   // The plugin id a user types is `<plugin>@<marketplace>`. The plugin half is
-  // `cargo` on every Cargo product — the pack installs as `cargo@cargo`, this
+  // `cargo` on every Cargo product — the pack installs as `cargo@cargo-skills`, this
   // one as `cargo@gtm` — so the MARKETPLACE half is what has to differ, and it
   // must not be `cargo`: two marketplaces sharing one name cannot both be added.
   //
   // The shared plugin name is also why hooks/lifecycle-guard.sh matches the
-  // pack on `…@cargo` rather than on a `cargo@` prefix, which would match this
+  // pack on `…@cargo-skills` (or the pre-rename `…@cargo`) rather than on a `cargo@` prefix, which would match this
   // plugin's own id.
   for (const [label, manifest] of [
     [".claude-plugin/marketplace.json", claudeMarket],
@@ -410,35 +402,12 @@ async function checkPluginChannel(skillNames: string[]): Promise<void> {
     }
   }
 
-  // The session hooks install this exact CLI version, so it has to be a version.
+  // The SessionStart hook installs this exact CLI version, so it has to be a version.
   const pin = existsSync(join(repoRoot, "cli-version"))
     ? readFileSync(join(repoRoot, "cli-version"), "utf8").trim()
     : "";
   if (!/^\d+\.\d+\.\d+$/.test(pin)) {
-    fail("plugin", "cli-version must hold a bare MAJOR.MINOR.PATCH — the session hook installs it verbatim");
-  }
-
-  // The skill-load detector runs against a transcript, not a checkout, so its
-  // name list is embedded. A skill added to the tree but not to that list is
-  // invisible in the attribution query — the one number this repo exists to
-  // produce — and nothing else would catch it.
-  const detector = join(repoRoot, "hooks/skill-loads.sh");
-  if (existsSync(detector)) {
-    const listed = /# BEGIN SKILL LIST[\s\S]*?SKILL_NAMES="([^"]*)"/.exec(readFileSync(detector, "utf8"));
-    if (!listed) {
-      fail("plugin", "hooks/skill-loads.sh has no SKILL_NAMES list between its BEGIN/END markers");
-    } else {
-      const have = listed[1].trim().split(/\s+/).sort();
-      const want = [...skillNames].sort();
-      const missing = want.filter((n) => !have.includes(n));
-      const extra = have.filter((n) => !want.includes(n));
-      if (missing.length) {
-        fail("plugin", `hooks/skill-loads.sh does not list ${missing.join(", ")} — those sessions would report no skill`);
-      }
-      if (extra.length) {
-        fail("plugin", `hooks/skill-loads.sh lists ${extra.join(", ")}, which is not a skill directory`);
-      }
-    }
+    fail("plugin", "cli-version must hold a bare MAJOR.MINOR.PATCH — the SessionStart hook installs it verbatim");
   }
 
   // Every skill grouped exactly once on skills.sh, or the listing quietly drops
@@ -610,7 +579,7 @@ if (!skillNames.length) {
 //
 //   one-off   a job an agent runs in a turn: the exact cargo-ai command, its
 //             price, the star ask. Validated here, against the playbooks.
-//   cookbook  a worked CDK example an agent adapts into a project and deploys.
+//   cookbook  a worked project example an agent adapts into a project and deploys.
 //             Names no connector action, prices no call. Validated by
 //             scripts/check-pipelines.mjs.
 //

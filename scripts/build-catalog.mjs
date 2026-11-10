@@ -182,12 +182,12 @@ for (const name of readdirSync(root).sort()) {
     homepage: fm.homepage ?? null,
     group: groupOf(name),
     // A one-off skill is a procedure, so `skills add` installs it. A cookbook is
-    // a procedure *plus* infrastructure: its `infra/` has to land in the CDK
-    // project while the rest goes to the repo's skills layer, and only the CDK
-    // knows how to split it. `skills add` would install the whole folder as one
+    // a procedure *plus* infrastructure: its `infra/` has to land in the
+    // project's resources folder while the rest goes to the repo's skills
+    // layer, and only `cargo-ai project add` knows how to split it. `skills add` would install the whole folder as one
     // skill, putting TypeScript resources where the loader never looks.
     install: isCookbook
-      ? `cargo-ai cdk add cookbook/${name}`
+      ? `cargo-ai project add cookbook/${name}`
       : `npx skills add getcargohq/gtm-skills/${name}`,
     partOf: bullets(section(body, "Part of"))
       .map((b) => b.replace(/`/g, "").split(/[:\s]/)[0])
@@ -224,7 +224,17 @@ for (const name of readdirSync(root).sort()) {
   skills.push(rec);
 }
 
-const catalog = { source: "getcargohq/gtm-skills", skills };
+// The groups in the order skills.sh.json declares them, with their one-line
+// description and their skills in declared order. For the pipelines that order
+// is the recommendation: the stages run from context to the CRM, and an agent
+// suggests the earliest pipelines not yet set up. Listed here so a page can
+// show it without reading a second file from this repository.
+const groups = groupings.map(({ title, description, skills: members }) => ({
+  title,
+  description,
+  skills: members,
+}));
+const catalog = { source: "getcargohq/gtm-skills", groups, skills };
 const rendered = JSON.stringify(catalog, null, 2) + "\n";
 
 // The README's skill tables are the catalog again, for a person: by job, then

@@ -1,9 +1,14 @@
-# Website building
+# Website building: build and host your company website on your own domain
 
-The company website, hosted by Cargo and served on the company's own domain. A statically
-exported Next.js app, the `www` hostname on it, and a domain that publishes its records and
-forwards the apex. Every change is a pull request your coding agent writes and someone reviews;
-nothing else is deployed.
+To run the company website as code, build it as a statically exported Next.js
+app, host it on Cargo and serve it on your own domain, with every change made
+through a reviewed pull request. This cookbook declares one `defineApp` with its
+`www` hostname and one `defineDomain` that publishes the DNS records and
+forwards the apex; nothing else is deployed.
+
+```sh
+cargo-ai project add cookbook/website-building
+```
 
 ## What it does
 
@@ -21,16 +26,16 @@ nothing else is deployed.
 
 ```mermaid
 flowchart TD
-    pr["pull request<br/>site.json, app/"] --> plan["cargo-ai cdk plan"]
+    pr["pull request<br/>site.json, app/"] --> plan["cargo-ai project plan"]
     plan --> app["defineApp website<br/>next build → dist/"]
     app --> host["www hostname<br/>_cargo-verify TXT"]
-    app -->|"domainRecords"| domain["defineDomain<br/>whole zone, apex → www"]
+    app -->|"domainRecords"| domain["defineDomain<br/>records merged, apex → www"]
     app -.->|"DNS elsewhere"| provider["records added<br/>at the provider"]
 ```
 
 1. **A pull request** changes the content or the pages; the app builds locally to `dist/`.
 2. **The plan** shows the app's new content hash; the deploy uploads the package and Cargo
-   builds it, routing statically because pages are exported as `<route>/index.html`.
+   builds it and serves each page from the file it exported, `<route>/index.html`.
 3. **The hostname** is attached on deploy and verified once its `_cargo-verify` TXT resolves.
 4. **The domain** publishes the TXT, the certificate-validation CNAME and the `www` CNAME, and
    forwards the apex to `www`.
@@ -48,24 +53,24 @@ Adds 2 resource kinds plus the folder they file into.
 ## Why a static export
 
 Cargo Hosting serves files. A static export gives every page real HTML, its own metadata and a
-URL that works when entered directly, with no server to run. `trailingSlash: true` writes each
-page as `<route>/index.html`, which is what Cargo's build detects to route statically; without it,
-`/about` serves the home page. What needs a server (route handlers, middleware, image
+URL that works when entered directly, with no server to run. Cargo serves a path from the file
+the export wrote for it (`about/index.html`, else `about.html`), a missing page from `404.html`
+with status 404, and only then the root `index.html`. `trailingSlash: true` keeps every link,
+canonical and sitemap URL on one form, `/about/`. What needs a server (route handlers, middleware, image
 optimization, a form that delivers) lives somewhere else and is called from the page.
 
 ## Why a domain file you might delete
 
-`dnsRecords` is the whole zone. That is what lets one deploy publish everything the hostname
-needs, and it is also why the file is dangerous on the wrong domain: a zone Cargo mailboxes send
-from loses its mail records. Most existing company domains keep their DNS at a provider, so for
-them the file goes and the three records are added by hand. A dedicated domain held by Cargo
-keeps the file.
+When Cargo holds the DNS, the file lets one deploy publish everything the hostname needs:
+`dnsRecords` is merged into the live zone, so mail and every other record the deploy did not write
+stay put, and the plan prints the diff record by record. Most existing company domains keep their
+DNS at a provider, so for them the file goes and the three records are added by hand.
 
 ## Placeholders (edit before deploy)
 
-1. **Hostname** — `infra/apps/website.ts`: `domains`, always the `www` host.
-2. **Domain** — `infra/domains/website.ts`: the name and the redirect, or delete the file.
-3. **Content** — `infra/apps/website/site.json`: approved company facts, `canonicalUrl` set to
+1. **Hostname**: `infra/apps/website.ts`: `domains`, always the `www` host.
+2. **Domain**: `infra/domains/website.ts`: the name and the redirect, or delete the file.
+3. **Content**: `infra/apps/website/site.json`: approved company facts, `canonicalUrl` set to
    `https://www.<domain>/`, `status: "ready"` only after review.
 
 ## What it does not do

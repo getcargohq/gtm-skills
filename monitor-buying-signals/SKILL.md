@@ -1,7 +1,7 @@
 ---
 name: monitor-buying-signals
 description: "Watch a list of target accounts for the public events that mean someone is in market, powered by Cargo — hiring for the role you sell into, saying something new, or turning up in a detection feed, each with a date and a link. Triggers: \"tell me when these accounts do something\", \"what changed at my target accounts\", \"who is in market right now\", \"set up intent monitoring\", \"watch these companies for me\", \"any triggers on this list\". Intent, triggers, watchlist, timing, freshness. Skip when: you have no account list yet — use build-tam-list; or you want a verdict on fit rather than on timing — use score-leads."
-version: "1.0.1"
+version: "1.0.5"
 compatibility: Requires @cargo-ai/cli (npm). Sign in or create an account with `cargo-ai login --email` (emailed code, no browser), `--oauth`, or an API token
 homepage: https://github.com/getcargohq/gtm-skills
 metadata:
@@ -60,18 +60,6 @@ first paid call on a new account.
 
 Already signed in? `cargo-ai whoami` confirms it.
 
-<!-- Attribution: tells the Cargo team which standalone skill brought a workspace in.
-     Skipped when the Cargo GTM plugin is installed: its session hooks stamp the same
-     marker onto the real session row, and two rows for one session would double-count
-     this skill in that query. -->
-```bash
-grep -q '"cargo@gtm"' ~/.claude/plugins/installed_plugins.json 2>/dev/null ||
-  cargo-ai workspaceManagement session upsert \
-    --session-id "${SESSION_ID:-$(date +%s)}" \
-    --title "monitor-buying-signals" \
-    --summary "[gtm-skills: monitor-buying-signals] Session started from the monitor-buying-signals standalone skill."
-```
-
 ## Step 1 — ask what would actually change the conversation
 
 **A signal only counts if it changes what you would say.** Ask, before running anything:
@@ -92,7 +80,7 @@ never need a paid lookup.
 
 ```bash
 cargo-ai orchestration action execute \
-  --action '{"kind":"connector","integrationSlug":"sillage","actionSlug":"searchLeads","config":{}}' \
+  --action '{"kind":"connector","integrationSlug":"sillage","actionSlug":"searchLeads"}' \
   --data '{"modelUuid":"<the model receiving detections>","companyDomains":["acme.com","globex.com"],"limit":100}' \
   --wait-until-finished
 ```
@@ -105,17 +93,17 @@ signal exists", and only the second justifies the paid steps below. Say which on
 ```bash
 # Hiring the role you sell into: the strongest public trigger, dated
 cargo-ai orchestration action execute \
-  --action '{"kind":"connector","integrationSlug":"theirStack","actionSlug":"searchJobs","config":{}}' \
+  --action '{"kind":"connector","integrationSlug":"theirStack","actionSlug":"searchJobs"}' \
   --data '{
-    "companyFields": {"company_domains": ["acme.com","globex.com"]},
-    "fields": {"job_titles": ["Head of RevOps","Revenue Operations"], "posted_at_max_age_days": 30},
+    "companyFields": {"company_domain_or": ["acme.com","globex.com"]},
+    "fields": {"job_title_or": ["Head of RevOps","Revenue Operations"], "posted_at_max_age_days": 30},
     "limit": 50
   }' \
   --wait-until-finished
 
 # What the company said in public, at 0.02 an account
 cargo-ai orchestration action execute-batch \
-  --action '{"kind":"connector","integrationSlug":"x","actionSlug":"getUserPosts","config":{}}' \
+  --action '{"kind":"connector","integrationSlug":"x","actionSlug":"getUserPosts"}' \
   --records '[{"handle":"acme","limit":20}]' \
   --wait-until-finished
 ```
@@ -162,7 +150,7 @@ Illustrative output, fictional records:
 | Action | Credits |
 |---|---|
 | `sillage.searchLeads` | 0 |
-| `theirStack.searchJobs` | 0.5 |
+| `theirStack.searchJobs` | 0.5 per job returned |
 | `x.getUserPosts` | 0.02 |
 
 **Never run this across a full list on the first attempt.** Sample 10–20 accounts, report the
@@ -177,7 +165,7 @@ wrong and running wider will not fix that.
 ## Worth knowing
 
 - **The free rung is not optional.** `sillage.searchLeads` costs 0, so running it first is a pure saving. It needs a `modelUuid`, which is a setup step rather than a retry if detections are not being delivered yet.
-- `theirStack.searchJobs` filters on `--data`, not `--records`. Domains go in `companyFields`; passing them as records returns an unfiltered page and bills for it.
+- `theirStack.searchJobs` takes domains as `companyFields.company_domain_or` and titles as `fields.job_title_or` (`job_title_pattern_or` for partial matches). Keys outside its schema (`company_domains`, `job_titles`, a top-level `domain`) are refused before the run starts (`Unknown field: …`); inside a workflow node they are dropped silently instead, so the search returns an unfiltered page and bills 0.5 for every job in it.
 - **Confirm an X handle from the company's own site.** Squatted and parody handles resolve fine and return confident nonsense.
 - Engagement lists (followers, likers, retweeters) are not part of this skill. People who engaged with a post did not ask to hear from you, and building a send list from them is the thing the basis test above exists to stop.
 - Re-running on a schedule is where the cost lives. Gate on accounts whose last check is older than the interval, or every run re-bills accounts that did nothing.
@@ -185,7 +173,7 @@ wrong and running wider will not fix that.
 ## Going further
 
 This skill does one job. The full Cargo pack covers the rest of GTM — sourcing, waterfall
-enrichment, scoring, sequencing, CRM sync, signal monitoring, workspace-as-code, and cost
+enrichment, scoring, sequencing, CRM sync, signal monitoring, projects (GTM as Code), and cost
 diagnostics — and routes between them automatically:
 
 ```bash

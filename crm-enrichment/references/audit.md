@@ -1,10 +1,10 @@
 # Audit contract
 
 Choose the account path, contact path, or both. Audit every selected path independently before
-editing CDK, making a paid call, or writing to the CRM. Approval for one path does not approve the
+editing project resources, making a paid call, or writing to the CRM. Approval for one path does not approve the
 other.
 
-For every selected path, first inspect the authenticated CRM connector, existing CDK resources,
+For every selected path, first inspect the authenticated CRM connector, existing project resources,
 object schema, record ID, blank representation, Cargo-owned operational fields, and slug
 collisions. Do not guess provider paths or tool contracts from this repository example.
 

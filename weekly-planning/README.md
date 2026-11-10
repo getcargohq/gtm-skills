@@ -1,9 +1,13 @@
-# Weekly planning
+# Weekly planning: decide what the go-to-market team works on this week
 
-Turn last week's GTM work into recommendation files a reviewer can merge: ranked
-against active initiatives, declared infra, and live runs. Collected by a
-committed script, judged by a Claude Code harness agent, delivered as one pull
-request per initiative — or one workspace pull request when there are none.
+To decide what to work on this week, rank last week's go-to-market work against your active
+initiatives and against what is declared and actually running. Every Monday this cookbook's Claude
+Code harness agent does that ranking and delivers it as one reviewable pull request per initiative,
+or one workspace pull request when there are none.
+
+```sh
+cargo-ai project add cookbook/weekly-planning
+```
 
 ## What it does
 
@@ -55,16 +59,17 @@ weekly-planning/infra/     ->  infra/weekly-planning/      what is declared and 
 weekly-planning/scripts/   ->  scripts/weekly-planning/    what the agent runs
 ```
 
-Those are the layers `cargo-ai cdk init` already scaffolds — `infra/` is the CDK
-project, `scripts/` is "imperative glue for runtime surfaces the CDK cannot
-declare yet" — so a pipeline that needs both contributes to both under its own
-name rather than inventing a third place.
+Those are the layers `cargo-ai project init` already scaffolds — `infra/` holds
+the resources `cargo.json` names, `scripts/` is imperative glue for runtime
+surfaces a project cannot declare yet — so a pipeline that needs both
+contributes to both under its own name rather than inventing a third place.
 
-`scripts/package.json` is belt and braces. In a Manifest repo the CDK project
-root is `infra/`, so nothing under `scripts/` is ever imported as a resource.
-In a project whose CDK root is the repo root, the loader imports every `.ts` it
+`scripts/package.json` is belt and braces. The loader imports only the
+resources folder `cargo.json` names (`infra/` in a scaffolded project), so
+nothing under `scripts/` is ever imported as a resource. In a project whose
+`cargo.json` names the repo root instead, the loader imports every `.ts` it
 finds **except** directories carrying a `package.json` — without that file,
-`cargo-ai cdk plan` would import the collector and run git/`gh` on every plan.
+`cargo-ai project plan` would import the collector and run git/`gh` on every plan.
 
 ## Why the split
 

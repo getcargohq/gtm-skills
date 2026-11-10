@@ -18,7 +18,7 @@
   candidate counts, classifications, conflicts, exclusions, survivor evidence, and exact proposed
   merge IDs agree across all three representations.
 - The operator approves each selected path's matching keys, survivor precedence, automatic classes,
-  global conflict guards, and manual-review destination before that path's CDK adaptation.
+  global conflict guards, and manual-review destination before that path's project adaptation.
 - Policy approval, disabled deployment authorization, and exact merge-capable pilot authorization
   are separate gates for each selected path.
 
@@ -121,8 +121,8 @@
 - The checked resources contain one HubSpot shape. Salesforce or Attio replaces that shape in place.
 - Compatible CRM resources already in the consumer project are reused and duplicate declarations
   removed.
-- `node --import tsx evals/contract.mjs`, `cargo-ai cdk types`, `cargo-ai cdk check`, and
-  `cargo-ai cdk plan` pass in the consumer project.
+- `node --import tsx evals/contract.mjs`, `cargo-ai project types`, `cargo-ai project check`, and
+  `cargo-ai project plan` pass in the consumer project.
 - Every enrolled row in each approved pilot has a terminal outcome or a named unresolved review.
 - Each selected-path report accounts for every search, score, review, merge, decline, timeout,
   exclusion, stale source, and error.

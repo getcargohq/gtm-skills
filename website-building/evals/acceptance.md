@@ -11,11 +11,11 @@ Walk every line. A checked template without an evidence-backed consumer adaptati
   initial HTML carries its own title and description, and a draft carries `noindex`. The build
   output, `node_modules/` and `next-env.d.ts` are deleted afterwards.
 - The DNS path is recorded: Cargo-held (domain file kept) or external (domain file deleted). For a
-  Cargo-held domain, `cargo-ai mailboxManagement mailbox list` shows no mailbox on it, and the
-  output is recorded.
+  Cargo-held domain, the plan's DNS diff is recorded: the app's records are added, and every `~` or
+  `-` was approved by the operator.
 - `site.json` `canonicalUrl` is `https://www.<domain>/` before `status` is `ready`.
 - `node --import tsx evals/contract.mjs` passes against the adapted graph.
-- `cargo-ai cdk types && cargo-ai cdk check && cargo-ai cdk plan` pass in the consumer project. The
+- `cargo-ai project types && cargo-ai project check && cargo-ai project plan` pass in the consumer project. The
   plan shows the app folder, the app and the domain as an adopt; a `+ create domain:…` line was
   approved explicitly as a non-refundable purchase, or is absent.
 
@@ -33,8 +33,8 @@ Serve `dist/` with any static server and keep a screenshot of each check.
 
 ## After deploy
 
-- The deploy log says `Routing: static`.
 - The Cargo URL serves `/`, `/about` and `/about/` directly, each with its own title.
+- A missing page (`/does-not-exist`) returns the site's not-found page with status 404.
 - The hostname reaches `active` once `_cargo-verify` resolves (`refresh-status`, see
   [domain](../references/domain.md)). Until then it is reported as pending.
 - For external DNS, the three records read from the hosting API were added at the provider, and the

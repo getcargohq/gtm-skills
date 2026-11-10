@@ -17,6 +17,7 @@
       "skills": [
         "find-b2b-leads",
         "build-tam-list",
+        "extract-sales-navigator-search",
         "find-stakeholders",
         "find-portfolio-companies"
       ]
@@ -52,20 +53,65 @@
       ]
     },
     {
-      "title": "Make it run forever",
-      "description": "The same jobs as a deployed pipeline: each skill carries a worked CDK example your agent adapts into your project and deploys.",
+      "title": "Context",
+      "description": "Deployed pipelines that keep context/ current: every recorded call, your website and the news, and won and lost deals.",
+      "skills": [
+        "call-capture",
+        "web-capture",
+        "win-loss-review"
+      ]
+    },
+    {
+      "title": "Fundamentals",
+      "description": "Deployed pipelines that build the base: the account universe, a standing score on every account, qualified stakeholders, the website, and keeping it readable by AI agents.",
       "skills": [
         "tam-building",
         "account-scoring",
+        "contact-sourcing",
+        "website-building",
+        "website-auditing"
+      ]
+    },
+    {
+      "title": "Signals",
+      "description": "Deployed pipelines that watch the market for the moment to reach out: who just took a role you sell to, which public conversations are worth joining, who is on your site, and which accounts are ready now.",
+      "skills": [
+        "new-hire-detection",
+        "social-listening",
+        "visitor-identification",
+        "readiness-scoring"
+      ]
+    },
+    {
+      "title": "Engagement",
+      "description": "Deployed pipelines that hold the conversation: every demo request answered on the page, and an agent answering every lead who replies.",
+      "skills": [
+        "inbound-qualification",
+        "agentic-engagement"
+      ]
+    },
+    {
+      "title": "Operations",
+      "description": "Deployed pipelines that run the team: the daily recap, a brief before every external meeting, every promise made on a call, a weekly nudge on deals gone quiet, the weekly plan, the pipelines the goal still needs, a morning check for anything broken, the week's LinkedIn drafts, and one agent everyone can ask.",
+      "skills": [
+        "standup",
+        "meeting-prep",
+        "next-step-tracker",
+        "stalled-deal-nudge",
+        "weekly-planning",
+        "goal-coverage",
+        "workspace-health",
+        "linkedin-content",
+        "ask-cargo"
+      ]
+    },
+    {
+      "title": "CRM",
+      "description": "Deployed pipelines that keep an existing CRM in step with the engine: records filled, duplicate-free, and customers flagged before renewal.",
+      "skills": [
         "crm-enrichment",
         "crm-deduplication",
-        "call-capture",
-        "standup",
-        "weekly-planning",
-        "ask-cargo",
-        "agentic-engagement",
-        "website-building",
-        "contact-sourcing"
+        "expansion-signals"
       ]
     }
   ]

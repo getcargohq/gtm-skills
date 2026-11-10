@@ -1,7 +1,7 @@
 {
   "name": "cargo",
-  "description": "Routed GTM skills in Cursor, each focused on one job: one-off Cargo CLI workflows plus worked CDK examples an agent adapts and deploys, with prompt-free approval for safe cargo-ai calls.",
-  "version": "1.4.0",
+  "description": "Routed GTM skills in Cursor, each focused on one job: one-off Cargo CLI workflows plus worked project examples (cookbooks) an agent adapts and deploys, with prompt-free approval for safe cargo-ai calls.",
+  "version": "1.5.0",
   "author": {
     "name": "getcargo"
   },

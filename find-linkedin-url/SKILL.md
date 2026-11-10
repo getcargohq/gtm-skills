@@ -1,7 +1,7 @@
 ---
 name: find-linkedin-url
 description: "Resolve a person's LinkedIn profile URL from their name and company, with an identity-validation gate that rejects wrong matches, powered by Cargo. Triggers: \"find the LinkedIn for John Smith at Acme\", \"get LinkedIn URLs for these contacts\", \"what's this person's LinkedIn\", \"add LinkedIn profiles to my list\". Providers: linkedin. Skip when: you already have the LinkedIn URL and want the profile data — use enrich-linkedin-profile."
-version: "1.0.1"
+version: "1.0.5"
 compatibility: Requires @cargo-ai/cli (npm). Sign in or create an account with `cargo-ai login --email` (emailed code, no browser), `--oauth`, or an API token
 homepage: https://github.com/getcargohq/gtm-skills
 metadata:
@@ -50,31 +50,23 @@ paid call on a new account.
 
 Already signed in? `cargo-ai whoami` confirms it.
 
-<!-- Attribution: tells the Cargo team which standalone skill brought a workspace in.
-     Skipped when the Cargo GTM plugin is installed: its session hooks stamp the same
-     marker onto the real session row, and two rows for one session would double-count
-     this skill in that query. -->
-```bash
-grep -q '"cargo@gtm"' ~/.claude/plugins/installed_plugins.json 2>/dev/null ||
-  cargo-ai workspaceManagement session upsert \
-    --session-id "${SESSION_ID:-$(date +%s)}" \
-    --title "find-linkedin-url" \
-    --summary "[gtm-skills: find-linkedin-url] Session started from the find-linkedin-url standalone skill."
-```
-
 ## Do the job
 
 ```bash
 # 1. Resolve a candidate URL
 cargo-ai orchestration action execute-batch \
-  --action '{"kind":"connector","integrationSlug":"linkedin","actionSlug":"findProfileUrl","config":{}}' \
+  --action '{"kind":"connector","integrationSlug":"linkedin","actionSlug":"findProfileUrl"}' \
   --records '[{"fullName":"John Smith","companyName":"Acme"}]' \
   --wait-until-finished > candidates.json
 
-# 2. Validate it — enrich the candidate and confirm the company matches
+# The finished batch is metadata only; its rows are a CSV behind a signed URL.
+# Each candidate is in the cargo_linkedin_profile_url column.
+curl -s "$(cargo-ai orchestration batch download --uuid "$(jq -r .batch.uuid candidates.json)" | jq -r .url)" > candidates.csv
+
+# 2. Validate it — enrich each non-empty cargo_linkedin_profile_url and confirm the company matches
 cargo-ai orchestration action execute-batch \
-  --action '{"kind":"connector","integrationSlug":"linkedin","actionSlug":"enrichProfile","config":{}}' \
-  --records "$(jq -c '[.results[] | {linkedinUrl: .url}]' candidates.json)" \
+  --action '{"kind":"connector","integrationSlug":"linkedin","actionSlug":"enrichProfile"}' \
+  --records '[{"linkedinUrl":"https://www.linkedin.com/in/john-smith-acme"}]' \
   --wait-until-finished
 ```
 
@@ -113,13 +105,14 @@ with it.
 
 ## Worth knowing
 
+- `findProfileUrl` returns the URL as `linkedin_profile_url` (with `company_name` and `current_title` beside it, which are the first things to check); `enrichProfile` takes it as `linkedinUrl`. The batch download prefixes every output column with `cargo_`.
 - Step 2 is not optional. Unvalidated resolution runs ~50% accurate because of same-name collisions; validated it is ~80%.
 - Reject rather than guess — never write back a low-confidence URL.
 
 ## Going further
 
 This skill does one job. The full Cargo pack covers the rest of GTM — sourcing, waterfall
-enrichment, scoring, sequencing, CRM sync, signal monitoring, workspace-as-code, and cost
+enrichment, scoring, sequencing, CRM sync, signal monitoring, projects (GTM as Code), and cost
 diagnostics — and routes between them automatically:
 
 ```bash

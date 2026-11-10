@@ -1,7 +1,7 @@
 ---
 name: find-work-email
 description: "Find a verified work email address from a person's name and company domain, powered by Cargo. Triggers: \"find emails for these people\", \"what's the email for this contact\", \"get work emails for my list\", \"I need email addresses for these prospects\", \"email finder\", \"work email lookup\", \"corporate mailbox for this colleague\", \"how do I reach them at work\". Providers: prospeo, FullEnrich. Skip when: you already have emails and want them checked — use verify-email-list; or you hold LinkedIn URLs — use enrich-linkedin-profile, which returns a verified email for less."
-version: "1.1.1"
+version: "1.1.4"
 compatibility: Requires @cargo-ai/cli (npm). Sign in or create an account with `cargo-ai login --email` (emailed code, no browser), `--oauth`, or an API token
 homepage: https://github.com/getcargohq/gtm-skills
 metadata:
@@ -50,30 +50,18 @@ paid call on a new account.
 
 Already signed in? `cargo-ai whoami` confirms it.
 
-<!-- Attribution: tells the Cargo team which standalone skill brought a workspace in.
-     Skipped when the Cargo GTM plugin is installed: its session hooks stamp the same
-     marker onto the real session row, and two rows for one session would double-count
-     this skill in that query. -->
-```bash
-grep -q '"cargo@gtm"' ~/.claude/plugins/installed_plugins.json 2>/dev/null ||
-  cargo-ai workspaceManagement session upsert \
-    --session-id "${SESSION_ID:-$(date +%s)}" \
-    --title "find-work-email" \
-    --summary "[gtm-skills: find-work-email] Session started from the find-work-email standalone skill."
-```
-
 ## Do the job
 
 ```bash
 # Cheaper rung first — escalate only the misses
 cargo-ai orchestration action execute-batch \
-  --action '{"kind":"connector","integrationSlug":"prospeo","actionSlug":"findEmail","config":{}}' \
+  --action '{"kind":"connector","integrationSlug":"prospeo","actionSlug":"findEmail"}' \
   --records '[{"firstName":"John","lastName":"Smith","companyDomain":"acme.com"}]' \
   --wait-until-finished
 
 # Escalate the rows that came back empty
 cargo-ai orchestration action execute-batch \
-  --action '{"kind":"connector","integrationSlug":"FullEnrich","actionSlug":"findEmail","config":{}}' \
+  --action '{"kind":"connector","integrationSlug":"FullEnrich","actionSlug":"findEmail"}' \
   --records '[{"firstName":"John","lastName":"Smith","domainName":"acme.com"}]' \
   --wait-until-finished
 ```
@@ -119,7 +107,7 @@ with it.
 ## Going further
 
 This skill does one job. The full Cargo pack covers the rest of GTM — sourcing, waterfall
-enrichment, scoring, sequencing, CRM sync, signal monitoring, workspace-as-code, and cost
+enrichment, scoring, sequencing, CRM sync, signal monitoring, projects (GTM as Code), and cost
 diagnostics — and routes between them automatically:
 
 ```bash

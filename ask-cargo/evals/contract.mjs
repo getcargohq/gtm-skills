@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { resetRegistry, resources } from "@cargo-ai/cdk";
 
-// The boundaries CDK schema validation cannot express, checked against the
-// compiled registry. `cargo-cdk check` proves the resources are well formed;
+// The boundaries schema validation cannot express, checked against the
+// compiled registry. `cargo-ai project check` proves the resources are well formed;
 // this proves they are still the agent this skill describes after an agent
 // has adapted them.
 //
@@ -18,7 +18,7 @@ const byId = new Map(resources().map((resource) => [resource.id, resource]));
 assert.ok(byId.get("connector:github"), "defineConnector(github) must exist");
 assert.ok(byId.get("connector:slack"), "defineConnector(slack) must exist");
 
-const agent = byId.get("agent:ask-cargo");
+const agent = byId.get("agent:ask_cargo");
 assert.ok(agent, "defineAgent(ask-cargo) must exist");
 assert.equal(
   agent.spec.harnessSlug,
@@ -58,6 +58,19 @@ assert.equal(
   0,
   "ask-cargo needs no capability: the workspace read path is the cargo-ai CLI in the sandbox",
 );
+
+// The sandbox's Cargo session is a viewer service user, never the deployer.
+// Without `runAs` the CLI has no session and every workspace read fails; with a
+// broader role a prompt that is ignored can deploy or change resources.
+assert.ok(
+  agent.spec.repository?.runAsUserUuid,
+  "ask-cargo must run as a service user (repository.runAs): the sandbox needs a Cargo session",
+);
+const user = byId.get("user:ask_cargo");
+assert.ok(user, "defineUser(ask_cargo) must exist");
+assert.equal(user.spec.kind, "service", "ask_cargo must be a service user");
+const role = byId.get("role:viewer");
+assert.ok(role?.spec.adopt === true, "ask_cargo must hold the adopted viewer system role");
 
 const slackTriggers = (agent.spec.triggers ?? []).filter(
   (trigger) => trigger.type === "connector" && trigger.integration === "slack",

@@ -15,7 +15,7 @@ enrichment, both paths must pass independently. Evidence from one path does not 
       decision.
 - [ ] Genuine customer-managed duplicate properties were reported separately. CRM system and
       generated properties were not presented as duplicates.
-- [ ] The operator approved the complete account field contract before CDK adaptation or paid calls.
+- [ ] The operator approved the complete account field contract before project adaptation or paid calls.
 - [ ] Eligible account counts are mutually exclusive between the LinkedIn URL and domain routes.
 - [ ] Live unit prices, the lookup timestamp, action slugs, eligible counts, and maximum account
       spend were recorded before run approval.
@@ -48,7 +48,7 @@ enrichment, both paths must pass independently. Evidence from one path does not 
 
 - [ ] `npm run typecheck`, `node scripts/check-pipelines.mjs`, and
       `node --import tsx crm-enrichment/evals/contract.mjs` pass.
-- [ ] `cargo-ai cdk types`, `cargo-ai cdk check`, and `cargo-ai cdk plan` pass in the consumer project.
+- [ ] `cargo-ai project types`, `cargo-ai project check`, and `cargo-ai project plan` pass in the consumer project.
 - [ ] The plan shows one account model, one account enrichment tool, and one disabled account play.
 - [ ] The account play and tool have working direct Cargo UI links before paid-run approval.
 - [ ] A one-record write probe passed without changing a populated business value.
@@ -71,7 +71,7 @@ enrichment, both paths must pass independently. Evidence from one path does not 
       operator decision.
 - [ ] Route counts are mutually exclusive for both identifiers, LinkedIn only, email only, and
       neither identifier.
-- [ ] The operator approved the complete contact field contract before CDK adaptation or paid calls.
+- [ ] The operator approved the complete contact field contract before project adaptation or paid calls.
 - [ ] The operator approved disabled deployment separately from the paid contact pilot.
 
 ### Template shape and gating
@@ -113,7 +113,7 @@ enrichment, both paths must pass independently. Evidence from one path does not 
 
 - [ ] `npm run typecheck`, `node scripts/check-pipelines.mjs`, and
       `node --import tsx crm-enrichment/evals/contract.mjs` pass.
-- [ ] `cargo-ai cdk types`, `cargo-ai cdk check`, and `cargo-ai cdk plan` pass in the consumer project.
+- [ ] `cargo-ai project types`, `cargo-ai project check`, and `cargo-ai project plan` pass in the consumer project.
 - [ ] The plan shows one contact model, the three intended tool targets, and one disabled contact
       play.
 - [ ] The contact play and custom tool have working direct Cargo UI links before paid-run approval.

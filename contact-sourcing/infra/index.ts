@@ -152,7 +152,7 @@ const qualificationLlm =
         integration: "openAi",
         default: true,
       });
-const toolsFolder = defineFolder("contact-sourcing-tools", {
+const toolsFolder = defineFolder("contact_sourcing_tools", {
   kind: "tool",
   name: "Contact sourcing",
 });
@@ -224,7 +224,7 @@ const qualificationAgent =
         name: "Contact qualification",
         connector: qualificationLlm,
         languageModel: configuration.qualificationModel,
-        folder: defineFolder("contact-sourcing-agents", {
+        folder: defineFolder("contact_sourcing_agents", {
           kind: "agent",
           name: "Contact sourcing",
         }),

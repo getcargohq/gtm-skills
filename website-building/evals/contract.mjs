@@ -4,8 +4,8 @@ import { join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { resetRegistry, resources } from "@cargo-ai/cdk";
 
-// The boundaries CDK schema validation cannot express, checked against the
-// compiled registry. `cargo-cdk check` proves the resources are well formed;
+// The boundaries schema validation cannot express, checked against the
+// compiled registry. `cargo-ai project check` proves the resources are well formed;
 // this proves they are still the website this skill describes after an agent
 // has adapted them.
 //
@@ -14,7 +14,7 @@ import { resetRegistry, resources } from "@cargo-ai/cdk";
 //
 // Every resource file is loaded, so the contract still runs once
 // `domains/website.ts` is deleted for DNS hosted elsewhere. A directory with a
-// package.json is the app's browser code, which the CDK loader skips too.
+// package.json is the app's browser code, which the project loader skips too.
 const resourceFiles = (dir) =>
   readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
     const path = join(dir, entry.name);
@@ -31,8 +31,8 @@ for (const file of resourceFiles(fileURLToPath(new URL("../infra", import.meta.u
 const all = resources();
 const ofKind = (kind) => all.filter((resource) => resource.kind === kind);
 
-const folder = all.find((resource) => resource.id === "folder:website-building-apps");
-assert.ok(folder, "defineFolder(website-building-apps) must exist");
+const folder = all.find((resource) => resource.id === "folder:website_building_apps");
+assert.ok(folder, "defineFolder(website_building_apps) must exist");
 assert.equal(folder.spec.folderKind, "app", "the folder must be an app folder");
 
 const apps = ofKind("app");
@@ -41,7 +41,7 @@ const [app] = apps;
 assert.equal(
   app.spec.folderUuid?.resourceId,
   folder.id,
-  "the app must be filed in the website-building-apps folder",
+  "the app must be filed in the website_building_apps folder",
 );
 
 // The app declares its hostname, never the apex.
@@ -67,7 +67,7 @@ assert.match(nextConfig, /output:\s*"export"/, 'next.config.ts must keep output:
 assert.match(
   nextConfig,
   /trailingSlash:\s*true/,
-  "next.config.ts must keep trailingSlash: true, or /about serves the home page",
+  "next.config.ts must keep trailingSlash: true, so links, canonicals and the sitemap share one URL form",
 );
 
 // A Cargo-held domain publishes what the app needs and forwards the apex.
@@ -88,7 +88,7 @@ for (const domain of domains) {
     (domain.spec.dnsRecords ?? []).some(
       (record) => record?.resourceId === app.id && record.field === "domainRecords",
     ),
-    "dnsRecords must include the app's domainRecords: the zone is replaced by this list",
+    "dnsRecords must include the app's domainRecords, or the zone gets no _cargo-verify TXT or www CNAME",
   );
   assert.equal(
     domain.spec.redirectUrl,

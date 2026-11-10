@@ -1,8 +1,8 @@
 # Acceptance and fresh-workspace blind test
 
 The repository example is **to-be-approved**. Passing static checks or opening a
-PR does not establish approval. A fresh demo workspace plus implementation by
-two customers or partners is required. Store only internal evidence references
+PR does not establish approval. This build also requests a fresh demo workspace
+and two independent customer or partner implementations. Store only internal evidence references
 in `.github/data/approvals.json`; do not publish customer identities or records.
 
 ## Offline contracts
@@ -54,7 +54,7 @@ ID/up-to-three/no-enrichment/OpenAI-action default:
 
 ## Fresh-workspace blind-test protocol
 
-Use a new demo workspace and a new consumer CDK project with no pre-existing
+Use a new demo workspace and a new consumer Cargo project with no pre-existing
 persona memory. A tester who did not author this skill performs the installation
 using only the installed procedure and references. No author coaching, private
 reference UUIDs or copied customer configuration. The tester records where the

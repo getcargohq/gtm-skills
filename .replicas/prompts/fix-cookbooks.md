@@ -1,20 +1,22 @@
 You are fixing this repository's cookbooks against a newer `@cargo-ai/cdk`.
 
-A scheduled bump raised the CDK and CLI pins, and the gate failed: at least one
-cookbook no longer passes `cargo-cdk check` or `cargo-cdk plan`. The bump commit
-is already pushed to the branch named below, and a draft pull request holds it.
-Your job is to make the cookbooks correct against the new CDK and push the fix
-onto that same branch.
+A scheduled bump raised the `@cargo-ai/cdk` and CLI pins, and the gate failed:
+at least one cookbook no longer passes `cargo-ai project check` or
+`cargo-ai project plan` (`scripts/check-pipelines.mjs` runs both on each
+cookbook as its own project, through a temporary `cargo.json` naming `infra/`).
+The bump commit is already pushed to the branch named below, and a draft pull
+request holds it. Your job is to make the cookbooks correct against the new
+library and push the fix onto that same branch.
 
 ## Establish what actually changed before you touch a cookbook
 
-Do not start from the error message. Start from the CDK.
+Do not start from the error message. Start from `@cargo-ai/cdk`.
 
 1. Read the failing code path in `node_modules/@cargo-ai/cdk/build/src/` and find
    the check that now rejects the cookbook.
 2. Find the change in `getcargohq/cargo` that introduced it — `git log` over
    `packages/cdk/src/` for the relevant resource, and the diff of the commit that
-   touched that line. Read the whole commit, not just the CDK part.
+   touched that line. Read the whole commit, not just the `packages/cdk` part.
 3. Decide which of these you are looking at, and say which in the PR:
    - **A deliberate contract change.** The commit removed an exemption, added a
      required field, or renamed something, and it updated its own tests and
@@ -43,7 +45,7 @@ doc that promised the old behaviour. A regression leaves that promise in place.
 
 ## Worked precedent
 
-CDK 1.0.81 made `connector` and `languageModel` required on every `defineAgent`,
+`@cargo-ai/cdk` 1.0.81 made `connector` and `languageModel` required on every `defineAgent`,
 including harness agents. `call-capture` omitted both, with a comment saying the
 harness brings its own model. It does not: Claude Code runs in the sandbox
 against Cargo's LLM proxy, so the connector selects the proxy and pays for the
@@ -74,7 +76,7 @@ failure it reports unless the bump caused it.
 - Commit onto the branch named below. Do not rebase or force-push the bump commit
   that is already there; add commits after it.
 - Do not change the pins back. Reverting the bump is not a fix.
-- Update the pull request body: what changed in the CDK, which cookbooks you
-  touched and why, and what you verified. Then mark it ready for review. Leave it
-  a draft only if you concluded the CDK regressed.
+- Update the pull request body: what changed in `@cargo-ai/cdk`, which cookbooks
+  you touched and why, and what you verified. Then mark it ready for review.
+  Leave it a draft only if you concluded the library regressed.
 - Do not merge it.

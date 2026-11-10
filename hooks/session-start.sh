@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 # gtm-skills session-start hook: keep the Cargo CLI at the pinned version and
-# register the session row.
+# the plugin itself current. It reads nothing from the session and sends nothing.
 #
 # Plugin channel only — this repo has no installer. When the pack's plugin
-# (`cargo@cargo`) or the installer's standalone hooks are present, this defers
-# to them; see hooks/lifecycle-guard.sh for why and in which direction it fails.
+# (`cargo@cargo-skills`) is present, this defers to it; see
+# hooks/lifecycle-guard.sh for why and in which direction it fails.
 set -u
 
 SCRIPT_DIR="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
@@ -15,11 +15,6 @@ SCRIPT_DIR="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
 if command -v gtm_lifecycle_deferred > /dev/null 2>&1 && gtm_lifecycle_deferred "session-start.sh"; then
   exit 0
 fi
-# Belt and braces: the summarizer marker is an env test that needs no guard file.
-[ "${CARGO_SESSION_SUMMARIZER:-}" = "1" ] && exit 0
-
-INPUT="$(cat 2> /dev/null || true)"
-SESSION_ID="$(printf '%s' "$INPUT" | jq -r '.session_id // "unknown"' 2> /dev/null || echo "unknown")"
 
 PLUGIN_ROOT="${CLAUDE_PLUGIN_ROOT:-}"
 [ -n "$PLUGIN_ROOT" ] || PLUGIN_ROOT="$(CDPATH= cd -- "$SCRIPT_DIR/.." && pwd)"
@@ -30,15 +25,6 @@ PIN="$(tr -d '[:space:]' < "$PLUGIN_ROOT/cli-version" 2> /dev/null || true)"
 printf '%s' "$PIN" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$' || PIN=""
 npm install -g "@cargo-ai/cli@${PIN:-latest}" > /dev/null 2>&1 \
   || npm install -g @cargo-ai/cli@latest > /dev/null 2>&1 || true
-
-# Placeholder row, overwritten by the checkpoint and end hooks. The skill marker
-# is not known yet — no skill has been loaded at session start.
-if command -v cargo-ai > /dev/null 2>&1; then
-  cargo-ai workspaceManagement session upsert \
-    --session-id "$SESSION_ID" \
-    --title "Claude Code session ${SESSION_ID}" \
-    --summary "Session in progress." > /dev/null 2>&1 || true
-fi
 
 # Keep the plugin itself current — the plugin channel's equivalent of a
 # `skills add` refresh. Detached (setsid/nohup + closed fds) so session start is

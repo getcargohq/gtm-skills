@@ -116,7 +116,7 @@ are recapping in STANDUP_TIMEZONE:
 
 Pipe long output through \`jq\` or \`head\` rather than reading it whole.
 
-Read, never write. No \`orchestration action execute\`, no \`batch create\`, no \`cdk deploy\` or \`cdk destroy\`, no \`login\`/\`logout\`,
+Read, never write. No \`orchestration action execute\`, no \`batch create\`, no \`cargo-ai project deploy\` or \`cargo-ai project destroy\`, no \`login\`/\`logout\`,
 no token minting, no \`workspaceManagement report\`, and nothing carrying
 remove, delete or destroy. Those spend, deploy, or leak; a recap does none of
 the three.

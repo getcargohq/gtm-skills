@@ -1,7 +1,7 @@
 ---
 name: build-tam-list
 description: "Build a total addressable market list of companies filtered by industry, headcount, and geography, powered by Cargo. Triggers: \"build a TAM list\", \"how many companies match our ICP\", \"list every SaaS company in Europe under 200 employees\", \"size our addressable market\", \"find target accounts\", \"list building\", \"build a list of companies\". Providers: salesNavigator. Skip when: you want the people at those companies — use find-b2b-leads or find-stakeholders; or you want companies by tech stack — use find-companies-using-tech."
-version: "1.1.1"
+version: "1.2.4"
 compatibility: Requires @cargo-ai/cli (npm). Sign in or create an account with `cargo-ai login --email` (emailed code, no browser), `--oauth`, or an API token
 homepage: https://github.com/getcargohq/gtm-skills
 metadata:
@@ -50,26 +50,15 @@ paid call on a new account.
 
 Already signed in? `cargo-ai whoami` confirms it.
 
-<!-- Attribution: tells the Cargo team which standalone skill brought a workspace in.
-     Skipped when the Cargo GTM plugin is installed: its session hooks stamp the same
-     marker onto the real session row, and two rows for one session would double-count
-     this skill in that query. -->
-```bash
-grep -q '"cargo@gtm"' ~/.claude/plugins/installed_plugins.json 2>/dev/null ||
-  cargo-ai workspaceManagement session upsert \
-    --session-id "${SESSION_ID:-$(date +%s)}" \
-    --title "build-tam-list" \
-    --summary "[gtm-skills: build-tam-list] Session started from the build-tam-list standalone skill."
-```
-
 ## Do the job
 
 ```bash
 cargo-ai orchestration action execute \
-  --action '{"kind":"connector","integrationSlug":"salesNavigator","actionSlug":"searchAccounts","config":{}}' \
+  --action '{"kind":"connector","integrationSlug":"salesNavigator","actionSlug":"searchAccounts"}' \
   --data '{
-    "companyHeadcounts": ["51-200"],
-    "industryCodes": ["software-development"],
+    "companyHeadcounts": ["D", "E"],
+    "industryCodes": ["43"],
+    "headquarterLocationIds": ["103644278"],
     "limit": 100
   }' \
   --wait-until-finished
@@ -83,23 +72,23 @@ or batch UUID to poll with `cargo-ai orchestration run get <uuid>` (2s interval)
 
 ## Example
 
-> Size the market of US software companies with 51–200 employees and give me the first 100.
+> Size the market of US fintech companies with 50–500 employees and give me the first 100.
 
 Illustrative output, fictional records:
 
 | name | domain | headcount | industry | linkedinUrl |
 |---|---|---|---|---|
-| Northwind | northwind.example | 51-200 | Software Development | linkedin.com/company/northwind-example |
-| Tailspin | tailspin.example | 51-200 | Software Development | linkedin.com/company/tailspin-example |
-| Initech | initech.example | 51-200 | Software Development | linkedin.com/company/initech-example |
+| Northwind | northwind.example | 51-200 | Financial Services | linkedin.com/company/northwind-example |
+| Tailspin | tailspin.example | 201-500 | Financial Services | linkedin.com/company/tailspin-example |
+| Initech | initech.example | 51-200 | Financial Services | linkedin.com/company/initech-example |
 
-The first 100 companies for 5 credits (100 × 0.05); nothing is enriched yet, so the market is sized before any per-company spend.
+The first 100 companies for 20 credits (100 × 0.2); nothing is enriched yet, so the market is sized before any per-company spend.
 
 ## What it costs
 
 | Action | Credits |
 |---|---|
-| `salesNavigator.searchAccounts` | 0.05 |
+| `salesNavigator.searchAccounts` | 0.2 |
 
 **Never run this across a full list on the first attempt.** Sample 10–20 records, report the
 observed cost and hit-rate, then get the user to approve the full run — quoting the record count
@@ -108,13 +97,16 @@ with it.
 
 ## Worth knowing
 
-- Cheapest at-scale company sourcing in the catalog.
-- Size the market before you enrich it — a count is nearly free, enriching 10,000 companies is not.
+- Not the cheapest company search in the catalog. `FullEnrich.searchCompanies` is **free** (0 credits) and takes plain-string filters — `industry`, `headcount` `{min,max}`, `headquarters`, `technologies`, `keywords` — up to 2,000 per run; `FullEnrich.fetchCompanies`, also free, pulls up to 10,000 straight into a Cargo model. `aiArk.searchCompanies` (0.01) is the cheapest paid option and takes lookalike seeds. Sales Navigator is the default when the list is defined by LinkedIn-native filters.
+- `FullEnrich.lookupCompany` (free) returns one company's name, industry, headcount and LinkedIn URL from its domain.
+- Filters take LinkedIn's internal codes, **as strings**: `industryCodes: ["43"]` (Financial Services), `headquarterLocationIds: ["103644278"]` (United States), `companyHeadcounts: ["D","E"]` (51-200, 201-500; `B` is 1-10 and `C` 11-50). Names like `"fintech"` or `"50-200"` silently match nothing, and bare numbers fail validation. Resolve a name to its code with `cargo-ai connection connector autocomplete --connector-uuid <uuid> --slug listIndustries --params '{}' --value fintech` (`listGeoCodes` for locations).
+- Billed per returned record, and the response carries the records only, not a total match count. Pull a small `limit` first, check the rows fit, then pull the approved scope.
+- Size the market before you enrich it — a count is nearly free, a 5,000-company pull is ~1,000 credits.
 
 ## Going further
 
 This skill does one job. The full Cargo pack covers the rest of GTM — sourcing, waterfall
-enrichment, scoring, sequencing, CRM sync, signal monitoring, workspace-as-code, and cost
+enrichment, scoring, sequencing, CRM sync, signal monitoring, projects (GTM as Code), and cost
 diagnostics — and routes between them automatically:
 
 ```bash

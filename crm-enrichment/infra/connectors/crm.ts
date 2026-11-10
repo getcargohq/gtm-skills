@@ -7,7 +7,7 @@ import { defineConnector } from "@cargo-ai/cdk";
 // project, never parallel branches.
 //
 // Binds the workspace's DEFAULT HubSpot connector rather than creating one:
-// authorize it once (`cargo-ai cdk add connector/hubspot`) and this
+// authorize it once (`cargo-ai project add connector/hubspot`) and this
 // declaration resolves to it.
 export const crm = defineConnector("crm", {
   integration: "hubspot",

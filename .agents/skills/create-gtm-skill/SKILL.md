@@ -57,13 +57,38 @@ stay in that same slug. Accounts that are not in a CRM, if they land, are
 `signal-based-tam`, `rep-cockpit`). Do not rename existing skills to force
 `-ing` vs `-ment`; the kind matters more than the suffix.
 
+Inside a cookbook, resource slugs are snake_case: plays, workflows, tools,
+agents, segments and folders (`score_accounts`, `enrich_crm_contact`,
+`account_enrichment`, `tam_tier_analyst`, `tam_tier_a`,
+`crm_enrichment_plays`), the same as `@cargo-ai/cdk` already requires of
+connectors and models. Workers and apps are the exception: it requires
+kebab-case for them. File names stay kebab-case (`score-accounts.ts`). A slug
+is the resource's identity in `cargo.state.json`, so renaming one after a
+deploy creates a new resource and orphans the old one: get it right before
+the first deploy.
+
+A model that extracts a system you hold (a CRM, a warehouse) pulls all the
+data. Never filter or pick columns in its `config`: extract every record and
+every column, and narrow in the SQL or the play filter that reads it. A
+filter in the config is a second place the question is asked, invisible to
+anyone reading the queries, and changing it means a redeploy and a
+re-extraction instead of an edited query. A paid search source is the
+exception, because there the search is the data source rather than a filter
+on it: `aiArk.fetchCompanies` or a Sales Navigator search bills per returned
+record, so its query in `config` is what decides what you buy.
+
+**Native models first.** A worked example runs on Cargo native models, not a CRM connector, so it
+deploys on a bare workspace. When the outcome needs accounts, contacts, opportunities or activity,
+declare the shared `gtm_*` models exactly as `references/native-models.md` defines them;
+`scripts/check-native-models.mjs` fails on drift. The CRM is the `crm-backed` variation.
+
 ## 2. Description (the only text before load)
 
 Four parts, in order:
 
 1. The job in one sentence
 2. `Triggers:` literal quoted phrases a user would type
-3. Proper nouns (connectors, CRM, CDK)
+3. Proper nouns (connectors, CRM, Cargo project)
 4. `Skip when:` the sibling skill that should win instead
 
 Quote any YAML value that contains colon-space. Unquoted, the installer
@@ -75,7 +100,7 @@ skips the file with a warning nobody reads.
 
 Copy the structure of `enrich-company-data/SKILL.md`:
 
-- Setup (CLI install, login, session stamp)
+- Setup (CLI install, login)
 - Do the job (exact `cargo-ai orchestration action execute` / `execute-batch`)
 - Example (see below)
 - What it costs (table of `integration.action` → credits)
@@ -86,7 +111,7 @@ Slugs and prices are not yours to invent. `validate.ts` asserts every
 `getcargohq/cargo-skills` playbooks. Copy from a sibling, then run
 `node scripts/validate.ts`.
 
-Register: `skills.sh.json`, `hooks/skill-loads.sh`, root `README.md` table.
+Register: `skills.sh.json`, root `README.md` table.
 
 ### Pipeline
 
@@ -128,7 +153,7 @@ Resources must earn their deploy:
 - Do not declare a segment that restates the play's own filter.
 - Do not add `examples/example.md` until a live install has sanitized
   audit findings, mappings, a plan summary, and lookup-backed credits.
-- A folder of CDK with no `SKILL.md` does not belong at the root. Older
+- A folder of resource code with no `SKILL.md` does not belong at the root. Older
   examples live in history: `git checkout 305cd88 -- <name>`, then write
   the skill.
 
@@ -141,14 +166,36 @@ record, the play runs on that CRM extract and matches the CRM record id.
 Do not sit a native `unifyAccounts` / `ids` map between the play and the
 write — the run looks successful and nothing lands.
 
-**One CRM shape in the file.** HubSpot as the checked example; Salesforce
-and Attio adapt that file (connector, extractor, record-id, write action,
-fill-blank guard). No parallel branches.
+**One shape in the file.** A new pipeline's checked example runs on the
+shared `gtm_*` native models (`references/native-models.md`); its
+`crm-backed` variation names the HubSpot swap, and Salesforce and Attio adapt
+that (connector, extractor, record-id, write action, fill-blank guard). A
+pipeline whose whole job is a CRM (crm-enrichment, crm-deduplication) keeps
+HubSpot as its checked example. No parallel branches.
 
-CDK workflow bodies must compile. These fail `cargo-cdk check` / `plan`:
+Workflow bodies must compile. These fail `cargo-ai project check` / `plan`:
 `undefined`/`void`, comma / SequenceExpression, `Date#getTime()`.
+Optional chaining (`?.`) and `??` are worse: they pass `check` and `plan`, then
+fail at run time (`OptionalMemberExpression`), after an agent step has already
+been paid for. Write the explicit check instead.
 
-Register: `skills.sh.json` ("Make it run forever"), `hooks/skill-loads.sh`,
+Seed native records without an `id`: Cargo generates it and rejects one you
+pass. Create parents first and read the id back from the create.
+
+**TypeScript in a cookbook.** Keep it plain enough to adapt:
+
+- early-return `if` over ternaries, especially nested ones;
+- no comments on types or schema fields, and docblocks of a sentence or two;
+- names that say what the value is: `…Result` for an outcome union,
+  `raw…` for an API object not yet reshaped, predicates that name their
+  subject (`hasEventEnded`), numbers that name their unit
+  (`…Timestamp`, `…Ms`);
+- precise return types (`string[]`, not `(string | undefined)[]`);
+- no `now` parameter: read the clock where it is needed, and pin it in tests
+  with fake timers.
+
+Register: `skills.sh.json` (its stage, at its place in the order: the order is
+what an agent suggests next),
 root README pipeline table, `.github/data/approvals.json` with
 `state: to-be-approved` and empty evidence.
 

@@ -62,22 +62,24 @@
 
 // --- one-off / deployed seam -------------------------------------------------------
 // tam-building, account-scoring, crm-enrichment, crm-deduplication,
-// call-capture, agentic-engagement, standup, weekly-planning and ask-cargo are worked CDK
-// examples that deploy a pipeline.
+// call-capture, agentic-engagement, standup, meeting-prep, stalled-deal-nudge, weekly-planning, goal-coverage, workspace-health, ask-cargo,
+// new-hire-detection, web-capture and win-loss-review are worked project examples (cookbooks)
+// that deploy a pipeline.
 // build-tam-list, score-leads and research-account are one-offs: the same
 // job once, in a turn. The
 // same words describe both, so these cases pin which way each phrasing goes;
 // a pipeline skill that starts winning the one-off prompts has stolen them.
-{"prompt": "Our TAM is a stale CSV, I want it to stay current", "expect": "tam-building", "why": "The standing tell, in the user's words: keep it current."}
-{"prompt": "Source companies matching our ICP and keep every one of them tiered", "expect": "tam-building", "why": "Source and judge, standing: the two halves of this pipeline in one sentence."}
-{"prompt": "Build our account universe and keep loading new companies into it", "expect": "tam-building"}
-{"prompt": "Stand up a pipeline that builds our market and tells us which accounts are worth a rep", "expect": "tam-building"}
-{"prompt": "Build a TAM list of seed-stage SaaS companies in Europe", "expect": "build-tam-list", "why": "Same words as tam-building, opposite intent: a list today, not a pipeline."}
+{"prompt": "Our TAM is a stale CSV, I want it to live in Cargo as a model", "expect": "tam-building", "why": "The tell is where it lands: a model in the workspace, not a file or a chat answer."}
+{"prompt": "Source every company that matches our ICP and keep them as a model in Cargo", "expect": "tam-building", "why": "Source and land as a model: the whole job of this pipeline in one sentence."}
+{"prompt": "Build our account universe as a model the rest of our pipelines can read", "expect": "tam-building"}
+{"prompt": "Stand up a pipeline that builds our market from the ICP in our context", "expect": "tam-building"}
+{"prompt": "Build a TAM list of seed-stage SaaS companies in Europe", "expect": "build-tam-list", "why": "Same words as tam-building, opposite intent: a list handed back today, not a model in the workspace."}
 {"prompt": "How many companies match our ICP in DACH?", "expect": "build-tam-list", "why": "A count is a one-off."}
 {"prompt": "Keep our accounts scored as they arrive and re-score when the ICP changes", "expect": "account-scoring"}
 {"prompt": "Our lead scoring is a spreadsheet nobody trusts", "expect": "account-scoring"}
 {"prompt": "The accounts are already in our CRM, we just need them tiered against the ICP", "expect": "account-scoring", "why": "A book that already exists is account-scoring; tam-building is for the book that does not exist yet."}
 {"prompt": "Why is this account tier A?", "expect": "account-scoring", "why": "Only the deployed scorer writes a rationale anyone can read back."}
+{"prompt": "Tier the TAM we just sourced so the team knows where to start", "expect": "account-scoring", "why": "The model exists and needs judging: scoring, not sourcing."}
 {"prompt": "Score this list of 200 companies against our ICP and rank them", "expect": "score-leads", "why": "A supplied list, scored once: the one-off, not the deployed scorer."}
 {"prompt": "Keep our CRM accounts filled", "expect": "crm-enrichment"}
 {"prompt": "Keep our CRM companies filled", "expect": "crm-enrichment"}
@@ -137,14 +139,101 @@
 {"prompt": "Recommend next work from infra and runs", "expect": "weekly-planning"}
 {"prompt": "The play is deployed but I don't think it ran", "expect": "weekly-planning", "why": "Deployed-is-not-running is a planning gap, not a daily Slack recap."}
 {"prompt": "What should we do next this week, not a recap of today in Slack", "expect": "weekly-planning", "why": "Recommendations are weekly-planning; standup recaps the day and posts to Slack."}
+{"prompt": "What should we be running", "expect": "goal-coverage"}
+{"prompt": "What are we missing for our goal", "expect": "goal-coverage"}
+{"prompt": "Suggest new plays for our goal", "expect": "goal-coverage"}
+{"prompt": "Which pipelines should we set up next", "expect": "goal-coverage"}
+{"prompt": "We have 25 plays and do not know which 5 matter", "expect": "goal-coverage"}
+{"prompt": "Tell us what to build, do not wait to be asked", "expect": "goal-coverage"}
+{"prompt": "Hey, I noticed you don't have a scoring model: tell us things like that every week", "expect": "goal-coverage", "why": "Postscript, 2026-10-22: a gap against the goal, not a grade on existing work."}
+{"prompt": "Are the bets we already have on track", "expect": "weekly-planning"}
+{"prompt": "Are the bets we already have on track this week, not what we are missing", "expect": "weekly-planning", "why": "Grading existing initiatives is weekly-planning; goal-coverage only names what is missing."}
+{"prompt": "Tell me what is broken in the workspace", "expect": "workspace-health"}
+{"prompt": "Watch my workspace every morning", "expect": "workspace-health"}
+{"prompt": "Alert me when a play stops running", "expect": "workspace-health"}
+{"prompt": "Is anything failing in Cargo", "expect": "workspace-health"}
+{"prompt": "Catch silent failures before a customer does", "expect": "workspace-health"}
+{"prompt": "Tell me in slack every morning if a play broke", "expect": "workspace-health"}
+{"prompt": "Every morning in Slack, tell me if a play broke, not a recap of the day", "expect": "workspace-health", "why": "Findings only is workspace-health; the evening recap of everything is standup."}
 {"prompt": "Let the team ask our GTM agent from slack", "expect": "ask-cargo"}
 {"prompt": "One agent on top of all the others that anyone can mention in slack", "expect": "ask-cargo"}
 {"prompt": "A slack bot that knows our repo and can open PRs", "expect": "ask-cargo"}
 {"prompt": "Post the day's recap to slack every evening", "expect": "standup", "why": "A scheduled digest is standup; ask-cargo only answers when mentioned."}
+{"prompt": "Our context repo is empty, seed it from our website", "expect": "web-capture"}
+{"prompt": "Set up the workspace context from our domain", "expect": "web-capture"}
+{"prompt": "Add our company news to the knowledge base every week", "expect": "web-capture", "why": "Our own company, every week, into context/: not news about target accounts."}
+{"prompt": "Keep our context current from our website", "expect": "web-capture"}
+{"prompt": "Tell us when a competitor changes its pricing page", "expect": "web-capture", "why": "Competitors' own pages, read every week into context/: not buying signals on target accounts."}
+{"prompt": "Verify our ICP against won and lost deals", "expect": "win-loss-review"}
+{"prompt": "Keep the context repo current from the CRM every month", "expect": "win-loss-review", "why": "The standing tell: every month, from the CRM, appended, digested to Slack."}
+{"prompt": "Our lost reasons should become objections in the knowledge base", "expect": "win-loss-review"}
+{"prompt": "Score these leads against our ICP", "expect": "score-leads", "why": "Applying the ICP to a list is scoring; win-loss-review is what verifies the ICP from the deals."}
 {"prompt": "Research acme.com for me right now", "expect": "research-account", "why": "A one-off answer in this chat, nothing deployed."}
+{"prompt": "Watch our market for new VPs of Sales at software companies and put them in HubSpot", "expect": "new-hire-detection", "why": "The market, not the book, and the CRM as the destination: the pipeline."}
+{"prompt": "Every time a new head of RevOps starts at a company in our ICP, tell the account owner", "expect": "new-hire-detection", "why": "The standing tell: every time, routed to an owner."}
+{"prompt": "When a new decision-maker joins an account with an open deal, alert the deal owner", "expect": "new-hire-detection"}
+{"prompt": "Run our new-hire play every two weeks", "expect": "new-hire-detection"}
+{"prompt": "Post in Slack whenever a new VP Sales starts at a company that fits our ICP", "expect": "new-hire-detection", "why": "The market watched on a schedule, the signal in Slack: the pipeline, not a one-off search."}
+{"prompt": "Did any of our HubSpot contacts change jobs this quarter?", "expect": "track-job-changes", "why": "Your own contacts, checked once: the one-off, not the market pipeline."}
+{"prompt": "Which of our champions moved companies, and where did they go?", "expect": "track-job-changes", "why": "Movement among people you already hold is track-job-changes, however the CRM is involved."}
 {"prompt": "Build our company website on Cargo and keep it updated through reviewed PRs", "expect": "website-building"}
 {"prompt": "Recreate our website on Cargo from our existing GitHub repository", "expect": "website-building"}
 {"prompt": "Capture our design system so our website follows it", "expect": "website-building"}
 {"prompt": "Put our website on our own domain, served by Cargo", "expect": "website-building"}
 {"prompt": "Host our marketing site on Cargo", "expect": "website-building"}
 {"prompt": "Research this prospect website and brief me before our sales call", "expect": "research-account", "why": "Researching another account is a one-off briefing, not maintaining our company website."}
+{"prompt": "Which companies are visiting our website?", "expect": "visitor-identification"}
+{"prompt": "Add visitor identification to our company website, with a consent banner", "expect": "visitor-identification"}
+{"prompt": "Track which accounts read our pricing page", "expect": "visitor-identification"}
+{"prompt": "Build our company website on Cargo", "expect": "website-building"}
+{"prompt": "Add a demo request form to our website that qualifies inbound leads", "expect": "inbound-qualification"}
+{"prompt": "Route our website contact form submissions to Slack and our accounts", "expect": "inbound-qualification"}
+{"prompt": "Handle inbound demo requests from our site and send qualified ones a booking link", "expect": "inbound-qualification"}
+{"prompt": "Every Monday, tell each rep which of their open deals went quiet", "expect": "stalled-deal-nudge", "why": "Deals, quiet, every Monday: the standing tell."}
+{"prompt": "Flag opportunities with no activity in two weeks and draft the follow-up", "expect": "stalled-deal-nudge"}
+{"prompt": "Weekly stalled deal report in Slack", "expect": "stalled-deal-nudge"}
+{"prompt": "Rank last week's GTM work against our initiatives and say what to do next", "expect": "weekly-planning", "why": "Initiatives and next moves are weekly-planning; stalled-deal-nudge only lists quiet open deals per owner."}
+// new-hire-detection, social-listening, web-capture and win-loss-review are worked project examples (cookbooks)
+{"prompt": "Every week tell me which LinkedIn posts about our problem we should comment on", "expect": "social-listening", "why": "Every week, public posts, worth joining: the standing tell."}
+{"prompt": "Set up social listening on LinkedIn for lead routing and our competitors", "expect": "social-listening"}
+{"prompt": "Who is engaging with LinkedIn posts in our category, as a weekly digest in Slack", "expect": "social-listening"}
+// call-capture, agentic-engagement, standup, weekly-planning, linkedin-content, ask-cargo,
+{"prompt": "Draft our founder's LinkedIn posts every week from our proof points", "expect": "linkedin-content", "why": "Every week, drafts for a person: the standing content pipeline."}
+{"prompt": "Turn our customer wins and insights into weekly LinkedIn drafts for the CEO", "expect": "linkedin-content"}
+{"prompt": "Keep a LinkedIn content pipeline that opens a pull request with drafts each Monday", "expect": "linkedin-content"}
+{"prompt": "Every Monday, read our website and competitors' pages into context", "expect": "web-capture", "why": "Reading the web into context/ is web-capture; linkedin-content only drafts from what context/ already holds."}
+// new-hire-detection, web-capture, win-loss-review and expansion-signals are worked project examples (cookbooks)
+{"prompt": "Every week, flag which customers coming up on renewal are ready to expand", "expect": "expansion-signals", "why": "Existing customers, every week: the standing tell."}
+{"prompt": "Tell our account managers which customers to call before their renewal", "expect": "expansion-signals"}
+{"prompt": "Post an at-risk renewals digest to the CS channel every Monday", "expect": "expansion-signals"}
+{"prompt": "Give every inbound lead a tier and a brief as it lands, and tell the team", "expect": "inbound-qualification", "why": "Every lead, as it lands: the deep research runs after the form qualifies it."}
+{"prompt": "When a demo request comes in, write a brief and a tier onto the contact", "expect": "inbound-qualification"}
+{"prompt": "Track the next steps we promise on calls and remind us when they are overdue", "expect": "next-step-tracker", "why": "Promises from calls, chased when due: the standing tell."}
+{"prompt": "Flag overdue follow-ups we agreed on with customers in Slack every morning", "expect": "next-step-tracker"}
+{"prompt": "What did the customer commit to on last week's calls that has not happened", "expect": "next-step-tracker"}
+{"prompt": "Turn every recorded call into a log entry in the repo", "expect": "call-capture", "why": "Writing the call log is call-capture; the tracker only reads it for promises."}
+{"prompt": "Post an evening recap of everything that moved today", "expect": "standup", "why": "The whole day recapped is standup; the tracker posts only commitments that are due."}
+{"prompt": "Let anyone capture a slack thread into our context by mentioning the bot", "expect": "ask-cargo", "why": "Capture is a mode of ask-cargo: one agent answers @mentions."}
+{"prompt": "Log this slack thread to the repo when someone tags the bot", "expect": "ask-cargo"}
+{"prompt": "Scribe every recorded customer call into context each morning", "expect": "call-capture", "why": "Recorded calls on a schedule are call-capture; a Slack thread kept on demand is ask-cargo."}
+{"prompt": "Brief me in Slack whenever someone books a call with a prospect", "expect": "meeting-prep", "why": "Every booking, standing: the tell. One account now is research-account."}
+{"prompt": "Post a prep card to #sales-prep for every external meeting on our calendars", "expect": "meeting-prep"}
+{"prompt": "Set up a discovery call briefer on our Google Calendar", "expect": "meeting-prep"}
+{"prompt": "my Sales Navigator search has 30,000 accounts, extract all of them", "expect": "extract-sales-navigator-search"}
+{"prompt": "the Sales Nav extraction stopped at 1,000 rows", "expect": "extract-sales-navigator-search"}
+{"prompt": "get past the 2,500 lead limit in Sales Navigator", "expect": "extract-sales-navigator-search"}
+{"prompt": "I need more than 1,000 accounts out of one Sales Navigator search", "expect": "extract-sales-navigator-search"}
+{"prompt": "split a large LinkedIn search into pieces that each extract fully", "expect": "extract-sales-navigator-search"}
+{"prompt": "optimize my Sales Navigator search so nothing gets cut off", "expect": "extract-sales-navigator-search"}
+{"prompt": "pull every company in this Sales Nav search, it's about 12,000", "expect": "extract-sales-navigator-search"}
+// readiness-scoring is a worked project example (cookbook): timing from decaying signals, next to account-scoring's fit
+{"prompt": "Score our accounts by recent engagement, older signals should count less", "expect": "readiness-scoring", "why": "Decay over dated signals is readiness-scoring; account-scoring tiers fit and does not move with time."}
+{"prompt": "Which accounts are ready to buy right now?", "expect": "readiness-scoring", "why": "Right now is timing, the standing score that falls as signals age."}
+{"prompt": "Build a lead score that decays over time", "expect": "readiness-scoring"}
+{"prompt": "Tell me in Slack when an account heats up from new signals", "expect": "readiness-scoring"}
+{"prompt": "Tier every account in our TAM against our ICP", "expect": "account-scoring", "why": "Fit against the ICP is account-scoring; readiness-scoring scores timing, not fit."}
+{"prompt": "Score these 200 leads against our ICP", "expect": "score-leads", "why": "A list scored once is the one-off, not a standing score."}
+{"prompt": "Every week, score how agent-ready our website is and open a PR with the fixes", "expect": "website-auditing", "why": "Agents reading our own site, every week, fixed by pull request: the standing tell."}
+{"prompt": "Track our Ora score against our competitors in Slack", "expect": "website-auditing"}
+{"prompt": "Make our website readable by AI agents: llms.txt, structured data, agent discovery files", "expect": "website-auditing"}
+{"prompt": "Build our company website on Cargo and make it agent-ready from the start", "expect": "website-building", "why": "Building and hosting the site is website-building; agent-readiness audits and fixes a site that already exists."}

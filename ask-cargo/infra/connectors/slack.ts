@@ -2,7 +2,7 @@ import { defineConnector } from "@cargo-ai/cdk";
 
 // The Slack workspace people @mention the agent from. OAuth, so bound rather
 // than created: a deploy cannot mint the grant. Authorize it once in the
-// browser (`cargo-ai cdk add connector/slack`) and `default: true` binds to it.
+// browser (`cargo-ai project add connector/slack`) and `default: true` binds to it.
 //
 // This connector is the agent's trigger, not an action on `uses`. A Slack
 // connector trigger already does the whole conversation: an @mention in any

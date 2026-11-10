@@ -1,7 +1,7 @@
 ---
 name: agentic-engagement
-description: 'Deploy an agent that holds email conversations with leads: a sending domain, a mailbox, native sendEmail and listEmailEvents on the agent, a native email trigger on reply and unsubscribe, and a heartbeat that checks thread status when nothing inbound happened. Triggers: "handle email conversations with leads", "agentic engagement", "an agent that replies to inbound email", "stand up a conversation agent on a Cargo mailbox", "native email trigger for lead replies", "keep talking to leads over email". Cargo CDK, defineDomain, defineMailbox, defineAgent, agentNativeTrigger, heartbeat, sendEmail, listEmailEvents. Skip when: you want to send one email right now, which is a native sendEmail from the CLI and needs nothing deployed; or you want a play that blasts a list rather than holding a thread.'
-version: "0.1.1"
+description: 'Deploy an AI agent that holds email conversations with leads from a mailbox your workspace owns: a sending domain, a mailbox, native sendEmail and listEmailEvents on the agent, a native email trigger on reply and unsubscribe, and a heartbeat that checks thread status when nothing inbound happened. Triggers: "handle email conversations with leads", "agentic engagement", "an agent that replies to inbound email", "stand up a conversation agent on a Cargo mailbox", "native email trigger for lead replies", "keep talking to leads over email". Cargo project, defineDomain, defineMailbox, defineAgent, agentNativeTrigger, heartbeat, sendEmail, listEmailEvents. Skip when: you want to send one email right now, which is a native sendEmail from the CLI and needs nothing deployed; or you want a play that blasts a list rather than holding a thread.'
+version: "0.1.3"
 compatibility: "Requires @cargo-ai/cli with @cargo-ai/cdk 1.0.73 or later, a Cargo workspace, and an authenticated LLM connector."
 homepage: https://github.com/getcargohq/gtm-skills/tree/main/agentic-engagement
 metadata:
@@ -25,7 +25,7 @@ metadata:
 # Agentic engagement
 
 **State: to-be-approved.** Deploy-verified against a live workspace: not yet. Treat `Done when`
-below as the acceptance test and review `cargo-ai cdk plan` before deploying. Make no outcome claim
+below as the acceptance test and review `cargo-ai project plan` before deploying. Make no outcome claim
 for this skill until it is approved.
 
 ## The outcome
@@ -84,16 +84,16 @@ wake would have ended with no send, and a thread left at `sent` gets at most one
 
 ## Put it in your project
 
-This folder is a **worked example**: real CDK resources written for some other company. The job
+This folder is a **worked example**: real project resources written for some other company. The job
 is to end up with the code your company would have written, in your project, and an agent does the
-adapting. If the `cargo-cdk` skill is in your session it carries the long form of this; if not,
+adapting. If the `cargo-project` skill is in your session it carries the long form of this; if not,
 this is enough.
 
-1. **Install it — the CLI does the copy.** From inside the CDK project,
-   `cargo-ai cdk add cookbook/agentic-engagement` writes this example to
-   `infra/agentic-engagement/` and this procedure to `.claude/skills/agentic-engagement/`. No
+1. **Install it — the CLI does the copy.** From inside the project (the folder holding `cargo.json`),
+   `cargo-ai project add cookbook/agentic-engagement` writes this example to
+   `infra/agentic-engagement/` and this procedure to `.agents/skills/agentic-engagement/`. No
    project yet?
-   `cargo-ai cdk init <dir> --cookbook agentic-engagement && cd <dir> && npm install` does both;
+   `cargo-ai project init <dir> --cookbook agentic-engagement && cd <dir> && npm install` does both;
    this folder never ships a shell. **If you are reading this from the project's
    `.claude/skills/`, the install already happened — start at step 2.** On a CLI too old to have
    `add`, copy this folder in as a sibling of what is there by hand; everything below is
@@ -108,10 +108,10 @@ this is enough.
    is the floor, and you derive before you ask. If you are asking more than about four questions
    you have skipped lookups. Record what you changed and why under a `## Decisions` section in
    your copy of this file.
-4. **Plan, then stop.** `npm run check && cargo-ai cdk plan` (`check` validates the resource tree
+4. **Plan, then stop.** `npm run check && cargo-ai project plan` (`check` validates the resource tree
    offline; the blank template ships it). Show the diff. A `+ create mailbox:…` line is a monthly
    charge, not a one-off — quote the live figure from `cargo-ai mailboxManagement pricing get`
-   and get an explicit yes. Deploy only on that yes: `cargo-ai cdk deploy`. Never `cdk init
+   and get an explicit yes. Deploy only on that yes: `cargo-ai project deploy`. Never `cargo-ai project init
    --force` into a non-empty directory.
 5. **Verify.** Walk _Done when_ line by line and report each with evidence. Deployed cleanly and
    produced nothing is the normal failure — and the second normal failure is a first send whose
@@ -132,7 +132,7 @@ _asked_ genuinely live in the operator's head.
 Checked before moving on, not after the deploy:
 
 - `sendingDomain`: the declaration matches a domain the workspace owns, or the plan's `+ create domain:…` line was approved as a new registration
-- `dnsRecords` is omitted unless the operator explicitly wants this file to own the whole zone
+- `dnsRecords` is omitted unless the operator wants this file to manage records on the domain
 - `mailboxIdentity`: first name, last name and username are a real identity, and the username is a valid local part
 - `mailboxCharge`: the plan's `+ create mailbox:…` line was approved against a live `pricing get`
 - `node --import tsx evals/contract.mjs` passes against the adapted graph
@@ -145,7 +145,7 @@ default.
 
 | Variation | When it is right | How | What it costs |
 | --------- | ---------------- | --- | ------------- |
-| `register-domain` | The workspace does not yet own a sending domain | Drop `adopt: true` on `defineDomain`. Do not add `dnsRecords` unless you mean to replace the whole zone (`infra/domains/outreach.ts`) | Registration charges workspace credits and is not refundable. The deploy waits until the domain is `active` before creating the mailbox. |
+| `register-domain` | The workspace does not yet own a sending domain | Drop `adopt: true` on `defineDomain`. Leave `dnsRecords` off: the registrar writes the mail records (`infra/domains/outreach.ts`) | Registration charges workspace credits and is not refundable. The deploy waits until the domain is `active` before creating the mailbox. |
 | `mailbox-type` | Shared or private SMTP fits better than Google | Change `type` on `defineMailbox` (`infra/mailboxes/rep.ts`). `outlook` is not in the union: Graph delivery has not shipped. | Type is create-only. Changing it later is a new inbox and a reset ramp. Live `pricing get` for the new flavour. |
 | `adopt-mailbox` | The inbox already exists in the workspace | Set `adopt: true` on `defineMailbox` at the existing `username@domain` (`infra/mailboxes/rep.ts`) | Adopting never falls back to creating. The wrong address fails deploy instead of minting a second inbox. |
 | `first-touch-play` | New leads should get a first email without a human starting the chat | Add a play that calls the engager with a prompt naming the lead, then let this trigger own every reply. Keep the play's send path as a call to the agent, not a second `sendEmail`. | A play that sends without going through the agent starts threads the native trigger will never wake, because the trigger keys off chats *this agent* has emailed. |
@@ -159,13 +159,13 @@ it if you still want it, and records why under `## Decisions` in your copy of th
 - **`sendEmail` is a native action on the agent. `mailboxUuid` is locked in `config`.** (`infra/agents/engager.ts`) Wrapping it in a tool is ceremony. Leaving the mailbox as a field the agent fills sends from an inbox the trigger is not watching, and the run looks successful. `listEmailEvents` stays on the same agent so a heartbeat can read status instead of inferring it from chat history.
 - **A reply carries `inReplyTo` and the full `references` chain, oldest first.** (`infra/agents/engager.prompt.ts`) Passing only the parent Message-ID is how mail clients split the conversation. The next wake then has no thread to continue.
 - **Domain, username and type on the mailbox are create-only.** (`infra/mailboxes/rep.ts`) Editing them in place is not an update. It is destroy plus a new inbox, back at five real sends a day, with a new address the lead does not know.
-- **`dnsRecords` is omitted unless this file is meant to own the zone.** (`infra/domains/outreach.ts`) Declaring it replaces every live record, including the ones the registrar wrote at purchase.
+- **`dnsRecords` holds only the records this file should manage.** (`infra/domains/outreach.ts`) From `@cargo-ai/cdk` 1.0.92 it is merged into the live zone, so the MX, SPF, DKIM and DMARC records the registrar wrote stay, and dropping a declared record deletes it on the next deploy. Earlier versions replace every live record, mail included.
 - **The From name is a real person.** (`infra/mailboxes/rep.ts`) A fabricated sender is a refusal, not a configuration question.
 - **No credentials, deploy commands, or customer data in this repository.**
 
 ## Done when
 
-- `cargo-ai cdk plan` reports the domain, the mailbox and the engager, and
+- `cargo-ai project plan` reports the domain, the mailbox and the engager, and
   the operator approved the monthly mailbox line against a live `pricing get`
 - `node --import tsx evals/contract.mjs` passes: the agent trigger is native `email` with
   `kinds: ["replied", "unsubscribed"]`, a heartbeat is declared whose prompt names
@@ -202,6 +202,5 @@ warm-up is what moves the ramp; it takes forty-five days to finish. Check
 
 ## Composes into
 
-`account-scoring` (the engager should be talking to accounts the scorer already ranked),
-`call-capture` (a conversation that becomes a meeting is a call worth scribing),
-`crm-enrichment` (the record the thread is about should already be filled).
+Nothing in particular comes after it: a conversation that becomes a meeting is recorded and
+scribed like any other call.

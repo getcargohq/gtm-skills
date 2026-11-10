@@ -12,15 +12,15 @@
     "implementations": []
   },
   "account-scoring": {
-    "state": "to-be-approved",
+    "state": "approved",
     "chain": 1,
-    "demoWorkspace": null,
+    "demoWorkspace": "2026-10-18",
     "implementations": []
   },
   "tam-building": {
-    "state": "to-be-approved",
+    "state": "approved",
     "chain": 2,
-    "demoWorkspace": null,
+    "demoWorkspace": "2026-10-03",
     "implementations": []
   },
   "call-capture": {
@@ -48,20 +48,110 @@
     "implementations": []
   },
   "ask-cargo": {
-    "state": "to-be-approved",
+    "state": "approved",
     "chain": 9,
-    "demoWorkspace": null,
+    "demoWorkspace": "2026-10-08",
     "implementations": []
   },
   "website-building": {
-    "state": "to-be-approved",
+    "state": "approved",
     "chain": 10,
+    "demoWorkspace": "2026-10-01",
+    "implementations": []
+  },
+  "new-hire-detection": {
+    "state": "to-be-approved",
+    "chain": 11,
     "demoWorkspace": null,
+    "implementations": []
+  },
+  "web-capture": {
+    "state": "to-be-approved",
+    "chain": 12,
+    "demoWorkspace": null,
+    "implementations": []
+  },
+  "win-loss-review": {
+    "state": "to-be-approved",
+    "chain": 13,
+    "demoWorkspace": null,
+    "implementations": []
+  },
+  "visitor-identification": {
+    "state": "approved",
+    "chain": 14,
+    "demoWorkspace": "2026-10-04",
+    "implementations": []
+  },
+  "inbound-qualification": {
+    "state": "approved",
+    "chain": 15,
+    "demoWorkspace": "2026-10-04",
+    "implementations": []
+  },
+  "stalled-deal-nudge": {
+    "state": "approved",
+    "chain": 16,
+    "demoWorkspace": "2026-10-05",
+    "implementations": []
+  },
+  "social-listening": {
+    "state": "to-be-approved",
+    "chain": 18,
+    "demoWorkspace": null,
+    "implementations": []
+  },
+  "linkedin-content": {
+    "state": "approved",
+    "chain": 20,
+    "demoWorkspace": "2026-10-05",
+    "implementations": []
+  },
+  "expansion-signals": {
+    "state": "approved",
+    "chain": 21,
+    "demoWorkspace": "2026-10-05",
+    "implementations": []
+  },
+  "next-step-tracker": {
+    "state": "approved",
+    "chain": 22,
+    "demoWorkspace": "2026-10-09",
+    "implementations": []
+  },
+  "meeting-prep": {
+    "state": "approved",
+    "chain": 23,
+    "demoWorkspace": "2026-10-09",
+    "implementations": []
+  },
+  "goal-coverage": {
+    "state": "approved",
+    "chain": 24,
+    "demoWorkspace": "2026-10-23",
+    "implementations": []
+  },
+  "workspace-health": {
+    "state": "approved",
+    "chain": 25,
+    "demoWorkspace": "2026-10-23",
+    "implementations": []
+  },
+  "readiness-scoring": {
+    "state": "approved",
+    "chain": 26,
+    "demoWorkspace": "2026-10-28",
+    "implementations": []
+  },
+  "website-auditing": {
+    "state": "approved",
+    "chain": 27,
+    "demoWorkspace": "2026-10-30",
     "implementations": []
   },
   "contact-sourcing": {
     "state": "to-be-approved",
-    "chain": 11,
+    "chain": 28,
     "demoWorkspace": null,
     "implementations": []
   }

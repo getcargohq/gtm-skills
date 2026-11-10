@@ -1,8 +1,8 @@
 ---
 name: contact-sourcing
-description: 'Build a reusable on-demand tool that sources stakeholders at supplied accounts, qualifies their responsibilities, and returns all or up to N ranked by contact fit, with optional enrichment. Triggers: "build a contact sourcing tool", "set up stakeholder sourcing", "rank stakeholders by relevance", "install contact sourcing", "return an enriched shortlist per account". LinkedIn, Sales Navigator, OpenAI, Cargo CDK. Skip when: the user wants people at named accounts once today; use find-stakeholders. Existing profiles needing data use enrich-linkedin-profile; CRM field maintenance uses crm-enrichment.'
+description: 'Build a reusable on-demand tool that sources stakeholders at supplied accounts, qualifies their responsibilities, and returns all or up to N ranked by contact fit, with optional verified work email and phone enrichment. Triggers: "build a contact sourcing tool", "set up stakeholder sourcing", "rank stakeholders by relevance", "install contact sourcing", "return an enriched shortlist per account". LinkedIn, Sales Navigator, OpenAI, Cargo project. Skip when: the user wants people at named accounts once today; use find-stakeholders. Existing profiles needing data use enrich-linkedin-profile; CRM field maintenance uses crm-enrichment.'
 version: "0.1.0"
-compatibility: "Requires the cargo-project skill and a Cargo CDK project. Checked with @cargo-ai/cdk 1.0.89 and zod 4.4.3 from the repository lockfile. No CRM, storage model, or play is required. Adapt in the consumer project before deployment."
+compatibility: "Requires the cargo-project skill and a Cargo project. Checked with @cargo-ai/cdk 1.0.139 and zod 4.4.3 from the repository lockfile. No CRM, storage model, or play is required. Adapt in the consumer project before deployment."
 homepage: https://github.com/getcargohq/gtm-skills/tree/main/contact-sourcing
 metadata:
   author: getcargo
@@ -80,8 +80,10 @@ evidence accompanies each result. No email or phone lookup was requested.
 
 ## Put it in your project
 
-If this file is already in the project's `.claude/skills/`, the copy happened:
-start at step 2. Read the `cargo-project` skill before adapting resources. If absent,
+The procedure lands in `.agents/skills/contact-sourcing/`, with
+`.claude/skills/contact-sourcing` symlinked to it. If you found this file at
+either path in the project, the copy happened: start at step 2.
+Read the `cargo-project` skill before adapting resources. If absent,
 install it with `npx skills add getcargohq/cargo-skills --skill cargo-project`, then
 read its `SKILL.md` directly.
 
@@ -217,12 +219,12 @@ Offer these when relevant, with the recommendation at the actual decision point.
   Three is the proposed default, adjustable by changing the slice.
 - Only selected people receive requested email/phone enrichment; verified data can be
   reused; failures remain visible without backfill or a repeated profile lookup.
-- The adapted executable contracts, CDK type generation, check and plan pass.
+- The adapted executable contracts, project type generation, check and plan pass.
 - The operator approved deployment, then the exact paid sample and maximum cost.
 - The sample shows coverage, ranked evidence and actual stage costs; corrections
   update reusable criteria and affected examples are retested as authorized.
 - The final handoff identifies unperformed live checks and any pending approval
-  evidence; repository approval still requires a fresh demo plus two implementations.
+  evidence, including this build's requested fresh demo and two implementations.
 
 ## What it costs
 

@@ -1,7 +1,7 @@
 ---
 name: apollo-to-cargo
 description: "Rebuild an Apollo list on Cargo and price the two side by side before you move anything, powered by Cargo. Triggers: \"Apollo alternative\", \"migrate off Apollo\", \"move my Apollo list to Cargo\", \"replace Apollo.io\", \"I have an Apollo export\", \"Apollo credits ran out\", \"is Cargo cheaper than Apollo\", \"Apollo coverage is bad in my niche\". Providers: apolloio, waterfall. Skip when: you are porting a Clay table rather than an Apollo list — use clay-to-cargo; or you simply want contacts sourced and have nothing to migrate — use find-b2b-leads."
-version: "1.0.1"
+version: "1.0.5"
 compatibility: Requires @cargo-ai/cli (npm). Sign in or create an account with `cargo-ai login --email` (emailed code, no browser), `--oauth`, or an API token
 homepage: https://github.com/getcargohq/gtm-skills
 metadata:
@@ -56,18 +56,6 @@ before the first paid call on a new account.
 
 Already signed in? `cargo-ai whoami` confirms it.
 
-<!-- Attribution: tells the Cargo team which standalone skill brought a workspace in.
-     Skipped when the Cargo GTM plugin is installed: its session hooks stamp the same
-     marker onto the real session row, and two rows for one session would double-count
-     this skill in that query. -->
-```bash
-grep -q '"cargo@gtm"' ~/.claude/plugins/installed_plugins.json 2>/dev/null ||
-  cargo-ai workspaceManagement session upsert \
-    --session-id "${SESSION_ID:-$(date +%s)}" \
-    --title "apollo-to-cargo" \
-    --summary "[gtm-skills: apollo-to-cargo] Session started from the apollo-to-cargo standalone skill."
-```
-
 ## Do the job
 
 ### 1. Take a sample, not the list
@@ -82,7 +70,7 @@ Same vendor, same data, so this is the control rather than the pitch:
 
 ```bash
 cargo-ai orchestration action execute-batch \
-  --action '{"kind":"connector","integrationSlug":"apolloio","actionSlug":"enrichPerson","config":{}}' \
+  --action '{"kind":"connector","integrationSlug":"apolloio","actionSlug":"enrichPerson"}' \
   --records '[{"parameters":{"first_name":"Jane","last_name":"Doe","domain":"acme.com"}}]' \
   --wait-until-finished
 ```
@@ -91,7 +79,7 @@ Company side, where Apollo's firmographics are often the reason people stay:
 
 ```bash
 cargo-ai orchestration action execute-batch \
-  --action '{"kind":"connector","integrationSlug":"apolloio","actionSlug":"enrichOrganization","config":{}}' \
+  --action '{"kind":"connector","integrationSlug":"apolloio","actionSlug":"enrichOrganization"}' \
   --records '[{"domain":"acme.com"}]' \
   --wait-until-finished
 ```
@@ -102,7 +90,7 @@ This is the comparison. Same input, several providers behind one call:
 
 ```bash
 cargo-ai orchestration action execute-batch \
-  --action '{"kind":"connector","integrationSlug":"waterfall","actionSlug":"enrichContact","config":{}}' \
+  --action '{"kind":"connector","integrationSlug":"waterfall","actionSlug":"enrichContact"}' \
   --records '[{"full_name":"Jane Doe","domain":"acme.com"}]' \
   --wait-until-finished
 ```
@@ -112,7 +100,7 @@ source guessed more:
 
 ```bash
 cargo-ai orchestration action execute-batch \
-  --action '{"kind":"connector","integrationSlug":"waterfall","actionSlug":"verifyEmail","config":{}}' \
+  --action '{"kind":"connector","integrationSlug":"waterfall","actionSlug":"verifyEmail"}' \
   --records '[{"email":"jane@acme.com"}]' \
   --wait-until-finished
 ```
@@ -162,7 +150,7 @@ with it.
 - **Do not quote a saving you have not measured.** The comparison above exists because the answer
   varies by niche: Apollo's coverage is genuinely strong in some segments and thin in others, and
   the sample is what tells you which one you are in.
-- **`apolloio.enrichPerson` costs 3 rather than 1 with `revealPhoneNumber: true`.** Leave it off
+- **`apolloio.enrichPerson` costs 9 rather than 1 with `revealPhoneNumber: true`.** Leave it off
   unless phones are the reason for the migration, and say so when you turn it on.
 - **An Apollo export is a snapshot.** Rows exported months ago carry stale titles and stale
   companies, so a low hit rate on an old export is a fact about the export, not about either
@@ -171,7 +159,7 @@ with it.
 ## Going further
 
 This skill does one job. The full Cargo pack covers the rest of GTM — sourcing, waterfall
-enrichment, scoring, sequencing, CRM sync, signal monitoring, workspace-as-code, and cost
+enrichment, scoring, sequencing, CRM sync, signal monitoring, projects (GTM as Code), and cost
 diagnostics — and routes between them automatically:
 
 ```bash

@@ -1,4 +1,4 @@
-# Prettier covers the CDK example code (the resource .ts files inside skill
+# Prettier covers the cookbook example code (the resource .ts files inside skill
 # folders) and the repo scripts. The run-once skills, plugin manifests and
 # generated files predate it and are left as they are.
 node_modules/
@@ -14,6 +14,9 @@ llms.txt
 !crm-enrichment/**/*.md
 !contact-sourcing/**/*.md
 !website-building/**/*.md
+!new-hire-detection/**/*.md
+!web-capture/**/*.md
+!win-loss-review/**/*.md
 !CONTRIBUTING.md
 !.agents/skills/**/*.md
 !.claude/skills/**/*.md

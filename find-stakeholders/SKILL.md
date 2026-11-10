@@ -1,7 +1,7 @@
 ---
 name: find-stakeholders
 description: "Find the buying committee at a target account — every stakeholder matching a set of titles, seniorities, and departments, powered by Cargo. Triggers: \"find the buying committee at Acme\", \"who are the decision makers at this company\", \"find stakeholders\", \"multi-thread this account\", \"who else should I be talking to at this account\". Providers: aiArk. Skip when: you want to build a reusable tool that qualifies and ranks stakeholders for repeated account inputs — use contact-sourcing. Or you are sourcing across many companies rather than going deep on a few — use find-b2b-leads."
-version: "1.0.1"
+version: "1.0.6"
 compatibility: Requires @cargo-ai/cli (npm). Sign in or create an account with `cargo-ai login --email` (emailed code, no browser), `--oauth`, or an API token
 homepage: https://github.com/getcargohq/gtm-skills
 metadata:
@@ -50,28 +50,16 @@ paid call on a new account.
 
 Already signed in? `cargo-ai whoami` confirms it.
 
-<!-- Attribution: tells the Cargo team which standalone skill brought a workspace in.
-     Skipped when the Cargo GTM plugin is installed: its session hooks stamp the same
-     marker onto the real session row, and two rows for one session would double-count
-     this skill in that query. -->
-```bash
-grep -q '"cargo@gtm"' ~/.claude/plugins/installed_plugins.json 2>/dev/null ||
-  cargo-ai workspaceManagement session upsert \
-    --session-id "${SESSION_ID:-$(date +%s)}" \
-    --title "find-stakeholders" \
-    --summary "[gtm-skills: find-stakeholders] Session started from the find-stakeholders standalone skill."
-```
-
 ## Do the job
 
 ```bash
 cargo-ai orchestration action execute \
-  --action '{"kind":"connector","integrationSlug":"aiArk","actionSlug":"searchPeople","config":{}}' \
+  --action '{"kind":"connector","integrationSlug":"aiArk","actionSlug":"searchPeople"}' \
   --data '{
     "companyInfo": {"domain_or": ["acme.com"]},
     "jobRole": {
-      "seniority_or": ["CXO", "VP", "Director"],
-      "department_or": ["Sales", "Marketing", "Operations", "Finance"]
+      "seniority_or": ["c_suite", "vp", "director"],
+      "department_or": ["sales", "marketing", "operations", "finance"]
     },
     "limit": 25
   }' \
@@ -90,12 +78,12 @@ or batch UUID to poll with `cargo-ai orchestration run get <uuid>` (2s interval)
 
 Illustrative output, fictional records:
 
-| fullName | title | seniority | department |
-|---|---|---|---|
-| Priya Raman | Chief Revenue Officer | CXO | Sales |
-| Omar Haddad | VP Marketing | VP | Marketing |
-| Grace Lin | Director of Revenue Operations | Director | Operations |
-| Felix Brandt | VP Finance | VP | Finance |
+| full_name | title | linkedin_url |
+|---|---|---|
+| Priya Raman | Chief Revenue Officer | linkedin.com/in/priya-raman-example |
+| Omar Haddad | VP Marketing | linkedin.com/in/omar-haddad-example |
+| Grace Lin | Director of Revenue Operations | linkedin.com/in/grace-lin-example |
+| Felix Brandt | VP Finance | linkedin.com/in/felix-brandt-example |
 
 14 stakeholders returned for 0.7 credits (14 × 0.05); 3 are already in the CRM, so only the other 11 go on to enrichment.
 
@@ -113,12 +101,13 @@ with it.
 ## Worth knowing
 
 - Filter-rich: title, seniority, department, tenure, past company, and firmographics all narrow the committee.
+- `seniority_or` and `department_or` are closed lowercase enums, and a value outside them fails the run. Seniority: `founder`, `owner`, `partner`, `c_suite`, `vp`, `director`, `head`, `manager`, `senior`, `mid-level`, `entry`, `intern`. Departments are snake_case functions (`sales`, `marketing`, `operations`, `finance`, `sales_operations`, `information_technology`, ...); `cargo-ai connection integration get aiArk` lists them all.
 - Dedupe against contacts you already own before enriching — re-enriching a known contact is pure waste.
 
 ## Going further
 
 This skill does one job. The full Cargo pack covers the rest of GTM — sourcing, waterfall
-enrichment, scoring, sequencing, CRM sync, signal monitoring, workspace-as-code, and cost
+enrichment, scoring, sequencing, CRM sync, signal monitoring, projects (GTM as Code), and cost
 diagnostics — and routes between them automatically:
 
 ```bash

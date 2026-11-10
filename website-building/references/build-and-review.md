@@ -18,7 +18,7 @@ Work in the app package, `infra/website-building/apps/website/` once installed.
   generated source), tokens from `app/globals.css`, icons from `lucide-react`.
 - Nothing that needs a server: route handlers, middleware, `next/image` optimization and ISR do
   not survive the static export. A form posts to an approved destination outside the app.
-- The CDK uploads files as UTF-8 text, so a PNG, JPEG or font can build locally and arrive
+- A project deploy uploads files as UTF-8 text, so a PNG, JPEG or font can build locally and arrive
   corrupted. Use SVG, data URLs or an approved asset origin and compare the rendered result; if
   none fits, report binary assets as blocked rather than dropping them.
 - Keep the lockfile: Cargo builds with `npm ci`. After a local build, delete `dist/`, `out/`,
