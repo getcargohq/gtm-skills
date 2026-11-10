@@ -65,6 +65,7 @@
       "description": "Deployed pipelines that build the base: the account universe, a standing score on every account, the website, and keeping it readable by AI agents.",
       "skills": [
         "tam-building",
+        "tam-building-advanced",
         "account-scoring",
         "website-building",
         "website-auditing"
@@ -2607,6 +2608,154 @@
       ],
       "cost": "Read this before pointing the skill at a market-sized filter.\n\n**Counting is free**, and it is the cheapest insurance in this skill: `aiArk.countCompanies` takes\nthe same filter groups as the search and returns the pool size without billing. Run it for every\ncandidate filter, every time you widen one.\n\n**Research bills per call**, and only runs when no ICP is written down. Reading the website and\ncustomer stories is one extraction per batch of pages, and each customer's LinkedIn page is one\nenrichment. Fetch the live prices with `cargo-ai connection integration get <slug>` for each\nintegration you use, and keep the customer list to the ones named on the site.\n\n**Sourcing is the spend, and it is per returned record, not per call.** Immediately before every\npreview, run `cargo-ai connection integration get aiArk` and read the current `fetchCompanies`\nentry under `credits.costs`. Record the CLI version, the lookup time, and the unit price. The\nestimate is `limit * unit price`, which is why `limit` is the only control that matters: **to spend\nless, source less.**\n\nThe sourced model deliberately carries **no schedule**. See `refresh-cadence` above for what a\nrecurring source really costs.",
       "composesInto": "`crm-enrichment` (fill the records once they are in the CRM), `crm-deduplication` (keep them single\nonce they are there), `contact-sourcing` (the buyers at the accounts you keep). A CRM coverage\nanalysis (how much of the TAM the CRM already holds) is the usual first opening;\n`references/run.md` describes it. `account-scoring` tiers the TAM in place, with or without a CRM."
+    },
+    {
+      "name": "tam-building-advanced",
+      "kind": "cookbook",
+      "job": "Build your total addressable market (TAM) from several sources as one deployed model in Cargo: one ICP brief goes to Sales Navigator, AI Ark lookalikes, Apollo and Exa, every company is merged on its LinkedIn id, classified into your own categories, flagged in or out of scope with the reason, and marked net new or already in your CRM, and the report estimates the companies no source found.",
+      "description": "Build your total addressable market (TAM) from several sources as one deployed model in Cargo: one ICP brief goes to Sales Navigator, AI Ark lookalikes, Apollo and Exa, every company is merged on its LinkedIn id, classified into your own categories, flagged in or out of scope with the reason, and marked net new or already in your CRM, and the report estimates the companies no source found. Triggers: \"build our TAM from several data providers\", \"how much of our market do we actually have\", \"which of our TAM is net new and which is already in the CRM\", \"estimate the size of our market from our own data\". Cargo project, salesNavigator, aiArk, exa, linkedin, classify. Skip when: one source and one model are enough, which is tam-building; a list in the chat or a CSV, which is build-tam-list; or only a Sales Navigator search past its cap, which is extract-sales-navigator-search.",
+      "version": "0.1.0",
+      "homepage": "https://github.com/getcargohq/gtm-skills/tree/main/tam-building-advanced",
+      "group": "Fundamentals",
+      "install": "cargo-ai project add cookbook/tam-building-advanced",
+      "partOf": [],
+      "personas": [
+        "revops",
+        "gtm-engineering",
+        "sales-leadership"
+      ],
+      "integrations": [
+        "aiArk",
+        "apolloio",
+        "exa",
+        "linkedin",
+        "salesNavigator"
+      ],
+      "example": {
+        "prompt": "Build our TAM from Sales Navigator, AI Ark, Apollo and Exa for B2B software with 51 to 1,000 people in North America and Western Europe, and tell me how much is net new.",
+        "output": "| TAM                                 | Companies |\n| ----------------------------------- | --------- |\n| In scope                            | 18,420    |\n| Already in your CRM                 | 4,960     |\n| Net new                             | 13,460    |\n| Flagged out of scope (with reason)  | 21,305    |\n| Needs review (thin page)            | 1,140     |\n\n| Source          | Found  | Found by no other source | Added in this order |\n| --------------- | ------ | ------------------------ | ------------------- |\n| Sales Navigator | 16,210 | 9,380                    | 16,210              |\n| AI Ark          | 5,640  | 910                      | +1,250              |\n| Apollo          | 7,980  | 640                      | +730                |\n| Exa             | 1,520  | 120                      | +230                |\n\nCoverage: Sales Navigator × Apollo puts the market at 22,100 or more, so the 18,420 in scope are\nabout 83% of it at most. Top account in `tam_universe`: `northwind-analytics.example`, B2B SaaS, 340\npeople, found by all four sources, net new."
+      },
+      "state": "approved",
+      "chain": 28,
+      "resources": [
+        "connectors",
+        "folders",
+        "models",
+        "plays",
+        "tools"
+      ],
+      "asked": [
+        {
+          "input": "icp",
+          "kind": "derived",
+          "how": "The workspace context first (`icp.md`, a scoring rubric). None? `tam-building`'s research step, after its prices are approved",
+          "why": "Four source filters and the classifier answer to it. If they answer to four different readings, the TAM is four markets"
+        },
+        {
+          "input": "market_minimum",
+          "kind": "derived",
+          "how": "Industries, company size and countries, quoted from `icp.md` or labelled a suggestion, confirmed once and written into all four sources and `settings.ts",
+          "why": "A source missing one bills for the whole dimension, and the sources stop searching the same market"
+        },
+        {
+          "input": "categories",
+          "kind": "derived",
+          "how": "The CRM's company industry field when a CRM is connected (read the property's options), else the categories section of `icp.md",
+          "why": "They are what every company is classified into. Your CRM's values make the TAM and the CRM speak one language"
+        },
+        {
+          "input": "sales_navigator_searches",
+          "kind": "derived",
+          "how": "Build the search from the three criteria and count it. Over 1,000 accounts: `extract-sales-navigator-search` splits it and returns the URLs",
+          "why": "One search serves at most 1,000 accounts; past that the rest of the market is silently not there"
+        },
+        {
+          "input": "lookalike_seeds",
+          "kind": "derived",
+          "how": "Up to five customers: the ones the context names, or the CRM's closed-won companies",
+          "why": "AI Ark's lookalikes are only as good as the seeds; a guessed customer is not evidence"
+        },
+        {
+          "input": "exa_queries",
+          "kind": "derived",
+          "how": "One per category and country, in the words a buyer would use",
+          "why": "Exa reaches companies filed under labels nobody filters on, but only for what the queries describe"
+        },
+        {
+          "input": "crm",
+          "kind": "derived",
+          "how": "Which CRM connector is authenticated (`cargo-ai connection connector list`). None: the shared `gtm_accounts` model",
+          "why": "It decides what \"net new\" is measured against"
+        },
+        {
+          "input": "limits",
+          "kind": "derived",
+          "how": "From each source's count or a small sample pull, as a fraction of the pool for the first run",
+          "why": "Every paid source bills per returned record: the limits are the invoice"
+        }
+      ],
+      "canChange": [
+        {
+          "id": "crm-backed",
+          "when": "Your companies live in HubSpot or Salesforce, which is most workspaces",
+          "how": "Replace `gtm_accounts` with a CRM companies model (`fetchRecords`, every column, no config filter) and point the CRM lookup in `infra/tools/write-company.ts` at its domain property (`domain` on HubSpot, your bare-domain field on Salesforce, never `Website`)",
+          "cost": "A CRM connector to authenticate, and the extract to keep fresh. The pipeline still writes nothing to the CRM"
+        },
+        {
+          "id": "reference-list",
+          "when": "You hold an independent list of the same market: a Crunchbase export, an earlier TAM, a list built another way",
+          "how": "Load it as a model (Google Sheets or CSV), add a `found_by_reference` flag, and pair it with the TAM in the coverage query instead of Apollo",
+          "cost": "One more source to resolve to LinkedIn. The estimate gets better the more independent the list is; a list built from the same providers adds nothing"
+        },
+        {
+          "id": "drop-a-source",
+          "when": "Budget, or a source that adds almost nothing in your market",
+          "how": "Remove its connector, model and play, and its entry in the contract's connector list, in one change",
+          "cost": "Coverage. Dropping Apollo also removes the census pair the estimate is computed from; pair Sales Navigator with AI Ark and say the estimate is weaker"
+        },
+        {
+          "id": "growth-signal",
+          "when": "Growth decides priority in your market",
+          "how": "Add `salesNavigator.findCompanyInsights` after the LinkedIn lookup in `tam_unify_company`, and a growth column on `tam_universe",
+          "cost": "One more paid call per new company. Keep growth as information, never as a gate: a company that is not growing is still in your market"
+        },
+        {
+          "id": "refresh",
+          "when": "The market moves and the TAM goes stale",
+          "how": "Re-count and re-sync the sources in the same order. New companies flow through the plays; known ones only get their `last_seen_at",
+          "cost": "Every re-sync re-bills every returned record, including the companies already in the TAM. Re-count Sales Navigator first: counts drift week to week"
+        },
+        {
+          "id": "fifth-source",
+          "when": "A source that is good at your market (FullEnrich, free per record)",
+          "how": "One more source model and play, the same shape as AI Ark's, a `found_by_` column, and the contract's connector list edited",
+          "cost": "One more resolution pass; on a free source, a scheduled refresh becomes possible"
+        }
+      ],
+      "shouldNotChange": [
+        "**Every company is keyed on its LinkedIn company id.** (`infra/models/tam-universe.ts`, `infra/tools/write-company.ts`) Key on a domain or a name instead and the same company lands twice: once under its redirect, once under its old name, and every count in the report is wrong.",
+        "**Every source goes through the same door.** (`infra/tools/unify-company.ts`) A source that writes into `tam_universe` on its own brings its own columns, and a row it found can no longer be compared with a row another source found.",
+        "**Companies are classified from their own description into your categories.** (`infra/tools/write-company.ts`, `infra/settings.ts`) Trust a provider's industry label and services firms land in the TAM while real software companies filed elsewhere are dropped.",
+        "**Nothing is deleted; everything out of scope carries its reason.** (`infra/scripts/judge-company.ts`) Delete instead and the report can no longer say what each source returned that was not your market, or why a company you expected is missing.",
+        "**Unknown stays unknown.** A thin page, or a missing headcount or country, is `needs_review`, never out of scope. A provider that returns nothing has a coverage gap; it is not evidence about the company.",
+        "**Sources run one after another.** (`references/run.md`) Run two at once and both miss each other's fresh rows: the same company is enriched twice and lands twice.",
+        "**The three criteria are in every source.** (`infra/models/tam-source-*.ts`) A source without industries, size or countries bills for the whole dimension and searches a different market than the others.",
+        "**A paid source carries no schedule.** A cron re-bills every returned record, including the companies already in the TAM.",
+        "**Sales Navigator runs without a seat.** No `identityIds`: a search through someone's own account puts that account at risk.",
+        "**Nothing is written to the CRM.** Pushing the net new is a separate write the operator approves, with a reviewed sample first."
+      ],
+      "doneWhen": [
+        "the ICP came from the context or was researched and approved, and the three criteria are in all four sources and `settings.ts`",
+        "the categories came from the CRM's industry field or `icp.md`, and every row of `tam_universe` carries one of them",
+        "every Sales Navigator URL is under 1,000 accounts and carries `INDUSTRY`, `COMPANY_HEADCOUNT` and `REGION`",
+        "the sources were synced and processed one at a time, in order, each piloted on five rows first",
+        "every row of `tam_universe` has a LinkedIn company id, a status and at least one `found_by_*` flag, and no company appears twice",
+        "the report gives the TAM, net new and already in the CRM, the per-source table, the coverage estimate (or why it is too thin), and actual credits against the estimate",
+        "nothing was written to the CRM",
+        "`node --import tsx evals/contract.mjs` passes against the adapted resources"
+      ],
+      "cost": "Read this before pointing the skill at a market-sized brief.\n\n**Counting is free on AI Ark** and a fixed fee per search on Sales Navigator. Count every candidate\nbefore anything syncs.\n\n**Sourcing bills per returned record** on Sales Navigator, AI Ark and Apollo, and per returned result on\nExa. Each source's `limit` (or the number of queries times `exaResultsPerQuery`) is its invoice.\n\n**Enrichment bills once per new company, not per source.** The unify tool recognises a company the TAM\nalready holds before paying anything, so a company four sources found is resolved once. Every new\ncompany costs one LinkedIn lookup and one classification. Estimate them on the expected number of\ndistinct companies, which is well under the sum of the sources.\n\nFetch every live price immediately before the approval with `cargo-ai connection integration get` for\n`salesNavigator`, `aiArk`, `apolloio`, `exa` and `linkedin`, and record the lookup time. No price is\nwritten in this skill on purpose: they change.\n\nThe sources carry **no schedule**. See `refresh` above for what a re-sync really costs.",
+      "composesInto": "`account-scoring` tiers the in-scope rows of `tam_universe` against the same ICP; compare the tiers by\nnumber of sources, the companies several sources agree on tend to score higher. Pushing the net new\ninto the CRM is the usual next write, approved on its own; `crm-enrichment` and `crm-deduplication`\nkeep those records clean once they are there. `extract-sales-navigator-search` is the step that\nsplits a large Sales Navigator search, and `tam-building` is the single-source version of this skill."
     },
     {
       "name": "track-funding-rounds",

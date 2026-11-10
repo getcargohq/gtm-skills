@@ -148,5 +148,11 @@
     "chain": 27,
     "demoWorkspace": "2026-10-30",
     "implementations": []
+  },
+  "tam-building-advanced": {
+    "state": "approved",
+    "chain": 28,
+    "demoWorkspace": "2026-11-10",
+    "implementations": []
   }
 }
