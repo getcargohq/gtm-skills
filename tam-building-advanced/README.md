@@ -82,6 +82,7 @@ flowchart TD
 | `infra/tools/unify-company.ts`                | `defineTool`      | the one door: dedupe, resolve, enrich                    |
 | `infra/tools/write-company.ts`                | `defineTool`      | classify, gate, CRM check, write                         |
 | `infra/scripts/judge-company.ts`              | `defineScript`    | the ICP gates, deterministic                             |
+| `infra/scripts/company-domain.ts`             | `defineScript`    | the domain: LinkedIn, the source, or the short link's landing |
 | `infra/plays/*.ts`                            | `definePlay`      | one per source, disabled until its first sync            |
 | `infra/settings.ts`                           | (constants)       | size band, countries, your categories                    |
 
@@ -90,6 +91,11 @@ flowchart TD
 - **The LinkedIn company id is the key.** Websites redirect and names collide,
   a LinkedIn page has one id. Sources that return only a website are resolved
   to it first.
+- **The domain is the best evidence available, never a blank by default.**
+  LinkedIn's when it is a real domain; else the one the source returned; else
+  where LinkedIn's short link actually lands (a page listing `bit.ly/…` as its
+  website redirects to the company's site, and the script follows it). All
+  three are free.
 - **Sources run one after another.** A company the TAM already holds is
   recognised for free, but a native write takes minutes to be readable. Run two
   sources at once and both pay to enrich the same company.

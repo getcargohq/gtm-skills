@@ -4,6 +4,7 @@ import { z } from "zod";
 import { linkedin } from "../connectors/linkedin";
 import { toolsFolder } from "../folders";
 import { tamUniverse } from "../models/tam-universe";
+import { companyDomain } from "../scripts/company-domain";
 import { linkedinCompanyUrl } from "../scripts/linkedin-company-url";
 import { websiteDomain } from "../scripts/website-domain";
 import { tamWriteCompany } from "./write-company";
@@ -28,7 +29,7 @@ const unifyCompany = defineWorkflow(
       status: z.string().optional(),
     }),
     uses: { linkedin, tamWriteCompany },
-    imports: { tamUniverse, linkedinCompanyUrl, websiteDomain },
+    imports: { tamUniverse, linkedinCompanyUrl, websiteDomain, companyDomain },
   },
   ({ input, uses, model }) => {
     if (!input.linkedin_url && !input.domain) {
@@ -78,12 +79,17 @@ const unifyCompany = defineWorkflow(
       if (!company.company_id) {
         return { result: "unresolved" as const };
       }
+      const domain = companyDomain({
+        linkedinDomain: company.domain,
+        linkedinWebsite: company.website,
+        sourceDomain: input.domain,
+      });
       const written = uses.tamWriteCompany({
         source: input.source,
         linkedin_company_id: company.company_id,
         linkedin_url: linkedinCompanyUrl({ url: company.linkedin_url }),
         name: company.company_name,
-        domain: websiteDomain({ url: company.domain || company.website || "" }),
+        domain: domain,
         website: company.website,
         hq_country: company.hq_country,
         hq_city: company.hq_city,
@@ -136,14 +142,17 @@ const unifyCompany = defineWorkflow(
     if (!companyFromDomain.company_id) {
       return { result: "unresolved" as const };
     }
+    const domainFromDomain = companyDomain({
+      linkedinDomain: companyFromDomain.domain,
+      linkedinWebsite: companyFromDomain.website,
+      sourceDomain: bareDomain,
+    });
     const writtenFromDomain = uses.tamWriteCompany({
       source: input.source,
       linkedin_company_id: companyFromDomain.company_id,
       linkedin_url: linkedinCompanyUrl({ url: companyFromDomain.linkedin_url }),
       name: companyFromDomain.company_name,
-      domain: websiteDomain({
-        url: companyFromDomain.domain || companyFromDomain.website || "",
-      }),
+      domain: domainFromDomain,
       website: companyFromDomain.website,
       hq_country: companyFromDomain.hq_country,
       hq_city: companyFromDomain.hq_city,

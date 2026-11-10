@@ -2733,6 +2733,7 @@
         }
       ],
       "shouldNotChange": [
+        "**A company's domain comes from evidence, never from a short link.** (`infra/scripts/company-domain.ts`) LinkedIn's domain when it is real, else the source's, else where LinkedIn's short link lands. Keep a `bit.ly` or `hubs.ly` host as the domain and the company matches the wrong CRM account and merges with unrelated companies; leave it blank and the CRM check and the domain dedup both miss it.",
         "**Every company is keyed on its LinkedIn company id.** (`infra/models/tam-universe.ts`, `infra/tools/write-company.ts`) Key on a domain or a name instead and the same company lands twice: once under its redirect, once under its old name, and every count in the report is wrong.",
         "**Every source goes through the same door.** (`infra/tools/unify-company.ts`) A source that writes into `tam_universe` on its own brings its own columns, and a row it found can no longer be compared with a row another source found.",
         "**Companies are classified from their own description into your categories.** (`infra/tools/write-company.ts`, `infra/settings.ts`) Trust a provider's industry label and services firms land in the TAM while real software companies filed elsewhere are dropped.",

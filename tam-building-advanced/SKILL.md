@@ -206,6 +206,10 @@ waiting to be asked. Every one costs something; that is what makes it a variatio
 However far you adapt, these hold. Ask for one anyway and the agent tells you what breaks, then does it if
 you still want it, and records why under `## Decisions` in your copy of this file.
 
+- **A company's domain comes from evidence, never from a short link.** (`infra/scripts/company-domain.ts`)
+  LinkedIn's domain when it is real, else the source's, else where LinkedIn's short link lands. Keep a
+  `bit.ly` or `hubs.ly` host as the domain and the company matches the wrong CRM account and merges
+  with unrelated companies; leave it blank and the CRM check and the domain dedup both miss it.
 - **Every company is keyed on its LinkedIn company id.** (`infra/models/tam-universe.ts`,
   `infra/tools/write-company.ts`) Key on a domain or a name instead and the same company lands twice:
   once under its redirect, once under its old name, and every count in the report is wrong.
