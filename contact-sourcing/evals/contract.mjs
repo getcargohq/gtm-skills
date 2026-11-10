@@ -425,18 +425,36 @@ await check("the selected installation configuration executes", async () => {
 });
 
 await check(
-  "three is the proposed default; changing N only changes the selected count",
+  "three is a suggestion; top 3, 5, 10 or more and all work with every enrichment choice",
   async () => {
     // The repository default is a proposal to confirm, not a universal constant.
     if (infraPath === localInfra) assert.equal(configuration.topN, 3);
-    for (const topN of [3, 1, 4, null]) {
-      const { result, calls } = await exercise({
-        policy: { topN },
-        rows: ["1", "2", "3", "4", "5"].map((id) => candidate(id)),
-      });
-      assert.equal(result.contacts.length, topN ?? 5);
-      assert.equal(calls.filter((c) => c.slug === "qualify").length, 5);
-    }
+    const rows = Array.from({ length: 12 }, (_, i) => candidate(String(i + 1)));
+    for (const fields of enrichmentPolicies)
+      for (const topN of [1, 3, 5, 10, 25, null]) {
+        const { result, calls } = await exercise({
+          policy: { ...fields, topN },
+          rows,
+        });
+        const expectedCount = Math.min(topN ?? rows.length, rows.length);
+        assert.equal(result.contacts.length, expectedCount);
+        assert.equal(
+          calls.filter((c) => c.slug === "profile").length,
+          rows.length,
+        );
+        assert.equal(
+          calls.filter((c) => c.slug === "qualify").length,
+          rows.length,
+        );
+        for (const [field, slug] of [
+          ["email", "email_lookup"],
+          ["phone", "phone_lookup"],
+        ])
+          assert.equal(
+            calls.filter((c) => c.slug === slug).length,
+            fields[field] ? expectedCount : 0,
+          );
+      }
   },
 );
 

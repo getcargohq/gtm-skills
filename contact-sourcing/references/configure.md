@@ -61,13 +61,16 @@ example, if the reviewed wins usually involved three relevant stakeholders,
 recommend up to three on that basis, while noting that more qualified people may
 exist. Count people supported by deal evidence, not every associated contact.
 Otherwise, ask directly. Do not add a separate audit or CRM read to choose N.
-Propose **up to three qualified people per company** by default, unless useful
-existing evidence supports a different recommendation. Three is an editable
-maximum, not an average, quota or fixed requirement. Ask for the operator's
-choice, retaining any answer already given:
+Three is only a suggested starting value, never a fixed ceiling. The operator
+can choose **top 3, top 5, top 10, any other positive N, or all qualified people**.
+For enterprise accounts or broader buying committees, recommend a larger N when
+the already-known context supports it, and confirm the operator's choice.
+Useful existing won-deal evidence can inform that recommendation; no extra audit
+is needed. Retain any answer already given:
 
-> How many qualified people should the tool return per company? I suggest up to
-> three by default; would you like three, another number, or all qualified people?
+> How many qualified people should the tool return per company: top 3, top 5,
+> top 10, another number, or all? Three is just a starting suggestion; enterprise
+> accounts may need more.
 
 If they choose a maximum without specifying the number, ask for N. Set `topN`
 to `null` for all qualified people found within the search limit, or a positive

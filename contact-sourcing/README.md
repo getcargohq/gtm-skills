@@ -3,8 +3,9 @@
 Build an on-demand Cargo tool that returns the stakeholders most relevant to a
 seller's product at each supplied account. Choose all qualified people or up to
 N per company, independently of optional verified work email and phone enrichment.
-The proposed default is three, confirmed with the operator and adjustable to
-any positive N; `null` returns all qualified people.
+Three is only a suggested starting value, never a fixed ceiling. The operator
+can choose top 3, top 5, top 10, any positive N, or all qualified people (`null`).
+Enterprise accounts may call for a larger shortlist.
 
 The workflow resolves a company only when needed, searches current employees,
 deduplicates stable identities, retrieves profiles, qualifies responsibilities,
@@ -19,8 +20,8 @@ to return verified work email, phone, both, or profiles and scores only. Reuse
 the workspace's existing enrichment tools and confirm their input/output
 contracts; [configure.md](references/configure.md) describes the bindings.
 
-Enrich only the selected qualified people: by default up to three per company,
-or the operator's chosen N. This avoids lookup spend on people outside the
+Enrich only the selected qualified people, using the operator's chosen N or all.
+This avoids lookup spend on people outside the
 returned shortlist. Keep each selected person when a lookup fails, with an
 explicit missing/failed status; never backfill with lower-ranked people just
 to reach N. An email is marked verified only with matching verification evidence.

@@ -719,7 +719,7 @@
         {
           "input": "output_and_scope",
           "kind": "asked if missing",
-          "how": "Confirm the proposed three, another N or all; use useful existing won-deal evidence to refine N; choose enrichment, LLM provider/key-or-credits, search limit and restrictions",
+          "how": "Choose top 3, top 5, top 10, another N or all; use useful existing won-deal evidence to refine N; choose enrichment, LLM provider/key-or-credits, search limit and restrictions",
           "why": "Count and enrichment are separate; provider choice preserves the schema"
         },
         {
@@ -799,7 +799,7 @@
         "Live provider schemas and existing tool output mappings have been checked.",
         "Unresolved companies cannot source; stable identity deduplication precedes spend.",
         "Qualifications preserve profile evidence, current employment, uncertainty and a numeric fit score; the returned contacts have deterministic ranks.",
-        "The operator chose all or up to N independently of enrichment; the sorted qualified ranking is sliced before any requested lookups, returning fewer when needed. Three is the proposed default, adjustable by changing the slice.",
+        "The operator chose all or up to N independently of enrichment; the sorted qualified ranking is sliced before any requested lookups, returning fewer when needed. Three is only a starting suggestion; the chosen N has no fixed ceiling.",
         "Only selected people receive requested email/phone enrichment; verified data can be reused; failures remain visible without backfill or a repeated profile lookup.",
         "The adapted executable contracts, project type generation, check and plan pass.",
         "The operator approved deployment, then the exact paid sample and maximum cost.",

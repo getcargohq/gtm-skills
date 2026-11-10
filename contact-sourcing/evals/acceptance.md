@@ -46,7 +46,9 @@ ID/up-to-three/no-enrichment/OpenAI-action default:
 - Lookup/verification failures retain selected people and their original ranks;
   there is no automatic backfill to N reachable contacts.
 - Suitable existing verified data can be reused; found is distinct from verified.
-- Three is the proposed default; another positive N changes only the slice.
+- Three is only a starting suggestion, with no fixed ceiling. Top 3, top 5,
+  top 10, larger N and all work with every enrichment choice; changing N leaves
+  the candidate pool and qualification calls unchanged.
 - OpenAI and Claude agent paths share the qualification schema, evidence and
   failure handling, with one step and no autonomous tools or capabilities.
 - Optional closed-won research is gated by the operator's choice; decision-local
@@ -79,8 +81,10 @@ instructions were insufficient, even if an expert could improvise a fix.
    selected graph, reconciles existing connectors and needs no CRM/model/play.
    Review criteria/configuration and the plan before explicitly authorizing
    deployment. Preserve that approval evidence and the direct tool link.
-   Verify that three is proposed, then change N and confirm only the selected
-   count changes. Ask about OpenAI/Anthropic keys versus Cargo credits without
+   Verify that three is presented as a suggestion, then select 5 and 10 and
+   confirm only the selected count and corresponding enrichment calls change.
+   Include an enterprise account where a larger shortlist is appropriate.
+   Ask about OpenAI/Anthropic keys versus Cargo credits without
    collecting the secret. For a selected own-key provider, test the bounded
    qualification agent and its shared schema; confirm Claude uses Anthropic and
    OpenAI uses OpenAI. An agent's live structured-output enforcement and billing

@@ -34,7 +34,8 @@ For each supplied account, an on-demand Cargo tool returns the most relevant
 stakeholders found within an approved search limit, ranked by their fit for the
 seller's product or use case. It returns all qualified people or up to N per
 company, independently of optional verified work email and phone enrichment.
-Propose up to three by default and confirm the operator's number.
+Three is a starting suggestion, never a fixed ceiling. Ask for top 3, top 5,
+top 10, any other positive N, or all; enterprise accounts may need more.
 
 Relevance comes from responsibilities and current profile evidence. Buying role
 informs that assessment; seniority alone does not move someone above a relevant
@@ -110,7 +111,9 @@ read its `SKILL.md` directly.
    chosen own-key provider use a bounded qualification agent with the same JSON
    schema; Claude runs through Anthropic, OpenAI through OpenAI. Confirm the
    model and billing choice. Ask how many qualified people to return per company:
-   propose three, allow any positive N or all,
+   offer top 3, top 5, top 10, any positive N or all. Three is only a starting
+   suggestion; recommend more for enterprise buying committees when the known
+   context supports it. Choose the count
    independently of enrichment. If the optional CRM analysis already provides
    useful won-deal evidence, recommend N with a brief reason; otherwise ask
    directly. Do not add a separate audit. Recommend the input, requested fields,
@@ -145,14 +148,14 @@ choice. Derive available facts first; never ask twice for an answered decision.
 Derive before asking. The staged approval checkpoints are separate from missing
 configuration facts; bundle related choices without turning setup into a survey.
 
-| Input                              | Kind                             | How it is answered                                                                                                                                                             | Why it matters                                                          |
-| ---------------------------------- | -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------- |
-| `existing_context_and_connections` | derived                          | Read seller context, personas, connectors and tool releases; inspect CRM connectivity without reading private deal contacts yet                                                | Prevents repeated research and duplicate resources; a CRM is optional   |
-| `provider_contract_and_costs`      | derived                          | Read current action schemas, output paths, autocomplete values and cost metadata                                                                                               | Prevents guessed filters and hidden page or verification charges        |
-| `seller_and_personas`              | asked if missing, then confirmed | Establish product/use case; offer optional customer intelligence; approve persona table, Boolean and prompt together                                                           | The tool ranks fit for this seller rather than generic seniority        |
-| `company_input`                    | asked if missing                 | Choose ID, URL, domain, or necessary multiple-input support                                                                                                                    | An upstream ID skips paid resolution; extra identifiers must agree      |
-| `output_and_scope`                 | asked if missing                 | Confirm the proposed three, another N or all; use useful existing won-deal evidence to refine N; choose enrichment, LLM provider/key-or-credits, search limit and restrictions | Count and enrichment are separate; provider choice preserves the schema |
-| `sample_and_calibration`           | asked                            | Approve exact sample/max cost; assess relevance and missing people                                                                                                             | Static checks cannot prove provider coverage or qualification quality   |
+| Input                              | Kind                             | How it is answered                                                                                                                                                              | Why it matters                                                          |
+| ---------------------------------- | -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| `existing_context_and_connections` | derived                          | Read seller context, personas, connectors and tool releases; inspect CRM connectivity without reading private deal contacts yet                                                 | Prevents repeated research and duplicate resources; a CRM is optional   |
+| `provider_contract_and_costs`      | derived                          | Read current action schemas, output paths, autocomplete values and cost metadata                                                                                                | Prevents guessed filters and hidden page or verification charges        |
+| `seller_and_personas`              | asked if missing, then confirmed | Establish product/use case; offer optional customer intelligence; approve persona table, Boolean and prompt together                                                            | The tool ranks fit for this seller rather than generic seniority        |
+| `company_input`                    | asked if missing                 | Choose ID, URL, domain, or necessary multiple-input support                                                                                                                     | An upstream ID skips paid resolution; extra identifiers must agree      |
+| `output_and_scope`                 | asked if missing                 | Choose top 3, top 5, top 10, another N or all; use useful existing won-deal evidence to refine N; choose enrichment, LLM provider/key-or-credits, search limit and restrictions | Count and enrichment are separate; provider choice preserves the schema |
+| `sample_and_calibration`           | asked                            | Approve exact sample/max cost; assess relevance and missing people                                                                                                              | Static checks cannot prove provider coverage or qualification quality   |
 
 ## What you can change
 
@@ -216,7 +219,7 @@ Offer these when relevant, with the recommendation at the actual decision point.
   numeric fit score; the returned contacts have deterministic ranks.
 - The operator chose all or up to N independently of enrichment; the sorted
   qualified ranking is sliced before any requested lookups, returning fewer when needed.
-  Three is the proposed default, adjustable by changing the slice.
+  Three is only a starting suggestion; the chosen N has no fixed ceiling.
 - Only selected people receive requested email/phone enrichment; verified data can be
   reused; failures remain visible without backfill or a repeated profile lookup.
 - The adapted executable contracts, project type generation, check and plan pass.
