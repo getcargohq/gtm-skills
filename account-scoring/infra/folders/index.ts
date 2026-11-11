@@ -23,3 +23,8 @@ export const playsFolder = defineFolder("account_scoring_plays", {
   kind: "play",
   name: "Account scoring",
 });
+
+export const toolsFolder = defineFolder("account_scoring_tools", {
+  kind: "tool",
+  name: "Account scoring",
+});

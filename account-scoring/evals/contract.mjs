@@ -1,341 +1,275 @@
-// The boundaries schema validation cannot express, checked against the
-// compiled registry. `cargo-ai project check` proves the resources are well formed;
-// this proves they are still the pipeline this skill describes after an agent
-// has adapted them.
+// What has to hold about this cookbook after an agent adapts it, checked
+// against the compiled resources (the same loader `cargo-ai project check`,
+// `plan` and `deploy` use) and against the arithmetic itself.
 //
-// Run it from the skill folder after every adaptation:
+// Run it from the skill folder after every adaptation, and after every
+// re-sync of the model:
 //   node --import tsx evals/contract.mjs
+// In a project, point it at the real model: SCORING_MD=context/icp/scoring.md
 import assert from "node:assert/strict";
-import { resetRegistry, resources } from "@cargo-ai/cdk";
+import { readFileSync } from "node:fs";
+import { loadResources } from "@cargo-ai/cdk";
 
-resetRegistry();
+import { extractModelBlock, validateModel } from "../scripts/sync-model.mjs";
+
+const infraDir = new URL("../infra", import.meta.url).pathname;
+const scoringPath =
+  process.env.SCORING_MD ??
+  new URL("../context/scoring.md", import.meta.url).pathname;
+
+const byId = new Map(
+  (await loadResources(infraDir)).map((resource) => [resource.id, resource]),
+);
 const stamp = Date.now();
-const { crmWriteback, rescoreAfter } = await import(
+const { fitModel } = await import(`../infra/model.ts?contract=${stamp}`);
+const { computeFit, buildProfile, readStoredValues } = await import(
+  `../infra/compute/fit.ts?contract=${stamp}`
+);
+const { crmWriteback, firmographicColumns, rescoreAfter } = await import(
   `../infra/settings.ts?contract=${stamp}`
 );
-await import(`../infra/plays/tier-accounts.ts?contract=${stamp}`);
-await import(`../infra/segments/tiers.ts?contract=${stamp}`);
+const { accountInput } = await import(
+  `../infra/tools/enrich-account.ts?contract=${stamp}`
+);
 
-const byId = new Map(resources().map((resource) => [resource.id, resource]));
-
+const checks = [];
+const check = (name, run) => checks.push([name, run]);
 const get = (id) => {
   const resource = byId.get(id);
   assert.ok(resource, `${id} must exist`);
   return resource;
 };
-
-const findOne = (nodes, predicate, message) => {
+const nodesOf = (id) => get(id).spec.nodes ?? [];
+const only = (nodes, predicate, message) => {
   const matches = nodes.filter(predicate);
   assert.equal(matches.length, 1, message);
   return matches[0];
 };
+const expression = (value) => JSON.stringify(value ?? "");
 
-const child = (nodes, node) =>
-  nodes.find((candidate) => candidate.uuid === node.childrenUuids[0]);
+check("the resources are the two steps, the two plays and the four segments", () => {
+  const expected = [
+    "agent:account_scoring_agent",
+    "connector:ai_ark",
+    "connector:anthropic",
+    "connector:linkedin",
+    "connector:linkup",
+    "folder:account_scoring_agents",
+    "folder:account_scoring_models",
+    "folder:account_scoring_plays",
+    "folder:account_scoring_tools",
+    "model:tam_companies",
+    "play:rescore_accounts",
+    "play:score_accounts",
+    "segment:moderate_fit_accounts",
+    "segment:no_fit_accounts",
+    "segment:strong_fit_accounts",
+    "segment:weak_fit_accounts",
+    "tool:compute_fit",
+    "tool:enrich_account",
+    "tool:score_account",
+  ];
+  if (crmWriteback.crm !== "none") expected.push("connector:crm");
+  assert.deepEqual([...byId.keys()].sort(), expected.sort());
+});
 
-// ---------------------------------------------------------------------------
-// The model carries the columns the play writes. Its filter, limit and
-// schedule are tam-building's to own and its contract's to check.
-// ---------------------------------------------------------------------------
-const playResource = get("play:tier_accounts");
-const modelId = playResource.spec.modelUuid?.resourceId;
-assert.ok(modelId, "the play must run on a declared model");
-const modelSpec = get(modelId).spec;
-
-const declaredColumns = new Set(
-  (modelSpec.additionalColumns ?? []).map((column) => column.slug),
-);
-for (const slug of ["tier", "tier_reason", "tier_evidence_url", "tiered_at"]) {
-  assert.equal(
-    declaredColumns.has(slug),
-    true,
-    `${modelId} must declare the custom column "${slug}" that the play writes`,
-  );
-}
-
-// ---------------------------------------------------------------------------
-// The agent judges. It cannot write, and it cannot read a rubric it was not given.
-// ---------------------------------------------------------------------------
-const agentSpec = get("agent:account_tier_analyst").spec;
-
-const capabilitySlugs = new Set(
-  (agentSpec.capabilities ?? []).map((capability) => capability.slug),
-);
-assert.equal(
-  capabilitySlugs.has("context"),
-  true,
-  "the tiering agent must carry the context capability: without it the rubric reference in its prompt reads nothing and it invents a rubric",
-);
-const contextCapability = (agentSpec.capabilities ?? []).find(
-  (capability) => capability.slug === "context",
-);
-assert.equal(
-  contextCapability.config?.isReadOnly,
-  true,
-  "the context capability must be read-only: the agent reads the rubric, it does not edit it",
-);
-assert.equal(
-  capabilitySlugs.has("webSearch"),
-  true,
-  "the tiering agent must carry webSearch: the evidence that separates tier A from tier C is not in the sourced row",
-);
-assert.equal(
-  capabilitySlugs.has("memory"),
-  false,
-  "the tiering agent must not carry memory: each company is an independent judgment, and a prior rationale leaking into the next row is how a book fills with copied reasons",
-);
-
-assert.deepEqual(
-  agentSpec.models ?? [],
-  [],
-  "the tiering agent must have no model in uses: an agent that can write decides its own routing, and a null tier stops being distinguishable from a bad judgment",
-);
-
-assert.equal(
-  agentSpec.output?.type,
-  "jsonSchema",
-  "the tiering agent must declare a jsonSchema output so the play's write mappings cannot drift from the judgment shape",
-);
-const judgmentProperties = agentSpec.output.jsonSchema.properties ?? {};
-assert.ok(
-  Array.isArray(judgmentProperties.tier?.enum) &&
-    judgmentProperties.tier.enum.length > 1,
-  "the tier property must be an enum: a free-string tier lands values no segment matches",
-);
-assert.ok(
-  agentSpec.evaluator?.rubric,
-  "the tiering agent must carry an evaluator rubric: it is what fails a tier with no grounded rationale",
-);
-
-// ---------------------------------------------------------------------------
-// The play orchestrates and owns the only write.
-// ---------------------------------------------------------------------------
-const playNodes = playResource.spec.nodes;
-assert.ok(Array.isArray(playNodes), "the play must have workflow nodes");
-
-const start = findOne(
-  playNodes,
-  (node) => node.kind === "native" && node.actionSlug === "start",
-  "the play must have one start node",
-);
-const agentCall = findOne(
-  playNodes,
-  (node) =>
-    node.kind === "agent" &&
-    node.agentUuid?.resourceId === "agent:account_tier_analyst",
-  "the play must contain exactly one tiering agent node: one judgment per company",
-);
-assert.equal(
-  child(playNodes, start)?.uuid,
-  agentCall.uuid,
-  "the agent must be the play's first workflow node",
-);
-
-
-const write = findOne(
-  playNodes,
-  (node) => node.kind === "native" && node.actionSlug === "modelCustomColumn",
-  "the play must contain exactly one write, and it must write custom columns on the triggering row",
-);
-assert.equal(
-  child(playNodes, agentCall)?.uuid,
-  write.uuid,
-  "the write must immediately consume the agent's judgment",
-);
-assert.equal(
-  write.config.modelUuid?.resourceId,
-  modelId,
-  "the play must write back to the model it runs on",
-);
-
-const written = new Map(
-  write.config.mappings.map((mapping) => [mapping.columnSlug, mapping.value]),
-);
-for (const slug of ["tier", "tier_reason", "tier_evidence_url", "tiered_at"]) {
-  assert.equal(
-    written.has(slug),
-    true,
-    `the write must set "${slug}": a tier with no rationale is a number a rep will not trust, and a tier with no stamp is re-judged forever`,
-  );
-}
-for (const slug of written.keys()) {
-  assert.equal(
-    slug.startsWith("custom__"),
-    false,
-    `the write mapping "${slug}" carries the custom__ read-side alias: the write path nests the declared slug under custom itself, so the node reports success and the value is silently dropped`,
-  );
-  assert.equal(
-    declaredColumns.has(slug),
-    true,
-    `the write mapping "${slug}" is not a column the model declares`,
-  );
-}
-
-// ---------------------------------------------------------------------------
-// The CRM write-back: absent unless settings.ts names a CRM, and then one
-// update of the named fields, after the row write, that never creates.
-// ---------------------------------------------------------------------------
-const connectorNodes = playNodes.filter((node) => node.kind === "connector");
-if (crmWriteback.crm === "none") {
-  assert.equal(
-    connectorNodes.length,
-    0,
-    "with crmWriteback.crm none the play must contain no connector node: the agent does the looking up, and a lookup inside the play bills per row on top of it",
-  );
-  assert.equal(
-    byId.has("connector:crm"),
-    false,
-    "with crmWriteback.crm none no CRM connector may be declared: binding one fails the deploy of a workspace that has no CRM connection",
-  );
-} else {
-  assert.equal(
-    connectorNodes.length,
-    1,
-    "the play must contain exactly one connector node, the CRM write-back: any other is a per-row lookup billed on top of the agent",
-  );
-  const crmWrite = connectorNodes[0];
-  assert.equal(
-    crmWrite.integrationSlug,
-    crmWriteback.crm,
-    "the CRM write-back must go to the CRM settings.ts names",
-  );
-  assert.equal(
-    crmWrite.connectorUuid?.resourceId,
-    "connector:crm",
-    "the CRM write-back must use the declared crm connector",
-  );
-  assert.equal(
-    crmWrite.actionSlug,
-    "updateRecords",
-    "the CRM write-back must be updateRecords: upsert or insert would create a CRM company from every TAM row the CRM does not hold",
-  );
-  assert.equal(
-    crmWrite.config.objectType,
-    crmWriteback.crm === "hubspot" ? "companies" : "Account",
-    "the CRM write-back must target the company object",
-  );
-  assert.equal(
-    crmWrite.config.matchingPropertyName,
-    crmWriteback.matchProperty,
-    "the CRM write-back must match on the property settings.ts names",
-  );
-  // A boolean literal compiles to a `{{ true }}` template expression, which
-  // the engine resolves type-preserving before the config is validated.
-  const failOnMultiple = crmWrite.config.isFailingOnMultipleMatches;
-  assert.ok(
-    failOnMultiple === true || failOnMultiple?.expression === "{{ true }}",
-    "the CRM write-back must set isFailingOnMultipleMatches: without it, every duplicate CRM company sharing the match value is tiered",
-  );
-  const crmFields = crmWrite.config.mappings.map(
-    (mapping) => mapping.propertyName,
+check("model.ts is the json block of scoring.md, and the block is valid", () => {
+  const block = extractModelBlock(readFileSync(scoringPath, "utf8"));
+  assert.deepEqual(
+    validateModel(block),
+    [],
+    "scoring.md breaks the model format (references/scoring-format.md)",
   );
   assert.deepEqual(
-    [...crmFields].sort(),
-    Object.values(crmWriteback.fields).sort(),
-    "the CRM write-back must write exactly the fields settings.ts names: a field nobody named is a CRM value overwritten without a decision",
+    JSON.parse(JSON.stringify(fitModel)),
+    block,
+    "infra/model.ts differs from scoring.md: run scripts/sync-model.mjs, then plan",
   );
-  const guard = findOne(
-    playNodes,
-    (node) => node.kind === "native" && node.actionSlug === "branch",
-    "the CRM write-back must sit behind one guard on the match value",
-  );
-  assert.equal(
-    child(playNodes, write)?.uuid,
-    guard.uuid,
-    "the CRM write-back must come after the row write: the row is the record of the judgment whatever the CRM does",
-  );
-  assert.equal(
-    guard.childrenUuids.includes(crmWrite.uuid),
-    true,
-    "the guard must lead to the CRM write-back: an empty match value would ask the CRM for every company with an empty field",
-  );
-}
+});
 
-// ---------------------------------------------------------------------------
-// Eligibility is the stamp, and it lives in the play trigger.
-// ---------------------------------------------------------------------------
-const conditions = playResource.spec.filter.groups.flatMap(
-  (group) => group.conditions,
-);
-const stampConditions = conditions.filter(
-  (condition) => condition.columnSlug === "custom__tiered_at",
-);
-assert.deepEqual(
-  new Set(stampConditions.map((condition) => condition.operator)),
-  new Set(["isNull", "lowerThan"]),
-  "the play trigger must enrol never-tiered rows and rows whose stamp has gone stale",
-);
-assert.match(
-  rescoreAfter,
-  /^[1-9][0-9]* (day|month|year)s?$/,
-  'rescoreAfter must be a relative date the segment filter reads, "<n> days", "<n> months" or "<n> years": a week is written "7 days"',
-);
-assert.equal(
-  stampConditions.find((condition) => condition.operator === "lowerThan")
-    ?.value,
-  rescoreAfter,
-  "the stale condition must read rescoreAfter from settings.ts, so the documented cadence is the one the play runs",
-);
-assert.equal(
-  conditions.some((condition) => condition.columnSlug === "custom__tier"),
-  false,
-  "the play trigger must not filter on the tier itself: a failed run leaves a null stamp and must be retried, while a legitimate disqualified verdict must be left alone",
-);
-assert.deepEqual(
-  playResource.spec.changeKinds,
-  ["added"],
-  "the play must create runs only for rows entering the segment: without it the LLM bill scales with how often the cron fires",
-);
-assert.equal(
-  playResource.spec.isEnabled,
-  false,
-  "the first plan must ship the play disabled",
-);
-assert.equal(
-  playResource.spec.runCreationRule,
-  "noConcurrency",
-  "the play must be noConcurrency while it is a pilot",
-);
-assert.equal(
-  playResource.spec.schedule?.type,
-  "cron",
-  "fetchCompanies is a plain fetch-mode extractor, so the play takes a cron: watch needs isWatchable and realtime needs an ingest-mode extractor",
-);
+check("the arithmetic: filters first, points, unknown at half, bands", () => {
+  const best = {
+    employees: 400,
+    business_model: "marketplace",
+    data_team_size: 25,
+    realtime_personalization: "live",
+    mobile_apps: "ios_and_android",
+    warehouse: "snowflake",
+  };
+  const strong = computeFit(fitModel, best);
+  assert.equal(strong.grade, "Strong");
+  assert.equal(strong.score, 100, "the total is held at 100");
 
-// ---------------------------------------------------------------------------
-// Segments view the output, they do not restate the trigger.
-// ---------------------------------------------------------------------------
-const segments = [...byId.values()].filter((resource) =>
-  resource.id.startsWith("segment:"),
-);
-assert.ok(segments.length > 0, "the skill must expose the tiers as segments");
-const segmentTiers = new Set();
-for (const segment of segments) {
-  const conditions = segment.spec.filter.groups.flatMap(
-    (group) => group.conditions,
+  const filtered = computeFit(fitModel, { ...best, employees: 30 });
+  assert.equal(filtered.grade, "No Fit", "a filter that fires is No Fit, whatever the points");
+  assert.match(filtered.filtered_by, /Employees/);
+
+  const unknownSize = computeFit(fitModel, { ...best, employees: null });
+  assert.notEqual(unknownSize.grade, "No Fit", "a filter never fires on unknown");
+
+  const nothingKnown = computeFit(fitModel, {});
+  const halves = fitModel.weights.reduce((sum, rule) => sum + rule.unknown, 0);
+  assert.equal(nothingKnown.score, halves, "every unknown weight scores half");
+  assert.equal(nothingKnown.unknown_count, fitModel.weights.length);
+
+  const mid = computeFit(fitModel, { ...best, data_team_size: 8, warehouse: null });
+  const lower = computeFit(fitModel, { ...best, data_team_size: 7, warehouse: null });
+  assert.equal(mid.score - lower.score, 20, "8 meets the 8 range, 7 falls to the 0 range");
+
+  const offList = computeFit(fitModel, { ...best, business_model: "something_else" });
+  assert.match(offList.breakdown, /Business model: unknown/, "a label outside the list is unknown, not zero");
+
+  assert.equal(computeFit(fitModel, best).grade, strong.grade, "same values, same grade");
+});
+
+check("every attribute has a producer in step 1", () => {
+  const inputKeys = Object.keys(accountInput.shape);
+  const enrich = nodesOf("tool:enrich_account");
+  const research = only(
+    enrich,
+    (node) => node.kind === "connector" && node.actionSlug === "instruct",
+    "one structured research call answers every research attribute",
   );
-  assert.equal(
-    conditions.every((condition) => condition.columnSlug === "custom__tier"),
-    true,
-    `${segment.id} filters on something other than the tier: a segment that restates the play's own trigger is dead weight and a drift trap`,
+  const script = only(
+    enrich,
+    (node) => node.kind === "native" && node.actionSlug === "script",
+    "one script node assembles the profile",
   );
-  for (const condition of conditions) {
-    for (const value of condition.values ?? []) segmentTiers.add(value);
+  const call = script.config.script.slice(script.config.script.lastIndexOf("return assembleProfile("));
+  for (const attribute of fitModel.attributes) {
+    const where = `${attribute.slug} (${attribute.get.kind})`;
+    if (attribute.get.kind === "firmographic") {
+      const column = firmographicColumns[attribute.slug];
+      assert.ok(column, `${where}: map it to a column in settings.ts firmographicColumns`);
+      assert.ok(inputKeys.includes(column), `${where}: ${column} must be in the enrichment input`);
+    } else if (attribute.get.kind === "provider") {
+      assert.ok(
+        call.includes(`${attribute.slug}: nodes.`),
+        `${where}: wire a provider call for it in tools/enrich-account.ts and pass it to assembleProfile as ${attribute.slug}`,
+      );
+    } else {
+      const property = research.config.structuredOutputSchema.properties[attribute.slug];
+      assert.ok(property, `${where}: missing from the research schema`);
+      assert.deepEqual(property.enum, [...attribute.values, "unknown"], `${where}: the research answer is limited to its values`);
+    }
+  }
+});
+
+check("step 1 collects and never writes; a failed provider is an unknown, not a failed run", () => {
+  const enrich = nodesOf("tool:enrich_account");
+  for (const node of enrich.filter((candidate) => candidate.kind === "connector")) {
+    assert.equal(node.fallbackOnFailure, true, `${node.actionSlug} must run with continueOnFailure`);
+  }
+  assert.ok(
+    !enrich.some((node) => node.kind === "native" && /^model/.test(node.actionSlug ?? "")),
+    "the enrichment tool writes nothing: the play persists what it returns",
+  );
+  assert.ok(!enrich.some((node) => node.kind === "agent"), "step 1 is a tool, not an agent");
+  const research = enrich.find((node) => node.actionSlug === "instruct");
+  for (const rule of fitModel.weights)
+    assert.ok(!expression(research.config.q).includes(`"weight"`), "the research question never carries a weight");
+  assert.equal(research.config.depth, "standard", "recurring research stays on standard depth");
+});
+
+check("the profile writes bare slugs, one value and one evidence column per attribute", () => {
+  const profile = buildProfile(fitModel, firmographicColumns, { employee_count: 120 }, { business_model: "marketplace", business_model_evidence: "https://example.com" }, { data_team_size: 12 });
+  const slugs = profile.mappings.map((mapping) => mapping.columnSlug);
+  assert.ok(slugs.every((slug) => !slug.startsWith("custom__")), "custom__ on the write drops the value while the node reports success");
+  for (const attribute of fitModel.attributes) {
+    assert.ok(slugs.includes(`fit_${attribute.slug}`) && slugs.includes(`fit_${attribute.slug}_evidence`));
+  }
+  assert.ok(slugs.includes("enriched_at"));
+  const stored = readStoredValues(fitModel, Object.fromEntries(profile.mappings.map((m) => [`custom__${m.columnSlug}`, m.value])));
+  assert.deepEqual(stored, profile.values, "what the rescore reads back is what the enrichment stored");
+});
+
+check("the model carries every column the steps write", () => {
+  const columns = new Set((get("model:tam_companies").spec.additionalColumns ?? []).map((column) => column.slug));
+  const required = [
+    ...fitModel.attributes.flatMap((attribute) => [`fit_${attribute.slug}`, `fit_${attribute.slug}_evidence`]),
+    "fit_grade", "fit_score", "fit_breakdown", "fit_reason", "fit_model_version", "enriched_at", "scored_at",
+  ];
+  for (const slug of required) assert.ok(columns.has(slug), `tam_companies must declare ${slug}`);
+});
+
+check("compute_fit is code only", () => {
+  const kinds = nodesOf("tool:compute_fit").map((node) => `${node.kind}:${node.actionSlug ?? ""}`);
+  assert.deepEqual(kinds, ["native:start", "native:script", "native:end"], "no agent, no connector: the same values always give the same grade");
+});
+
+check("the agent explains and cannot score, search or write", () => {
+  const spec = get("agent:account_scoring_agent").spec;
+  const capabilities = new Map((spec.capabilities ?? []).map((capability) => [capability.slug, capability]));
+  assert.equal(capabilities.get("context")?.config?.isReadOnly, true, "it reads scoring.md from the context, read-only");
+  assert.ok(!capabilities.has("webSearch"), "no search: it may only say what the grade was computed from");
+  assert.ok(!capabilities.has("memory"), "each company is explained on its own");
+  assert.deepEqual(spec.models ?? [], [], "no model in uses: it cannot write");
+  assert.deepEqual(Object.keys(spec.output?.jsonSchema?.properties ?? {}), ["reason"], "its only output is the reason");
+  assert.ok(spec.evaluator?.rubric, "the evaluator fails a reason that contradicts the grade");
+});
+
+check("score_account writes the computed grade, the reason and the stamp together", () => {
+  const nodes = nodesOf("tool:score_account");
+  const compute = only(nodes, (node) => node.kind === "tool", "one compute_fit call");
+  const agent = only(nodes, (node) => node.kind === "agent", "one agent call");
+  const write = only(nodes, (node) => node.kind === "native" && node.actionSlug === "modelCustomColumn", "one row write");
+  assert.equal(write.config.modelUuid?.resourceId, "model:tam_companies");
+  const mapping = Object.fromEntries(write.config.mappings.map((m) => [m.columnSlug, expression(m.value)]));
+  for (const slug of ["fit_grade", "fit_score", "fit_breakdown", "fit_model_version"])
+    assert.ok(mapping[slug]?.includes(`nodes.${compute.slug}.`), `${slug} comes from compute_fit, never from the agent`);
+  assert.ok(mapping.fit_reason?.includes(`nodes.${agent.slug}.answer.reason`), "the agent's answer reaches the reason column only");
+  assert.ok(mapping.scored_at, "the stamp is on the same write as the grade");
+  const crmWrites = nodes.filter((node) => node.kind === "connector");
+  if (crmWriteback.crm === "none") {
+    assert.equal(crmWrites.length, 0, "no CRM write when crmWriteback is none");
+  } else {
+    const update = only(crmWrites, (node) => node.actionSlug === "updateRecords", "the CRM is updated, never upserted");
+    assert.equal(update.config.isFailingOnMultipleMatches, true, "a domain matching two CRM companies writes to neither");
+  }
+});
+
+check("the scoring play enriches then scores, on the stamp, disabled", () => {
+  const play = get("play:score_accounts").spec;
+  assert.equal(play.isEnabled, false, "ships disabled: pilot ten rows first");
+  assert.deepEqual(play.changeKinds, ["added"], "runs for rows entering the filter, not every row every tick");
+  assert.equal(play.runCreationRule, "noConcurrency");
+  const conditions = play.filter.groups.flatMap((group) => group.conditions);
+  assert.ok(conditions.every((condition) => condition.columnSlug === "custom__scored_at"), "eligibility is the stamp, never the grade");
+  assert.ok(conditions.some((condition) => condition.operator === "lowerThan" && condition.value === rescoreAfter));
+  const tools = play.nodes.filter((node) => node.kind === "tool").map((node) => node.toolUuid?.resourceId);
+  assert.deepEqual(tools, ["tool:enrich_account", "tool:score_account"], "step 1, then step 2");
+});
+
+check("the rescore play pays for no enrichment", () => {
+  const play = get("play:rescore_accounts").spec;
+  assert.equal(play.isEnabled, false, "a model change is piloted on ten rows before the book is regraded");
+  assert.ok(!play.nodes.some((node) => node.kind === "connector"), "no provider call on a rescore");
+  assert.deepEqual(play.nodes.filter((node) => node.kind === "tool").map((node) => node.toolUuid?.resourceId), ["tool:score_account"]);
+  const version = play.filter.groups.flatMap((group) => group.conditions).find((condition) => condition.columnSlug === "custom__fit_model_version");
+  assert.equal(version?.value, fitModel.model_version, "it picks rows graded with an older model version");
+});
+
+check("every grade the code can compute has a segment", () => {
+  const grades = ["Strong", "Moderate", "Weak", "No Fit"];
+  const segmented = [...byId.values()]
+    .filter((resource) => resource.id.startsWith("segment:"))
+    .flatMap((resource) => resource.spec.filter.groups.flatMap((group) => group.conditions))
+    .flatMap((condition) => condition.values ?? []);
+  assert.deepEqual(segmented.sort(), grades.sort());
+});
+
+let failed = 0;
+for (const [name, run] of checks) {
+  try {
+    await run();
+    console.log(`ok   ${name}`);
+  } catch (error) {
+    failed += 1;
+    console.error(`FAIL ${name}\n     ${error.message.split("\n").join("\n     ")}`);
   }
 }
-const agentTiers = new Set(judgmentProperties.tier.enum);
-assert.deepEqual(
-  [...segmentTiers].sort(),
-  [...agentTiers].sort(),
-  "every value in the agent's tier enum must have a segment, and every segment value must be in that enum: a missing slice is a row that Done when claims to reconcile and cannot",
-);
-
-assert.equal(
-  [...byId.keys()].some((id) => id.startsWith("context:")),
-  false,
-  "this skill must not declare defineContext: that singleton belongs to the project, and a nested copy syncs markdown nobody curates",
-);
-
-console.log(
-  "ok: the agent judges without writing, the play owns the only write back onto the row, and every tier has a segment",
-);
+if (failed > 0) {
+  console.error(`${failed} contract check(s) failed`);
+  process.exit(1);
+}
+console.log(`${checks.length} contract checks passed`);

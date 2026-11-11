@@ -1,31 +1,24 @@
-# Account scoring: score every account against your ICP, on a schedule
+# Account scoring: grade every account with the model your best customers produced
 
-Score accounts against your ICP in three steps: get the accounts into a Cargo
-model, tier each one with an agent that reads your rubric, and write the tier
-back where reps work. This cookbook deploys all three: the write lands on the
-Cargo row, and on the matching HubSpot or Salesforce company when you name one
-in `infra/settings.ts`.
+Grade your market in two steps: enrich every company with exactly the attributes your fit model
+names, then compute its grade in code and have an agent explain it. The model is
+`context/icp/scoring.md`, which `win-loss-review`'s scoring pass writes from what separates your
+best customers from your good ones. The grade lands on the Cargo row, and on the matching HubSpot or
+Salesforce company when you name one in `infra/settings.ts`.
 
 ```sh
 cargo-ai project add cookbook/account-scoring
 ```
 
-1. **Accounts in.** The play reads a Cargo companies model: `tam_companies`,
-   which tam-building syncs, or your CRM's companies model: any model with an
-   id, a name and a domain, its columns mapped into the workflow input.
-2. **Scored.** An agent tiers each row A, B, C or disqualified against the ICP
-   and `tiering-rubric.md` in your workspace context, with a two-sentence reason
-   and the page that decided it.
-3. **Scores out.** The tier, reason, evidence URL and a `tiered_at` stamp are
-   written onto the row and land in four segments. Set `crmWriteback` in
-   `infra/settings.ts` and the same run then updates the matching CRM company
-   (by domain, or by record id when the play runs on a CRM model) with tier,
-   reason and scored-at, in three properties you create and name. It updates,
-   never creates, and writes no other field. When the domain or id matches
-   more than one CRM company (duplicates), it writes to none of them: the
-   update sets `isFailingOnMultipleMatches`, so the CRM step fails with the
-   match count instead of tiering every duplicate, and the row in Cargo is
-   still tiered. The default is `none`.
+1. **Model in.** `scripts/sync-model.mjs` reads the json block of `scoring.md`, checks it against
+   [`references/scoring-format.md`](references/scoring-format.md), and writes `infra/model.ts`.
+2. **Enriched.** `enrich_account` collects every attribute the model names: firmographics from the
+   row, one provider call per provider attribute, one structured research call for the rest, each
+   value with its evidence. A provider with no answer leaves the attribute unknown.
+3. **Scored.** `compute_fit` applies the No Fit filters, the points and the bands in a script node;
+   the scoring agent reads the model's reasoning and writes two sentences; `score_account` writes
+   the grade, score, breakdown, reason, model version and stamp, and mirrors them to the CRM when
+   asked. Four segments: Strong, Moderate, Weak, No Fit.
 
 ```ts
 // infra/settings.ts
@@ -34,111 +27,86 @@ export const crmWriteback: CrmWriteback = {
   matchOn: "domain", // or "id" on a CRM companies model
   matchProperty: "domain", // hs_object_id, or Id / your domain field on Salesforce
   fields: {
-    tier: "cargo_tier",
-    reason: "cargo_tier_reason",
-    scoredAt: "cargo_tiered_at",
+    grade: "cargo_fit_grade",
+    reason: "cargo_fit_reason",
+    scoredAt: "cargo_fit_scored_at",
   },
 };
 ```
 
 ## How often, and how many
 
-- **Schedule.** The play runs hourly and tiers only rows that enter its filter:
-  never tiered, or tiered longer ago than `rescoreAfter` in
-  `infra/settings.ts`. It is `"6 months"` by default; `"7 days"` re-scores the
-  whole book weekly, and re-bills every account each week. The value is
-  `<n> days`, `<n> months` or `<n> years`; write a week as `7 days`.
-- **Volume.** The accounts already in the model are tiered by one backfill
-  batch ([references/run.md](references/run.md)); after that, only new and
-  stale rows. Cost is one agent run per company, so 100,000 accounts is 100,000
-  agent runs on the backfill. Pilot ten rows first and multiply:
-
-```sh
-cargo-ai orchestration batch create --workflow-uuid <tierAccountWorkflowUuid> \
-  --data '{"kind":"filter","modelUuid":"<tamCompaniesUuid>","limit":10}' \
-  --wait-until-finished
-```
+- **New and stale companies.** The scoring play runs hourly and takes only rows that enter its
+  filter: never scored, or scored longer ago than `rescoreAfter` (`"6 months"` by default). The
+  rows already in the model are graded by one backfill batch, priced on a ten-row pilot first
+  ([references/run.md](references/run.md)).
+- **A new model.** The rescore play regrades every enriched row graded with an older
+  `model_version`, from the values already stored: no provider call, no research. It ships
+  disabled and runs as a batch after a ten-row pilot.
 
 ## Score a CSV of companies once
 
-"Which companies in this CSV are worth it?" is a one-time answer, not a
-pipeline: this cookbook scores a model, not a file. Use the one-off
-[`score-leads`](../score-leads/SKILL.md) skill
-(`npx skills add getcargohq/gtm-skills/score-leads`), which asks for your ICP
-criteria, enriches each domain in the CSV and returns a score, reason and tier
-per row. Install this cookbook when the same list should stay scored.
-
-## What it does
-
-- **Judges against your own rubric.** The ICP and `tiering-rubric.md` live in
-  the context repo. Edit the rubric and the next tier changes, with no deploy.
-- **Looks up only what the row does not hold.** Firmographics were settled by
-  tam-building's filter. The agent searches once, to settle the doubt that
-  would change the tier, and records the page.
-- **Writes a reason a rep can argue with.** Every tier carries two sentences
-  naming the rubric lines that decided it, the evidence URL, and a stamp.
-- **Hands downstream work four segments.** `tier_a_accounts` is what contact
-  sourcing and engagement run on; `disqualified_accounts` is what they
-  suppress.
-- **Runs without a CRM, writes to one when you name it.** It tiers
-  `tam_companies` in Cargo by default; `crmWriteback` adds the CRM update
-  described above.
+"Which companies in this CSV are worth it?" is a one-time answer, not a pipeline: this cookbook
+scores a model, not a file. Use the one-off [`score-leads`](../score-leads/SKILL.md) skill
+(`npx skills add getcargohq/gtm-skills/score-leads`). Install this cookbook when the same market
+should stay graded.
 
 ## How it works
 
 ```mermaid
 flowchart TD
-    tam["tam_companies<br/>from tam-building"]
-    play["tier_accounts play<br/>untiered or stale rows · hourly · added only"]
-    agent["account_tier_analyst<br/>reads ICP + rubric from context · webSearch"]
-    write["write tier · rationale · evidence · tiered_at<br/>onto the row"]
-    segments["tier_a / tier_b / tier_c / disqualified segments"]
-    crm["update the matching CRM company<br/>tier · reason · scored-at<br/>only when crmWriteback names a CRM"]
-
-    tam --> play --> agent --> write --> segments
-    write -.-> crm
+  md["context/icp/scoring.md<br/>(win-loss-review)"] -->|sync-model.mjs| model["infra/model.ts"]
+  row["tam_companies row<br/>new or stale"] --> enrich["enrich_account (tool)<br/>row fields · provider calls · one research call"]
+  model --> enrich
+  enrich -->|values + evidence| write1["row: one column per attribute"]
+  write1 --> compute["compute_fit (tool, script node)<br/>filters · points · bands"]
+  model --> compute
+  compute --> agent["scoring agent<br/>reads scoring.md, explains"]
+  agent --> write2["row: grade · score · breakdown · reason · version · stamp"]
+  write2 -.->|crmWriteback set| crm["CRM company: grade · reason · date"]
+  stored["stored values"] -->|rescore play, new model_version| compute
 ```
 
-| File                                     | Resource           | Role                                                          |
-| ---------------------------------------- | ------------------ | ------------------------------------------------------------- |
-| `infra/models/tam-companies.ts`          | `defineModel`      | a copy of tam-building's model, plus the four tier columns    |
-| `infra/agents/tier-analyst.ts`           | `defineAgent`      | the judgment: context and webSearch, no write access          |
-| `infra/plays/tier-accounts.ts`           | `definePlay`       | the writes, and the eligibility filter on `tiered_at`         |
-| `infra/settings.ts`                      | (not a resource)   | `rescoreAfter` and `crmWriteback`, the two settings           |
-| `infra/connectors/crm.ts`                | `defineConnector`  | the CRM, bound; declared only when `crmWriteback` names one   |
-| `infra/segments/tiers.ts`                | `defineSegment` ×4 | one per tier the agent can emit                               |
-| `infra/connectors/anthropic.ts`          | `defineConnector`  | the LLM, bound                                                |
-| `infra/connectors/ai-ark.ts`             | `defineConnector`  | the model copy's source; dropped when tam-building is present |
-| `infra/folders/index.ts`                 | `defineFolder` ×3  | models, agents and plays, named after the skill               |
-| this skill's `context/tiering-rubric.md` | (not a resource)   | example rubric to copy into the project's `context/`          |
+## Why two steps
+
+Collecting data and deciding a grade fail in different ways, so they are built differently. The
+data a model needs is known before the first call, so step 1 is a tool with fixed calls: every
+company gets the same evidence, and the cost per company is predictable. The grade must not move
+between two runs on the same values, so step 2 is code; an agent explains it and cannot change it.
+Kept apart, a model change costs only step 2, and the values collected in step 1 serve reps and
+other agents as well as the grade.
+
+## Why the model is synced, not read at run time
+
+The grade is computed by a script node, and the model is bundled into that node at deploy. Every
+company scored after one deploy is scored by the same version, the plan shows what a model change
+does before it ships, and the contract fails when the synced copy and `scoring.md` disagree. The
+scoring agent still reads `scoring.md` from the context, for the reasoning behind each attribute.
 
 ## Placeholders (edit before deploy)
 
-1. **The rubric**: copy `context/tiering-rubric.md` into the project's
-   `context/` beside the ICP, and rewrite every tier for your business.
-2. **The model**: when tam-building is installed, move the four
-   `additionalColumns` onto its `tam_companies` and delete this copy.
-3. **`languageModel`** in `infra/agents/tier-analyst.ts`.
-4. **`infra/settings.ts`**: `rescoreAfter`, and `crmWriteback` if the tier
-   should reach the CRM.
+1. **`languageModel`** on the scoring agent.
+2. **`dataTeamKeywords`** in `infra/tools/enrich-account.ts`, or whatever your provider attributes
+   need; the example model's one provider attribute counts people in data roles.
+3. **`context/scoring.md`** is an example. Yours is `context/icp/scoring.md`.
 
-## Cost
+## What it does not do
 
-One agent run per company, in LLM tokens plus any web searches, capped by
-`maxSteps`. The pilot measures it on ten rows before the backfill is approved.
-After that the play only tiers what arrives and what goes stale.
+It does not decide what a good account is (`win-loss-review` does, from your deals), let an agent
+set or adjust a grade, search the web from the scoring agent, create CRM records, write a CRM field
+you did not name, or grade a company whose model attribute has no producer: the contract fails
+first.
 
-## Verification
+## Verify
+
+From this skill's folder:
 
 ```sh
-node --import tsx evals/contract.mjs   # the graph boundaries, from the compiled registry
-cargo-ai project types && cargo-ai project check && cargo-ai project plan
+node --import tsx evals/contract.mjs
 ```
 
-`evals/acceptance.md` is the line-by-line acceptance test.
+From the project root:
 
-## Composes into
-
-`contact-sourcing` on tier A, `agentic-engagement`, `new-hire-detection`,
-`readiness-scoring` (timing next to the fit).
-Works best after `tam-building`.
+```sh
+npm run check && cargo-ai project plan
+```

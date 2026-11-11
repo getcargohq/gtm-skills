@@ -12,9 +12,9 @@
     "implementations": []
   },
   "account-scoring": {
-    "state": "approved",
+    "state": "to-be-approved",
     "chain": 1,
-    "demoWorkspace": "2026-10-18",
+    "demoWorkspace": null,
     "implementations": []
   },
   "tam-building": {

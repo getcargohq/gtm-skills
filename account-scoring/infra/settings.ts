@@ -2,16 +2,18 @@
 // else in this skill is wired from them, so edit here, run `cargo-ai project plan`,
 // and read what moved.
 
-// How long a tier stands before the play judges the company again. The play
-// filter enrols a row whose `tiered_at` is older than this, so it is the
-// re-score cadence, and every account is re-billed once per window.
+// How long an enrichment and its grade stand before the play enriches and
+// grades the company again. The play filter enrols a row whose `scored_at` is
+// older than this, so it is the refresh cadence, and every account is re-billed
+// for its enrichment once per window. A new model version does not wait for
+// it: the rescore play applies it to the stored values.
 //
 // The value is a segment filter's relative date: "<n> days", "<n> months" or
 // "<n> years", compared by calendar day. "7 days" is weekly, "30 days" monthly.
 // Write weeks as days: "1 week" is not a date unit the filter accepts.
 export const rescoreAfter = "6 months";
 
-// Where the tier goes besides the row. `none` writes only onto the Cargo model,
+// Where the grade goes besides the row. `none` writes only onto the Cargo model,
 // which is what this skill did before the setting existed, and declares no CRM
 // connector at all.
 //
@@ -19,7 +21,7 @@ export const rescoreAfter = "6 months";
 // CRM company matching this row and sets the three fields named below. It
 // never creates a record, and it never writes a field you did not name here.
 // When the match value finds more than one CRM company, it writes to none of
-// them (`isFailingOnMultipleMatches` on the update, in the play).
+// them (`isFailingOnMultipleMatches` on the update, in tools/score-account.ts).
 // The fields must exist in the CRM before the first run (see SKILL.md,
 // `crm-writeback`).
 export type CrmWriteback =
@@ -39,9 +41,9 @@ export type CrmWriteback =
       // on HubSpot, your domain field or `Id` on Salesforce.
       matchProperty: string;
       // The CRM properties written. Create them first: HubSpot company
-      // properties, or Salesforce Account fields. Text for tier and reason,
+      // properties, or Salesforce Account fields. Text for grade and reason,
       // date or datetime for the stamp.
-      fields: { tier: string; reason: string; scoredAt: string };
+      fields: { grade: string; reason: string; scoredAt: string };
     };
 
 export const crmWriteback: CrmWriteback = { crm: "none" };
@@ -53,8 +55,17 @@ export const crmWriteback: CrmWriteback = { crm: "none" };
 //   matchOn: "domain",
 //   matchProperty: "domain",
 //   fields: {
-//     tier: "cargo_tier",
-//     reason: "cargo_tier_reason",
-//     scoredAt: "cargo_tiered_at",
+//     grade: "cargo_fit_grade",
+//     reason: "cargo_fit_reason",
+//     scoredAt: "cargo_fit_scored_at",
 //   },
 // };
+
+// Which column of the scored model holds each firmographic attribute of the
+// fit model (`get.kind: "firmographic"` in context/icp/scoring.md). The
+// enrichment reads these from the row instead of paying a provider for them.
+// The contract fails when a firmographic attribute has no column here, or when
+// the column is not in the play's input.
+export const firmographicColumns: Record<string, string> = {
+  employees: "employee_count",
+};

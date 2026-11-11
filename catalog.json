@@ -118,9 +118,9 @@
     {
       "name": "account-scoring",
       "kind": "cookbook",
-      "job": "Score every account against your ICP on a schedule: a deployed agent tiers each company in a Cargo model (tam-building's, or your CRM companies) A / B / C / disqualified against the ICP and rubric in workspace context, and the tier, a two-sentence reason and evidence are written onto the row and, optionally, the matching HubSpot or Salesforce company. New companies are tiered hourly; the book is re-scored weekly or on any window set.",
-      "description": "Score every account against your ICP on a schedule: a deployed agent tiers each company in a Cargo model (tam-building's, or your CRM companies) A / B / C / disqualified against the ICP and rubric in workspace context, and the tier, a two-sentence reason and evidence are written onto the row and, optionally, the matching HubSpot or Salesforce company. New companies are tiered hourly; the book is re-scored weekly or on any window set. Triggers: \"score our TAM\", \"tier the market we just sourced\", \"which accounts should the team work first\", \"why is this account tier A\", \"keep our accounts tiered as they arrive\", \"our lead scoring is a spreadsheet nobody trusts\". Cargo project, defineAgent, webSearch, context, tam_companies, tier segments. Skip when: someone hands you a list and wants it scored once, which is score-leads; or there is no account universe yet, which is tam-building.",
-      "version": "0.5.5",
+      "job": "Grade every company in your market with the fit model your own deals produced, in two steps: a tool enriches each company with exactly the attributes context/icp/scoring.md names (fields on the row, one provider call each, one structured research call), then code computes Strong / Moderate / Weak / No Fit, a score and its breakdown, which a scoring agent explains in two sentences; all written on the row and, optionally, the matching HubSpot or Salesforce company. New companies are graded hourly; a new model version regrades the book from the stored values with no enrichment cost.",
+      "description": "Grade every company in your market with the fit model your own deals produced, in two steps: a tool enriches each company with exactly the attributes context/icp/scoring.md names (fields on the row, one provider call each, one structured research call), then code computes Strong / Moderate / Weak / No Fit, a score and its breakdown, which a scoring agent explains in two sentences; all written on the row and, optionally, the matching HubSpot or Salesforce company. New companies are graded hourly; a new model version regrades the book from the stored values with no enrichment cost. Triggers: \"score our TAM\", \"grade every account with our scoring model\", \"apply the scoring model from our win-loss\", \"tier the market we just sourced\", \"which accounts should the team work first\", \"why is this account Strong\", \"keep our accounts scored as they arrive\", \"our lead scoring is a spreadsheet nobody trusts\". Cargo project, defineTool, defineAgent, script node, context, tam_companies, LinkedIn, Linkup, HubSpot, Salesforce. Skip when: someone hands you a list and wants it scored once, which is score-leads; there is no account universe yet, which is tam-building; or there is no scoring model yet, which is win-loss-review.",
+      "version": "1.0.0",
       "homepage": "https://github.com/getcargohq/gtm-skills/tree/main/account-scoring",
       "group": "Fundamentals",
       "install": "cargo-ai project add cookbook/account-scoring",
@@ -132,13 +132,15 @@
       ],
       "integrations": [
         "aiArk",
-        "anthropic"
+        "anthropic",
+        "linkedin",
+        "linkup"
       ],
       "example": {
-        "prompt": "Tier every company in our TAM against the ICP and the rubric in our context repo, and keep new ones tiered as they land.",
-        "output": "| Company (domain)              | tier         | tier_reason                                                                                                                                   | tier_evidence_url                         |\n| ----------------------------- | ------------ | --------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------- |\n| Northwind (northwind.example) | A            | Fits the firmographics: 240-person B2B software company in the US. Has a GTM engineer on staff, which the rubric ranks as the strongest sign. | https://northwind.example/careers/gtm-eng |\n| Fabrikam (fabrikam.example)   | C            | Fits industry, size and country. No technical revenue role and no public automation practice was found, so nothing lifts it above C.          |                                           |\n| Tailspin (tailspin.example)   | disqualified | Services-only consultancy with no software product, which the ICP lists as a disqualifier. The sourced industry label was misleading.         | https://tailspin.example/about            |\n\nEvery row also gets `tiered_at` and lands in `tier_a_accounts`, `tier_b_accounts`,\n`tier_c_accounts` or `disqualified_accounts`. With `crmWriteback` set to HubSpot, `northwind.example`'s\ncompany record gets `cargo_tier = A`, the same rationale in `cargo_tier_reason`, and today's date in\n`cargo_tiered_at`. The report closes on the tier distribution and one\nrecommended next step."
+        "prompt": "Grade every company in our TAM with the scoring model from our win-loss review, and keep new ones graded as they land.",
+        "output": "| Company (domain)              | Grade    | Score | Reason (written on the row)                                                                                                                                    |\n| ----------------------------- | -------- | ----- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |\n| Northwind (northwind.example) | Strong   | 85    | A marketplace with a 26-person data team and live in-session personalization: the three attributes that separate our best customers. Its warehouse is unknown. |\n| Globex (globex.example)       | Moderate | 52    | A consumer subscription with native apps on both stores, but a data team of five: the attribute that weighs most is the one it lacks.                          |\n| Initech (initech.example)     | No Fit   | 61    | An agency: we never target agencies, whatever else it scores.                                                                                                  |\n\nThe row also carries every attribute value with its evidence, the breakdown (`People in data roles:\n26 (35 of 35) · Business model: marketplace (30 of 30) · …`), the model version and the stamp. With\n`crmWriteback` set to HubSpot, `northwind.example`'s company gets the grade, the reason and the date."
       },
-      "state": "approved",
+      "state": "to-be-approved",
       "chain": 1,
       "resources": [
         "agents",
@@ -146,114 +148,121 @@
         "folders",
         "models",
         "plays",
-        "segments"
+        "segments",
+        "tools"
       ],
       "asked": [
         {
-          "input": "icp",
+          "input": "scoring.md",
           "kind": "derived",
-          "how": "Read from the workspace context (`cargo-ai context …`, or the project's context directory). None? Stop and run tam-building's first phase",
-          "why": "The rubric decides against it. A tier that cannot name the ICP line it came from is a guess, and the evaluator fails it"
+          "how": "Read `context/icp/scoring.md`. None? Stop: win-loss-review's scoring pass writes it, or the operator writes it by hand as a hypothesis",
+          "why": "Every grade comes from it. A grade with no model behind it is the guess this skill exists to replace"
         },
         {
-          "input": "tier_rubric",
-          "kind": "asked",
-          "how": "An existing rubric in the context is shown and confirmed. Otherwise propose A / B / C / disqualified from the ICP's language and have the operator correct it",
-          "why": "It is the one input that is genuinely a decision about the business: what \"work it now\" means here"
+          "input": "firmographicColumns",
+          "kind": "derived",
+          "how": "The scored model's columns (`cargo-ai storage column list`) matched to the model's firmographic attributes, in `settings.ts",
+          "why": "A firmographic read from the row is free; one left unmapped is unknown on every company"
         },
         {
           "input": "model",
           "kind": "derived",
-          "how": "tam_companies` from tam-building. Another companies model works if it has an id, a name and a domain; map its columns in the workflow input",
-          "why": "The workflow interpolates these columns into the prompt. A renamed one hands the agent an undefined"
+          "how": "tam_companies` from tam-building. Another companies model works if it has an id, a name and a domain; map its columns into `accountInput",
+          "why": "The enrichment reads the row through these columns. A renamed one is an unknown on every company"
         },
         {
           "input": "languageModel",
           "kind": "derived",
           "how": "Whichever LLM connector the workspace already holds (`cargo-ai connection connector list`)",
-          "why": "Judgment quality and the cost per company both live here"
+          "why": "It writes the reason, never the grade, so a smaller model is fine"
         },
         {
           "input": "rescoreAfter",
           "kind": "derived",
-          "how": "\"6 months\"` in `infra/settings.ts`. Ask only to change it; `\"7 days\"` is weekly",
-          "why": "How often a tiered company is judged again. Shorter re-bills the whole book more often"
+          "how": "\"6 months\"` in `infra/settings.ts`. Ask only to change it",
+          "why": "How often a graded company is enriched again. Shorter re-bills the whole book more often; a new model version never waits for it"
         },
         {
           "input": "crmWriteback",
           "kind": "asked",
-          "how": "none` unless the tier should reach a CRM. Then the connected CRM (`cargo-ai connection connector list`) and the three property names the operator created",
+          "how": "none` unless the grade should reach a CRM. Then the connected CRM (`cargo-ai connection connector list`) and the three property names the operator created",
           "why": "Reps read the CRM, not the Cargo row. A property that does not exist is a write that ends green and lands nothing"
         }
       ],
       "canChange": [
         {
+          "id": "reuse-enrichment",
+          "when": "The workspace already enriches companies into a model that holds some of the attributes",
+          "how": "Read those fields instead of calling for them: map them like firmographic columns, and keep provider calls and research only for what the existing enrichment lacks",
+          "cost": "The grade now depends on another pipeline's freshness and definitions. Check its values against two companies you know before the pilot"
+        },
+        {
           "id": "crm-writeback",
-          "when": "Reps work in HubSpot or Salesforce and the tier should be visible there",
-          "how": "Set `crmWriteback` in `infra/settings.ts`: the CRM, `matchOn` (`domain`, or `id` when the play runs on a CRM companies model), the match property, and the three field names",
-          "cost": "A CRM connection and three CRM properties to maintain. A miss ends the run green, so the pilot reads one CRM record back. A domain shared by duplicate CRM companies tiers none of them"
+          "when": "Reps work in HubSpot or Salesforce and the grade should be visible there",
+          "how": "Set `crmWriteback` in `infra/settings.ts`: the CRM, `matchOn` (`domain`, or `id` when the plays run on a CRM companies model), the match property, and the three field names",
+          "cost": "A CRM connection and three CRM properties to maintain. A miss ends the run green, so the pilot reads one CRM record back. A domain shared by duplicate CRM companies grades none of them"
         },
         {
           "id": "crm-accounts",
           "when": "The accounts already live in a CRM rather than in tam_companies",
-          "how": "Point the play, its write and the segments at a CRM companies model carrying the four tier columns, map its columns in the workflow input, and set `matchOn: \"id\"",
-          "cost": "The CRM's own fields decide what the agent sees. A thin CRM record is a thin judgment"
+          "how": "Point the plays, the tools' writes and the segments at a CRM companies model carrying the added columns, map its columns into `accountInput`, and set `matchOn: \"id\"",
+          "cost": "The CRM's own fields decide what the firmographic attributes read. A thin CRM record means more unknowns"
         },
         {
-          "id": "weekly-rescore",
-          "when": "The market moves fast enough that a month-old tier is wrong",
-          "how": "rescoreAfter: \"7 days\"` in `infra/settings.ts",
-          "cost": "Every account is judged, and billed, once a week instead of twice a year"
+          "id": "faster-refresh",
+          "when": "The market moves fast enough that six-month-old values are wrong",
+          "how": "rescoreAfter: \"30 days\"` (or `\"7 days\"`) in `infra/settings.ts",
+          "cost": "Every account is enriched, and billed, once per window instead of twice a year"
         },
         {
-          "id": "numeric-score",
-          "when": "A downstream router or report needs a 0 to 100 number, not four buckets",
-          "how": "Add `score` to the agent's output schema, a `score` custom column, and the mapping in the write; define what the number means in the rubric",
-          "cost": "A number reads more precise than the judgment behind it. Keep the tier as the field people act on"
+          "id": "deep-research",
+          "when": "Research attributes come back unknown on most companies at standard depth",
+          "how": "Set the research call's `depth` to `\"deep\"` in `tools/enrich-account.ts",
+          "cost": "Slower runs and a higher price per research call on every company; measure the coverage gain on the pilot first"
         },
         {
-          "id": "deterministic-tiering",
-          "when": "The rubric turns out to be thresholds on sourced columns (headcount, industry, country) with no judgment in it",
-          "how": "Delete the agent and write the tier in the play from the columns, or push the thresholds into tam-building's filter",
-          "cost": "You lose the rationale and the evidence, and anything the sourced row does not hold can no longer move a tier"
-        },
-        {
-          "id": "tier-once",
-          "when": "The market is stable and nobody reads a tier older than a quarter anyway",
-          "how": "Remove the `lowerThan` condition from the play's filter",
-          "cost": "A company that changed (hired the persona, got acquired) keeps its old tier until someone re-tiers it by hand"
+          "id": "expensive-provider-gate",
+          "when": "One provider attribute costs much more than the rest",
+          "how": "Call it only when the cheaper attributes already place the company at Moderate or above: compute once without it, branch on the grade, then enrich and score again",
+          "cost": "Two compute passes and a branch to maintain, and the gated attribute is unknown on every company below the gate"
         },
         {
           "id": "unified-account",
-          "when": "Other pipelines (a rep cockpit, routing) read accounts from Unify Accounts and should find the fit on the same row",
-          "how": "Declare Unify Accounts (`unifyAccounts`, once per project) with the four tier columns, run the play over it filtered to rows whose `ai_ark___tam_companies___id` is set, read the company facts from those columns, and write the tier onto the unified account. Copy existing tiers across with the native `modelCustomColumn` action, which costs no agent run",
+          "when": "Other pipelines (a rep cockpit, routing) read accounts from Unify Accounts and should find the grade on the same row",
+          "how": "Declare Unify Accounts (`unifyAccounts`, once per project) with the added columns, run the plays over it filtered to rows whose `ai_ark___tam_companies___id` is set, read the company facts from those columns, and write onto the unified account",
           "cost": "Unify Accounts is shared by every pipeline: its `additionalColumns` list is authoritative, so copy the live columns in first"
         }
       ],
       "shouldNotChange": [
-        "**The rubric lives in the context repo.** (`context/tiering-rubric.md` in the project's knowledge layer.) Put it in the prompt and changing what tier A means becomes a deploy, the reason for the change stops being reviewable, and the rep reading the tier can no longer read the same file the agent read.",
-        "**The agent judges and the play writes.** (`infra/agents/tier-analyst.ts`) The agent carries no model in `uses`. Give it one and it decides its own routing, at which point an untiered row could be a failed run, a skip, or a choice.",
-        "**Custom columns are written with their bare slugs.** (`infra/plays/tier-accounts.ts`) `custom__tier` on the write becomes `custom.custom__tier`, the node reports \"Record upserted\", and the value is dropped.",
-        "**Eligibility is the stamp, not the tier.** (`infra/plays/tier-accounts.ts`) Filter on `tiered_at` being null or stale. Filter on the tier and a failed run looks the same as a legitimate `disqualified`, so it is either retried forever or never.",
-        "**A tier ships with its rationale, its evidence, and its stamp, on the same write.** (`infra/plays/tier-accounts.ts`) A tier nobody can audit is a number a rep will not trust, and a tier with no stamp is judged again on every tick.",
-        "**`changeKinds: [\"added\"]` stays.** (`infra/plays/tier-accounts.ts`) Runs are created for rows entering the filter. Without it, the LLM bill scales with how often the cron fires.",
-        "**The CRM write-back updates, never creates, and writes only the fields named in `settings.ts`.** (`infra/plays/tier-accounts.ts`) `upsertRecords` would create a CRM company for every TAM row the CRM does not hold, and a field nobody named is a CRM value overwritten without a decision. It runs after the row write, so the row is the record of the judgment whatever the CRM does.",
-        "**The CRM write-back fails on multiple matches.** (`infra/plays/tier-accounts.ts`) The update sets `isFailingOnMultipleMatches: true`, so a domain that matches two CRM companies writes to neither and the CRM step fails with the match count. Remove it and every duplicate gets the tier, and nothing shows that the CRM holds the company twice.",
-        "**Every tier the agent can emit has a segment.** (`infra/segments/tiers.ts`) A tier with no segment is a row that lands nowhere and quietly disappears from the book."
+        "**The model lives in the context; the resources hold a synced copy.** (`context/icp/scoring.md`, `infra/model.ts`) Edit the generated file and the model reps read is no longer the one that grades; the contract fails when they differ.",
+        "**Code computes the grade.** (`tools/compute-fit.ts`, `compute/fit.ts`) Let an agent set or adjust it and the same company changes grade between runs, and the cut-offs stop meaning what the model says.",
+        "**The agent explains and writes nothing.** (`agents/scoring-agent.ts`, `tools/score-account.ts`) The write takes the grade from `compute_fit`'s output and only the reason from the agent. No search: it may only say what the grade was computed from.",
+        "**Step 1 is a tool with fixed calls, and it writes nothing.** (`tools/enrich-account.ts`) An agent gathering data grades every company on different evidence; a tool that writes hides failed enrichments behind partial rows.",
+        "**Every attribute has a producer.** (`evals/contract.mjs`) A provider attribute nobody wired is unknown on every company, and unknown is neutral, so nothing looks wrong.",
+        "**Unknown is neutral, and a filter never fires on it.** (`compute/fit.ts`) A provider with no coverage is not evidence against a company; scored as a no, it buries every account with a thin public footprint.",
+        "**The research question never carries a weight.** (`research.ts`) A researcher that knows which answer scores best finds that answer.",
+        "**Custom columns are written with their bare slugs.** (`compute/fit.ts`, `tools/score-account.ts`) `custom__fit_grade` on the write becomes `custom.custom__fit_grade`, the node reports \"Record upserted\", and the value is dropped.",
+        "**Eligibility is the stamp, not the grade.** (`plays/score-accounts.ts`) Filter on `scored_at` being null or stale. Filter on the grade and a failed run looks the same as a legitimate No Fit.",
+        "**A grade ships with its reason, its model version and its stamp, on the same write.** (`tools/score-account.ts`) A grade nobody can audit is a number a rep will not trust, and one with no stamp is graded again on every tick.",
+        "**`changeKinds: [\"added\"]` stays, and both plays ship disabled.** (`plays/`) Runs are created for rows entering the filter; without it the bill scales with how often the cron fires. Disabled is what makes the pilot happen before the book is billed.",
+        "**The CRM write-back updates, never creates, and fails on multiple matches.** (`tools/score-account.ts`) `upsertRecords` would create a CRM company for every TAM row; a domain matching two CRM companies writes to neither, and the node's error names the count.",
+        "**Every grade the code can compute has a segment.** (`segments/grades.ts`) A grade with no segment is a row that lands nowhere and quietly disappears from the book."
       ],
       "doneWhen": [
-        "the ICP and the tiering rubric are in the workspace context, and the rubric was approved",
-        "the pilot tiered ten rows, and one A, one C and one disqualified were checked against the rubric by hand",
-        "every row in the model carries a tier the rubric defines, a rationale naming the deciding lines, and a `tiered_at` stamp, and no row carries one without the others",
-        "the four segments resolve, and their counts sum to the tiered row count",
+        "`context/icp/scoring.md` was confirmed by the operator, and `infra/model.ts` was synced from it",
+        "the existing-enrichment question was asked with what the workspace holds, and the answer is recorded under `## Decisions`",
+        "the contract passes against the project's `scoring.md`",
+        "the pilot graded ten rows; three were read value by value against their evidence, and one grade of each kind present was checked by hand",
+        "the pilot reported coverage per attribute and the observed cost per company",
+        "every row in the model carries a grade, a score, a breakdown, a reason, a model version and a `scored_at` stamp, and no row carries one without the others",
+        "the four segments resolve, and their counts sum to the graded row count",
         "the agent's evaluator pass rate is at or above its threshold",
-        "with `crmWriteback` set, one piloted company read back from the CRM carries the same tier, reason and scored-at date as its row",
-        "editing the rubric in the context repo changes the next tier with no deploy",
-        "the report gave the tier distribution, actual credits against the pilot's estimate, and one recommended next step",
-        "`node --import tsx evals/contract.mjs` passes against the adapted resources"
+        "with `crmWriteback` set, one piloted company read back from the CRM carries the same grade, reason and scored-at date as its row",
+        "after a model change, the rescore regraded every enriched row with no provider call",
+        "the report gave the grade distribution, coverage, actual credits against the pilot's estimate, and one recommended next step"
       ],
-      "cost": "**Tiering is one agent run per company**, billed as LLM tokens through the bound connector, plus\nthe web searches the agent makes. The prompt holds it to one search per company and `maxSteps: 4`\nis the ceiling: on the 2026-10-18 pilot, holding the agent to one search more than halved the\ncost per company against an agent left at eight steps, with the same tiers coming back. The pilot is how you learn\nthe real number: read actual credits for the ten rows, then multiply by the untiered row count\nbefore approving the backfill.\n\nAfter the backfill, the play only tiers what arrives (`changeKinds: [\"added\"]`) and what goes stale\nafter `rescoreAfter`, so the steady-state cost follows how many companies tam-building lands and how\nshort that window is, not how often the cron fires. A weekly window bills every account every week.\nThe CRM write-back is one connector action per tiered company; the pilot's actual credits include it.",
-      "composesInto": "`contact-sourcing` (the buyers at every tier A account), `agentic-engagement` (talk to the accounts\nthis ranked), `new-hire-detection` (watch tier A for the hires that move a C up), `readiness-scoring` (the timing\nnext to the fit: route only tier A accounts whose signals say now). Works best after\n`tam-building`, whose `tam_companies` it tiers."
+      "cost": "**Step 1 is the cost.** Per company: one call per provider attribute, one structured research call,\nand nothing for firmographics read from the row. The pilot measures it: read actual credits for the\nten rows, then multiply by the ungraded row count before approving the backfill. Reusing an\nexisting enrichment cuts it attribute by attribute.\n\n**Step 2 is cheap.** `compute_fit` is a script node: no model call, no credits. The scoring agent is\none short model run per company, billed as LLM tokens through the bound connector; it reads the\ncontext and answers, with no search.\n\nAfter the backfill, the scoring play only grades what arrives and what goes stale after\n`rescoreAfter`, so the steady-state cost follows how many companies tam-building lands and how long\nthat window is. A model change costs one agent run per enriched company and no enrichment. The CRM\nwrite-back is one connector action per graded company; the pilot's actual credits include it.",
+      "composesInto": "`win-loss-review` (its scoring pass writes the model this applies, and hands off here every time it\nrebuilds it), `contact-sourcing` (the buyers at every Strong account), `agentic-engagement` (talk to\nthe accounts this ranked), `new-hire-detection` (watch Strong accounts for the hires that move a\ngrade), `readiness-scoring` (the timing next to the fit: route only Strong accounts whose signals say\nnow). Works best after `tam-building`, whose `tam_companies` it grades."
     },
     {
       "name": "agentic-engagement",
