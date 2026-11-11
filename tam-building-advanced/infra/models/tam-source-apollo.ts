@@ -21,13 +21,18 @@ export const tamSourceApollo = defineModel("tam_source_apollo", {
     "TAM source 3 of 4: Apollo organizations for the same brief, the second census.",
   folder: modelsFolder,
 
-  // Into Accounts on the domain and the LinkedIn page, declared for the same
-  // reason as AI Ark's.
+  // Into Accounts on the domain, the LinkedIn page and the LinkedIn id,
+  // declared for the same reason as AI Ark's. `linkedin_uid` is the numeric
+  // LinkedIn company id (20 of 20 rows in the live run, each equal to the id
+  // the profile read), so a company Apollo and Sales Navigator both found
+  // merges directly, before any profile. Cargo's default unification for
+  // Apollo leaves it out.
   unification: {
     source: "custom",
     type: "account",
     uniqueColumns: [
       { slug: "primary_domain", reference: "domain" },
+      { slug: "linkedin_uid", reference: "linkedinId" },
       { slug: "linkedin_url", reference: "linkedinHandle" },
       { slug: "linkedin_url", reference: "linkedinId" },
     ],

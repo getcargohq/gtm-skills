@@ -18,10 +18,13 @@ Cargo merges the rows into Unify Accounts. Cargo normalises the keys itself:
 are one page, `https://www.acme.example/about` is `acme.example`.
 
 **What joins Sales Navigator to the rest.** Sales Navigator returns the numeric
-LinkedIn id; AI Ark and Apollo return the LinkedIn page name (`/company/acme`),
-never the id; Exa returns a website. Nothing in common. The profile play's
-LinkedIn enrich returns the id, the page and the domain together, and its row
-in `tam_companies` unifies into the same account, which is what makes them one.
+LinkedIn id. Apollo returns it too, as `linkedin_uid`, so a company both found
+merges directly. AI Ark returns the LinkedIn page name (`/company/acme`), never
+the id, and Exa returns a website: neither has anything in common with Sales
+Navigator, and they reach it through Apollo only for companies Apollo also
+found. The profile play's LinkedIn enrich returns the id, the page and the
+domain together, and its row in `tam_companies` unifies into the same account,
+which is what makes the rest one.
 That is why each source is profiled before the next one syncs.
 
 Every source runs on Cargo credits through a managed connection, so none needs

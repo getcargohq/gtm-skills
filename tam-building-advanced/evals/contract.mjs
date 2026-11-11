@@ -172,6 +172,8 @@ const UNIFIED = {
   ],
   "model:tam_source_apollo": [
     ["primary_domain", "domain"],
+    // The numeric LinkedIn id: what joins Apollo to Sales Navigator directly.
+    ["linkedin_uid", "linkedinId"],
     ["linkedin_url", "linkedinHandle"],
     ["linkedin_url", "linkedinId"],
   ],

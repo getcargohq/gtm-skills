@@ -14,8 +14,9 @@ import {
 // and how it classified it. Same columns whatever source found the company.
 //
 // It is also what makes the sources one market. Sales Navigator knows a
-// company by its LinkedIn id, AI Ark and Apollo by its domain and LinkedIn page
-// name, Exa by its website. This row carries all three, and it unifies into
+// company by its LinkedIn id, AI Ark by its domain and LinkedIn page name,
+// Exa by its website; only Apollo carries the id and the domain together, and
+// only for what it found. This row carries all three, and it unifies into
 // Accounts too, so every source's row for the same company lands on one
 // account.
 //

@@ -67,10 +67,11 @@ flowchart TD
    the domain) and a classification, written to `tam_companies`. A company four
    sources found is enriched once.
 4. **The profile joins the sources.** Sales Navigator knows a company by its
-   LinkedIn id, AI Ark and Apollo by its domain and LinkedIn page name, Exa by
-   its website. The profile row holds the LinkedIn id, the page, LinkedIn's
-   domain and the account's own domain, and unifies back into the same
-   account, so they become one.
+   LinkedIn id, Apollo by the same id plus its domain and page name, AI Ark by
+   its domain and LinkedIn page name, Exa by its website. Apollo and Sales
+   Navigator merge on the id directly. For the rest, the profile row holds the
+   LinkedIn id, the page, LinkedIn's domain and the account's own domain, and
+   unifies back into the same account, so they become one.
 5. **Your categories, not theirs.** Each company is classified from its own
    description into the categories in `settings.ts`, ideally your CRM's
    industry values. A provider's industry label is never trusted.
