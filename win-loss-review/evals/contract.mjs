@@ -161,6 +161,7 @@ check("the scoring pass carries its fixed points", () => {
     "never told whether the account is Tier 1",
     "-win-loss-scoring",
     "never merge the pull request",
+    "Hand off to account-scoring",
   ]) assert.ok(pass.includes(line), `scoring-pass.md lost: ${line}`);
   assert.ok(!pass.includes("outputs/<today>-win-loss-review/"), "the scoring pass must not write the monthly run's directory: the monthly agent reads it as its next <since>");
   const format = read("scoring-format.md");
@@ -175,14 +176,22 @@ check("the scoring pass carries its fixed points", () => {
 
 check("the model block in scoring-format.md is internally consistent", () => {
   const format = readFileSync(new URL("../references/scoring-format.md", import.meta.url), "utf8");
-  const block = format.match(/```yaml\n([\s\S]*?)```/)?.[1];
-  assert.ok(block, "scoring-format.md lost its yaml model block");
-  const attributes = block.slice(block.indexOf("attributes:"), block.indexOf("modifiers:"));
-  const weights = [...attributes.matchAll(/^ {4}weight: (\d+)$/gm)].map((m) => Number(m[1]));
-  const unknowns = [...attributes.matchAll(/^ {4}unknown: (\d+)$/gm)].map((m) => Number(m[1]));
-  assert.ok(weights.length >= 2, "the example needs at least two weighted attributes");
-  assert.equal(weights.reduce((a, b) => a + b, 0), 100, "the example's weights must sum to 100");
-  assert.deepEqual(unknowns, weights.map((w) => Math.floor(w / 2)), "unknown must be half the weight, rounded down");
+  const block = format.match(/```json\n([\s\S]*?)\n```/)?.[1];
+  assert.ok(block, "scoring-format.md lost its json model block");
+  const model = JSON.parse(block);
+  const slugs = new Set(model.attributes.map((attribute) => attribute.slug));
+  for (const attribute of model.attributes) {
+    assert.ok(["firmographic", "provider", "research"].includes(attribute.get?.kind), `${attribute.slug}: get.kind`);
+    if (attribute.get.kind === "research") assert.equal(attribute.type, "enum", `${attribute.slug}: research attributes are enums`);
+  }
+  for (const rule of [...model.filters, ...model.weights, ...model.modifiers])
+    assert.ok(slugs.has(rule.attribute), `${rule.attribute} is scored but never declared as an attribute`);
+  assert.equal(model.weights.reduce((sum, rule) => sum + rule.weight, 0), 100, "the example's weights must sum to 100");
+  for (const rule of model.weights) {
+    const best = Math.max(...(rule.points ? Object.values(rule.points) : rule.ranges.map((range) => range.points)));
+    assert.equal(best, rule.weight, `${rule.attribute}: its best value scores its weight`);
+    assert.equal(rule.unknown, Math.floor(rule.weight / 2), `${rule.attribute}: unknown is half the weight, rounded down`);
+  }
 });
 
 let failed = 0;

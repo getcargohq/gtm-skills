@@ -3439,11 +3439,12 @@
         "`context/icp/scoring.md` has the sections and the model block `references/scoring-format.md` fixes: weights summing to 100, every attribute with a `get` a non-customer can answer, `unknown` at half the weight, no amount, no email, no person",
         "every attribute and filter in it carries an evidence line naming both groups and the sample, and says whether it held in the period before",
         "the run record shows how the cohort lands in the bands, and most Tier 1 accounts land in Strong",
+        "the scoring pass ended by offering account-scoring as the next step",
         "a monthly run with new deals opened a pull request that adds files and modifies none under `icp/` or `persona/`; with none it opened no pull request and the digest said so",
         "after merging and `cargo-ai project deploy`, the verified ICP section and `scoring.md` are readable from the workspace context repository, and an agent with the `context` capability quotes them back"
       ],
       "cost": "CRM extraction bills no credits, and neither do the SQL queries. The monthly cost is one harness\nrun, scaling with how many deals closed since the previous one, plus the first pass over the whole\nwindow. The scoring pass bills the enrichment of the cohort, once: the identity lookup, the company\nand headcount actions, and one research call per judgment attribute per account. The 10-account\ntest prices it live (`cargo-ai connection integration get <slug>` per action) before anything else\nbills, and a re-run reads the cache instead of paying twice. Confirm the extraction price for the\nworkspace's CRM with `cargo-ai connection integration get hubspot` before the first deploy.",
-      "composesInto": "`account-scoring` (reads the verified `icp/`, disqualifier included; `icp/scoring.md` is the model\nfor it to apply to every company in the market), `readiness-scoring` (the timing signals\n`scoring.md` lists and does not score), `website-building` (the client files and proof from\nclosed-won deals are what the pages may cite), and any agent with the `context` capability."
+      "composesInto": "`account-scoring` (applies `icp/scoring.md` to every company in the market: the scoring pass\nhands off to it, and every rebuild ends in its rescore), `readiness-scoring` (the timing signals\n`scoring.md` lists and does not score), `website-building` (the client files and proof from\nclosed-won deals are what the pages may cite), and any agent with the `context` capability."
     },
     {
       "name": "workspace-health",

@@ -157,8 +157,13 @@ Two safeguards:
 
 ## Step 6. Draft the model
 
-Write `context/icp/scoring.md` in the shape of [`scoring-format.md`](scoring-format.md):
+Write `context/icp/scoring.md` in the shape of [`scoring-format.md`](scoring-format.md). Its json
+block has two halves, because account-scoring reads it in two steps:
 
+- **Attributes: what to collect.** Every attribute a filter, a weight or a modifier uses, with its
+  definition and `get.kind`: `firmographic` (on any company record), `provider` (a data provider
+  action, named in `get.how`), or `research` (public pages, read for one label from a fixed list).
+  A research attribute is always a list of labels; a count comes from a record or a provider.
 - **No Fit filters** from answer 3 and from what the comparison shows.
 - **4 to 6 weighted attributes**, weights summing to 100, the highest weight on the strongest
   pattern that held.
@@ -180,6 +185,18 @@ reports.
 Open one pull request titled `[win-loss-review] scoring model <today>`. The body opens with the
 Tier 1 rule in one sentence and the three attributes that matter most, then the confidence and why.
 Never merge it.
+
+## Step 8. Hand off to account-scoring
+
+The model is only useful once it grades the market. End by asking: "If `scoring.md` looks right,
+the next step is account-scoring: it enriches every company with these attributes and grades it
+with this model. Set it up now?" On a yes, once the pull request has merged, install it
+(`cargo-ai project add cookbook/account-scoring`) and continue with its procedure in this session.
+With no TAM and no CRM company book to grade yet, tam-building comes first.
+
+Every later rebuild of `scoring.md` ends the same way, straight into account-scoring's rescore: the
+same attributes regrade the stored values with no enrichment cost; a new attribute is collected
+first, for that attribute's source only.
 
 ## Never
 

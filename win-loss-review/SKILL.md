@@ -143,10 +143,11 @@ generic offer to help.
 4. **10-account test.** Enrich ten accounts end to end and give the observed cost per account and
    the estimate for the cohort. End by asking to approve that cost.
 5. **Enrich, compare, model.** Enrich the cohort, run the comparisons, write `scoring.md` and the run
-   record, open the pull request. End by asking for the merge and naming what `account-scoring`
-   does with the model next.
+   record, open the pull request. End by asking for the merge and offering the next step:
+   account-scoring, which grades every company in the market with this model. On a yes, install it
+   and continue with its procedure in this session.
 6. **Monthly.** The cron runs. Re-run phases 2 to 5 once a year, or sooner when the product or the
-   market changes.
+   market changes, and every rebuild ends in account-scoring's rescore.
 
 ## Put it in your project
 
@@ -331,6 +332,7 @@ it if you still want it, and records why under `## Decisions` in your copy of th
 - every attribute and filter in it carries an evidence line naming both groups and the sample, and
   says whether it held in the period before
 - the run record shows how the cohort lands in the bands, and most Tier 1 accounts land in Strong
+- the scoring pass ended by offering account-scoring as the next step
 - a monthly run with new deals opened a pull request that adds files and modifies none under `icp/`
   or `persona/`; with none it opened no pull request and the digest said so
 - after merging and `cargo-ai project deploy`, the verified ICP section and `scoring.md` are readable
@@ -348,7 +350,7 @@ workspace's CRM with `cargo-ai connection integration get hubspot` before the fi
 
 ## Composes into
 
-`account-scoring` (reads the verified `icp/`, disqualifier included; `icp/scoring.md` is the model
-for it to apply to every company in the market), `readiness-scoring` (the timing signals
+`account-scoring` (applies `icp/scoring.md` to every company in the market: the scoring pass
+hands off to it, and every rebuild ends in its rescore), `readiness-scoring` (the timing signals
 `scoring.md` lists and does not score), `website-building` (the client files and proof from
 closed-won deals are what the pages may cite), and any agent with the `context` capability.
