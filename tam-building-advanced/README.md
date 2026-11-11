@@ -68,7 +68,8 @@ flowchart TD
    sources found is enriched once.
 4. **The profile joins the sources.** Sales Navigator knows a company by its
    LinkedIn id, AI Ark and Apollo by its domain and LinkedIn page name, Exa by
-   its website. The profile row holds all three and unifies back into the same
+   its website. The profile row holds the LinkedIn id, the page, LinkedIn's
+   domain and the account's own domain, and unifies back into the same
    account, so they become one.
 5. **Your categories, not theirs.** Each company is classified from its own
    description into the categories in `settings.ts`, ideally your CRM's

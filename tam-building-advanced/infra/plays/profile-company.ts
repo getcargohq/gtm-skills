@@ -30,6 +30,11 @@ const categoryOptions = [
   unknownCategory,
 ].map((option) => ({ option }));
 
+const categoryInstructions =
+  "Which category describes what this company sells and to whom? Judge from the description, not from the industry label. If the description is too thin to tell, pick Not enough information.";
+const subsidiaryInstructions =
+  "Is this page a subsidiary, a regional or country page, or an acquired brand of a larger company, rather than an independent company?";
+
 // One account in, one profile out. Runs once per company, after Cargo has
 // merged what every source found, so a company four sources found is read and
 // classified once.
@@ -57,79 +62,149 @@ const profileCompany = defineWorkflow(
       result: z.enum(["profiled", "unresolved"]),
     }),
     uses: { linkedin },
-    imports: { tamCompanies, categoryOptions, companyDomain },
+    imports: {
+      tamCompanies,
+      categoryOptions,
+      categoryInstructions,
+      subsidiaryInstructions,
+      companyDomain,
+    },
   },
   ({ input, uses, model, classify }) => {
     const page = input.linkedin_id || input.linkedin_handle;
-    if (!page && !input.domain) {
-      return { result: "unresolved" as const };
+
+    // Two lookups, one per path, written as `if` blocks: a conditional
+    // expression (`page ? a : b`) compiles to both calls, which pays twice
+    // and fails on an account with no domain (live, 2026-11-11).
+    if (page) {
+      const company = uses.linkedin.enrichCompany({
+        linkedinUrl: `https://www.linkedin.com/company/${page}`,
+      });
+      if (!company.company_id) {
+        return { result: "unresolved" as const };
+      }
+      const judged = classify({
+        state: {
+          name: company.company_name,
+          website: company.website,
+          linkedin_industry: company.industries[0],
+          description: company.description,
+        },
+        questions: [
+          {
+            type: "choice",
+            id: "category",
+            instructions: categoryInstructions,
+            options: categoryOptions,
+          },
+          {
+            type: "noul",
+            id: "subsidiary",
+            instructions: subsidiaryInstructions,
+          },
+        ],
+      });
+      model.upsert({
+        modelUuid: tamCompanies.uuid,
+        matchingColumnSlug: "linkedin_company_id",
+        matchingValue: company.company_id,
+        mappings: [
+          { columnSlug: "linkedin_company_id", value: company.company_id },
+          { columnSlug: "linkedin_url", value: company.linkedin_url },
+          { columnSlug: "name", value: company.company_name },
+          {
+            columnSlug: "domain",
+            // Never blank, never a short link: LinkedIn's domain when it is
+            // real, else the account's, else where LinkedIn's short link lands.
+            value: companyDomain({
+              linkedinDomain: company.domain,
+              linkedinWebsite: company.website,
+              sourceDomain: input.domain || "",
+            }),
+          },
+          { columnSlug: "account_domain", value: input.domain || "" },
+          { columnSlug: "website", value: company.website },
+          { columnSlug: "hq_country", value: company.hq_country },
+          { columnSlug: "hq_city", value: company.hq_city },
+          { columnSlug: "employee_count", value: company.employee_count },
+          { columnSlug: "linkedin_industry", value: company.industries[0] },
+          { columnSlug: "description", value: company.description },
+          { columnSlug: "category", value: judged.answers.category.choice },
+          {
+            columnSlug: "subsidiary_probability",
+            value: judged.answers.subsidiary.noul,
+          },
+          { columnSlug: "profiled_at", value: new Date() },
+        ],
+      });
+      return { result: "profiled" as const };
     }
 
-    const company = page
-      ? uses.linkedin.enrichCompany({
-          linkedinUrl: `https://www.linkedin.com/company/${page}`,
-        })
-      : uses.linkedin.enrichCompanyFromDomain({ domain: input.domain });
-    if (!company.company_id) {
+    // No LinkedIn page from any source (Exa): read it from the domain.
+    if (!input.domain) {
       return { result: "unresolved" as const };
     }
-
-    // Never blank, never a short link: LinkedIn's domain when it is real,
-    // else the account's, else where LinkedIn's short link lands.
-    const domain = companyDomain({
-      linkedinDomain: company.domain,
-      linkedinWebsite: company.website,
-      sourceDomain: input.domain ?? "",
+    const fromDomain = uses.linkedin.enrichCompanyFromDomain({
+      domain: input.domain,
     });
-
-    const judged = classify({
+    if (!fromDomain.company_id) {
+      return { result: "unresolved" as const };
+    }
+    const judgedFromDomain = classify({
       state: {
-        name: company.company_name,
-        website: company.website,
-        linkedin_industry: company.industries[0],
-        description: company.description,
+        name: fromDomain.company_name,
+        website: fromDomain.website,
+        linkedin_industry: fromDomain.industries[0],
+        description: fromDomain.description,
       },
       questions: [
         {
           type: "choice",
           id: "category",
-          instructions:
-            "Which category describes what this company sells and to whom? Judge from the description, not from the industry label. If the description is too thin to tell, pick Not enough information.",
+          instructions: categoryInstructions,
           options: categoryOptions,
         },
         {
           type: "noul",
           id: "subsidiary",
-          instructions:
-            "Is this page a subsidiary, a regional or country page, or an acquired brand of a larger company, rather than an independent company?",
+          instructions: subsidiaryInstructions,
         },
       ],
     });
-
     model.upsert({
       modelUuid: tamCompanies.uuid,
       matchingColumnSlug: "linkedin_company_id",
-      matchingValue: company.company_id,
+      matchingValue: fromDomain.company_id,
       mappings: [
-        { columnSlug: "linkedin_company_id", value: company.company_id },
-        { columnSlug: "linkedin_url", value: company.linkedin_url },
-        { columnSlug: "name", value: company.company_name },
-        { columnSlug: "domain", value: domain },
-        { columnSlug: "website", value: company.website },
-        { columnSlug: "hq_country", value: company.hq_country },
-        { columnSlug: "hq_city", value: company.hq_city },
-        { columnSlug: "employee_count", value: company.employee_count },
-        { columnSlug: "linkedin_industry", value: company.industries[0] },
-        { columnSlug: "description", value: company.description },
-        { columnSlug: "category", value: judged.answers.category.choice },
+        { columnSlug: "linkedin_company_id", value: fromDomain.company_id },
+        { columnSlug: "linkedin_url", value: fromDomain.linkedin_url },
+        { columnSlug: "name", value: fromDomain.company_name },
+        {
+          columnSlug: "domain",
+          value: companyDomain({
+            linkedinDomain: fromDomain.domain,
+            linkedinWebsite: fromDomain.website,
+            sourceDomain: input.domain,
+          }),
+        },
+        { columnSlug: "account_domain", value: input.domain },
+        { columnSlug: "website", value: fromDomain.website },
+        { columnSlug: "hq_country", value: fromDomain.hq_country },
+        { columnSlug: "hq_city", value: fromDomain.hq_city },
+        { columnSlug: "employee_count", value: fromDomain.employee_count },
+        { columnSlug: "linkedin_industry", value: fromDomain.industries[0] },
+        { columnSlug: "description", value: fromDomain.description },
+        {
+          columnSlug: "category",
+          value: judgedFromDomain.answers.category.choice,
+        },
         {
           columnSlug: "subsidiary_probability",
-          value: judged.answers.subsidiary.noul,
+          value: judgedFromDomain.answers.subsidiary.noul,
         },
         { columnSlug: "profiled_at", value: new Date() },
       ],
     });
-
     return { result: "profiled" as const };
   },
 );
@@ -188,7 +263,10 @@ export const profileCompanies = definePlay("tam_profile_companies", {
             kind: "string",
             relatedModelUuid: uuidOf(tamCompanies),
             columnSlug: "linkedin_company_id",
-            operator: "isEmpty",
+            // isNull, not isEmpty: an account no profile covers has no
+            // tam_companies row, so the joined column is NULL, and isEmpty
+            // only matches an empty string (0 accounts, live 2026-11-11).
+            operator: "isNull",
           },
         ],
       },
@@ -197,4 +275,9 @@ export const profileCompanies = definePlay("tam_profile_companies", {
   isEnabled: false,
   runCreationRule: "once",
   changeKinds: ["added"],
+  // A play with no schedule never creates a batch on its own, and `realtime`
+  // is refused on Unify Accounts (it is not an ingest model). Hourly, at a
+  // minute after the workspace's Accounts refresh: a tick with nothing added
+  // creates nothing.
+  schedule: { type: "cron", cron: "20 * * * *" },
 });

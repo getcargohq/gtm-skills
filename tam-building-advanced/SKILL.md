@@ -49,8 +49,8 @@ Ark and Apollo by the domain and the LinkedIn page, Exa by the domain. Cargo's a
 merges them into Unify Accounts and normalises the keys itself. Then one play reads each account
 once: a LinkedIn company enrich (from the LinkedIn page any source gave, else the domain) and a
 classification, written as one profile row in `tam_companies`. That row carries the LinkedIn id, the
-page and the domain together and unifies back into the same account: it is what joins the company
-Sales Navigator found to the same company AI Ark found. A company four sources found is enriched
+page, LinkedIn's domain and the account's own domain together and unifies back into the same account:
+it is what joins the company Sales Navigator found to the same company AI Ark found. A company four sources found is enriched
 once.
 
 **Your categories, not the providers'.** Every company is classified from its own description into
@@ -224,6 +224,11 @@ you still want it, and records why under `## Decisions` in your copy of this fil
 - **One profile per company, after the merge.** (`infra/plays/profile-company.ts`) The LinkedIn enrich
   and the classification run on the account, so a company four sources found is paid for once, and
   the profile row is what joins the Sales Navigator row to the others.
+- **The profile matches on both domains.** (`infra/models/tam-companies.ts`) LinkedIn's domain and the
+  account's own often differ (`corporate.acme.example` against `acme.example`). Match on LinkedIn's
+  only and the profile becomes an account of its own while the source account stays unprofiled. Both
+  keys go through a computed column that turns an empty value into null: an empty string is a key,
+  and every row sharing it would merge.
 - **A company's domain comes from evidence, never from a short link.** (`infra/scripts/company-domain.ts`)
   LinkedIn's domain when it is real, else the account's, else where LinkedIn's short link lands. A
   `bit.ly` or `hubs.ly` host written as a domain is a key shared by unrelated companies, and Cargo

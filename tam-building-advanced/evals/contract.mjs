@@ -160,7 +160,8 @@ const UNIFIED = {
   "model:tam_source_exa": [["domain", "domain"]],
   "model:tam_companies": [
     ["linkedin_company_id", "linkedinId"],
-    ["domain", "domain"],
+    ["computed__match_domain", "domain"],
+    ["computed__match_account_domain", "domain"],
     ["linkedin_url", "linkedinHandle"],
   ],
 };
@@ -193,6 +194,9 @@ for (const column of [
   "linkedin_company_id",
   "linkedin_url",
   "domain",
+  "account_domain",
+  "match_domain",
+  "match_account_domain",
   "employee_count",
   "hq_country",
   "category",
@@ -247,6 +251,16 @@ assert.equal(
   "the profile play runs on Unify Accounts, after the merge, so a company several sources found is enriched once",
 );
 assert.deepEqual(play.changeKinds, ["added"]);
+assert.equal(
+  play.schedule?.type,
+  "cron",
+  "the profile play needs a cron: a play with no schedule never creates a batch, and realtime is refused on Unify Accounts",
+);
+assert.equal(
+  play.runCreationRule,
+  "once",
+  "the profile play runs once per account: a re-run pays the LinkedIn enrich and the classification again",
+);
 assert.equal(
   play.isEnabled,
   false,

@@ -50,14 +50,16 @@ For each source:
    WHERE JSON_QUERY(ids, '$.sales_navigator___tam_source_sales_navigator') IS NOT NULL
    ```
 
-   The key is `<connector slug>___<model slug>` for a connector model and
-   `object___<model slug>` for a native one; read one account's `ids` to
-   confirm them in your workspace. A brand-new company can take up to half an
+   The key is `<dataset slug>___<model slug>` (`sales_navigator___…`,
+   `ai_ark___…`, `apolloio___…`, `object___…` for native models). The dataset
+   slug is not always the connector slug: read one account's `ids` and use
+   the keys you see in every query below. A brand-new company can take up to half an
    hour to appear. Wait until the count matches the source's row count, give
    or take the duplicates inside the source.
-3. **Pilot five.** Read the play's deployed filter
-   (`cargo-ai orchestration play get <playUuid>`) and run its workflow on five
-   accounts:
+3. **Pilot five.** Read the play's deployed filter: `cargo-ai orchestration
+   play list` gives the play's `workflowUuid` and `segmentUuid`, and
+   `cargo-ai segmentation segment get <segmentUuid>` gives the filter with
+   every model reference resolved. Run the workflow on five accounts:
 
    ```sh
    cargo-ai orchestration batch create --workflow-uuid <playWorkflowUuid> \
@@ -68,10 +70,13 @@ For each source:
    Read the five `tam_companies` rows: category, `computed__status`,
    `computed__exclusion_reason`, domain. A wrong category here is a wrong
    category on every row.
-4. **The rest.** The same batch without `limit`. `added` does not backfill
-   accounts that were already in the filter, so the first pass is always a
-   batch. After the first source, enable the play
-   (`isEnabled: true`, deploy) and later sources flow through on their own.
+4. **The rest.** The same batch without `limit`. Then enable the play
+   (`isEnabled: true`, deploy). Its hourly tick (`:20`) takes a snapshot the
+   first time it runs: accounts already in the filter then are never
+   "added", so batch them first. From then on, every account a later source
+   brings in is profiled on the next tick without a batch (live: three new
+   Exa companies, three runs, no batch). `runCreationRule: "once"` keeps an
+   account from being profiled twice, including by a batch.
 5. **Done when** no account a source found is left without a profile: the
    play's filter returns nothing, or only accounts whose LinkedIn page could
    not be read (the play returns `unresolved` for them; read a few).
@@ -105,7 +110,7 @@ WITH tam AS (
     JSON_QUERY(a.ids, '$.sales_navigator___tam_source_sales_navigator') IS NOT NULL AS sales_navigator,
     JSON_QUERY(a.ids, '$.ai_ark___tam_source_ai_ark') IS NOT NULL AS ai_ark,
     JSON_QUERY(a.ids, '$.object___tam_source_exa') IS NOT NULL AS exa,
-    JSON_QUERY(a.ids, '$.apollo___tam_source_apollo') IS NOT NULL AS apollo,
+    JSON_QUERY(a.ids, '$.apolloio___tam_source_apollo') IS NOT NULL AS apollo,
     JSON_QUERY(a.ids, '$.hubspot___companies') IS NOT NULL AS in_crm,
     JSON_VALUE(a.ids, '$.object___tam_companies[0]') AS profile_id
   FROM object.accounts a
@@ -168,9 +173,11 @@ GROUP BY first_source, exclusion_reason
 ORDER BY first_source, companies DESC
 ```
 
-**Merges to read.** An account holding two LinkedIn ids is two companies
-Cargo joined through a shared key (a parent's domain, a short link): read each
-one, fix the key on the row that carries it, and refresh.
+**Merges to read.** An account holding two profiles is two LinkedIn pages
+Cargo joined through a shared key: usually a source that gave a page the
+parent's domain (live: AI Ark's "Orisha Retail Shops" page with `orisha.com`
+landed on the Orisha group's account, flagged as a subsidiary). Read each one;
+fix the key on the row that carries it when the merge is wrong.
 
 ```sql
 SELECT _id, ids

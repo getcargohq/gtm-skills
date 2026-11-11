@@ -26,6 +26,8 @@ import {
 // The row the two computed columns read. Native columns are typed only after
 // `cargo-ai project types` has seen the model, so they are spelled out here.
 type Row = {
+  domain?: string | null;
+  account_domain?: string | null;
   category?: string | null;
   subsidiary_probability?: number | null;
   employee_count?: number | null;
@@ -44,6 +46,7 @@ export const tamCompanies = defineModel("tam_companies", {
       { slug: "linkedin_url", type: "string" },
       { slug: "name", type: "string" },
       { slug: "domain", type: "string" },
+      { slug: "account_domain", type: "string" },
       { slug: "website", type: "string" },
       { slug: "hq_country", type: "string" },
       { slug: "hq_city", type: "string" },
@@ -56,6 +59,28 @@ export const tamCompanies = defineModel("tam_companies", {
     ],
   },
   additionalColumns: [
+    // The two domain keys, empty as null. Unification normalises a value but
+    // keeps an empty string, and every row sharing "" would merge into one
+    // account, so the keys are these columns, never the raw ones.
+    {
+      kind: "computed",
+      slug: "match_domain",
+      type: "string",
+      label: "Match domain",
+      description:
+        "The company's domain from LinkedIn, or null when there is none.",
+      expression: (record: Row) => (record.domain ? record.domain : null),
+    },
+    {
+      kind: "computed",
+      slug: "match_account_domain",
+      type: "string",
+      label: "Match account domain",
+      description:
+        "The domain of the account that was profiled, or null when it had none.",
+      expression: (record: Row) =>
+        record.account_domain ? record.account_domain : null,
+    },
     {
       kind: "computed",
       slug: "status",
@@ -125,9 +150,15 @@ export const tamCompanies = defineModel("tam_companies", {
   unification: {
     source: "custom",
     type: "account",
+    // Two domains, both strong: the one LinkedIn gives and the one the
+    // account already had. They differ more often than you would think
+    // (`corporate.acme.example` on LinkedIn, `acme.example` at the source):
+    // with only LinkedIn's, the profile becomes an account of its own and the
+    // source account is never profiled (live, 2026-11-11).
     uniqueColumns: [
       { slug: "linkedin_company_id", reference: "linkedinId" },
-      { slug: "domain", reference: "domain" },
+      { slug: "computed__match_domain", reference: "domain" },
+      { slug: "computed__match_account_domain", reference: "domain" },
       { slug: "linkedin_url", reference: "linkedinHandle" },
     ],
   },
