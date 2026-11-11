@@ -173,11 +173,13 @@ ONE dated line appended, "Seen again <date>, deals <ids>", and nothing else
 in that file changes). Restate the month's counts in the pull request, never
 in an existing file.
 
-Never edit a file under persona/, and never edit icp/ after the first pass.
-When the month's evidence suggests a change there (a title at three won
-accounts that no persona detects, a disqualifier that lost twice), write the
-proposal in the pull request body, with the deal ids, and nowhere else. A
-human decides.
+Never edit a file under persona/, never edit icp/ after the first pass, and
+never write or edit context/icp/scoring.md: the scoring model is rebuilt only
+by a scoring pass, with a person at every stop. When the month's evidence
+suggests a change there (a title at three won accounts that no persona
+detects, a disqualifier that lost twice, a won deal that scoring.md's No Fit
+filters would have excluded), write the proposal in the pull request body,
+with the deal ids, and nowhere else. A human decides.
 
 ## 6. Record the run
 
@@ -226,8 +228,9 @@ prevent). Post exactly once, then record on the pull request body one of
 ## Never
 
 Never edit a file under persona/, never edit icp/ after the first pass,
-never rewrite an existing insight, client, proof or objection file, never
-write to the workspace context repository directly, never read a call, an
+never write context/icp/scoring.md, never rewrite an existing insight,
+client, proof or objection file, never write to the
+workspace context repository directly, never read a call, an
 inbox or a website, never run a query that is not in step 1, never write a
 deal amount or an email into the repository, never contact a customer,
 never write to the CRM, never post to a channel other than the locked one,

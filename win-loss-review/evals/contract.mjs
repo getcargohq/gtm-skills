@@ -18,7 +18,7 @@
  * `plan`, and `deploy` use, so what is asserted here is what would deploy.
  */
 import assert from "node:assert/strict";
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { loadResources } from "@cargo-ai/cdk";
 
 const infraDir = new URL("../infra", import.meta.url).pathname;
@@ -138,6 +138,51 @@ check("the prompt carries the contract's fixed points and names no other cookboo
   for (const word of ["call-capture", "web-capture", "theirstack", "cadence/log/calls", "job posting"]) {
     assert.ok(!winLossAnalystPrompt.toLowerCase().includes(word), `prompt mentions ${word}: this cookbook reads the CRM and nothing else`);
   }
+});
+
+check("the monthly agent never writes the scoring model", async () => {
+  const { winLossAnalystPrompt } = await import("../infra/agents/win-loss-analyst.prompt.ts");
+  assert.ok(
+    winLossAnalystPrompt.includes("never write context/icp/scoring.md"),
+    "the prompt lost the rule: scoring.md is rebuilt only by a scoring pass, with a person at every stop",
+  );
+});
+
+check("the scoring pass carries its fixed points", () => {
+  const read = (file) => readFileSync(new URL(`../references/${file}`, import.meta.url), "utf8");
+  const pass = read("scoring-pass.md");
+  for (const line of [
+    "Internal data defines what great looks like; it never scores",
+    "Contract value alone never decides",
+    "Tier 1 against Tier 2",
+    "it held in the period before",
+    "Missing is not \"no\"",
+    "Test on 10 accounts first",
+    "never told whether the account is Tier 1",
+    "-win-loss-scoring",
+    "never merge the pull request",
+  ]) assert.ok(pass.includes(line), `scoring-pass.md lost: ${line}`);
+  assert.ok(!pass.includes("outputs/<today>-win-loss-review/"), "the scoring pass must not write the monthly run's directory: the monthly agent reads it as its next <since>");
+  const format = read("scoring-format.md");
+  for (const line of ["Weights sum to 100", "Unknown is neutral", "Code computes", "Outside-visible only"]) {
+    assert.ok(format.includes(line), `scoring-format.md lost: ${line}`);
+  }
+  const research = read("custom-attributes.md");
+  for (const line of ["{{domain}}", "Assume the goal is net-new prospecting", "First-party only"]) {
+    assert.ok(research.includes(line), `custom-attributes.md lost: ${line}`);
+  }
+});
+
+check("the model block in scoring-format.md is internally consistent", () => {
+  const format = readFileSync(new URL("../references/scoring-format.md", import.meta.url), "utf8");
+  const block = format.match(/```yaml\n([\s\S]*?)```/)?.[1];
+  assert.ok(block, "scoring-format.md lost its yaml model block");
+  const attributes = block.slice(block.indexOf("attributes:"), block.indexOf("modifiers:"));
+  const weights = [...attributes.matchAll(/^ {4}weight: (\d+)$/gm)].map((m) => Number(m[1]));
+  const unknowns = [...attributes.matchAll(/^ {4}unknown: (\d+)$/gm)].map((m) => Number(m[1]));
+  assert.ok(weights.length >= 2, "the example needs at least two weighted attributes");
+  assert.equal(weights.reduce((a, b) => a + b, 0), 100, "the example's weights must sum to 100");
+  assert.deepEqual(unknowns, weights.map((w) => Math.floor(w / 2)), "unknown must be half the weight, rounded down");
 });
 
 let failed = 0;

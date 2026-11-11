@@ -162,6 +162,8 @@
 {"prompt": "Keep the context repo current from the CRM every month", "expect": "win-loss-review", "why": "The standing tell: every month, from the CRM, appended, digested to Slack."}
 {"prompt": "Our lost reasons should become objections in the knowledge base", "expect": "win-loss-review"}
 {"prompt": "Score these leads against our ICP", "expect": "score-leads", "why": "Applying the ICP to a list is scoring; win-loss-review is what verifies the ICP from the deals."}
+{"prompt": "Build a scoring model from our won and lost deals: what do our best customers have in common?", "expect": "win-loss-review", "why": "Deriving the model from the deals is win-loss-review's scoring pass; account-scoring applies a model that already exists."}
+{"prompt": "Which custom data points predict a great customer for us?", "expect": "win-loss-review", "why": "Testing candidate attributes against the best customers is the scoring pass, not a blank-page list of fields."}
 {"prompt": "Research acme.com for me right now", "expect": "research-account", "why": "A one-off answer in this chat, nothing deployed."}
 {"prompt": "Watch our market for new VPs of Sales at software companies and put them in HubSpot", "expect": "new-hire-detection", "why": "The market, not the book, and the CRM as the destination: the pipeline."}
 {"prompt": "Every time a new head of RevOps starts at a company in our ICP, tell the account owner", "expect": "new-hire-detection", "why": "The standing tell: every time, routed to an owner."}
