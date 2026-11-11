@@ -19,8 +19,9 @@ import {
 // A model's uuid inside a play filter. The deploy resolves model handles
 // anywhere in a spec, but the play filter's type predates handles, so the
 // token is passed as the string it becomes.
-const uuidOf = (handle: { uuid: unknown }): string =>
-  handle.uuid as unknown as string;
+const uuidOf = (handle: { uuid: unknown }): string => {
+  return handle.uuid as unknown as string;
+};
 
 // The options the classifier picks from: your categories, then what a company
 // can be instead. Built here because a workflow body cannot map an array.
@@ -30,10 +31,22 @@ const categoryOptions = [
   unknownCategory,
 ].map((option) => ({ option }));
 
-const categoryInstructions =
-  "Which category describes what this company sells and to whom? Judge from the description, not from the industry label. If the description is too thin to tell, pick Not enough information.";
-const subsidiaryInstructions =
-  "Is this page a subsidiary, a regional or country page, or an acquired brand of a larger company, rather than an independent company?";
+// The two questions put to every company, by either path of the workflow.
+const classifyQuestions = [
+  {
+    type: "choice",
+    id: "category",
+    instructions:
+      "Which category describes what this company sells and to whom? Judge from the description, not from the industry label. If the description is too thin to tell, pick Not enough information.",
+    options: categoryOptions,
+  },
+  {
+    type: "noul",
+    id: "subsidiary",
+    instructions:
+      "Is this page a subsidiary, a regional or country page, or an acquired brand of a larger company, rather than an independent company?",
+  },
+] as const;
 
 // One account in, one profile out. Runs once per company, after Cargo has
 // merged what every source found, so a company four sources found is read and
@@ -64,9 +77,7 @@ const profileCompany = defineWorkflow(
     uses: { linkedin },
     imports: {
       tamCompanies,
-      categoryOptions,
-      categoryInstructions,
-      subsidiaryInstructions,
+      classifyQuestions,
       companyDomain,
     },
   },
@@ -90,19 +101,7 @@ const profileCompany = defineWorkflow(
           linkedin_industry: company.industries[0],
           description: company.description,
         },
-        questions: [
-          {
-            type: "choice",
-            id: "category",
-            instructions: categoryInstructions,
-            options: categoryOptions,
-          },
-          {
-            type: "noul",
-            id: "subsidiary",
-            instructions: subsidiaryInstructions,
-          },
-        ],
+        questions: classifyQuestions,
       });
       model.upsert({
         modelUuid: tamCompanies.uuid,
@@ -157,19 +156,7 @@ const profileCompany = defineWorkflow(
         linkedin_industry: fromDomain.industries[0],
         description: fromDomain.description,
       },
-      questions: [
-        {
-          type: "choice",
-          id: "category",
-          instructions: categoryInstructions,
-          options: categoryOptions,
-        },
-        {
-          type: "noul",
-          id: "subsidiary",
-          instructions: subsidiaryInstructions,
-        },
-      ],
+      questions: classifyQuestions,
     });
     model.upsert({
       modelUuid: tamCompanies.uuid,

@@ -69,7 +69,7 @@ export const tamCompanies = defineModel("tam_companies", {
       label: "Match domain",
       description:
         "The company's domain from LinkedIn, or null when there is none.",
-      expression: (record: Row) => (record.domain ? record.domain : null),
+      expression: (record: Row) => record.domain || null,
     },
     {
       kind: "computed",
@@ -78,8 +78,7 @@ export const tamCompanies = defineModel("tam_companies", {
       label: "Match account domain",
       description:
         "The domain of the account that was profiled, or null when it had none.",
-      expression: (record: Row) =>
-        record.account_domain ? record.account_domain : null,
+      expression: (record: Row) => record.account_domain || null,
     },
     {
       kind: "computed",
@@ -98,20 +97,28 @@ export const tamCompanies = defineModel("tam_companies", {
       },
       // A thin page, a missing headcount or a missing country is a gap in the
       // data, never a reason to drop the company: needs_review.
-      expression: (record: Row) =>
-        !record.category || record.category === unknownCategory
-          ? "needs_review"
-          : record.employee_count === null ||
-              record.employee_count === undefined ||
-              !record.hq_country
-            ? "needs_review"
-            : !inScopeCategories.includes(record.category) ||
-                (record.subsidiary_probability || 0) >= subsidiaryThreshold ||
-                record.employee_count < minEmployees ||
-                record.employee_count > maxEmployees ||
-                !countries.includes(record.hq_country)
-              ? "out_of_scope"
-              : "in_scope",
+      expression: (record: Row) => {
+        if (!record.category || record.category === unknownCategory) {
+          return "needs_review";
+        }
+        if (
+          record.employee_count === null ||
+          record.employee_count === undefined ||
+          !record.hq_country
+        ) {
+          return "needs_review";
+        }
+        if (
+          !inScopeCategories.includes(record.category) ||
+          (record.subsidiary_probability || 0) >= subsidiaryThreshold ||
+          record.employee_count < minEmployees ||
+          record.employee_count > maxEmployees ||
+          !countries.includes(record.hq_country)
+        ) {
+          return "out_of_scope";
+        }
+        return "in_scope";
+      },
     },
     {
       kind: "computed",
@@ -128,23 +135,34 @@ export const tamCompanies = defineModel("tam_companies", {
         maxEmployees,
         countries,
       },
-      expression: (record: Row) =>
-        !record.category || record.category === unknownCategory
-          ? "not_enough_information"
-          : record.employee_count === null ||
-              record.employee_count === undefined ||
-              !record.hq_country
-            ? "missing_size_or_country"
-            : !inScopeCategories.includes(record.category)
-              ? "category: " + record.category
-              : (record.subsidiary_probability || 0) >= subsidiaryThreshold
-                ? "subsidiary_or_country_page"
-                : record.employee_count < minEmployees ||
-                    record.employee_count > maxEmployees
-                  ? "size: " + record.employee_count
-                  : !countries.includes(record.hq_country)
-                    ? "country: " + record.hq_country
-                    : "",
+      expression: (record: Row) => {
+        if (!record.category || record.category === unknownCategory) {
+          return "not_enough_information";
+        }
+        if (
+          record.employee_count === null ||
+          record.employee_count === undefined ||
+          !record.hq_country
+        ) {
+          return "missing_size_or_country";
+        }
+        if (!inScopeCategories.includes(record.category)) {
+          return "category: " + record.category;
+        }
+        if ((record.subsidiary_probability || 0) >= subsidiaryThreshold) {
+          return "subsidiary_or_country_page";
+        }
+        if (
+          record.employee_count < minEmployees ||
+          record.employee_count > maxEmployees
+        ) {
+          return "size: " + record.employee_count;
+        }
+        if (!countries.includes(record.hq_country)) {
+          return "country: " + record.hq_country;
+        }
+        return "";
+      },
     },
   ],
   unification: {

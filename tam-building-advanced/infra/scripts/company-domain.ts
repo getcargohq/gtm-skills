@@ -34,9 +34,10 @@ const nextUrl = (current: string, location: string): string => {
   if (!origin) {
     return location;
   }
-  return location.startsWith("/")
-    ? `${origin[0]}${location}`
-    : `${origin[0]}/${location}`;
+  if (location.startsWith("/")) {
+    return `${origin[0]}${location}`;
+  }
+  return `${origin[0]}/${location}`;
 };
 
 const followLink = async (url: string): Promise<string> => {
