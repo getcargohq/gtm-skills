@@ -73,6 +73,9 @@
 {"prompt": "Source every company that matches our ICP and keep them as a model in Cargo", "expect": "tam-building", "why": "Source and land as a model: the whole job of this pipeline in one sentence."}
 {"prompt": "Build our account universe as a model the rest of our pipelines can read", "expect": "tam-building"}
 {"prompt": "Stand up a pipeline that builds our market from the ICP in our context", "expect": "tam-building"}
+{"prompt": "Combine Sales Navigator, AI Ark, Apollo and Exa into one TAM and tell me what is net new versus already in our CRM", "expect": "tam-building-advanced", "why": "Several sources merged into one model, with the CRM comparison: the advanced pipeline, not the single-source one."}
+{"prompt": "How much of our market do we actually have? Build our TAM from several data providers and estimate what they all missed", "expect": "tam-building-advanced", "why": "Coverage of the market is the question only the multi-source pipeline answers."}
+{"prompt": "Source our ICP from AI Ark and keep it as one model in Cargo", "expect": "tam-building", "why": "One source, one model: the single-source pipeline stays the default."}
 {"prompt": "Build a TAM list of seed-stage SaaS companies in Europe", "expect": "build-tam-list", "why": "Same words as tam-building, opposite intent: a list handed back today, not a model in the workspace."}
 {"prompt": "How many companies match our ICP in DACH?", "expect": "build-tam-list", "why": "A count is a one-off."}
 {"prompt": "Keep our accounts scored as they arrive and re-score when the ICP changes", "expect": "account-scoring"}

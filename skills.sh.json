@@ -66,6 +66,7 @@
       "description": "Deployed pipelines that build the base: the account universe, a standing score on every account, qualified stakeholders, the website, and keeping it readable by AI agents.",
       "skills": [
         "tam-building",
+        "tam-building-advanced",
         "account-scoring",
         "contact-sourcing",
         "website-building",
