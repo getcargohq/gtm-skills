@@ -209,14 +209,16 @@ const profileCompany = defineWorkflow(
   },
 );
 
-// The only play. It runs on the accounts at least one TAM source found and no
-// profile covers yet: a related-model condition reads the source's row on the
-// account, and an empty one means that source did not find it.
+// The only play, and a build step, not an always-on automation. The sources
+// carry no schedule, so new companies only arrive when you re-source; the play
+// runs once, as a batch, after each source sync (references/run.md). No
+// schedule and never enabled: a play with no schedule never runs on its own.
+// `once` means a re-run after a refresh pays only for the companies that are
+// new.
 //
-// `added` enrols an account the moment it enters that set, so a source synced
-// later flows through on its own, and an account whose profile is written
-// leaves the set and never runs again. Ships disabled: the first pass of each
-// source is a batch (references/run.md), then enable it.
+// Its filter is what the batch runs over: the accounts at least one TAM
+// source found and no profile covers yet. A related-model condition reads the
+// source's row on the account, NULL when that source did not find it.
 export const profileCompanies = definePlay("tam_profile_companies", {
   name: "TAM: profile company",
   description:
@@ -275,9 +277,4 @@ export const profileCompanies = definePlay("tam_profile_companies", {
   isEnabled: false,
   runCreationRule: "once",
   changeKinds: ["added"],
-  // A play with no schedule never creates a batch on its own, and `realtime`
-  // is refused on Unify Accounts (it is not an ingest model). Hourly, at a
-  // minute after the workspace's Accounts refresh: a tick with nothing added
-  // creates nothing.
-  schedule: { type: "cron", cron: "20 * * * *" },
 });

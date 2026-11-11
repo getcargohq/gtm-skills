@@ -62,8 +62,8 @@ flowchart TD
    identifies a company, and Cargo's account unification merges them into
    Unify Accounts, normalising LinkedIn URLs and domains itself. Your CRM's
    companies are in the same accounts, so "already in the CRM" is free.
-3. **One profile per company.** One play runs on each account a TAM source
-   found: a LinkedIn company enrich (the LinkedIn page any source gave, else
+3. **One profile per company.** One play, a build step run as a batch after
+   each source sync, reads each account a TAM source found: a LinkedIn company enrich (the LinkedIn page any source gave, else
    the domain) and a classification, written to `tam_companies`. A company four
    sources found is enriched once.
 4. **The profile joins the sources.** Sales Navigator knows a company by its
@@ -110,8 +110,11 @@ flowchart TD
 - **The overlap is kept.** Every account lists which sources found it. The
   number is a fit signal, and the Sales Navigator × Apollo overlap is the
   coverage estimate.
-- **No schedule on a paid source.** A cron re-bills every record, including
-  the companies already in the TAM. Re-source when you decide to.
+- **Built once, refreshed at most quarterly.** A source sync re-bills every
+  record, including the companies already in the TAM, and a TAM does not
+  need to be fresher than three to four months. By default nothing is
+  scheduled: re-source when you decide to, or take the `refresh` variation's
+  quarterly cron.
 - **Nothing is written outside Cargo.** Pushing the net new into the CRM is a
   separate, approved write.
 

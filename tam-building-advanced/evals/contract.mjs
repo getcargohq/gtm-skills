@@ -27,6 +27,25 @@ const get = (id) => {
 const integrationOf = (modelSpec) =>
   get(modelSpec.datasetUuid.resourceId).spec.integrationSlug;
 
+// A TAM does not need to be fresher than a quarter, and every re-sync re-bills
+// every record. A schedule is either absent (the default: built once,
+// refreshed by hand) or a cron that fires at most once every three months: a
+// fixed minute, hour and day, and a month field of `*/3` or rarer, or an
+// explicit list of at most four months.
+const atMostQuarterly = (schedule) => {
+  if (schedule === undefined || schedule === null) return true;
+  if (schedule.type !== "cron") return false;
+  const [minute, hour, day, month, weekday] = schedule.cron
+    .trim()
+    .split(/\s+/);
+  if (![minute, hour, day].every((field) => /^\d+$/.test(field))) return false;
+  if (weekday !== "*") return false;
+  const step = month.match(/^\*\/(\d+)$/);
+  if (step) return Number(step[1]) >= 3;
+  const months = month.split(",");
+  return months.every((m) => /^\d+$/.test(m)) && months.length <= 4;
+};
+
 const valueAt = (config, path) =>
   path.reduce(
     (node, key) => (node === undefined || node === null ? node : node[key]),
@@ -81,10 +100,9 @@ for (const [id, source] of Object.entries(PAID_SOURCES)) {
     "number",
     `${id} must set an explicit limit: it bills per returned record and this is the only cap`,
   );
-  assert.equal(
-    spec.schedule ?? null,
-    null,
-    `${id} must not carry a schedule: a cron re-runs the search and re-bills every returned record, including the companies already in the TAM`,
+  assert.ok(
+    atMostQuarterly(spec.schedule),
+    `${id}: no schedule, or a refresh at most once every three months. A sync re-runs the search and re-bills every returned record, including the companies already in the TAM`,
   );
   for (const [criterion, path] of Object.entries(source.minimum ?? {})) {
     const value = valueAt(config, path);
@@ -251,10 +269,9 @@ assert.equal(
   "the profile play runs on Unify Accounts, after the merge, so a company several sources found is enriched once",
 );
 assert.deepEqual(play.changeKinds, ["added"]);
-assert.equal(
-  play.schedule?.type,
-  "cron",
-  "the profile play needs a cron: a play with no schedule never creates a batch, and realtime is refused on Unify Accounts",
+assert.ok(
+  atMostQuarterly(play.schedule),
+  "the profile play is a build step: no schedule (run as a batch after each source sync), or the quarterly refresh, the day after the sources",
 );
 assert.equal(
   play.runCreationRule,
@@ -263,8 +280,8 @@ assert.equal(
 );
 assert.equal(
   play.isEnabled,
-  false,
-  "the profile play ships disabled: the first pass is a batch, after the pilot",
+  Boolean(play.schedule),
+  "the profile play is disabled with no schedule (it runs as a batch), and enabled only under the quarterly refresh",
 );
 const filterText = JSON.stringify(play.filter);
 for (const modelId of [

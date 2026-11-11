@@ -114,8 +114,9 @@ operation, say `No action needed` and name the next checkpoint. Never end with a
    classification per distinct company. Ask for one approval of the filters, the limits and the maximum spend.
 3. **Build.** Adapt, run `node --import tsx evals/contract.mjs`, check, plan, deploy.
 4. **Source, one at a time.** Sales Navigator, then AI Ark, then Exa, then Apollo. Sync a source, let
-   Accounts merge it, profile its new accounts (five first, then the rest), then the next
-   ([`references/run.md`](references/run.md)).
+   Accounts merge it, run the profile play once as a batch over its new accounts (five first, then the
+   rest), then the next ([`references/run.md`](references/run.md)). The play is a build step: no
+   schedule, never enabled.
 5. **Report.** The headline (TAM, net new, already in the CRM), what each source added, what each
    returned that was not your market, the coverage estimate, actual credits against the estimate, and
    the openings.
@@ -165,8 +166,8 @@ or template work if the skill cannot be installed or read.
    file. Then run `node --import tsx evals/contract.mjs` from this skill's folder, followed by
    `cargo-ai project types && cargo-ai project check && cargo-ai project plan` from the project root.
    Show the diff and deploy. Never run `cargo-ai project init --force` in a non-empty directory.
-6. **Source and report.** Follow [`references/run.md`](references/run.md): one source at a time, pilot
-   before enabling, then the report queries, and walk _Done when_ line by line with evidence. Deployed
+6. **Source and report.** Follow [`references/run.md`](references/run.md): one source at a time, the profile
+   batch piloted on five accounts before the rest, then the report queries, and walk _Done when_ line by line with evidence. Deployed
    cleanly and produced nothing is the normal failure.
 
 ## What you will be asked
@@ -207,7 +208,7 @@ waiting to be asked. Every one costs something; that is what makes it a variatio
 | `reference-list` | You hold an independent list of the same market: a Crunchbase export, an earlier TAM, a list built another way | Load it as a model (Google Sheets or CSV) that unifies as an account on its domain or LinkedIn page, and pair it with Sales Navigator in the coverage query instead of Apollo                         | One more source to profile. The estimate gets better the more independent the list is; a list built from the same providers adds nothing                            |
 | `drop-a-source`  | Budget, or a source that adds almost nothing in your market                                          | Remove its connector, its model and its line in the play's filter, and its entries in the contract, in one change                                                                                       | Coverage. Dropping Apollo also removes the census pair the estimate is computed from; pair Sales Navigator with AI Ark and say the estimate is weaker                |
 | `growth-signal`  | Growth decides priority in your market                                                               | Add `salesNavigator.findCompanyInsights` after the LinkedIn enrich in the profile play, and a growth column on `tam_companies`                                                                            | One more paid call per company. Keep growth as information, never as a gate: a company that is not growing is still in your market                                 |
-| `refresh`        | The market moves and the TAM goes stale                                                              | Re-count and re-sync the sources in the same order. A new company becomes a new account and is profiled; a known one is merged and costs nothing more                                                   | Every re-sync re-bills every returned record, including the companies already in the TAM. Re-count Sales Navigator first: counts drift week to week                   |
+| `refresh`        | The market moves and the TAM goes stale. Every three to four months is enough                        | By hand: re-count and re-sync the sources in the same order, and run the profile batch after each. Or on its own: `schedule: { type: "cron", cron: "0 6 1 */3 *" }` on each paid source (the 1st of every third month), and `"0 6 2 */3 *"` with `isEnabled: true` on the profile play, the day after. A new company becomes a new account and is profiled; a known one is merged and costs nothing more | Every re-sync re-bills every returned record, including the companies already in the TAM: four times a year at most, and the contract refuses anything more frequent. Re-count Sales Navigator first: a split search drifts over a quarter |
 | `fifth-source`   | A source that is good at your market (FullEnrich, free per record)                                   | One more source model with a declared account unification, one more line in the play's filter, and the contract's connector list edited                                                                | Nothing else: Cargo merges it, and the play profiles only the companies it adds                                                                                      |
 
 ## What should not change
@@ -249,8 +250,9 @@ you still want it, and records why under `## Decisions` in your copy of this fil
 - **The three criteria are in every source.** (`infra/models/tam-source-*.ts`) A source without
   industries, size or countries bills for the whole dimension and searches a different market than the
   others.
-- **A paid source carries no schedule.** A cron re-bills every returned record, including the companies
-  already in the TAM.
+- **A paid source is built once, refreshed at most quarterly.** A sync re-bills every returned record,
+  including the companies already in the TAM. No schedule by default; the `refresh` variation's
+  quarterly cron is the most frequent the contract accepts.
 - **Sales Navigator runs without a seat.** No `identityIds`: a search through someone's own account puts
   that account at risk.
 - **Nothing is written to the CRM.** Pushing the net new is a separate write the operator approves, with

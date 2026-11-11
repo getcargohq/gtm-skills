@@ -2720,9 +2720,9 @@
         },
         {
           "id": "refresh",
-          "when": "The market moves and the TAM goes stale",
-          "how": "Re-count and re-sync the sources in the same order. A new company becomes a new account and is profiled; a known one is merged and costs nothing more",
-          "cost": "Every re-sync re-bills every returned record, including the companies already in the TAM. Re-count Sales Navigator first: counts drift week to week"
+          "when": "The market moves and the TAM goes stale. Every three to four months is enough",
+          "how": "By hand: re-count and re-sync the sources in the same order, and run the profile batch after each. Or on its own: `schedule: { type: \"cron\", cron: \"0 6 1 */3 *\" }` on each paid source (the 1st of every third month), and `\"0 6 2 */3 *\"` with `isEnabled: true` on the profile play, the day after. A new company becomes a new account and is profiled; a known one is merged and costs nothing more",
+          "cost": "Every re-sync re-bills every returned record, including the companies already in the TAM: four times a year at most, and the contract refuses anything more frequent. Re-count Sales Navigator first: a split search drifts over a quarter"
         },
         {
           "id": "fifth-source",
@@ -2743,7 +2743,7 @@
         "**Unknown stays unknown.** A thin page, or a missing headcount or country, is `needs_review`, never out of scope. A provider that returns nothing has a coverage gap; it is not evidence about the company.",
         "**Sources run one after another.** (`references/run.md`) Profile one source's accounts before the next syncs: the next source's rows then merge onto accounts that already have a profile, and only the companies it adds are paid for.",
         "**The three criteria are in every source.** (`infra/models/tam-source-*.ts`) A source without industries, size or countries bills for the whole dimension and searches a different market than the others.",
-        "**A paid source carries no schedule.** A cron re-bills every returned record, including the companies already in the TAM.",
+        "**A paid source is built once, refreshed at most quarterly.** A sync re-bills every returned record, including the companies already in the TAM. No schedule by default; the `refresh` variation's quarterly cron is the most frequent the contract accepts.",
         "**Sales Navigator runs without a seat.** No `identityIds`: a search through someone's own account puts that account at risk.",
         "**Nothing is written to the CRM.** Pushing the net new is a separate write the operator approves, with a reviewed sample first."
       ],

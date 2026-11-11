@@ -3,8 +3,9 @@
 Deploy, then source and profile one source at a time, then report. **Deploying
 a source model starts its first sync**: that is the sourcing spend, and it is
 what the budget approval covers. Deploy the sources one at a time for that
-reason (comment out the ones not yet due). The profile play ships disabled, so
-nothing is enriched or classified until you run it.
+reason (comment out the ones not yet due). The profile play is a build step:
+no schedule, never enabled, run as a batch after each source sync, so nothing
+is enriched or classified until you run it.
 
 ## Phase handoffs
 
@@ -21,7 +22,7 @@ the next checkpoint.
    `cargo-ai project plan`. Confirm the plan shows the connectors, the source
    models with **no schedule** and their unification, `tam_companies`, Unify
    Accounts **adopted with no column or schedule change**, and the one play
-   **disabled**.
+   **disabled, with no schedule**.
 3. Deploy only under the budget approval, Sales Navigator's model first.
 
 Resolve `workspaceUuid` from `cargo-ai whoami` and each UUID from
@@ -70,13 +71,10 @@ For each source:
    Read the five `tam_companies` rows: category, `computed__status`,
    `computed__exclusion_reason`, domain. A wrong category here is a wrong
    category on every row.
-4. **The rest.** The same batch without `limit`. Then enable the play
-   (`isEnabled: true`, deploy). Its hourly tick (`:20`) takes a snapshot the
-   first time it runs: accounts already in the filter then are never
-   "added", so batch them first. From then on, every account a later source
-   brings in is profiled on the next tick without a batch (live: three new
-   Exa companies, three runs, no batch). `runCreationRule: "once"` keeps an
-   account from being profiled twice, including by a batch.
+4. **The rest.** The same batch without `limit`. The play stays disabled: it
+   is run, not left running. `runCreationRule: "once"` keeps an account from
+   being profiled twice, so the same batch after a later source or a refresh
+   pays only for the companies that are new.
 5. **Done when** no account a source found is left without a profile: the
    play's filter returns nothing, or only accounts whose LinkedIn page could
    not be read (the play returns `unresolved` for them; read a few).
@@ -95,6 +93,15 @@ Write the rows with the native `modelUpsert` action, matched on `domain`
 (everything in `--data`: `modelUuid`, `matchingColumnSlug`, `matchingValue`,
 `mappings`). A row written natively can take minutes to be readable: refresh
 Accounts after the last write, not between writes.
+
+## Refresh
+
+Every three to four months is enough. By hand: re-count Sales Navigator,
+re-sync the sources in the same order, run the profile batch after each. On
+its own: the `refresh` variation in SKILL.md (a quarterly cron on each paid
+source, and on the play the day after). Either way, a company the TAM already
+holds is merged and costs only its source record; the profile is paid only for
+the companies that are new.
 
 ## Report
 
