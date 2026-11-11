@@ -154,5 +154,11 @@
     "chain": 28,
     "demoWorkspace": "2026-11-10",
     "implementations": []
+  },
+  "contact-sourcing": {
+    "state": "to-be-approved",
+    "chain": 29,
+    "demoWorkspace": null,
+    "implementations": []
   }
 }
