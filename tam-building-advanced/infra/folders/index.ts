@@ -8,11 +8,6 @@ export const modelsFolder = defineFolder("tam_building_advanced_models", {
   name: "TAM building, advanced",
 });
 
-export const toolsFolder = defineFolder("tam_building_advanced_tools", {
-  kind: "tool",
-  name: "TAM building, advanced",
-});
-
 export const playsFolder = defineFolder("tam_building_advanced_plays", {
   kind: "play",
   name: "TAM building, advanced",

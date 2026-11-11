@@ -1,9 +1,10 @@
 # Run
 
-Deploy, then process one source at a time, then report. **Deploying a source
-model starts its first sync**: that is the sourcing spend, and it is what the
-budget approval covers. The plays ship disabled, so nothing is enriched or
-classified until you run them, one source at a time.
+Deploy, then source and profile one source at a time, then report. **Deploying
+a source model starts its first sync**: that is the sourcing spend, and it is
+what the budget approval covers. Deploy the sources one at a time for that
+reason (comment out the ones not yet due). The profile play ships disabled, so
+nothing is enriched or classified until you run it.
 
 ## Phase handoffs
 
@@ -17,73 +18,109 @@ the next checkpoint.
 1. `node --import tsx evals/contract.mjs` from this skill's folder, against the
    adapted resources.
 2. `cargo-ai project types`, then `cargo-ai project check`, then
-   `cargo-ai project plan`. Confirm the plan shows the five connectors, the
-   source models with **no schedule**, `tam_universe`, the two tools and the
-   four plays **disabled**.
-3. Deploy only under the budget approval.
+   `cargo-ai project plan`. Confirm the plan shows the connectors, the source
+   models with **no schedule** and their unification, `tam_companies`, Unify
+   Accounts **adopted with no column or schedule change**, and the one play
+   **disabled**.
+3. Deploy only under the budget approval, Sales Navigator's model first.
 
 Resolve `workspaceUuid` from `cargo-ai whoami` and each UUID from
 `cargo.state.json`. A model link is
 `https://app.getcargo.io/workspaces/<workspaceUuid>/models/<modelUuid>`.
 
-## Source, one at a time
+## Source and profile, one source at a time
 
-**One source at a time, in order: Sales Navigator, AI Ark, Apollo, Exa.** The
-unify tool recognises a company the TAM already holds before it pays to enrich
-it, but a native write takes minutes to be readable. Two sources running at
-once both miss each other's fresh rows, enrich the same company twice, and
-leave a duplicate. One after another, the overlap is caught for free.
+**Sales Navigator, then AI Ark, then Exa, then Apollo.** Profile each source's
+accounts before the next one syncs: the next source's rows then merge onto
+accounts that already carry a profile, and the play only pays for the
+companies that source adds.
 
-For each paid source:
+For each source:
 
-1. Confirm the deploy's sync finished and landed rows:
-   `cargo-ai storage run list --model-uuid <uuid>`. Do not start a second
-   one: it bills every record again.
-2. Pilot five rows through the play's workflow, and read the five
-   `tam_universe` rows they wrote: category, status, reason, `in_crm`. A wrong
-   category here is a wrong category on every row.
+1. **The rows landed.** `cargo-ai storage run list --model-uuid <sourceUuid>`
+   shows the sync finished. Do not start a second one: it bills every record
+   again. For Exa, run the queries first (below).
+2. **Accounts merged them.** Refresh Unify Accounts
+   (`cargo-ai storage run create --model-uuid <accountsUuid>`, then poll
+   `storage run list`). Refreshing rebuilds the merge; it never re-runs a
+   source's search, so it bills nothing. Then count the source's accounts:
+
+   ```sql
+   SELECT COUNT(*) FROM object.accounts
+   WHERE JSON_QUERY(ids, '$.sales_navigator___tam_source_sales_navigator') IS NOT NULL
+   ```
+
+   The key is `<connector slug>___<model slug>` for a connector model and
+   `object___<model slug>` for a native one; read one account's `ids` to
+   confirm them in your workspace. A brand-new company can take up to half an
+   hour to appear. Wait until the count matches the source's row count, give
+   or take the duplicates inside the source.
+3. **Pilot five.** Read the play's deployed filter
+   (`cargo-ai orchestration play get <playUuid>`) and run its workflow on five
+   accounts:
 
    ```sh
    cargo-ai orchestration batch create --workflow-uuid <playWorkflowUuid> \
-     --data '{"kind":"filter","modelUuid":"<sourceModelUuid>","limit":5}' \
+     --data '{"kind":"filter","modelUuid":"<accountsUuid>","filter":<the play filter>,"limit":5}' \
      --wait-until-finished
    ```
 
-3. Run the rest the same way without `limit`, or enable the play and let its
-   hourly tick take them. `changeKinds: ["added"]` does not backfill rows that
-   were already there while the play was off, so the first pass is the batch.
-4. Wait until no row of that source has an empty `unified_at`, then move to the
-   next source.
+   Read the five `tam_companies` rows: category, `computed__status`,
+   `computed__exclusion_reason`, domain. A wrong category here is a wrong
+   category on every row.
+4. **The rest.** The same batch without `limit`. `added` does not backfill
+   accounts that were already in the filter, so the first pass is always a
+   batch. After the first source, enable the play
+   (`isEnabled: true`, deploy) and later sources flow through on their own.
+5. **Done when** no account a source found is left without a profile: the
+   play's filter returns nothing, or only accounts whose LinkedIn page could
+   not be read (the play returns `unresolved` for them; read a few).
 
-Exa last: insert the queries into `tam_exa_queries` (one row each, with
-`cargo-ai storage record create`), then **wait until they are readable**
-(`SELECT COUNT(*) FROM object.tam_exa_queries` shows them, a few minutes): a
-batch or a play started before that sees no rows and does nothing. Then run
-`tam_search_exa` the same way.
+**Exa.** For each query in `exaQueries` (`settings.ts`), run it once and write
+one row per result into `tam_source_exa` (`domain` from the result's URL, plus
+`url`, `title`, `query`, `searched_at`):
 
-**Native writes are read back late.** A row written into `tam_universe` can
-take minutes to appear in SQL. Read the report a few minutes after the last
-batch, not right after it.
+```sh
+cargo-ai orchestration action execute --wait-until-finished \
+  --action '{"kind":"connector","integrationSlug":"exa","actionSlug":"search","config":{}}' \
+  --data '{"query":"<query>","category":"company","searchType":"auto","numResults":<exaResultsPerQuery>}'
+```
 
-**A sync replaces a source model's rows.** Re-syncing with a narrower filter
-drops the companies it no longer returns from the source model. The TAM keeps
-them: `tam_universe` is only ever added to or flagged.
+Write the rows with the native `modelUpsert` action, matched on `domain`
+(everything in `--data`: `modelUuid`, `matchingColumnSlug`, `matchingValue`,
+`mappings`). A row written natively can take minutes to be readable: refresh
+Accounts after the last write, not between writes.
 
 ## Report
 
-Confirm the table name and the SQL dialect first:
-`cargo-ai storage model get-ddl <tamUniverseUuid>` gives both. Native custom
-models live in the `object` dataset (`object.tam_universe`); the queries below
-write it as `<native>.tam_universe`.
-
-**The funnel.** What the sources returned against what counts:
+Confirm the SQL dialect first: `cargo-ai storage model get-ddl <accountsUuid>`.
+Every query reads one view of the TAM: the accounts a TAM source found, with
+which sources found them, whether the CRM holds them, and their profile.
+Replace the CRM key with yours (`hubspot___companies`, `salesforce___account`).
 
 ```sql
-SELECT status, COUNT(*) AS companies
-FROM <native>.tam_universe
-GROUP BY status
-ORDER BY companies DESC
+WITH tam AS (
+  SELECT
+    a._id AS account_id,
+    JSON_QUERY(a.ids, '$.sales_navigator___tam_source_sales_navigator') IS NOT NULL AS sales_navigator,
+    JSON_QUERY(a.ids, '$.ai_ark___tam_source_ai_ark') IS NOT NULL AS ai_ark,
+    JSON_QUERY(a.ids, '$.object___tam_source_exa') IS NOT NULL AS exa,
+    JSON_QUERY(a.ids, '$.apollo___tam_source_apollo') IS NOT NULL AS apollo,
+    JSON_QUERY(a.ids, '$.hubspot___companies') IS NOT NULL AS in_crm,
+    JSON_VALUE(a.ids, '$.object___tam_companies[0]') AS profile_id
+  FROM object.accounts a
+),
+universe AS (
+  SELECT tam.*, c.linkedin_company_id, c.name, c.domain, c.category,
+         c.computed__status AS status, c.computed__exclusion_reason AS exclusion_reason
+  FROM tam
+  LEFT JOIN object.tam_companies c ON c._id = tam.profile_id
+  WHERE sales_navigator OR ai_ark OR exa OR apollo
+)
+SELECT status, COUNT(*) AS companies FROM universe GROUP BY status ORDER BY companies DESC
 ```
+
+Keep the two CTEs and swap the last `SELECT`:
 
 **Net new against the CRM.** The number the operator acts on:
 
@@ -91,44 +128,54 @@ ORDER BY companies DESC
 SELECT
   COUNTIF(status = 'in_scope') AS tam,
   COUNTIF(status = 'in_scope' AND in_crm) AS already_in_crm,
-  COUNTIF(status = 'in_scope' AND NOT IFNULL(in_crm, FALSE)) AS net_new
-FROM <native>.tam_universe
+  COUNTIF(status = 'in_scope' AND NOT in_crm) AS net_new
+FROM universe
 ```
 
-**What each source added.** Found, found by no other source, and added in
-this order. Read the first two together: "found by no other source" does not
-depend on the order, and it is what you would lose by dropping the source.
+**What each source added.** Found, and found by no other source. Read them
+together: "found by no other source" does not depend on the order, and it is
+what you would lose by dropping the source. "Added in this order" is the same
+count taken in the order the sources ran.
 
 ```sql
 SELECT
-  COUNTIF(found_by_sales_navigator) AS sales_navigator_found,
-  COUNTIF(found_by_sales_navigator AND NOT IFNULL(found_by_ai_ark, FALSE) AND NOT IFNULL(found_by_apollo, FALSE) AND NOT IFNULL(found_by_exa, FALSE)) AS sales_navigator_only,
-  COUNTIF(found_by_ai_ark) AS ai_ark_found,
-  COUNTIF(found_by_ai_ark AND NOT IFNULL(found_by_sales_navigator, FALSE) AND NOT IFNULL(found_by_apollo, FALSE) AND NOT IFNULL(found_by_exa, FALSE)) AS ai_ark_only,
-  COUNTIF(found_by_apollo) AS apollo_found,
-  COUNTIF(found_by_apollo AND NOT IFNULL(found_by_sales_navigator, FALSE) AND NOT IFNULL(found_by_ai_ark, FALSE) AND NOT IFNULL(found_by_exa, FALSE)) AS apollo_only,
-  COUNTIF(found_by_exa) AS exa_found,
-  COUNTIF(found_by_exa AND NOT IFNULL(found_by_sales_navigator, FALSE) AND NOT IFNULL(found_by_ai_ark, FALSE) AND NOT IFNULL(found_by_apollo, FALSE)) AS exa_only
-FROM <native>.tam_universe
+  COUNTIF(sales_navigator) AS sales_navigator_found,
+  COUNTIF(sales_navigator AND NOT ai_ark AND NOT exa AND NOT apollo) AS sales_navigator_only,
+  COUNTIF(ai_ark) AS ai_ark_found,
+  COUNTIF(ai_ark AND NOT sales_navigator AND NOT exa AND NOT apollo) AS ai_ark_only,
+  COUNTIF(exa) AS exa_found,
+  COUNTIF(exa AND NOT sales_navigator AND NOT ai_ark AND NOT apollo) AS exa_only,
+  COUNTIF(apollo) AS apollo_found,
+  COUNTIF(apollo AND NOT sales_navigator AND NOT ai_ark AND NOT exa) AS apollo_only,
+  COUNTIF(ai_ark AND NOT sales_navigator) AS ai_ark_added,
+  COUNTIF(exa AND NOT sales_navigator AND NOT ai_ark) AS exa_added,
+  COUNTIF(apollo AND NOT sales_navigator AND NOT ai_ark AND NOT exa) AS apollo_added
+FROM universe
 WHERE status = 'in_scope'
-```
-
-```sql
-SELECT first_source, COUNT(*) AS added
-FROM <native>.tam_universe
-WHERE status = 'in_scope'
-GROUP BY first_source
 ```
 
 **What each source returned that was not your market.** Read it as each
 source's noise, not as a ranking:
 
 ```sql
-SELECT first_source, exclusion_reason, COUNT(*) AS companies
-FROM <native>.tam_universe
+SELECT
+  CASE WHEN sales_navigator THEN 'sales_navigator' WHEN ai_ark THEN 'ai_ark'
+       WHEN exa THEN 'exa' ELSE 'apollo' END AS first_source,
+  exclusion_reason, COUNT(*) AS companies
+FROM universe
 WHERE status != 'in_scope'
 GROUP BY first_source, exclusion_reason
 ORDER BY first_source, companies DESC
+```
+
+**Merges to read.** An account holding two LinkedIn ids is two companies
+Cargo joined through a shared key (a parent's domain, a short link): read each
+one, fix the key on the row that carries it, and refresh.
+
+```sql
+SELECT _id, ids
+FROM object.accounts
+WHERE JSON_QUERY(ids, '$.object___tam_companies[1]') IS NOT NULL
 ```
 
 **The coverage estimate.** You cannot count the companies no source found, but
@@ -139,12 +186,12 @@ formula is `market ≈ found by A × found by B ÷ found by both`
 
 ```sql
 SELECT
-  COUNTIF(found_by_sales_navigator) AS a,
-  COUNTIF(found_by_apollo) AS b,
-  COUNTIF(found_by_sales_navigator AND found_by_apollo) AS both_lists,
-  SAFE_DIVIDE(COUNTIF(found_by_sales_navigator) * COUNTIF(found_by_apollo),
-              COUNTIF(found_by_sales_navigator AND found_by_apollo)) AS estimated_market
-FROM <native>.tam_universe
+  COUNTIF(sales_navigator) AS a,
+  COUNTIF(apollo) AS b,
+  COUNTIF(sales_navigator AND apollo) AS both_lists,
+  SAFE_DIVIDE(COUNTIF(sales_navigator) * COUNTIF(apollo),
+              COUNTIF(sales_navigator AND apollo)) AS estimated_market
+FROM universe
 WHERE status = 'in_scope'
 ```
 
@@ -154,7 +201,8 @@ Exa (written queries) are not trying to enumerate the market, so they would
 skew it. Report it as a floor: both lists favour companies that are easy to
 see, and the hidden ones are hidden from both. Then coverage is
 `tam ÷ estimated_market`. Below a few hundred companies in the overlap, say
-the estimate is too thin to quote.
+the estimate is too thin to quote. Without Apollo, there is no estimate unless
+a `reference-list` replaces it.
 
 **How many sources found each company.** Companies several sources agree on
 are, in our own build, more often the accounts you want. Keep the split for
@@ -162,12 +210,10 @@ are, in our own build, more often the accounts you want. Keep the split for
 
 ```sql
 SELECT
-  CAST(IFNULL(found_by_sales_navigator, FALSE) AS INT64)
-  + CAST(IFNULL(found_by_ai_ark, FALSE) AS INT64)
-  + CAST(IFNULL(found_by_apollo, FALSE) AS INT64)
-  + CAST(IFNULL(found_by_exa, FALSE) AS INT64) AS sources,
+  CAST(sales_navigator AS INT64) + CAST(ai_ark AS INT64)
+  + CAST(exa AS INT64) + CAST(apollo AS INT64) AS sources,
   COUNT(*) AS companies
-FROM <native>.tam_universe
+FROM universe
 WHERE status = 'in_scope'
 GROUP BY sources
 ORDER BY sources
@@ -180,9 +226,10 @@ The report gives, in this order:
 - per source: found, found by no other source, added in order
 - the coverage estimate with its floor caveat, or why it is too thin
 - the split by number of sources
+- the merges read, and what was fixed
 - actual credits against the estimate (`cargo-ai billing usage get-metrics`),
   with the pricing lookup time
-- the links to `tam_universe` and the four sources
+- the links to Unify Accounts, `tam_companies` and the four sources
 
 ## Openings
 
@@ -197,11 +244,12 @@ End by offering what can be built on the TAM, and recommend one:
 
 ## Complete when
 
-- the plan showed the sources unscheduled and the plays disabled before
-  anything was sourced
-- each source was synced once and processed before the next one started
+- the plan showed the sources unscheduled, Unify Accounts unchanged and the
+  play disabled before anything was sourced
+- each source was synced once, merged and profiled before the next one started
+- every account a TAM source found has a profile, or was read as unresolved
 - the report gives the headline with net new and already in the CRM, the
-  per-source table, the coverage estimate or why it is too thin, and actual
-  credits against the estimate
+  per-source table, the coverage estimate or why it is too thin, the merges
+  read, and actual credits against the estimate
 - the report ended on the openings, with one recommended
 - nothing was written to the CRM

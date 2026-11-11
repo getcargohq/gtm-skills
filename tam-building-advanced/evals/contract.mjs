@@ -10,12 +10,9 @@ import { resetRegistry, resources } from "@cargo-ai/cdk";
 
 resetRegistry();
 const stamp = Date.now();
-for (const file of [
-  "plays/unify-sales-navigator.ts",
-  "plays/unify-ai-ark.ts",
-  "plays/unify-apollo.ts",
-  "plays/unify-exa.ts",
-]) {
+// The play imports everything it reads; the Exa connector is used from the CLI
+// only (references/run.md), so it is loaded on its own, as the deploy does.
+for (const file of ["plays/profile-company.ts", "connectors/exa.ts"]) {
   await import(`../infra/${file}?contract=${stamp}`);
 }
 
@@ -132,77 +129,152 @@ assert.equal(
   "tam_source_sales_navigator must not attach identityIds: the search runs without a LinkedIn seat, and a seat puts that account at risk",
 );
 
-// Exa has no extractor: its source is the written queries.
-const exaQueries = get("model:tam_exa_queries").spec;
-assert.equal(exaQueries.datasetUuid, "native");
+// Exa has no extractor: its source is a native model the operator loads from
+// the queries in settings.ts.
+const exaSource = get("model:tam_source_exa").spec;
+assert.equal(exaSource.datasetUuid, "native");
 assert.ok(
-  exaQueries.config.columns.some((column) => column.slug === "query"),
-  "tam_exa_queries must hold one query per row",
+  exaSource.config.columns.some((column) => column.slug === "domain"),
+  "tam_source_exa must hold the domain of every company Exa found",
 );
 
 // ---------------------------------------------------------------------------
-// One TAM, keyed on the LinkedIn company id, with provenance and the CRM side.
+// One account layer. Every source and the profile model unify into Unify
+// Accounts with a declared (custom) unification, so Cargo does the merge and
+// no workflow ever writes the TAM.
 // ---------------------------------------------------------------------------
-const universe = get("model:tam_universe").spec;
-assert.equal(universe.datasetUuid, "native");
-assert.equal(universe.extractorSlug, "defineCustom");
-const universeColumns = new Set(
-  universe.config.columns.map((column) => column.slug),
-);
+const UNIFIED = {
+  "model:tam_source_sales_navigator": [
+    ["sales_navigator_company_id", "linkedinId"],
+  ],
+  "model:tam_source_ai_ark": [
+    ["domain", "domain"],
+    ["linkedin_url", "linkedinHandle"],
+    ["linkedin_url", "linkedinId"],
+  ],
+  "model:tam_source_apollo": [
+    ["primary_domain", "domain"],
+    ["linkedin_url", "linkedinHandle"],
+    ["linkedin_url", "linkedinId"],
+  ],
+  "model:tam_source_exa": [["domain", "domain"]],
+  "model:tam_companies": [
+    ["linkedin_company_id", "linkedinId"],
+    ["domain", "domain"],
+    ["linkedin_url", "linkedinHandle"],
+  ],
+};
+for (const [id, keys] of Object.entries(UNIFIED)) {
+  const unification = get(id).spec.unification;
+  assert.ok(
+    unification && unification.source === "custom",
+    `${id} must declare its unification (source "custom"): Sales Navigator's default is off, and a default can move`,
+  );
+  assert.equal(unification.type, "account", `${id} must unify as an account`);
+  for (const [slug, reference] of keys) {
+    assert.ok(
+      unification.uniqueColumns.some(
+        (column) => column.slug === slug && column.reference === reference,
+      ),
+      `${id} must unify ${slug} as ${reference}`,
+    );
+  }
+}
+
+// The profile row is the one that carries the LinkedIn id, the page and the
+// domain together: it is what joins a Sales Navigator row to an AI Ark row.
+const profile = get("model:tam_companies").spec;
+assert.equal(profile.datasetUuid, "native");
+const profileColumns = new Set([
+  ...profile.config.columns.map((column) => column.slug),
+  ...(profile.additionalColumns ?? []).map((column) => column.slug),
+]);
 for (const column of [
   "linkedin_company_id",
+  "linkedin_url",
   "domain",
+  "employee_count",
+  "hq_country",
   "category",
+  "subsidiary_probability",
   "status",
   "exclusion_reason",
-  "in_crm",
-  "found_by_sales_navigator",
-  "found_by_ai_ark",
-  "found_by_apollo",
-  "found_by_exa",
-  "first_source",
 ]) {
   assert.ok(
-    universeColumns.has(column),
-    `tam_universe must keep ${column}: the report reads coverage, overlap and net new from it`,
+    profileColumns.has(column),
+    `tam_companies must keep ${column}: the report and the ICP gates read it`,
+  );
+}
+for (const slug of ["status", "exclusion_reason"]) {
+  const column = profile.additionalColumns.find((c) => c.slug === slug);
+  assert.equal(
+    column.kind,
+    "computed",
+    `${slug} must be computed from settings.ts, so moving a gate re-gates every company`,
   );
 }
 
+// Unify Accounts is adopted, never created, and nothing else is declared on
+// it: a declared column list or schedule would replace what other pipelines
+// keep there.
+const accounts = get("model:accounts").spec;
+assert.equal(accounts.extractorSlug, "unifyAccounts");
+assert.equal(
+  accounts.additionalColumns,
+  undefined,
+  "accounts must not declare additionalColumns: the declaration would become the whole list and remove every other pipeline's columns",
+);
+assert.equal(
+  accounts.schedule ?? undefined,
+  undefined,
+  "accounts must not declare a schedule: it is shared",
+);
+
 // ---------------------------------------------------------------------------
-// Every source reaches the TAM through the same door, one play per source,
-// disabled until the first sync, and enrolling only rows that arrive.
+// One play, on Unify Accounts. No play runs on a source model and no tool
+// exists: sources only land rows, Cargo merges them.
 // ---------------------------------------------------------------------------
-const PLAYS = {
-  "play:tam_unify_sales_navigator": "model:tam_source_sales_navigator",
-  "play:tam_unify_ai_ark": "model:tam_source_ai_ark",
-  "play:tam_unify_apollo": "model:tam_source_apollo",
-  "play:tam_search_exa": "model:tam_exa_queries",
-};
-for (const [id, modelId] of Object.entries(PLAYS)) {
-  const spec = get(id).spec;
-  assert.equal(
-    spec.modelUuid.resourceId,
-    modelId,
-    `${id} must run on ${modelId}`,
-  );
-  assert.deepEqual(
-    spec.changeKinds,
-    ["added"],
-    `${id} must enrol only rows that arrive: anything else re-runs the enrichment over rows already in the TAM`,
-  );
-  assert.equal(
-    spec.isEnabled,
-    false,
-    `${id} must ship disabled: it is enabled after the first sync, one source at a time`,
+const plays = [...byId.values()].filter((r) => r.id.startsWith("play:"));
+assert.deepEqual(
+  plays.map((play) => play.id),
+  ["play:tam_profile_companies"],
+  "the pipeline has exactly one play: the profile play on Unify Accounts",
+);
+const play = plays[0].spec;
+assert.equal(
+  play.modelUuid.resourceId,
+  "model:accounts",
+  "the profile play runs on Unify Accounts, after the merge, so a company several sources found is enriched once",
+);
+assert.deepEqual(play.changeKinds, ["added"]);
+assert.equal(
+  play.isEnabled,
+  false,
+  "the profile play ships disabled: the first pass is a batch, after the pilot",
+);
+const filterText = JSON.stringify(play.filter);
+for (const modelId of [
+  "model:tam_source_sales_navigator",
+  "model:tam_source_ai_ark",
+  "model:tam_source_apollo",
+  "model:tam_source_exa",
+  "model:tam_companies",
+]) {
+  assert.ok(
+    filterText.includes(modelId),
+    `the profile play's filter must read ${modelId} on the account`,
   );
 }
-get("tool:tam_unify_company");
-get("tool:tam_write_company");
+assert.equal(
+  [...byId.values()].filter((r) => r.id.startsWith("tool:")).length,
+  0,
+  "no tool: the merge is Cargo's, not a workflow's",
+);
 
 // ---------------------------------------------------------------------------
 // Read only outside Cargo. The connectors are the four sources and LinkedIn;
-// a CRM connector exists only under the crm-backed variation, and only to
-// read its companies.
+// a CRM connector, if the project declares one, only reads its companies,
+// which unify into the same accounts.
 // ---------------------------------------------------------------------------
 const connectors = [...byId.values()]
   .filter((resource) => resource.id.startsWith("connector:"))
@@ -228,5 +300,5 @@ for (const resource of byId.values()) {
 }
 
 console.log(
-  "ok: four sources with their criteria and budgets, one TAM keyed on the LinkedIn company id, one play per source, nothing written outside Cargo",
+  "ok: four sources with their criteria and budgets, all unified into Accounts, one profile play, nothing written outside Cargo",
 );

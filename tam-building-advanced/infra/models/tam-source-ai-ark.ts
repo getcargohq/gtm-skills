@@ -20,16 +20,20 @@ export const tamSourceAiArk = defineModel("tam_source_ai_ark", {
     "TAM source 2 of 4: AI Ark lookalikes of named customers, inside the ICP filters.",
   folder: modelsFolder,
 
-  additionalColumns: [
-    {
-      kind: "custom",
-      slug: "unified_at",
-      type: "date",
-      label: "Unified at",
-      description:
-        "When this row was resolved and written into tam_universe. Empty means not processed yet.",
-    },
-  ],
+  // Into Accounts on the domain and the LinkedIn page. Declared rather than
+  // left to the integration's default, so the TAM does not move if the
+  // default ever does. AI Ark's LinkedIn URLs carry the page name, not the id:
+  // the LinkedIn enrich in the profile play adds the id that joins these rows
+  // to Sales Navigator's.
+  unification: {
+    source: "custom",
+    type: "account",
+    uniqueColumns: [
+      { slug: "domain", reference: "domain" },
+      { slug: "linkedin_url", reference: "linkedinHandle" },
+      { slug: "linkedin_url", reference: "linkedinId" },
+    ],
+  },
 
   // PLACEHOLDER: the ICP as AI Ark filter groups, plus up to five customer
   // domains. Nested groups, never a flat map: a flat key is ignored silently

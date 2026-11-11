@@ -10,7 +10,7 @@ import { modelsFolder } from "../folders";
 // Apollo has no industry taxonomy: industries are keyword tags, which over-
 // and under-match. That is acceptable here because nothing is trusted from the
 // source's label: every company is classified from its own description in the
-// unify tool. Size the pool with a small `limit` first; there is no free count.
+// profile play. Size the pool with a small `limit` first; there is no free count.
 //
 // NO SCHEDULE, ON PURPOSE: every sync re-bills every returned record.
 export const tamSourceApollo = defineModel("tam_source_apollo", {
@@ -21,16 +21,17 @@ export const tamSourceApollo = defineModel("tam_source_apollo", {
     "TAM source 3 of 4: Apollo organizations for the same brief, the second census.",
   folder: modelsFolder,
 
-  additionalColumns: [
-    {
-      kind: "custom",
-      slug: "unified_at",
-      type: "date",
-      label: "Unified at",
-      description:
-        "When this row was resolved and written into tam_universe. Empty means not processed yet.",
-    },
-  ],
+  // Into Accounts on the domain and the LinkedIn page, declared for the same
+  // reason as AI Ark's.
+  unification: {
+    source: "custom",
+    type: "account",
+    uniqueColumns: [
+      { slug: "primary_domain", reference: "domain" },
+      { slug: "linkedin_url", reference: "linkedinHandle" },
+      { slug: "linkedin_url", reference: "linkedinId" },
+    ],
+  },
 
   // PLACEHOLDER: the same brief in Apollo's filters. Employee ranges are
   // strings in Apollo's "min,max" form; locations are free text.

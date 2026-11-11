@@ -6,22 +6,28 @@ written down, the research; each runs after a yes.
 
 ## Reconcile before you edit
 
-Reuse what the project already declares: the source connectors, LinkedIn, a
-`gtm_accounts` model or a CRM companies model, and folders with the same
-slugs. Two resources with one slug collide at deploy.
+Reuse what the project already declares: the source connectors, LinkedIn, and
+folders with the same slugs. Two resources with one slug collide at deploy.
 
-**A workspace that already has `gtm_accounts`** (another pipeline created it):
-bind it with `cargo-ai project import model:gtm_accounts <uuid>`, and declare
-its folder as the one it already sits in, imported the same way
-(`cargo-ai project import folder:<slug> <folderUuid>`). Leave this skill's
-models folder on it and the deploy moves the shared model into
-"TAM building, advanced", which every other pipeline reading it will notice. This skill declares no
-`defineContext`: that resource is a per-workspace singleton owned by the
-project.
+**Unify Accounts.** The workspace must have it (`cargo-ai storage model list`,
+extractor `unifyAccounts`): it exists once a system of record is connected,
+and a deploy cannot create it. If another pipeline in the project already
+declares `accounts` (`readiness-scoring`, `account-scoring`'s
+`unified-account`), import that declaration and delete this skill's
+`infra/models/accounts.ts`. Never add columns or a schedule to it from this
+skill: the declaration would become the whole list.
 
-If `tam-building` is already installed, its `tam_companies` model stays: this
-skill's AI Ark source is a separate model with its own filter. Point its
-lookalike seeds at the same customers.
+**The CRM.** Find the CRM's companies model (`cargo-ai storage model list`)
+and check that it unifies into Unify Accounts: read one account's `ids` and
+look for its key (`hubspot___companies`, `salesforce___account`). HubSpot and
+Salesforce companies unify by default. A CRM that does not unify makes every
+company look net new: fix its unification before you report.
+
+**`tam-building` installed?** Its model is also `tam_companies`: rename this
+skill's profile model before deploying.
+
+This skill declares no `defineContext`: that resource is a per-workspace
+singleton owned by the project.
 
 ## 1. The ICP and the three criteria
 
@@ -77,17 +83,17 @@ coverage gap, flagged for review rather than dropped.
 
 - **Apollo:** the same brief in its filters. There is no free count: deploy
   with a small `limit`, read what comes back, then widen.
-- **Exa:** write one query per category and country into `tam_exa_queries`
-  after the deploy (one row each). Seven categories in eight countries is 56
-  queries; start with the categories you expect providers to file elsewhere.
+- **Exa:** write one query per category and country into `exaQueries` in
+  `infra/settings.ts`. Seven categories in eight countries is 56 queries;
+  start with the categories you expect providers to file elsewhere.
 
 ## 4. The budget
 
 Each paid source has its own `limit`. Present, for each source: the counted
 or sampled pool, its `limit`, the live per-record price, and the estimate.
-Then the enrichment: every company the TAM does not already hold costs one
-LinkedIn lookup and one classification, so estimate them on the expected
-number of distinct companies, not on the sum of the sources. Fetch every
+Then the profile: every distinct company costs one LinkedIn enrich and one
+classification, once, however many sources found it. Estimate it on the
+expected number of distinct companies, not on the sum of the sources. Fetch every
 price immediately before presenting it:
 
 ```sh

@@ -4,7 +4,8 @@ import { salesNavigator } from "../connectors/sales-navigator";
 import { modelsFolder } from "../folders";
 
 // The census: every company LinkedIn files under your filters. Rows come back
-// with the LinkedIn company id, so this source never pays to resolve one.
+// with the LinkedIn company id, which is the key every company in Accounts is
+// merged on.
 //
 // ONE SEARCH SERVES AT MOST 1,000 ACCOUNTS. A market bigger than that is split
 // into several searches, each under the cap, and every search URL goes in
@@ -29,17 +30,16 @@ export const tamSourceSalesNavigator = defineModel(
       "TAM source 1 of 4: Sales Navigator account searches built from the ICP, each under the 1,000-account cap.",
     folder: modelsFolder,
 
-    // The play's stamp: set once the row went through the unify tool.
-    additionalColumns: [
-      {
-        kind: "custom",
-        slug: "unified_at",
-        type: "date",
-        label: "Unified at",
-        description:
-          "When this row was resolved and written into tam_universe. Empty means not processed yet.",
-      },
-    ],
+    // Into Accounts on the LinkedIn company id. Sales Navigator's own
+    // unification is OFF by default: without this declaration its rows never
+    // reach Accounts and the census is invisible to the rest of the TAM.
+    unification: {
+      source: "custom",
+      type: "account",
+      uniqueColumns: [
+        { slug: "sales_navigator_company_id", reference: "linkedinId" },
+      ],
+    },
 
     // PLACEHOLDER: your searches. Each URL must carry the three minimum
     // criteria as Sales Navigator filters: INDUSTRY, COMPANY_HEADCOUNT and

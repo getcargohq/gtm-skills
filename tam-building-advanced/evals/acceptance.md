@@ -24,7 +24,7 @@ adaptation is incomplete.
   included.
 - Apollo was deployed with a small first `limit` and read before widening.
 - The Exa queries are written one per category and country, in the words a
-  buyer would use.
+  buyer would use, in `exaQueries` (`settings.ts`).
 - Every paid source has an explicit `limit` and no schedule.
 - The operator approved the filters, the four limits and the maximum spend in
   one approval, with live prices and their lookup time.
@@ -41,19 +41,26 @@ adaptation is incomplete.
 - `cargo-project` was installed and read before adapting.
 - Every resource is declared in the project; no imperative script sources or
   writes anything.
-- The connectors are the four sources and LinkedIn. A CRM connector exists only
-  under `crm-backed`, and only reads companies with `fetchRecords`.
+- The connectors are the four sources and LinkedIn. The CRM is read through
+  Unify Accounts, never written.
+- Every source model and `tam_companies` declare a custom account unification;
+  Sales Navigator's is there (its default is off).
+- Unify Accounts is adopted with nothing else declared on it, and the plan
+  showed no column or schedule change on it.
+- There is one play, on Unify Accounts, and no tool.
 - This skill declares no `defineContext`.
 - `node --import tsx evals/contract.mjs` passes against the adapted resources,
   and `cargo-ai project types`, `check` and `plan` pass.
 
 ## Results
 
-- The sources were processed one at a time, in order, each finished before the
-  next started.
-- Five rows of each source were piloted and read before its play was enabled.
-- Every row of `tam_universe` carries a LinkedIn company id, a category, a
-  status, and at least one `found_by_*` flag. No company appears twice.
+- The sources were synced, merged into Accounts and profiled one at a time, in
+  order, each finished before the next started.
+- Five accounts of the first source were profiled and read before the rest.
+- Every account a TAM source found has a profile in `tam_companies` with a
+  LinkedIn company id, a category and a status, or was read as unresolved.
+- No LinkedIn company id sits on two accounts, and every account holding two
+  profiles was read.
 - The report gives the headline (TAM, net new, already in the CRM), the
   per-source table (found, only this source, added in order), the exclusion
   reasons by source, the coverage estimate or why it is too thin, and actual

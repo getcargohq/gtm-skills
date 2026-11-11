@@ -1,7 +1,9 @@
 // The ICP gates every company passes through, whatever source found it. The
-// source filters decide what you buy; these decide what counts. A company that
-// fails one is kept, flagged `out_of_scope` with the reason, so the report can
-// say what each source returned that was not your market.
+// source filters decide what you buy; these decide what counts. They are read
+// by the `status` and `exclusion_reason` columns of tam_companies, so moving a
+// threshold re-gates every company at the next sync with no other edit. A
+// company that fails one is kept, flagged `out_of_scope` with the reason, so the
+// report can say what each source returned that was not your market.
 
 // PLACEHOLDER: the size band from `context/icp.md`, in employees on LinkedIn.
 // Read from the company page, not from the size a source reported: the two
@@ -48,3 +50,14 @@ export const subsidiaryThreshold = 0.5;
 
 // How many companies each Exa query asks for. Exa bills per returned result.
 export const exaResultsPerQuery = 50;
+
+// PLACEHOLDER: the Exa queries, one per category and country, written the way a
+// buyer would describe the company, not the way a database files it. They live
+// here so every rebuild runs the same queries and the diff shows what changed.
+// Start with the categories you expect providers to file under the wrong
+// industry. references/run.md runs them and loads what they find into
+// tam_source_exa.
+export const exaQueries = [
+  "AI agent platform headquartered in France, 50 to 1,000 employees, selling to businesses",
+  "Developer tools company headquartered in Germany, 50 to 1,000 employees, selling to software teams",
+];

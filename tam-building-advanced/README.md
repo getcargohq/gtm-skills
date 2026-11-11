@@ -2,11 +2,12 @@
 
 To build a total addressable market (TAM) that is as complete as you can make
 it, give the same brief to four sources, merge everything they find into one
-table keyed on the LinkedIn company id, classify every company into your own
-categories, and measure how much of the market you still miss. This pipeline
-does that in Cargo: Sales Navigator, AI Ark, Apollo and Exa feed one
-`tam_universe` model, every company is marked net new or already in your CRM,
-and the report estimates the companies no source found.
+account per company, classify every company into your own categories, and
+measure how much of the market you still miss. This pipeline does that in
+Cargo: Sales Navigator, AI Ark, Exa and Apollo land in their own models, Cargo's
+account unification merges them (with your CRM's companies) into Unify
+Accounts, one play reads each account once from LinkedIn and classifies it, and
+the report says what is net new and estimates the companies no source found.
 
 ```sh
 cargo-ai project add cookbook/tam-building-advanced
@@ -37,71 +38,77 @@ measure what is still missing.
 
 ```mermaid
 flowchart TD
-    icp["context/icp.md<br/>brief + your categories"]
-    sn["tam_source_sales_navigator<br/>searches under the 1,000 cap"]
-    ark["tam_source_ai_ark<br/>lookalikes inside the ICP"]
-    apollo["tam_source_apollo<br/>the same brief, another database"]
-    exa["tam_exa_queries<br/>written queries"]
-    unify["tam_unify_company<br/>already known? → LinkedIn → tam_write_company"]
-    write["tam_write_company<br/>classify · ICP gates · in CRM or net new"]
-    tam["tam_universe<br/>one row per LinkedIn company id"]
+    icp["context/icp.md + settings.ts<br/>brief, your categories, Exa queries"]
+    sn["tam_source_sales_navigator<br/>LinkedIn id"]
+    ark["tam_source_ai_ark<br/>domain + LinkedIn page"]
+    exa["tam_source_exa<br/>domain"]
+    apollo["tam_source_apollo<br/>domain + LinkedIn page"]
+    crm["your CRM companies"]
+    accounts["Unify Accounts<br/>Cargo merges: one account per company"]
+    play["tam_profile_companies<br/>LinkedIn enrich + classify, once per account"]
+    profile["tam_companies<br/>LinkedIn id + page + domain, category, status"]
     report["Report: net new vs CRM · per source · coverage estimate"]
 
-    icp --> sn & ark & apollo & exa
-    sn & ark & apollo & exa -->|"one play each, in order"| unify
-    unify --> write --> tam --> report
+    icp --> sn & ark & exa & apollo
+    sn & ark & exa & apollo & crm -->|"declared unification"| accounts
+    accounts --> play --> profile
+    profile -->|"unifies back: joins the sources"| accounts
+    accounts --> report
 ```
 
 1. **One brief, four translations.** Industries, company size and countries
    are written into every source, so they search the same market.
-2. **One door.** Every source play calls `tam_unify_company`. It recognises a
-   company the TAM already holds before paying anything, resolves a new one to
-   its LinkedIn page, and hands it to `tam_write_company`.
-3. **Same columns for everyone.** Every new company is read from LinkedIn, so a
-   row Exa found has exactly the columns of a row Sales Navigator found.
-4. **Your categories, not theirs.** Each company is classified from its own
+2. **Cargo merges, not a workflow.** Every source model declares how it
+   identifies a company, and Cargo's account unification merges them into
+   Unify Accounts, normalising LinkedIn URLs and domains itself. Your CRM's
+   companies are in the same accounts, so "already in the CRM" is free.
+3. **One profile per company.** One play runs on each account a TAM source
+   found: a LinkedIn company enrich (the LinkedIn page any source gave, else
+   the domain) and a classification, written to `tam_companies`. A company four
+   sources found is enriched once.
+4. **The profile joins the sources.** Sales Navigator knows a company by its
+   LinkedIn id, AI Ark and Apollo by its domain and LinkedIn page name, Exa by
+   its website. The profile row holds all three and unifies back into the same
+   account, so they become one.
+5. **Your categories, not theirs.** Each company is classified from its own
    description into the categories in `settings.ts`, ideally your CRM's
-   industry values. A provider's industry label is never trusted: LinkedIn
-   files plenty of SaaS under IT services, and plenty of agencies under
-   software.
-5. **Flag, never delete.** Services firms, subsidiaries, companies out of size
-   or country stay in the table with `status` and `exclusion_reason`, so the
-   report can say what each source returned that was not your market.
-6. **Net new or known.** Each company is looked up in your accounts by domain
-   and marked `in_crm` or net new.
-7. **Measure what is missing.** The report estimates the market from the Sales
-   Navigator × Apollo overlap (capture-recapture) and gives your coverage.
+   industry values. A provider's industry label is never trusted.
+6. **Flag, never delete.** `status` and `exclusion_reason` are computed on
+   `tam_companies` from `settings.ts`: services firms, subsidiaries, companies
+   out of size or country stay, with the reason.
+7. **Measure what is missing.** Every account lists which sources found it.
+   The report estimates the market from the Sales Navigator × Apollo overlap
+   (capture-recapture) and gives your coverage.
 
 | File                                          | Resource          | Role                                                     |
 | --------------------------------------------- | ----------------- | -------------------------------------------------------- |
 | `infra/connectors/*.ts`                       | `defineConnector` | the four sources and LinkedIn, on managed connections    |
-| `infra/models/tam-source-*.ts`                | `defineModel`     | the three paid sources: filter, budget, no schedule      |
-| `infra/models/tam-exa-queries.ts`             | `defineModel`     | Exa's written queries, one per row                       |
-| `infra/models/tam-universe.ts`                | `defineModel`     | the TAM, keyed on the LinkedIn company id                |
-| `infra/models/gtm-accounts.ts`                | `defineModel`     | the shared accounts model, read for `in_crm`             |
-| `infra/tools/unify-company.ts`                | `defineTool`      | the one door: dedupe, resolve, enrich                    |
-| `infra/tools/write-company.ts`                | `defineTool`      | classify, gate, CRM check, write                         |
-| `infra/scripts/judge-company.ts`              | `defineScript`    | the ICP gates, deterministic                             |
-| `infra/scripts/company-domain.ts`             | `defineScript`    | the domain: LinkedIn, the source, or the short link's landing |
-| `infra/plays/*.ts`                            | `definePlay`      | one per source, disabled until its first sync            |
-| `infra/settings.ts`                           | (constants)       | size band, countries, your categories                    |
+| `infra/models/tam-source-*.ts`                | `defineModel`     | the four sources: filter, budget, no schedule, declared unification |
+| `infra/models/tam-companies.ts`               | `defineModel`     | one profile per company; `status` and `exclusion_reason` computed |
+| `infra/models/accounts.ts`                    | `defineModel`     | Unify Accounts, adopted, nothing else declared on it     |
+| `infra/plays/profile-company.ts`              | `definePlay`      | the only play: LinkedIn enrich + classify, once per account |
+| `infra/scripts/company-domain.ts`             | `defineScript`    | the domain: LinkedIn, the account, or the short link's landing |
+| `infra/settings.ts`                           | (constants)       | size band, countries, your categories, the Exa queries   |
 
 ## Why these choices
 
-- **The LinkedIn company id is the key.** Websites redirect and names collide,
-  a LinkedIn page has one id. Sources that return only a website are resolved
-  to it first.
-- **The domain is the best evidence available, never a blank by default.**
-  LinkedIn's when it is a real domain; else the one the source returned; else
-  where LinkedIn's short link actually lands (a page listing `bit.ly/…` as its
-  website redirects to the company's site, and the script follows it). All
-  three are free.
-- **Sources run one after another.** A company the TAM already holds is
-  recognised for free, but a native write takes minutes to be readable. Run two
-  sources at once and both pay to enrich the same company.
-- **The overlap is kept.** The `found_by_*` flags say which sources found each
-  company. Their sum is a fit signal, and the Sales Navigator × Apollo overlap
-  is the coverage estimate.
+- **Cargo's unification is the merge.** It already normalises LinkedIn URLs
+  and domains and follows a chain of keys across rows. A workflow doing the
+  same is slower, costs runs, and builds a second account layer next to the
+  one every other pipeline reads.
+- **The LinkedIn enrich is the identity.** It turns whatever a source gave
+  (an id, a page name, a website) into the same three keys and the same
+  columns, so a company Exa found reads exactly like one Sales Navigator found.
+- **The domain is the best evidence available, never a short link.**
+  LinkedIn's when it is a real domain; else the account's; else where
+  LinkedIn's short link actually lands. A short link written as a domain is a
+  key unrelated companies share, and Cargo would merge them.
+- **Sources run one after another.** Profile one source's accounts before
+  the next syncs, and the next source mostly merges onto accounts that already
+  have a profile, for free.
+- **The overlap is kept.** Every account lists which sources found it. The
+  number is a fit signal, and the Sales Navigator × Apollo overlap is the
+  coverage estimate.
 - **No schedule on a paid source.** A cron re-bills every record, including
   the companies already in the TAM. Re-source when you decide to.
 - **Nothing is written outside Cargo.** Pushing the net new into the CRM is a
@@ -111,13 +118,14 @@ flowchart TD
 
 1. **The ICP and categories**: copy `context/icp.md` into the project's
    `context/`, or keep the one there.
-2. **`infra/settings.ts`**: size band, countries, your categories.
+2. **`infra/settings.ts`**: size band, countries, your categories, the Exa
+   queries.
 3. **Each source's filter and `limit`**: `infra/models/tam-source-*.ts`. Sales
    Navigator URLs come from `extract-sales-navigator-search` when the market is
    over 1,000 accounts.
-4. **The Exa queries**: rows in `tam_exa_queries` after the deploy.
-5. **The CRM**: `gtm_accounts` by default; the `crm-backed` variation reads
-   HubSpot or Salesforce companies instead.
+4. **The CRM**: nothing to declare. Its companies model must unify into
+   Unify Accounts (HubSpot and Salesforce companies do by default); the report
+   reads its key in each account's `ids`.
 
 ## Verification
 
