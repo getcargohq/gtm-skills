@@ -58,7 +58,7 @@ For each source:
    ```
 
    The key is `<dataset slug>___<model slug>` (`sales_navigator___…`,
-   `ai_ark___…`, `apolloio___…`, `object___…` for native models). The dataset
+   `ai_ark___…`, `exa___…`, `apolloio___…`, `object___…` for native models). The dataset
    slug is not always the connector slug: read one account's `ids` and use
    the keys you see in every query below. A brand-new company can take up to half an
    hour to appear. Wait until the count matches the source's row count, give
@@ -107,7 +107,7 @@ WITH tam AS (
     a._id AS account_id,
     JSON_QUERY(a.ids, '$.sales_navigator___tam_source_sales_navigator') IS NOT NULL AS sales_navigator,
     JSON_QUERY(a.ids, '$.ai_ark___tam_source_ai_ark') IS NOT NULL AS ai_ark,
-    JSON_QUERY(a.ids, '$.object___tam_source_exa') IS NOT NULL AS exa,
+    JSON_QUERY(a.ids, '$.exa___tam_source_exa') IS NOT NULL AS exa,
     JSON_QUERY(a.ids, '$.apolloio___tam_source_apollo') IS NOT NULL AS apollo,
     JSON_QUERY(a.ids, '$.hubspot___companies') IS NOT NULL AS in_crm,
     JSON_VALUE(a.ids, '$.object___tam_accounts[0]') AS profile_id
