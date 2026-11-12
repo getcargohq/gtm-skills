@@ -48,8 +48,8 @@ export const unknownCategory = "Not enough information";
 // are flagged, lower it if "Acme France" pages get through.
 export const subsidiaryThreshold = 0.5;
 
-// How many companies each Exa query asks for (1 to 100). Exa bills per
-// returned result, so the Exa budget is the number of queries times this.
+// How many companies each Exa query asks for (1 to 100). Exa bills per search
+// plus per result past the tenth, so the queries times this is the cap.
 export const exaResultsPerQuery = 50;
 
 // PLACEHOLDER: the Exa queries, one per category and country, written the way a
