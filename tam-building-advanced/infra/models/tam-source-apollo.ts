@@ -34,6 +34,7 @@ export const tamSourceApollo = defineModel("tam_source_apollo", {
       { slug: "primary_domain", reference: "domain" },
       { slug: "linkedin_uid", reference: "linkedinId" },
       { slug: "linkedin_url", reference: "linkedinHandle" },
+      // Only a URL that carries the numeric id (/company/12345) yields one.
       { slug: "linkedin_url", reference: "linkedinId" },
     ],
   },

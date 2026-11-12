@@ -1,8 +1,8 @@
 ---
 name: tam-building-advanced
 description: 'Build your total addressable market (TAM) from several sources as one account layer in Cargo: one brief goes to Sales Navigator, AI Ark lookalikes, Exa and Apollo, Cargo merges every company into one account, each is classified into your own categories, flagged in or out of scope with the reason and marked net new or already in your CRM, and the report estimates what no source found. Triggers: "build our TAM from several data providers", "how much of our market do we actually have", "which of our TAM is net new and which is already in the CRM", "estimate the size of our market from our own data". Cargo project, salesNavigator, aiArk, exa, linkedin, unifyAccounts, classify. Skip when: one source and one model are enough, which is tam-building; a list in the chat or a CSV, which is build-tam-list; or only a Sales Navigator search past its cap, which is extract-sales-navigator-search.'
-version: "0.2.0"
-compatibility: "Requires the cargo-project skill, a Cargo project (cargo.json at its root) and @cargo-ai/cdk 1.0.139 or later. Sales Navigator, AI Ark, Apollo, Exa and LinkedIn run on Cargo's managed connections: no API key, and no LinkedIn seat, user or cookie. Needs Unify Accounts (a workspace with a system of record). A CRM is optional: its companies unify into the same accounts, which is how net new is measured. The repository example does not deploy or source anything until an agent adapts it in the consumer project."
+version: "0.3.0"
+compatibility: "Requires the cargo-project skill, a Cargo project (cargo.json at its root) and @cargo-ai/cdk 1.0.143 or later (earlier versions bill both lookups of the profile play). Sales Navigator, AI Ark, Apollo, Exa and LinkedIn run on Cargo's managed connections: no API key, and no LinkedIn seat, user or cookie. Needs Unify Accounts (a workspace with a system of record). A CRM is optional: its companies unify into the same accounts, which is how net new is measured. The repository example does not deploy or source anything until an agent adapts it in the consumer project."
 homepage: https://github.com/getcargohq/gtm-skills/tree/main/tam-building-advanced
 metadata:
   author: getcargo
@@ -50,8 +50,8 @@ merges them into Unify Accounts and normalises the keys itself. Then one play re
 once: a LinkedIn company enrich (from the LinkedIn page any source gave, else the domain) and a
 classification, written as one profile row in `tam_companies`. That row carries the LinkedIn id, the
 page, LinkedIn's domain and the account's own domain together and unifies back into the same account:
-it is what joins the company Sales Navigator found to the same company AI Ark found. A company four sources found is enriched
-once.
+it is what joins the company Sales Navigator found to the same company AI Ark found. A company four
+sources found is enriched once.
 
 **Your categories, not the providers'.** Every company is classified from its own description into
 the categories you set, ideally the values of your CRM's industry field. A provider's industry label
@@ -166,9 +166,9 @@ or template work if the skill cannot be installed or read.
    file. Then run `node --import tsx evals/contract.mjs` from this skill's folder, followed by
    `cargo-ai project types && cargo-ai project check && cargo-ai project plan` from the project root.
    Show the diff and deploy. Never run `cargo-ai project init --force` in a non-empty directory.
-6. **Source and report.** Follow [`references/run.md`](references/run.md): one source at a time, the profile
-   batch piloted on five accounts before the rest, then the report queries, and walk _Done when_ line by line with evidence. Deployed
-   cleanly and produced nothing is the normal failure.
+6. **Source and report.** Follow [`references/run.md`](references/run.md): one source at a time, the
+   profile batch piloted on five accounts before the rest, then the report queries, and walk _Done
+   when_ line by line with evidence. Deployed cleanly and produced nothing is the normal failure.
 
 ## What you will be asked
 
@@ -227,9 +227,7 @@ you still want it, and records why under `## Decisions` in your copy of this fil
   the profile row is what joins the Sales Navigator row to the others.
 - **The profile matches on both domains.** (`infra/models/tam-companies.ts`) LinkedIn's domain and the
   account's own often differ (`corporate.acme.example` against `acme.example`). Match on LinkedIn's
-  only and the profile becomes an account of its own while the source account stays unprofiled. Both
-  keys go through a computed column that turns an empty value into null: an empty string is a key,
-  and every row sharing it would merge.
+  only and the profile becomes an account of its own while the source account stays unprofiled.
 - **A company's domain comes from evidence, never from a short link.** (`infra/scripts/company-domain.ts`)
   LinkedIn's domain when it is real, else the account's, else where LinkedIn's short link lands. A
   `bit.ly` or `hubs.ly` host written as a domain is a key shared by unrelated companies, and Cargo
@@ -281,8 +279,9 @@ Read this before pointing the skill at a market-sized brief.
 **Counting is free on AI Ark** and a fixed fee per search on Sales Navigator. Count every candidate
 before anything syncs.
 
-**Sourcing bills per returned record** on Sales Navigator, AI Ark and Apollo, and per returned result on
-Exa. Each source's `limit` (or the number of queries times `exaResultsPerQuery`) is its invoice.
+**Sourcing bills per returned record** on Sales Navigator, AI Ark and Apollo, and per search plus per
+result past the tenth on Exa. Each source's `limit` (or the number of queries times
+`exaResultsPerQuery`) is its cap.
 
 **Enrichment bills once per company, not per source.** Cargo merges the sources before the play runs,
 so a company four sources found is one account and one profile: one LinkedIn enrich and one

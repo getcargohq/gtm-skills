@@ -180,8 +180,8 @@ const UNIFIED = {
   "model:tam_source_exa": [["domain", "domain"]],
   "model:tam_companies": [
     ["linkedin_company_id", "linkedinId"],
-    ["computed__match_domain", "domain"],
-    ["computed__match_account_domain", "domain"],
+    ["domain", "domain"],
+    ["account_domain", "domain"],
     ["linkedin_url", "linkedinHandle"],
   ],
 };
@@ -215,8 +215,6 @@ for (const column of [
   "linkedin_url",
   "domain",
   "account_domain",
-  "match_domain",
-  "match_account_domain",
   "employee_count",
   "hq_country",
   "category",

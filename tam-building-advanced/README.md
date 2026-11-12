@@ -63,9 +63,10 @@ flowchart TD
    Unify Accounts, normalising LinkedIn URLs and domains itself. Your CRM's
    companies are in the same accounts, so "already in the CRM" is free.
 3. **One profile per company.** One play, a build step run as a batch after
-   each source sync, reads each account a TAM source found: a LinkedIn company enrich (the LinkedIn page any source gave, else
-   the domain) and a classification, written to `tam_companies`. A company four
-   sources found is enriched once.
+   each source sync, reads each account a TAM source found: a LinkedIn company
+   enrich (the LinkedIn page any source gave, else the domain) and a
+   classification, written to `tam_companies`. A company four sources found is
+   enriched once.
 4. **The profile joins the sources.** Sales Navigator knows a company by its
    LinkedIn id, Apollo by the same id plus its domain and page name, AI Ark by
    its domain and LinkedIn page name, Exa by its website. Apollo and Sales
