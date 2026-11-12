@@ -9,7 +9,7 @@ database is found by another.
 | --------------- | ------------------------------------ | --------------------------------------------------- | ---------------------------------- |
 | Sales Navigator | The census: every company LinkedIn files under your filters | `tam_source_sales_navigator` (`fetchAccountSearch`) | the LinkedIn company id |
 | AI Ark          | Lookalikes of the customers you name | `tam_source_ai_ark` (`fetchCompanies`)              | the domain and the LinkedIn page   |
-| Exa             | Search by meaning: what the website says the company does | `tam_source_exa` (native, loaded from the CLI) | the domain |
+| Exa             | Search by meaning: what the website says the company does | `tam_source_exa` (`fetchSearch`) | the domain |
 | Apollo          | The second census, a different database; optional | `tam_source_apollo` (`fetchOrganizations`) | the domain and the LinkedIn page   |
 
 Every source declares its unification (`source: "custom"`, type `account`), and
@@ -69,9 +69,13 @@ column.
 
 - **For:** it finds companies by what their website says, which is how it
   reaches the ones LinkedIn files under an industry nobody would filter on.
-- **Against:** it has no extractor. The queries live in `exaQueries`
-  (`settings.ts`); references/run.md runs each one once from the CLI and writes
-  one row per company found into `tam_source_exa`. Billed per returned result.
+- **Against:** it only finds what the queries describe, and it returns the
+  domain alone: no LinkedIn page, so it reaches Sales Navigator's accounts
+  only through the profile play. The queries live in `exaQueries`
+  (`settings.ts`, at most 50); a sync runs each one once, with `category:
+  "company"` so every result is a company and its own domain. Billed per
+  request plus per result past the tenth: queries × `exaResultsPerQuery` is the
+  cap.
 - **Queries that worked:** one per category and country, written the way a
   buyer would describe the company: "AI agent platform headquartered in
   France, 50 to 1,000 employees, selling to businesses".

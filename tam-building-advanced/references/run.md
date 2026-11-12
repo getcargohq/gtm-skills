@@ -46,7 +46,7 @@ For each source:
 
 1. **The rows landed.** `cargo-ai storage run list --model-uuid <sourceUuid>`
    shows the sync finished. Do not start a second one: it bills every record
-   again. For Exa, run the queries first (below).
+   again.
 2. **Accounts merged them.** Refresh Unify Accounts
    (`cargo-ai storage run create --model-uuid <accountsUuid>`, then poll
    `storage run list`). Refreshing rebuilds the merge; it never re-runs a
@@ -84,21 +84,6 @@ For each source:
 5. **Done when** no account a source found is left without a profile: the
    play's filter returns nothing, or only accounts whose LinkedIn page could
    not be read (the play returns `unresolved` for them; read a few).
-
-**Exa.** For each query in `exaQueries` (`settings.ts`), run it once and write
-one row per result into `tam_source_exa` (`domain` from the result's URL, plus
-`url`, `title`, `query`, `searched_at`):
-
-```sh
-cargo-ai orchestration action execute --wait-until-finished \
-  --action '{"kind":"connector","integrationSlug":"exa","actionSlug":"search","config":{}}' \
-  --data '{"query":"<query>","category":"company","searchType":"auto","numResults":<exaResultsPerQuery>}'
-```
-
-Write the rows with the native `modelUpsert` action, matched on `domain`
-(everything in `--data`: `modelUuid`, `matchingColumnSlug`, `matchingValue`,
-`mappings`). A row written natively can take minutes to be readable: refresh
-Accounts after the last write, not between writes.
 
 ## Refresh
 

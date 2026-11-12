@@ -10,11 +10,8 @@ import { resetRegistry, resources } from "@cargo-ai/cdk";
 
 resetRegistry();
 const stamp = Date.now();
-// The play imports everything it reads; the Exa connector is used from the CLI
-// only (references/run.md), so it is loaded on its own, as the deploy does.
-for (const file of ["plays/profile-company.ts", "connectors/exa.ts"]) {
-  await import(`../infra/${file}?contract=${stamp}`);
-}
+// The play imports everything it reads, every source included.
+await import(`../infra/plays/profile-company.ts?contract=${stamp}`);
 
 const byId = new Map(resources().map((resource) => [resource.id, resource]));
 
@@ -147,13 +144,33 @@ assert.equal(
   "tam_source_sales_navigator must not attach identityIds: the search runs without a LinkedIn seat, and a seat puts that account at risk",
 );
 
-// Exa has no extractor: its source is a native model the operator loads from
-// the queries in settings.ts.
+// Exa has no `limit`: its cap is the number of queries times `numResults`,
+// and only company results carry the company's own domain.
 const exaSource = get("model:tam_source_exa").spec;
-assert.equal(exaSource.datasetUuid, "native");
+assert.equal(integrationOf(exaSource), "exa", "tam_source_exa must source from exa");
+assert.equal(
+  exaSource.extractorSlug,
+  "fetchSearch",
+  "tam_source_exa must use exa.fetchSearch",
+);
 assert.ok(
-  exaSource.config.columns.some((column) => column.slug === "domain"),
-  "tam_source_exa must hold the domain of every company Exa found",
+  Array.isArray(exaSource.config.queries) &&
+    exaSource.config.queries.length > 0,
+  "tam_source_exa must run the queries in exaQueries (settings.ts)",
+);
+assert.equal(
+  typeof exaSource.config.numResults,
+  "number",
+  "tam_source_exa must set numResults: with the number of queries, it is the only cap on what Exa bills",
+);
+assert.equal(
+  exaSource.config.category,
+  "company",
+  "tam_source_exa must search companies: any other category returns publishers' pages, whose domains would become accounts",
+);
+assert.ok(
+  atMostQuarterly(exaSource.schedule),
+  "tam_source_exa: no schedule, or a refresh at most once every three months. A sync re-runs every query and re-bills every result",
 );
 
 // ---------------------------------------------------------------------------
