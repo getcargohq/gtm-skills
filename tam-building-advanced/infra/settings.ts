@@ -1,6 +1,6 @@
 // The ICP gates every company passes through, whatever source found it. The
 // source filters decide what you buy; these decide what counts. They are read
-// by the `status` and `exclusion_reason` columns of tam_companies, so moving a
+// by the `status` and `exclusion_reason` columns of tam_accounts, so moving a
 // threshold re-gates every company at the next sync with no other edit. A
 // company that fails one is kept, flagged `out_of_scope` with the reason, so the
 // report can say what each source returned that was not your market.

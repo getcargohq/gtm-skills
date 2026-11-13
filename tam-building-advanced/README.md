@@ -46,7 +46,7 @@ flowchart TD
     crm["your CRM companies"]
     accounts["Unify Accounts<br/>Cargo merges: one account per company"]
     play["tam_profile_companies<br/>LinkedIn enrich + classify, once per account"]
-    profile["tam_companies<br/>LinkedIn id + page + domain, category, status"]
+    profile["tam_accounts<br/>LinkedIn id + page + domain, category, status"]
     report["Report: net new vs CRM · per source · coverage estimate"]
 
     icp --> sn & ark & exa & apollo
@@ -63,19 +63,21 @@ flowchart TD
    Unify Accounts, normalising LinkedIn URLs and domains itself. Your CRM's
    companies are in the same accounts, so "already in the CRM" is free.
 3. **One profile per company.** One play, a build step run as a batch after
-   each source sync, reads each account a TAM source found: a LinkedIn company enrich (the LinkedIn page any source gave, else
-   the domain) and a classification, written to `tam_companies`. A company four
-   sources found is enriched once.
+   each source sync, reads each account a TAM source found: a LinkedIn company
+   enrich (the LinkedIn page any source gave, else the domain) and a
+   classification, written to `tam_accounts`. A company four sources found is
+   enriched once.
 4. **The profile joins the sources.** Sales Navigator knows a company by its
-   LinkedIn id, AI Ark and Apollo by its domain and LinkedIn page name, Exa by
-   its website. The profile row holds the LinkedIn id, the page, LinkedIn's
-   domain and the account's own domain, and unifies back into the same
-   account, so they become one.
+   LinkedIn id, Apollo by the same id plus its domain and page name, AI Ark by
+   its domain and LinkedIn page name, Exa by its website. Apollo and Sales
+   Navigator merge on the id directly. For the rest, the profile row holds the
+   LinkedIn id, the page, LinkedIn's domain and the account's own domain, and
+   unifies back into the same account, so they become one.
 5. **Your categories, not theirs.** Each company is classified from its own
    description into the categories in `settings.ts`, ideally your CRM's
    industry values. A provider's industry label is never trusted.
 6. **Flag, never delete.** `status` and `exclusion_reason` are computed on
-   `tam_companies` from `settings.ts`: services firms, subsidiaries, companies
+   `tam_accounts` from `settings.ts`: services firms, subsidiaries, companies
    out of size or country stay, with the reason.
 7. **Measure what is missing.** Every account lists which sources found it.
    The report estimates the market from the Sales Navigator × Apollo overlap
@@ -85,7 +87,7 @@ flowchart TD
 | --------------------------------------------- | ----------------- | -------------------------------------------------------- |
 | `infra/connectors/*.ts`                       | `defineConnector` | the four sources and LinkedIn, on managed connections    |
 | `infra/models/tam-source-*.ts`                | `defineModel`     | the four sources: filter, budget, no schedule, declared unification |
-| `infra/models/tam-companies.ts`               | `defineModel`     | one profile per company; `status` and `exclusion_reason` computed |
+| `infra/models/tam-accounts.ts`               | `defineModel`     | one profile per company; `status` and `exclusion_reason` computed |
 | `infra/models/accounts.ts`                    | `defineModel`     | Unify Accounts, adopted, nothing else declared on it     |
 | `infra/plays/profile-company.ts`              | `definePlay`      | the only play: LinkedIn enrich + classify, once per account |
 | `infra/scripts/company-domain.ts`             | `defineScript`    | the domain: LinkedIn, the account, or the short link's landing |

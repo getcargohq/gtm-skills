@@ -31,6 +31,7 @@ export const tamSourceAiArk = defineModel("tam_source_ai_ark", {
     uniqueColumns: [
       { slug: "domain", reference: "domain" },
       { slug: "linkedin_url", reference: "linkedinHandle" },
+      // Only a URL that carries the numeric id (/company/12345) yields one.
       { slug: "linkedin_url", reference: "linkedinId" },
     ],
   },
