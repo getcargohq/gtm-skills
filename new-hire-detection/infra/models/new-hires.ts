@@ -45,16 +45,17 @@ const search = {
   regions: [{ id: "103644278", text: "United States" }],
 };
 
-// Sales Navigator reads its query as a nested list in which every free-text
-// value is encoded once and the whole query is encoded again. A single
-// encoding pass loads an empty search page, and the extractor then returns
-// nothing while reporting success.
-const encodeText = (value: string) =>
-  encodeURIComponent(value).replace(
-    /[!'()*]/g,
-    (char) => "%" + char.charCodeAt(0).toString(16).toUpperCase(),
-  );
-
+// Sales Navigator reads its query as a nested list, and `searchUrl` below
+// encodes the whole query once. Facet text goes in raw. Encoding it a second
+// time is invisible on the facets that carry an `id` (the id wins and the text
+// is ignored), but `CURRENT_TITLE` has no id, so a double-encoded title matches
+// nobody: on 2026-10-30, `searchPersonMetrics` counted this search at 0 leads
+// with the titles encoded twice and 108 with them encoded once. A sync that
+// reports success with zero rows is usually this. Recount after any change to
+// `search`.
+//
+// `searchUrl` restores `:` and `,` after encoding, so a facet value containing
+// either character breaks the query. Keep them out of titles.
 type Facet = { id?: string; text: string; excluded?: boolean };
 
 const facet = (type: string, values: Facet[]) =>
@@ -63,7 +64,7 @@ const facet = (type: string, values: Facet[]) =>
       (value) =>
         "(" +
         (value.id === undefined ? "" : `id:${value.id},`) +
-        `text:${encodeText(value.text)},selectionType:${
+        `text:${value.text},selectionType:${
           value.excluded === true ? "EXCLUDED" : "INCLUDED"
         })`,
     )

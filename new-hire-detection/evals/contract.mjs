@@ -51,6 +51,16 @@ for (const url of urls) {
     );
   }
 }
+// Facet text is encoded once, with the query. A double-encoded title (a `%25`
+// escape inside `CURRENT_TITLE`) matches nobody, and the sync reports success
+// with zero rows.
+for (const url of urls) {
+  const title = /type:CURRENT_TITLE,values:List\((.*?)\)\)/.exec(url)?.[1] ?? "";
+  assert.ok(
+    !title.includes("%25"),
+    "CURRENT_TITLE text must be encoded once: a double-encoded title returns 0 leads",
+  );
+}
 assert.ok(
   model.spec.config.limit <= 2500,
   "limit is per URL and Sales Navigator returns at most 2,500 per search",
