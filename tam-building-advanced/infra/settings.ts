@@ -48,15 +48,15 @@ export const unknownCategory = "Not enough information";
 // are flagged, lower it if "Acme France" pages get through.
 export const subsidiaryThreshold = 0.5;
 
-// How many companies each Exa query asks for. Exa bills per returned result.
+// How many companies each Exa query asks for (1 to 100). Exa bills per search
+// plus per result past the tenth, so the queries times this is the cap.
 export const exaResultsPerQuery = 50;
 
 // PLACEHOLDER: the Exa queries, one per category and country, written the way a
 // buyer would describe the company, not the way a database files it. They live
 // here so every rebuild runs the same queries and the diff shows what changed.
 // Start with the categories you expect providers to file under the wrong
-// industry. references/run.md runs them and loads what they find into
-// tam_source_exa.
+// industry. tam_source_exa runs each one once per sync, at most 50.
 export const exaQueries = [
   "AI agent platform headquartered in France, 50 to 1,000 employees, selling to businesses",
   "Developer tools company headquartered in Germany, 50 to 1,000 employees, selling to software teams",

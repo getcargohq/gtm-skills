@@ -46,7 +46,7 @@ For each source:
 
 1. **The rows landed.** `cargo-ai storage run list --model-uuid <sourceUuid>`
    shows the sync finished. Do not start a second one: it bills every record
-   again. For Exa, run the queries first (below).
+   again.
 2. **Accounts merged them.** Refresh Unify Accounts
    (`cargo-ai storage run create --model-uuid <accountsUuid>`, then poll
    `storage run list`). Refreshing rebuilds the merge; it never re-runs a
@@ -58,7 +58,7 @@ For each source:
    ```
 
    The key is `<dataset slug>___<model slug>` (`sales_navigator___…`,
-   `ai_ark___…`, `apolloio___…`, `object___…` for native models). The dataset
+   `ai_ark___…`, `exa___…`, `apolloio___…`, `object___…` for native models). The dataset
    slug is not always the connector slug: read one account's `ids` and use
    the keys you see in every query below. A brand-new company can take up to half an
    hour to appear. Wait until the count matches the source's row count, give
@@ -85,21 +85,6 @@ For each source:
    play's filter returns nothing, or only accounts whose LinkedIn page could
    not be read (the play returns `unresolved` for them; read a few).
 
-**Exa.** For each query in `exaQueries` (`settings.ts`), run it once and write
-one row per result into `tam_source_exa` (`domain` from the result's URL, plus
-`url`, `title`, `query`, `searched_at`):
-
-```sh
-cargo-ai orchestration action execute --wait-until-finished \
-  --action '{"kind":"connector","integrationSlug":"exa","actionSlug":"search","config":{}}' \
-  --data '{"query":"<query>","category":"company","searchType":"auto","numResults":<exaResultsPerQuery>}'
-```
-
-Write the rows with the native `modelUpsert` action, matched on `domain`
-(everything in `--data`: `modelUuid`, `matchingColumnSlug`, `matchingValue`,
-`mappings`). A row written natively can take minutes to be readable: refresh
-Accounts after the last write, not between writes.
-
 ## Refresh
 
 Every three to four months is enough. By hand: re-count Sales Navigator,
@@ -122,7 +107,7 @@ WITH tam AS (
     a._id AS account_id,
     JSON_QUERY(a.ids, '$.sales_navigator___tam_source_sales_navigator') IS NOT NULL AS sales_navigator,
     JSON_QUERY(a.ids, '$.ai_ark___tam_source_ai_ark') IS NOT NULL AS ai_ark,
-    JSON_QUERY(a.ids, '$.object___tam_source_exa') IS NOT NULL AS exa,
+    JSON_QUERY(a.ids, '$.exa___tam_source_exa') IS NOT NULL AS exa,
     JSON_QUERY(a.ids, '$.apolloio___tam_source_apollo') IS NOT NULL AS apollo,
     JSON_QUERY(a.ids, '$.hubspot___companies') IS NOT NULL AS in_crm,
     JSON_VALUE(a.ids, '$.object___tam_accounts[0]') AS profile_id
