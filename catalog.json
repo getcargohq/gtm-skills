@@ -3465,9 +3465,9 @@
     {
       "name": "win-loss-review",
       "kind": "cookbook",
-      "job": "Run a monthly win-loss review of your CRM's closed deals, landed in context/ as one pull request: the ICP verified against won versus lost with a disqualifier, dated insights with counts and denominators, objections from recorded lost reasons, and a client file per closed-won account; a five-line Slack digest says what changed. Never edits a persona, nor the ICP after the first pass.",
-      "description": "Run a monthly win-loss review of your CRM's closed deals, landed in context/ as one pull request: the ICP verified against won versus lost with a disqualifier, dated insights with counts and denominators, objections from recorded lost reasons, and a client file per closed-won account; a five-line Slack digest says what changed. Never edits a persona, nor the ICP after the first pass. Triggers: \"verify our ICP against won and lost deals\", \"what do closed-lost deals say about who we should not sell to\", \"keep the context repo current from the CRM every month\", \"our lost reasons should become objections\", \"run a monthly win-loss review\". Cargo project, harness claudeCode, HubSpot, Salesforce, Attio, Slack. Skip when: there is no CRM yet and the context should come from the website, which is web-capture; or you want one account researched before a call, which is research-account.",
-      "version": "0.1.2",
+      "job": "Learn who to sell to from your own deals, landed in context/ by pull request. Once, a scoring pass defines your best customers from outcomes (never deal size alone), tests standard and custom attributes against them, and writes context/icp/scoring.md, the fit model account-scoring applies. Monthly, an agent verifies the ICP against won versus lost and appends insights, objections and client files.",
+      "description": "Learn who to sell to from your own deals, landed in context/ by pull request. Once, a scoring pass defines your best customers from outcomes (never deal size alone), tests standard and custom attributes against them, and writes context/icp/scoring.md, the fit model account-scoring applies. Monthly, an agent verifies the ICP against won versus lost and appends insights, objections and client files. Triggers: \"what do our best customers have in common\", \"which custom data points predict a great customer\", \"verify our ICP against won and lost deals\", \"keep the context repo current from the CRM every month\", \"our lost reasons should become objections\". Cargo project, claudeCode, HubSpot, Salesforce, Attio, Slack. Skip when: no CRM yet (web-capture); one account before a call (research-account); grading the market with an existing model (account-scoring).",
+      "version": "0.2.0",
       "homepage": "https://github.com/getcargohq/gtm-skills/tree/main/win-loss-review",
       "group": "Context",
       "install": "cargo-ai project add cookbook/win-loss-review",
@@ -3484,8 +3484,8 @@
         "slack"
       ],
       "example": {
-        "prompt": "Every month, read what our HubSpot won and lost deals say, verify the ICP, and post the digest to #gtm-context.",
-        "output": "```text\n:bar_chart: *Win-loss review Oct 2026*: 23 deals closed\nWon 9, lost 14 · lost reason on 11 of 14 · contacts on 19 of 23\nLearned: a RevOps title at 6 of 9 won accounts · 8 of 14 losses were under 50 employees · \"no budget this quarter\" on 5 of 11 reasons\nProposed: add \"under 50 employees\" as an ICP disqualifier (8 of 14 losses, 0 of 9 wins), in the PR body\nPR: https://github.com/northwind/gtm/pull/331\n```\n\nThe pull request adds four dated `insight/` files, two `objection/` files and nine `client/` files,\nand modifies nothing under `icp/` or `persona/`; the disqualifier waits for a human."
+        "prompt": "Build our scoring model from the last twelve months of won and lost deals, then keep the context current every month.",
+        "output": "```text\ncontext/icp/scoring.md · model_version 1 · window 2025-11 to 2026-10 · confidence: validated\nTier 1: renewed or expanded, live within 45 days, top half for support load (12 of 50 customers)\nStrongest: data team of 20+ (9 of 12 Tier 1, 7 of 38 Tier 2, held in the period before)\nThen: marketplace or consumer subscription (10 of 12 Tier 1, 14 of 38 Tier 2)\nNo Fit: under 50 employees (0 of 12 Tier 1, 1 of 38 Tier 2) · agencies (never targeted)\nDropped: warehouse vendor (no gap), uses our API (only visible after buying)\nCohort in bands: 10 of 12 Tier 1 Strong · 27 of 38 Tier 2 Moderate · 41 of 63 lost Weak\n\n:bar_chart: *Win-loss review Oct 2026*: 23 deals closed\nWon 9, lost 14 · lost reason on 11 of 14 · contacts on 19 of 23\nLearned: a RevOps title at 6 of 9 won accounts · 8 of 14 losses under 50 employees\nProposed: none\nPR: https://github.com/northwind/gtm/pull/331\n```\n\nThe scoring pass opened one pull request with `scoring.md`, its run record and the evidence table;\nthe monthly run opened another that adds files and modifies nothing under `icp/` or `persona/`."
       },
       "state": "to-be-approved",
       "chain": 13,
@@ -3501,6 +3501,12 @@
           "kind": "generated",
           "how": "**derived** from the queries, as the prompt describes; a seeded ICP gets one dated \"Verified against the CRM\" section on the first pass and is never edited after",
           "why": "The disqualifier is the half of an ICP that protects the team's time, and won versus lost is the only place it comes from with evidence"
+        },
+        {
+          "input": "icp/scoring.md",
+          "kind": "generated",
+          "how": "**derived** by the scoring pass, in the shape `references/scoring-format.md` fixes",
+          "why": "It is the model every fit grade in the market comes from"
         }
       ],
       "canChange": [
@@ -3525,7 +3531,7 @@
         {
           "id": "wider_window",
           "when": "Your sales cycle is longer than a year, or last year was not representative",
-          "how": "Raise `WINDOW_DAYS` in the same file",
+          "how": "Raise `WINDOW_DAYS` in the same file; the scoring pass reads the same window",
           "cost": "Older deals describe an older market, and a two-year window on a company that repositioned last spring verifies the old ICP"
         },
         {
@@ -3539,16 +3545,33 @@
           "when": "The team reads pull requests and does not want a Slack post",
           "how": "Delete `infra/connectors/slack.ts`, the `uses` block on the agent and step 8 of the prompt",
           "cost": "The pull request is the only surface, and a monthly pull request nobody is pinged about is a monthly pull request nobody opens"
+        },
+        {
+          "id": "crm_only_tier_1",
+          "when": "No renewal, churn, support or usage data exists anywhere the workspace can read",
+          "how": "In the scoring pass, define Tier 1 as won and above the contract-value floor the team names, and say so in `scoring.md",
+          "cost": "Tier 1 then means \"bought big\", not \"succeeded\": churners and expensive accounts stay in it, and the model learns who signs rather than who stays"
+        },
+        {
+          "id": "standard_points_only",
+          "when": "The enrichment budget will not cover custom research on the whole cohort",
+          "how": "Skip step 3's research and step 4's judgment attributes; test the standard data points only",
+          "cost": "The model separates on what every competitor's data provider also sells, so it ranks the market the way everyone else already does"
         }
       ],
       "shouldNotChange": [
-        "**The CRM is the only source.** (`win-loss-analyst.prompt.ts`) No calls, no postings, no website, no inbox. Each is another cookbook's evidence; wire one in here and a verification gets mixed with a hypothesis nobody can tell apart afterwards.",
+        "**The monthly agent reads the CRM only.** (`win-loss-analyst.prompt.ts`) No calls, no postings, no website, no inbox. Each is another cookbook's evidence; wire one in here and a verification gets mixed with a hypothesis nobody can tell apart afterwards. The scoring pass reads more because a person reviews it at three stops.",
         "**The audit is the queries in the prompt, and nothing else.** (`win-loss-analyst.prompt.ts`) An agent that writes its own SQL each month asks a slightly different question each month, and the months stop being comparable.",
         "**The models pull all the data; the queries filter.** (`infra/models/`) No filter and no column picking in a model's config: a filter there is a second place the question is asked, invisible to anyone reading the queries, and changing it means a redeploy and a re-extraction instead of an edited query. Every query on deals narrows to closed deals itself, because the model holds open deals whose close date is a forecast. The contract checks both.",
-        "**No query selects an amount.** (`win-loss-analyst.prompt.ts`) The deals carry amounts in storage; nothing reads them, so none reaches `context/`, which is read by every agent, including the ones that talk to prospects. The contract fails if a query mentions one.",
+        "**No amount reaches the repository.** (`win-loss-analyst.prompt.ts`, `references/scoring-pass.md`) The monthly queries never select one, and the contract fails if one does; the scoring pass states Tier 1 in relative terms and keeps raw responses in `~/.cache`, outside the repository. `context/` is read by every agent, including the ones that talk to prospects.",
+        "**Tier 1 is defined by outcomes, never by contract value alone.** (`references/scoring-pass.md`) A model trained on the biggest contracts learns who signs big, churners included.",
+        "**Only attributes a company shows before it buys get a weight.** (`references/scoring-format.md`) Usage, billing and health do not exist for a company in the market; weighted, they rank customers above prospects and grade every prospect on a missing value.",
+        "**A pattern earns a weight only when the gap is big, a reason explains it, and it held in the period before.** (`references/scoring-pass.md`) Anything less is a coincidence of this year's deals, and the model ships it to every account in the market.",
+        "**Nothing caused by being a customer, and missing is never \"no\".** (`references/scoring-pass.md`) Your own product in a customer's stack is the strongest \"signal\" in any won set and predicts nothing; a provider with no answer is a coverage gap, scored neutral.",
+        "**Code computes the score.** (`references/scoring-format.md`) An agent fills values; a script reads the model block and computes points, total and band. The same inputs scored by a language model change tier between runs.",
         "**The shared models stay identical to the other CRM cookbooks'.** (`infra/models/crm-accounts.ts`, `crm-contacts.ts`) That is what lets one copy serve all three; a different config is a slug collision at deploy.",
-        "**The one-PR write path.** (`infra/agents/win-loss-analyst.ts`) The agent never writes the workspace context directly and has no `context` capability: the repository is the source and `cargo-ai project deploy` syncs it.",
-        "**Personas are never edited, and the ICP only on the first pass, append-only.** (`win-loss-analyst.prompt.ts`) A monthly agent quietly rewriting them is how a knowledge base drifts without anyone deciding it should.",
+        "**The one-PR write path.** (`infra/agents/win-loss-analyst.ts`) Neither half writes the workspace context directly and the agent has no `context` capability: the repository is the source and `cargo-ai project deploy` syncs it.",
+        "**Personas are never edited, the ICP only on the first pass, `scoring.md` only by a scoring pass.** (`win-loss-analyst.prompt.ts`) A monthly agent quietly rewriting them is how a knowledge base drifts without anyone deciding it should.",
         "**The hygiene findings are stated, never worked around.** (`win-loss-analyst.prompt.ts`) A fill rate under half means no objections from the CRM this month, said out loud.",
         "**Every count carries its denominator.** (`win-loss-analyst.prompt.ts`) \"6 of 9 wins\", never \"67%\".",
         "**The channel is locked on the `postMessage` use.** (`infra/agents/win-loss-analyst.ts`) A digest about lost deals in a customer shared channel is the one failure nobody can undo."
@@ -3564,11 +3587,16 @@
         "every `client/` file carries `reference_permission: unknown` and no amount",
         "nothing under `persona/` changed, and any proposed change is in the pull request body with deal ids",
         "the Slack digest is five lines, its numbers match the run record, and the last line is the pull request link",
+        "the scoring pass stopped after the audit, after the Tier 1 list and after the 10-account test, and each stop's answer is in its run record",
+        "`context/icp/scoring.md` has the sections and the model block `references/scoring-format.md` fixes: weights summing to 100, every attribute with a `get` a non-customer can answer, `unknown` at half the weight, no amount, no email, no person",
+        "every attribute and filter in it carries an evidence line naming both groups and the sample, and says whether it held in the period before",
+        "the run record shows how the cohort lands in the bands, and most Tier 1 accounts land in Strong",
+        "the scoring pass ended by offering account-scoring as the next step",
         "a monthly run with new deals opened a pull request that adds files and modifies none under `icp/` or `persona/`; with none it opened no pull request and the digest said so",
-        "after merging and `cargo-ai project deploy`, the verified ICP section is readable from the workspace context repository and an agent with the `context` capability quotes it back with its tag"
+        "after merging and `cargo-ai project deploy`, the verified ICP section and `scoring.md` are readable from the workspace context repository, and an agent with the `context` capability quotes them back"
       ],
-      "cost": "CRM extraction bills no credits, and neither do the SQL queries. The recurring cost is one harness\nrun a month, scaling with how many deals closed since the previous one, plus the first pass over the\nwhole window. Confirm the extraction price for the workspace's CRM with\n`cargo-ai connection integration get hubspot` before the first deploy.",
-      "composesInto": "`account-scoring` (reads the verified `icp/`, disqualifier included), `website-building` (the\nclient files and proof from closed-won deals are what the pages may cite), and any agent with the\n`context` capability."
+      "cost": "CRM extraction bills no credits, and neither do the SQL queries. The monthly cost is one harness\nrun, scaling with how many deals closed since the previous one, plus the first pass over the whole\nwindow. The scoring pass bills the enrichment of the cohort, once: the identity lookup, the company\nand headcount actions, and one research call per judgment attribute per account. The 10-account\ntest prices it live (`cargo-ai connection integration get <slug>` per action) before anything else\nbills, and a re-run reads the cache instead of paying twice. Confirm the extraction price for the\nworkspace's CRM with `cargo-ai connection integration get hubspot` before the first deploy.",
+      "composesInto": "`account-scoring` (applies `icp/scoring.md` to every company in the market: the scoring pass\nhands off to it, and every rebuild ends in its rescore), `readiness-scoring` (the timing signals\n`scoring.md` lists and does not score), `website-building` (the client files and proof from\nclosed-won deals are what the pages may cite), and any agent with the `context` capability."
     },
     {
       "name": "workspace-health",

@@ -1,8 +1,8 @@
 ---
 name: win-loss-review
-description: 'Run a monthly win-loss review of your CRM''s closed deals, landed in context/ as one pull request: the ICP verified against won versus lost with a disqualifier, dated insights with counts and denominators, objections from recorded lost reasons, and a client file per closed-won account; a five-line Slack digest says what changed. Never edits a persona, nor the ICP after the first pass. Triggers: "verify our ICP against won and lost deals", "what do closed-lost deals say about who we should not sell to", "keep the context repo current from the CRM every month", "our lost reasons should become objections", "run a monthly win-loss review". Cargo project, harness claudeCode, HubSpot, Salesforce, Attio, Slack. Skip when: there is no CRM yet and the context should come from the website, which is web-capture; or you want one account researched before a call, which is research-account.'
-version: "0.1.2"
-compatibility: "Requires @cargo-ai/cli 1.0.89 or later with @cargo-ai/cdk 1.0.67 or later, a Cargo workspace, an authenticated Anthropic connector (the harness runs against Cargo's proxy), an authorized GitHub connector, an authorized Slack connector, an authorized CRM connection (HubSpot in the checked example; Salesforce and Attio adapt the connector, the models and the queries), and a GTM repository with `context/` and `outputs/` at its root (the shape `cargo-ai project init` scaffolds). Nothing here needs a credential in .env, and nothing here reads calls, postings or the website."
+description: 'Learn who to sell to from your own deals, landed in context/ by pull request. Once, a scoring pass defines your best customers from outcomes (never deal size alone), tests standard and custom attributes against them, and writes context/icp/scoring.md, the fit model account-scoring applies. Monthly, an agent verifies the ICP against won versus lost and appends insights, objections and client files. Triggers: "what do our best customers have in common", "which custom data points predict a great customer", "verify our ICP against won and lost deals", "keep the context repo current from the CRM every month", "our lost reasons should become objections". Cargo project, claudeCode, HubSpot, Salesforce, Attio, Slack. Skip when: no CRM yet (web-capture); one account before a call (research-account); grading the market with an existing model (account-scoring).'
+version: "0.2.0"
+compatibility: "Requires @cargo-ai/cli 1.0.89 or later with @cargo-ai/cdk 1.0.67 or later, a Cargo workspace, an authenticated Anthropic connector (the harness runs against Cargo's proxy), an authorized GitHub connector, an authorized Slack connector, an authorized CRM connection (HubSpot in the checked example; Salesforce and Attio adapt the connector, the models and the queries), and a GTM repository with `context/` and `outputs/` at its root (the shape `cargo-ai project init` scaffolds). Nothing here needs a credential in .env. The monthly agent reads the CRM only; the scoring pass runs in the operator's session, reads post-sale data wherever the workspace holds it, and spends Cargo credits on enrichment after a priced 10-account test."
 homepage: https://github.com/getcargohq/gtm-skills/tree/main/win-loss-review
 metadata:
   author: getcargo
@@ -31,68 +31,123 @@ for this skill until it is approved.
 
 ## The outcome
 
-What the CRM knows about who buys and who does not stops living in a report nobody reopens. Once a
-month one agent runs, and two things land in your repository:
+What your deals know about who buys, and who becomes a great customer, stops living in a report
+nobody reopens. Two things land in your repository, both by pull request:
 
-1. **The context files.** On the first pass the agent verifies `icp/` against what separates won
-   from lost and names a disqualifier; it writes dated `insight/` files in three buckets (who we
-   talk to, where we win, where we lose), every count with its denominator; `objection/` files from
-   lost reasons where the CRM records them; and a `client/` file per closed-won account. Every month
-   after, it appends what the new deals say and edits nothing that exists.
-2. **The run record.** `outputs/<date>-win-loss-review/README.md` holds every query's result,
-   counts and ids only, so every `[R: <query>]` tag in the context files points somewhere a reader
-   can check. Its date is where next month starts.
+1. **A scoring model, once.** The scoring pass defines Tier 1 from what customers did after they
+   signed (renewed, expanded, went live fast, stayed cheap to serve), never from contract value
+   alone. It tests every candidate attribute against that definition across the cohort, enriched
+   the same way for every account, and writes `context/icp/scoring.md`: No Fit filters, four to six
+   weighted attributes, modifiers and bands, each with its reason and its evidence. The candidates
+   come from three places: the team's own assumptions, what buyers said on calls, and a research
+   pass on your company that proposes custom attributes specific to what you sell. Only attributes a
+   company can show before it buys get a weight, so the model grades any company in the market;
+   `account-scoring` applies it.
+2. **The context files, every month.** A harness agent verifies `icp/` against what separates won
+   from lost and names a disqualifier on its first pass; it writes dated `insight/` files in three
+   buckets (who we talk to, where we win, where we lose), every count with its denominator;
+   `objection/` files from lost reasons where the CRM records them; and a `client/` file per
+   closed-won account. Every month after, it appends what the new deals say, edits nothing that
+   exists, and posts a five-line digest to Slack.
 
-Then it opens one pull request and posts a five-line digest to Slack. A human merges, and the next
-`cargo-ai project deploy` syncs `context/` into the workspace context repository, which is where every
-other Cargo agent reads before it acts.
+The two halves differ on purpose. **The scoring pass is a judgment the team takes part in:** it runs
+in the operator's session, stops three times (after the data audit, after the Tier 1 list, after a
+priced 10-account enrichment test), asks the team four questions, and reads whatever holds the
+outcomes: the CRM, billing, the warehouse, support, the call archive. Its procedure is
+[`references/scoring-pass.md`](references/scoring-pass.md). **The monthly review is a fixed audit:**
+the CRM extracted into three models, the same SQL every month, so a month is comparable to the last.
 
-The CRM is its only source, and it reaches it through models. Three `defineModel`s extract it into
-Cargo storage, whole: every deal, company and contact, every column, with no filter in their
-config. The queries do the narrowing (closed deals, the window, the columns each one needs), and
-none of them selects an amount. `crm_deals` is new; `crm_accounts` and `crm_contacts` are declared
-exactly as crm-enrichment and crm-deduplication declare them, so a project running those keeps one copy of its CRM. Extraction
-bills no credits. The audit is a fixed set of SQL queries in the agent's prompt, run with
-`cargo-ai storage query execute`: counts by pipeline, the lost reasons, contacts on deals, won
-versus lost by industry, size and country, titles at won accounts, and the deals since the last
-run. There is no collector script.
+The scoring model is built around one choice: **the main comparison is Tier 1 against Tier 2, not
+customers against everyone else.** A model trained on won versus lost learns who buys, churners and
+expensive accounts included. One trained on Tier 1 versus Tier 2 learns who succeeds, which is what
+separates a Strong account from a Moderate one in the market:
 
-The confidence follows the data. With twenty or more closed-won deals in the window the run is in
-**verify mode** and states what won versus lost shows with conviction. Below that it is in
-**hypothesis mode**: the same files, every finding carrying its denominator and
-`confidence: hypothesis`, and the pull request says how many wins would make it an analysis. Two
-hygiene findings open every pull request, stated plainly and never worked around: the lost-reason
-fill rate, which decides whether objections can come from the CRM at all, and the deal-to-contact
-association rate, which says how many closed deals are blind for stakeholder mapping.
+| Customers today                             | Fit grade in the market |
+| ------------------------------------------- | ----------------------- |
+| Tier 1 customers                            | Strong                  |
+| Tier 2 customers                            | Moderate                |
+| What lost deals and churned customers share | Weak                    |
+| What the team never targets                 | No Fit                  |
 
-Three properties make it safe enough to run unattended:
+A pattern earns a weight when the gap is big, a reason explains it, and it held on the deals of the
+period before. At the sample sizes a sales team has, finer statistics add noise, not certainty.
 
-- **The audit is deterministic.** The platform extracts, the queries are fixed, and the agent is
-  told to run no other. The same questions every month are what make a month comparable to the
-  last.
-- **The pull request is the gate.** The agent has repository write access and `postMessage` to one
-  locked channel. It cannot write the workspace context directly, cannot touch the CRM, cannot
-  email anyone, and cannot merge itself.
-- **Personas are never edited, and the ICP only on the first pass.** They are what the scorer and
-  every outbound agent key on. A change the deals suggest is a proposal in the pull request body,
-  with the deal ids, and a human decides.
+The monthly half reads the CRM through models. Three `defineModel`s extract it into Cargo storage,
+whole: every deal, company and contact, every column, with no filter in their config. The queries
+do the narrowing, and none of them selects an amount. `crm_deals` is new; `crm_accounts` and
+`crm_contacts` are declared exactly as crm-enrichment and crm-deduplication declare them, so a
+project running those keeps one copy of its CRM. Extraction bills no credits. With twenty or more
+closed-won deals in the window the run is in **verify mode** and states what won versus lost shows
+with conviction; below that it is in **hypothesis mode**, and every finding carries its denominator
+and `confidence: hypothesis`. Two hygiene findings open every monthly pull request: the lost-reason
+fill rate and the deal-to-contact association rate.
+
+Three properties make both halves safe:
+
+- **The pull request is the gate.** Nothing writes the workspace context directly; a human merges,
+  and the next `cargo-ai project deploy` syncs `context/` into the workspace context repository,
+  which is where every other Cargo agent reads before it acts.
+- **No amount reaches the repository.** The monthly queries never select one, and the scoring pass
+  states Tier 1 in relative terms (top third, renewed or not). `context/` is read by every agent,
+  including the ones that talk to prospects.
+- **What other agents key on changes only by decision.** Personas are never edited, the ICP only on
+  the first pass, and `scoring.md` only by a scoring pass. A change the monthly deals suggest is a
+  proposal in the pull request body, with the deal ids.
 
 ## Example
 
-> Every month, read what our HubSpot won and lost deals say, verify the ICP, and post the digest to #gtm-context.
+> Build our scoring model from the last twelve months of won and lost deals, then keep the context current every month.
 
 Illustrative output, fictional records:
 
 ```text
+context/icp/scoring.md · model_version 1 · window 2025-11 to 2026-10 · confidence: validated
+Tier 1: renewed or expanded, live within 45 days, top half for support load (12 of 50 customers)
+Strongest: data team of 20+ (9 of 12 Tier 1, 7 of 38 Tier 2, held in the period before)
+Then: marketplace or consumer subscription (10 of 12 Tier 1, 14 of 38 Tier 2)
+No Fit: under 50 employees (0 of 12 Tier 1, 1 of 38 Tier 2) · agencies (never targeted)
+Dropped: warehouse vendor (no gap), uses our API (only visible after buying)
+Cohort in bands: 10 of 12 Tier 1 Strong · 27 of 38 Tier 2 Moderate · 41 of 63 lost Weak
+
 :bar_chart: *Win-loss review Oct 2026*: 23 deals closed
 Won 9, lost 14 · lost reason on 11 of 14 · contacts on 19 of 23
-Learned: a RevOps title at 6 of 9 won accounts · 8 of 14 losses were under 50 employees · "no budget this quarter" on 5 of 11 reasons
-Proposed: add "under 50 employees" as an ICP disqualifier (8 of 14 losses, 0 of 9 wins), in the PR body
+Learned: a RevOps title at 6 of 9 won accounts · 8 of 14 losses under 50 employees
+Proposed: none
 PR: https://github.com/northwind/gtm/pull/331
 ```
 
-The pull request adds four dated `insight/` files, two `objection/` files and nine `client/` files,
-and modifies nothing under `icp/` or `persona/`; the disqualifier waits for a human.
+The scoring pass opened one pull request with `scoring.md`, its run record and the evidence table;
+the monthly run opened another that adds files and modifies nothing under `icp/` or `persona/`.
+
+## Guide the operator through every phase
+
+```mermaid
+flowchart LR
+  deploy["1. Deploy the monthly agent"] -->|"Merge the first pass"| audit["2. Audit and window"]
+  audit -->|"Confirm sources and window"| tier["3. Tier 1"]
+  tier -->|"Answer the four questions"| test["4. 10-account test"]
+  test -->|"Approve the cost"| model["5. Enrich, compare, model"]
+  model -->|"Merge scoring.md"| monthly["6. Monthly"]
+```
+
+Every substantive message starts with the current phase and ends with a `Next step` section giving
+the operator one concrete decision, what it unlocks, and what stays blocked. Never end with a
+generic offer to help.
+
+1. **Deploy the monthly agent.** Steps 1 to 6 of the procedure below: the models, the agent, the
+   first pass by hand. Its merged run record is where the scoring pass starts.
+2. **Audit and window.** Find every outcome field the workspace holds and set the window from the
+   sales cycle. End by asking the operator to confirm the sources and the window. Nothing bills.
+3. **Tier 1.** Propose the rule and the Tier 1 list, then ask the four questions in one message.
+   End by asking the operator to confirm the list. Nothing bills.
+4. **10-account test.** Enrich ten accounts end to end and give the observed cost per account and
+   the estimate for the cohort. End by asking to approve that cost.
+5. **Enrich, compare, model.** Enrich the cohort, run the comparisons, write `scoring.md` and the run
+   record, open the pull request. End by asking for the merge and offering the next step:
+   account-scoring, which grades every company in the market with this model. On a yes, install it
+   and continue with its procedure in this session.
+6. **Monthly.** The cron runs. Re-run phases 2 to 5 once a year, or sooner when the product or the
+   market changes, and every rebuild ends in account-scoring's rescore.
 
 ## Put it in your project
 
@@ -138,28 +193,40 @@ is enough.
    pass from the workspace UI or with
    `cargo-ai ai message create --agent-uuid <uuid> --parts '[{"type":"text","text":"Run the win-loss review first pass. Follow your system prompt exactly and open one pull request."}]'`.
    The cron takes it from there.
-7. **Verify.** Walk _Done when_ line by line and report each with evidence. Deployed cleanly and
+7. **Run the scoring pass once the first pass has merged.** Follow
+   [`references/scoring-pass.md`](references/scoring-pass.md) in this session, phase by phase, with
+   its three stops. It writes `context/icp/scoring.md` in the shape
+   [`references/scoring-format.md`](references/scoring-format.md) fixes, and its research step runs
+   [`references/custom-attributes.md`](references/custom-attributes.md) on your own domain.
+8. **Verify.** Walk _Done when_ line by line and report each with evidence. Deployed cleanly and
    produced nothing is the normal failure, and the second normal failure is a pull request of fifty
    files nobody reads: check the hygiene findings and the tag counts in its body before you call
-   this done.
+   this done. For the scoring pass, the failure to look for is a model whose Tier 1 accounts do not
+   land in Strong.
 
 ## What you will be asked
 
 **Derive before you ask.** An input with a lookup is looked up, not asked. Only the rows marked
-_asked_ genuinely live in the operator's head; the agent runs on a cron, so it asks in the pull
-request body, never in a chat.
+_asked_ genuinely live in the operator's head. The monthly agent runs on a cron, so it asks in the
+pull request body, never in a chat; the scoring pass runs in a session and asks there.
 
-| Input                                                     | Kind      | How it is answered                                                                                                                                                                           | Why it matters                                                                                                                                                                                         |
-| --------------------------------------------------------- | --------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| CRM connection (`infra/connectors/crm.ts`)                | value     | **derived**: `cargo-ai connection connector list` shows the authorized CRM. **asked** only when the workspace holds two                                                                      | The models read one CRM; the wrong one is a clean audit of the wrong deals                                                                                                                             |
-| pipelines                                                 | value     | **derived** by the `pipelines` query: every pipeline is read and listed with its counts. **asked** in the first pull request only when there is more than one: which are the sales pipelines | Partner, renewal and support pipelines close deals too, and they are not the same evidence                                                                                                             |
-| CRM hygiene findings                                      | value     | **derived** by the `lost_reasons` and `contacts_on_deals` queries and **stated**, never asked and never worked around                                                                        | The first decides whether objections can come from the CRM at all. The second says how many closed deals are blind for stakeholder mapping, so every title count is read against the right denominator |
-| lost-reason property (`LOST_REASON_COLUMN`)               | value     | **derived**: HubSpot's standard `closed_lost_reason` ships. A fill rate of 0 of N with lost deals in the window is the cue to find the custom property and set it                            | Most portals record the reason on a custom property. Left wrong, the audit reports a team that never records reasons, and writes no objections, forever                                                |
-| mode                                                      | value     | **derived**: `verify` at `VERIFY_MIN_WON` (20) or more won deals in the window, else `hypothesis`. Never asked                                                                               | The line is a number so nobody argues it per run                                                                                                                                                       |
-| `icp/`, `insight/`, `objection/`, `client/`               | generated | **derived** from the queries, as the prompt describes; a seeded ICP gets one dated "Verified against the CRM" section on the first pass and is never edited after                            | The disqualifier is the half of an ICP that protects the team's time, and won versus lost is the only place it comes from with evidence                                                                |
-| Slack channel (`infra/agents/win-loss-analyst.ts`)        | value     | **asked**: the channel the digest lands in, locked on the `postMessage` use. An id (`C…`), not a name                                                                                        | Locked so the agent cannot pick a customer shared channel; a digest about lost deals is internal                                                                                                       |
-| repository binding (`infra/agents/win-loss-analyst.ts`)   | value     | **derived**: leave `repository` unset and `plan` fills it from the git origin of the checkout. `cargo-ai project check` prints what it resolved: confirm the repository root                 | This is the working tree the harness clones and the only place its output can land                                                                                                                     |
-| LLM connector and model (`infra/connectors/anthropic.ts`) | value     | **derived**: `cargo-ai connection connector list` shows whether an Anthropic connector is authorized; the agent's `languageModel` is a placeholder to set                                    | A harness does not bring its own model; this is what the monthly run is billed and metered against                                                                                                     |
+| Input                                                     | Kind      | How it is answered                                                                                                                                                                                                | Why it matters                                                                                                                                                                                         |
+| --------------------------------------------------------- | --------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| CRM connection (`infra/connectors/crm.ts`)                | value     | **derived**: `cargo-ai connection connector list` shows the authorized CRM. **asked** only when the workspace holds two                                                                                           | The models read one CRM; the wrong one is a clean audit of the wrong deals                                                                                                                             |
+| pipelines                                                 | value     | **derived** by the `pipelines` query: every pipeline is read and listed with its counts. **asked** in the first pull request only when there is more than one: which are the sales pipelines                      | Partner, renewal and support pipelines close deals too, and they are not the same evidence                                                                                                             |
+| CRM hygiene findings                                      | value     | **derived** by the `lost_reasons` and `contacts_on_deals` queries and **stated**, never asked and never worked around                                                                                             | The first decides whether objections can come from the CRM at all. The second says how many closed deals are blind for stakeholder mapping, so every title count is read against the right denominator |
+| lost-reason property (`LOST_REASON_COLUMN`)               | value     | **derived**: HubSpot's standard `closed_lost_reason` ships. A fill rate of 0 of N with lost deals in the window is the cue to find the custom property and set it                                                 | Most portals record the reason on a custom property. Left wrong, the audit reports a team that never records reasons, and writes no objections, forever                                                |
+| mode                                                      | value     | **derived**: `verify` at `VERIFY_MIN_WON` (20) or more won deals in the window, else `hypothesis`. Never asked                                                                                                    | The line is a number so nobody argues it per run                                                                                                                                                       |
+| outcome sources (scoring pass)                            | value     | **derived** from `cargo-ai storage model list`, each model's DDL and `cargo-ai connection connector list`. **asked** once, only for what the workspace does not hold: where renewals, churn, support and NPS live | Tier 1 is defined by what customers did after signing; without those fields it falls back to contract value, which is what this design exists to avoid                                                 |
+| window (scoring pass)                                     | value     | **derived** from the median created-to-closed time of the closed deals: 12 months unless cycles run past a year. **asked** only when deals carry no created date                                                  | Too short and there is nothing to compare; too long and the model describes a market and a product that moved on                                                                                       |
+| the team's four answers (scoring pass)                    | value     | **asked**, once, in one message: the 10 best customers and 5 never-sign, Tier 2 accounts that are there because of delivery, companies never targeted, assumptions about what predicts a great customer           | They check the Tier 1 list, clean the comparison, set the No Fit filters and give the first hypotheses to test. Nobody else holds them                                                                 |
+| enrichment budget (scoring pass)                          | value     | **asked** after the 10-account test, with the observed cost per account and the estimate for the cohort, priced live                                                                                              | The cohort enrichment is the one step here that bills by the account                                                                                                                                   |
+| your company's domain (scoring pass)                      | value     | **derived** from `context/` (the company or ICP file) or the project's website config                                                                                                                             | The custom-attribute research runs on the seller, not on a customer; read backwards it produces a competitor teardown                                                                                  |
+| `icp/`, `insight/`, `objection/`, `client/`               | generated | **derived** from the queries, as the prompt describes; a seeded ICP gets one dated "Verified against the CRM" section on the first pass and is never edited after                                                 | The disqualifier is the half of an ICP that protects the team's time, and won versus lost is the only place it comes from with evidence                                                                |
+| `icp/scoring.md`                                          | generated | **derived** by the scoring pass, in the shape `references/scoring-format.md` fixes                                                                                                                                | It is the model every fit grade in the market comes from                                                                                                                                               |
+| Slack channel (`infra/agents/win-loss-analyst.ts`)        | value     | **asked**: the channel the digest lands in, locked on the `postMessage` use. An id (`C…`), not a name                                                                                                             | Locked so the agent cannot pick a customer shared channel; a digest about lost deals is internal                                                                                                       |
+| repository binding (`infra/agents/win-loss-analyst.ts`)   | value     | **derived**: leave `repository` unset and `plan` fills it from the git origin of the checkout. `cargo-ai project check` prints what it resolved: confirm the repository root                                      | This is the working tree the harness clones and the only place its output can land                                                                                                                     |
+| LLM connector and model (`infra/connectors/anthropic.ts`) | value     | **derived**: `cargo-ai connection connector list` shows whether an Anthropic connector is authorized; the agent's `languageModel` is a placeholder to set                                                         | A harness does not bring its own model; this is what the monthly run is billed and metered against                                                                                                     |
 
 Checked before moving on, not after the deploy:
 
@@ -167,6 +234,7 @@ Checked before moving on, not after the deploy:
 - `cargo-ai project check` prints the agent bound to the repository root, not `infra/`
 - exactly one `crm` connector and one each of `crm_accounts` and `crm_contacts` in the project
 - the Slack channel id is an id, not a name, and not a customer shared channel
+- before the cohort enrichment: the Tier 1 list confirmed by the operator, and the cost approved
 
 ## What you can change
 
@@ -174,23 +242,26 @@ The code is a worked example. These reshapes are expected, and the agent offers 
 waiting to be asked. Every one costs something; that is what makes it a variation and not the
 default.
 
-| Variation               | When it is right                                                                         | How                                                                                                                                                              | What it costs                                                                                                                  |
-| ----------------------- | ---------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| `another_crm`           | The deals live in Salesforce or Attio                                                    | Change the connector, the three models' config and the queries together, following `references/crm-audit.md`                                                     | Field names vary per org, so the queries are rewritten against the live schema and the first pass is checked by eye            |
-| `deal_contacts`         | Titles at won accounts are too broad, and the team wants the titles on the deals only    | Add `associationObjectTypes: ["contacts"]` to `crm-deals.ts`, read the column it creates after the sync, and replace `titles_at_won_accounts` with a query on it | One more column to keep in sync with the extractor's naming, and a query to re-check if the extractor changes it               |
-| `raise_the_verify_line` | Twenty wins is too few to separate won from lost in your market (long cycles, few deals) | Raise `VERIFY_MIN_WON` in `infra/agents/win-loss-analyst.prompt.ts`                                                                                              | More months land in hypothesis mode, and the files assert less                                                                 |
-| `wider_window`          | Your sales cycle is longer than a year, or last year was not representative              | Raise `WINDOW_DAYS` in the same file                                                                                                                             | Older deals describe an older market, and a two-year window on a company that repositioned last spring verifies the old ICP    |
-| `quarterly`             | Fewer than ten deals close a month and the digest is mostly "nothing new"                | Change the cron in `infra/agents/win-loss-analyst.ts` to the first of every third month                                                                          | A lost reason that recurs in month one is written in month three. The append-only rule means nothing is lost, only late        |
-| `no_digest`             | The team reads pull requests and does not want a Slack post                              | Delete `infra/connectors/slack.ts`, the `uses` block on the agent and step 8 of the prompt                                                                       | The pull request is the only surface, and a monthly pull request nobody is pinged about is a monthly pull request nobody opens |
+| Variation               | When it is right                                                                         | How                                                                                                                                                              | What it costs                                                                                                                                     |
+| ----------------------- | ---------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `another_crm`           | The deals live in Salesforce or Attio                                                    | Change the connector, the three models' config and the queries together, following `references/crm-audit.md`                                                     | Field names vary per org, so the queries are rewritten against the live schema and the first pass is checked by eye                               |
+| `deal_contacts`         | Titles at won accounts are too broad, and the team wants the titles on the deals only    | Add `associationObjectTypes: ["contacts"]` to `crm-deals.ts`, read the column it creates after the sync, and replace `titles_at_won_accounts` with a query on it | One more column to keep in sync with the extractor's naming, and a query to re-check if the extractor changes it                                  |
+| `raise_the_verify_line` | Twenty wins is too few to separate won from lost in your market (long cycles, few deals) | Raise `VERIFY_MIN_WON` in `infra/agents/win-loss-analyst.prompt.ts`                                                                                              | More months land in hypothesis mode, and the files assert less                                                                                    |
+| `wider_window`          | Your sales cycle is longer than a year, or last year was not representative              | Raise `WINDOW_DAYS` in the same file; the scoring pass reads the same window                                                                                     | Older deals describe an older market, and a two-year window on a company that repositioned last spring verifies the old ICP                       |
+| `quarterly`             | Fewer than ten deals close a month and the digest is mostly "nothing new"                | Change the cron in `infra/agents/win-loss-analyst.ts` to the first of every third month                                                                          | A lost reason that recurs in month one is written in month three. The append-only rule means nothing is lost, only late                           |
+| `no_digest`             | The team reads pull requests and does not want a Slack post                              | Delete `infra/connectors/slack.ts`, the `uses` block on the agent and step 8 of the prompt                                                                       | The pull request is the only surface, and a monthly pull request nobody is pinged about is a monthly pull request nobody opens                    |
+| `crm_only_tier_1`       | No renewal, churn, support or usage data exists anywhere the workspace can read          | In the scoring pass, define Tier 1 as won and above the contract-value floor the team names, and say so in `scoring.md`                                          | Tier 1 then means "bought big", not "succeeded": churners and expensive accounts stay in it, and the model learns who signs rather than who stays |
+| `standard_points_only`  | The enrichment budget will not cover custom research on the whole cohort                 | Skip step 3's research and step 4's judgment attributes; test the standard data points only                                                                      | The model separates on what every competitor's data provider also sells, so it ranks the market the way everyone else already does                |
 
 ## What should not change
 
 However far you adapt, these hold. Ask for one anyway and the agent tells you what breaks, then does
 it if you still want it, and records why under `## Decisions` in your copy of this file.
 
-- **The CRM is the only source.** (`win-loss-analyst.prompt.ts`) No calls, no postings, no website,
-  no inbox. Each is another cookbook's evidence; wire one in here and a verification gets mixed
-  with a hypothesis nobody can tell apart afterwards.
+- **The monthly agent reads the CRM only.** (`win-loss-analyst.prompt.ts`) No calls, no postings,
+  no website, no inbox. Each is another cookbook's evidence; wire one in here and a verification
+  gets mixed with a hypothesis nobody can tell apart afterwards. The scoring pass reads more because
+  a person reviews it at three stops.
 - **The audit is the queries in the prompt, and nothing else.** (`win-loss-analyst.prompt.ts`) An
   agent that writes its own SQL each month asks a slightly different question each month, and the
   months stop being comparable.
@@ -199,18 +270,33 @@ it if you still want it, and records why under `## Decisions` in your copy of th
   anyone reading the queries, and changing it means a redeploy and a re-extraction instead of an
   edited query. Every query on deals narrows to closed deals itself, because the model holds open
   deals whose close date is a forecast. The contract checks both.
-- **No query selects an amount.** (`win-loss-analyst.prompt.ts`) The deals carry amounts in storage;
-  nothing reads them, so none reaches `context/`, which is read by every agent, including the ones
-  that talk to prospects. The contract fails if a query mentions one.
+- **No amount reaches the repository.** (`win-loss-analyst.prompt.ts`, `references/scoring-pass.md`)
+  The monthly queries never select one, and the contract fails if one does; the scoring pass states
+  Tier 1 in relative terms and keeps raw responses in `~/.cache`, outside the repository. `context/`
+  is read by every agent, including the ones that talk to prospects.
+- **Tier 1 is defined by outcomes, never by contract value alone.** (`references/scoring-pass.md`)
+  A model trained on the biggest contracts learns who signs big, churners included.
+- **Only attributes a company shows before it buys get a weight.** (`references/scoring-format.md`)
+  Usage, billing and health do not exist for a company in the market; weighted, they rank customers
+  above prospects and grade every prospect on a missing value.
+- **A pattern earns a weight only when the gap is big, a reason explains it, and it held in the
+  period before.** (`references/scoring-pass.md`) Anything less is a coincidence of this year's
+  deals, and the model ships it to every account in the market.
+- **Nothing caused by being a customer, and missing is never "no".** (`references/scoring-pass.md`)
+  Your own product in a customer's stack is the strongest "signal" in any won set and predicts
+  nothing; a provider with no answer is a coverage gap, scored neutral.
+- **Code computes the score.** (`references/scoring-format.md`) An agent fills values; a script reads
+  the model block and computes points, total and band. The same inputs scored by a language model
+  change tier between runs.
 - **The shared models stay identical to the other CRM cookbooks'.** (`infra/models/crm-accounts.ts`,
   `crm-contacts.ts`) That is what lets one copy serve all three; a different config is a slug
   collision at deploy.
-- **The one-PR write path.** (`infra/agents/win-loss-analyst.ts`) The agent never writes the
-  workspace context directly and has no `context` capability: the repository is the source and
+- **The one-PR write path.** (`infra/agents/win-loss-analyst.ts`) Neither half writes the workspace
+  context directly and the agent has no `context` capability: the repository is the source and
   `cargo-ai project deploy` syncs it.
-- **Personas are never edited, and the ICP only on the first pass, append-only.**
-  (`win-loss-analyst.prompt.ts`) A monthly agent quietly rewriting them is how a knowledge base
-  drifts without anyone deciding it should.
+- **Personas are never edited, the ICP only on the first pass, `scoring.md` only by a scoring
+  pass.** (`win-loss-analyst.prompt.ts`) A monthly agent quietly rewriting them is how a knowledge
+  base drifts without anyone deciding it should.
 - **The hygiene findings are stated, never worked around.** (`win-loss-analyst.prompt.ts`) A fill
   rate under half means no objections from the CRM this month, said out loud.
 - **Every count carries its denominator.** (`win-loss-analyst.prompt.ts`) "6 of 9 wins", never
@@ -238,20 +324,33 @@ it if you still want it, and records why under `## Decisions` in your copy of th
   ids
 - the Slack digest is five lines, its numbers match the run record, and the last line is the pull
   request link
+- the scoring pass stopped after the audit, after the Tier 1 list and after the 10-account test, and
+  each stop's answer is in its run record
+- `context/icp/scoring.md` has the sections and the model block `references/scoring-format.md`
+  fixes: weights summing to 100, every attribute with a `get` a non-customer can answer, `unknown`
+  at half the weight, no amount, no email, no person
+- every attribute and filter in it carries an evidence line naming both groups and the sample, and
+  says whether it held in the period before
+- the run record shows how the cohort lands in the bands, and most Tier 1 accounts land in Strong
+- the scoring pass ended by offering account-scoring as the next step
 - a monthly run with new deals opened a pull request that adds files and modifies none under `icp/`
   or `persona/`; with none it opened no pull request and the digest said so
-- after merging and `cargo-ai project deploy`, the verified ICP section is readable from the workspace
-  context repository and an agent with the `context` capability quotes it back with its tag
+- after merging and `cargo-ai project deploy`, the verified ICP section and `scoring.md` are readable
+  from the workspace context repository, and an agent with the `context` capability quotes them back
 
 ## What it costs
 
-CRM extraction bills no credits, and neither do the SQL queries. The recurring cost is one harness
-run a month, scaling with how many deals closed since the previous one, plus the first pass over the
-whole window. Confirm the extraction price for the workspace's CRM with
-`cargo-ai connection integration get hubspot` before the first deploy.
+CRM extraction bills no credits, and neither do the SQL queries. The monthly cost is one harness
+run, scaling with how many deals closed since the previous one, plus the first pass over the whole
+window. The scoring pass bills the enrichment of the cohort, once: the identity lookup, the company
+and headcount actions, and one research call per judgment attribute per account. The 10-account
+test prices it live (`cargo-ai connection integration get <slug>` per action) before anything else
+bills, and a re-run reads the cache instead of paying twice. Confirm the extraction price for the
+workspace's CRM with `cargo-ai connection integration get hubspot` before the first deploy.
 
 ## Composes into
 
-`account-scoring` (reads the verified `icp/`, disqualifier included), `website-building` (the
-client files and proof from closed-won deals are what the pages may cite), and any agent with the
-`context` capability.
+`account-scoring` (applies `icp/scoring.md` to every company in the market: the scoring pass
+hands off to it, and every rebuild ends in its rescore), `readiness-scoring` (the timing signals
+`scoring.md` lists and does not score), `website-building` (the client files and proof from
+closed-won deals are what the pages may cite), and any agent with the `context` capability.
