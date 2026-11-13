@@ -4,7 +4,7 @@ import { z } from "zod";
 import { linkedin } from "../connectors/linkedin";
 import { playsFolder } from "../folders";
 import { accounts } from "../models/accounts";
-import { tamCompanies } from "../models/tam-companies";
+import { tamAccounts } from "../models/tam-accounts";
 import { tamSourceAiArk } from "../models/tam-source-ai-ark";
 import { tamSourceApollo } from "../models/tam-source-apollo";
 import { tamSourceExa } from "../models/tam-source-exa";
@@ -51,7 +51,7 @@ const classifyQuestions = [
 //    same identity, the same columns, whatever source found the company.
 // 2. Classification into your categories, from the company's own description,
 //    and the subsidiary question, in one call.
-// 3. One row in tam_companies. It unifies back into the same account, which is
+// 3. One row in tam_accounts. It unifies back into the same account, which is
 //    what joins a Sales Navigator row and an AI Ark row for the same company.
 const profileCompany = defineWorkflow(
   "tam_profile_company_workflow",
@@ -69,7 +69,7 @@ const profileCompany = defineWorkflow(
     }),
     uses: { linkedin },
     imports: {
-      tamCompanies,
+      tamAccounts,
       classifyQuestions,
       companyDomain,
     },
@@ -101,11 +101,11 @@ const profileCompany = defineWorkflow(
       questions: classifyQuestions,
     });
     model.upsert({
-      modelUuid: tamCompanies.uuid,
-      matchingColumnSlug: "linkedin_company_id",
+      modelUuid: tamAccounts.uuid,
+      matchingColumnSlug: "linkedin_id",
       matchingValue: company.company_id,
       mappings: [
-        { columnSlug: "linkedin_company_id", value: company.company_id },
+        { columnSlug: "linkedin_id", value: company.company_id },
         { columnSlug: "linkedin_url", value: company.linkedin_url },
         { columnSlug: "name", value: company.company_name },
         {
@@ -150,7 +150,7 @@ const profileCompany = defineWorkflow(
 export const profileCompanies = definePlay("tam_profile_companies", {
   name: "TAM: profile company",
   description:
-    "For every account a TAM source found and no profile covers: LinkedIn company enrich, classify into your categories, write one row in tam_companies.",
+    "For every account a TAM source found and no profile covers: LinkedIn company enrich, classify into your categories, write one row in tam_accounts.",
   folder: playsFolder,
   model: accounts,
   workflow: profileCompany,
@@ -191,10 +191,10 @@ export const profileCompanies = definePlay("tam_profile_companies", {
         conditions: [
           {
             kind: "string",
-            relatedModelUuid: tamCompanies.uuid,
-            columnSlug: "linkedin_company_id",
+            relatedModelUuid: tamAccounts.uuid,
+            columnSlug: "linkedin_id",
             // isNull, not isEmpty: an account no profile covers has no
-            // tam_companies row, so the joined column is NULL, and isEmpty
+            // tam_accounts row, so the joined column is NULL, and isEmpty
             // only matches an empty string (0 accounts, live 2026-11-11).
             operator: "isNull",
           },

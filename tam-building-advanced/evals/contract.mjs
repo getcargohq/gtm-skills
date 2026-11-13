@@ -178,8 +178,8 @@ const UNIFIED = {
     ["linkedin_url", "linkedinId"],
   ],
   "model:tam_source_exa": [["domain", "domain"]],
-  "model:tam_companies": [
-    ["linkedin_company_id", "linkedinId"],
+  "model:tam_accounts": [
+    ["linkedin_id", "linkedinId"],
     ["domain", "domain"],
     ["account_domain", "domain"],
     ["linkedin_url", "linkedinHandle"],
@@ -204,14 +204,14 @@ for (const [id, keys] of Object.entries(UNIFIED)) {
 
 // The profile row is the one that carries the LinkedIn id, the page and the
 // domain together: it is what joins a Sales Navigator row to an AI Ark row.
-const profile = get("model:tam_companies").spec;
+const profile = get("model:tam_accounts").spec;
 assert.equal(profile.datasetUuid, "native");
 const profileColumns = new Set([
   ...profile.config.columns.map((column) => column.slug),
   ...(profile.additionalColumns ?? []).map((column) => column.slug),
 ]);
 for (const column of [
-  "linkedin_company_id",
+  "linkedin_id",
   "linkedin_url",
   "domain",
   "account_domain",
@@ -224,7 +224,7 @@ for (const column of [
 ]) {
   assert.ok(
     profileColumns.has(column),
-    `tam_companies must keep ${column}: the report and the ICP gates read it`,
+    `tam_accounts must keep ${column}: the report and the ICP gates read it`,
   );
 }
 for (const slug of ["status", "exclusion_reason"]) {
@@ -289,7 +289,7 @@ for (const modelId of [
   "model:tam_source_ai_ark",
   "model:tam_source_apollo",
   "model:tam_source_exa",
-  "model:tam_companies",
+  "model:tam_accounts",
 ]) {
   assert.ok(
     filterText.includes(modelId),

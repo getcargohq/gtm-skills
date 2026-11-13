@@ -33,15 +33,15 @@ type Row = {
   hq_country?: string | null;
 };
 
-export const tamCompanies = defineModel("tam_companies", {
-  name: "TAM companies",
+export const tamAccounts = defineModel("tam_accounts", {
+  name: "TAM accounts",
   kind: "native",
   extractSlug: "defineCustom",
   description:
     "One row per company in the TAM: its LinkedIn page, your category, and whether it is in scope.",
   config: {
     columns: [
-      { slug: "linkedin_company_id", type: "string" },
+      { slug: "linkedin_id", type: "string" },
       { slug: "linkedin_url", type: "string" },
       { slug: "name", type: "string" },
       { slug: "domain", type: "string" },
@@ -152,7 +152,7 @@ export const tamCompanies = defineModel("tam_companies", {
     // with only LinkedIn's, the profile becomes an account of its own and the
     // source account is never profiled (live, 2026-11-11).
     uniqueColumns: [
-      { slug: "linkedin_company_id", reference: "linkedinId" },
+      { slug: "linkedin_id", reference: "linkedinId" },
       { slug: "domain", reference: "domain" },
       { slug: "account_domain", reference: "domain" },
       { slug: "linkedin_url", reference: "linkedinHandle" },

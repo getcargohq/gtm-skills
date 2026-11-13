@@ -48,7 +48,7 @@ own model and declares how it identifies a company: Sales Navigator by the Linke
 Ark and Apollo by the domain and the LinkedIn page, Exa by the domain. Cargo's account unification
 merges them into Unify Accounts and normalises the keys itself. Then one play reads each account
 once: a LinkedIn company enrich (from the LinkedIn page any source gave, else the domain) and a
-classification, written as one profile row in `tam_companies`. That row carries the LinkedIn id, the
+classification, written as one profile row in `tam_accounts`. That row carries the LinkedIn id, the
 page, LinkedIn's domain and the account's own domain together and unifies back into the same account:
 it is what joins the company Sales Navigator found to the same company AI Ark found. A company four
 sources found is enriched once.
@@ -149,8 +149,7 @@ or template work if the skill cannot be installed or read.
    `account-scoring`) or these folders, rewire the imports to the existing ones and drop the copies:
    two resources with one slug collide at deploy. Check that the workspace has Unify Accounts
    (`cargo-ai storage model list`, extractor `unifyAccounts`) and that the CRM's companies model
-   unifies into it ([`references/configure.md`](references/configure.md)). If `tam-building` is
-   installed, rename this skill's `tam_companies` before deploying: the two slugs collide.
+   unifies into it ([`references/configure.md`](references/configure.md)).
    This skill declares no `defineContext`. This folder needs nothing in `.env`; append nothing and
    never overwrite it.
 3. **Write or confirm the ICP, the three criteria and the categories.** Follow
@@ -207,7 +206,7 @@ waiting to be asked. Every one costs something; that is what makes it a variatio
 | `apollo-as-fallback` | Budget: three sources are enough until the report shows a gap                                      | Leave `tam_source_apollo` out of the first deploy and add it when the per-source table says Sales Navigator, AI Ark and Exa missed accounts you expected                                                  | No Sales Navigator × Apollo pair, so no coverage estimate unless a `reference-list` replaces it                                                                     |
 | `reference-list` | You hold an independent list of the same market: a Crunchbase export, an earlier TAM, a list built another way | Load it as a model (Google Sheets or CSV) that unifies as an account on its domain or LinkedIn page, and pair it with Sales Navigator in the coverage query instead of Apollo                         | One more source to profile. The estimate gets better the more independent the list is; a list built from the same providers adds nothing                            |
 | `drop-a-source`  | Budget, or a source that adds almost nothing in your market                                          | Remove its connector, its model and its line in the play's filter, and its entries in the contract, in one change                                                                                       | Coverage. Dropping Apollo also removes the census pair the estimate is computed from; pair Sales Navigator with AI Ark and say the estimate is weaker                |
-| `growth-signal`  | Growth decides priority in your market                                                               | Add `salesNavigator.findCompanyInsights` after the LinkedIn enrich in the profile play, and a growth column on `tam_companies`                                                                            | One more paid call per company. Keep growth as information, never as a gate: a company that is not growing is still in your market                                 |
+| `growth-signal`  | Growth decides priority in your market                                                               | Add `salesNavigator.findCompanyInsights` after the LinkedIn enrich in the profile play, and a growth column on `tam_accounts`                                                                            | One more paid call per company. Keep growth as information, never as a gate: a company that is not growing is still in your market                                 |
 | `refresh`        | The market moves and the TAM goes stale. Every three to four months is enough                        | By hand: re-count and re-sync the sources in the same order, and run the profile batch after each. Or on its own: `schedule: { type: "cron", cron: "0 6 1 */3 *" }` on each paid source (the 1st of every third month), and `"0 6 2 */3 *"` with `isEnabled: true` on the profile play, the day after. A new company becomes a new account and is profiled; a known one is merged and costs nothing more | Every re-sync re-bills every returned record, including the companies already in the TAM: four times a year at most, and the contract refuses anything more frequent. Re-count Sales Navigator first: a split search drifts over a quarter |
 | `fifth-source`   | A source that is good at your market (FullEnrich, free per record)                                   | One more source model with a declared account unification, one more line in the play's filter, and the contract's connector list edited                                                                | Nothing else: Cargo merges it, and the play profiles only the companies it adds                                                                                      |
 
@@ -225,7 +224,7 @@ you still want it, and records why under `## Decisions` in your copy of this fil
 - **One profile per company, after the merge.** (`infra/plays/profile-company.ts`) The LinkedIn enrich
   and the classification run on the account, so a company four sources found is paid for once, and
   the profile row is what joins the Sales Navigator row to the others.
-- **The profile matches on both domains.** (`infra/models/tam-companies.ts`) LinkedIn's domain and the
+- **The profile matches on both domains.** (`infra/models/tam-accounts.ts`) LinkedIn's domain and the
   account's own often differ (`corporate.acme.example` against `acme.example`). Match on LinkedIn's
   only and the profile becomes an account of its own while the source account stays unprofiled.
 - **A company's domain comes from evidence, never from a short link.** (`infra/scripts/company-domain.ts`)
@@ -236,7 +235,7 @@ you still want it, and records why under `## Decisions` in your copy of this fil
   (`infra/plays/profile-company.ts`, `infra/settings.ts`) Trust a provider's industry label and services
   firms land in the TAM while real software companies filed elsewhere are dropped.
 - **Nothing is deleted; everything out of scope carries its reason.** (`status` and `exclusion_reason`,
-  computed on `tam_companies`) Delete instead and the report can no longer say what each source returned
+  computed on `tam_accounts`) Delete instead and the report can no longer say what each source returned
   that was not your market, or why a company you expected is missing.
 - **Nothing else is declared on Unify Accounts.** (`infra/models/accounts.ts`) A declared column list or
   schedule replaces the live one, and every pipeline and person in the workspace reads that model.
@@ -260,7 +259,7 @@ you still want it, and records why under `## Decisions` in your copy of this fil
 
 - the ICP came from the context or was researched and approved, and the three criteria are in all four
   sources and `settings.ts`
-- the categories came from the CRM's industry field or `icp.md`, and every row of `tam_companies` carries
+- the categories came from the CRM's industry field or `icp.md`, and every row of `tam_accounts` carries
   one of them
 - every Sales Navigator URL is under 1,000 accounts and carries `INDUSTRY`, `COMPANY_HEADCOUNT` and
   `REGION`
@@ -296,7 +295,7 @@ The sources carry **no schedule**. See `refresh` above for what a re-sync really
 
 ## Composes into
 
-`account-scoring` tiers the in-scope companies of `tam_companies` against the same ICP; compare the tiers by
+`account-scoring` tiers the in-scope companies of `tam_accounts` against the same ICP; compare the tiers by
 number of sources, the companies several sources agree on tend to score higher. Pushing the net new
 into the CRM is the usual next write, approved on its own; `crm-enrichment` and `crm-deduplication`
 keep those records clean once they are there. `extract-sales-navigator-search` is the step that

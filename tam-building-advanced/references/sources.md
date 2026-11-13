@@ -23,7 +23,7 @@ merges directly. AI Ark returns the LinkedIn page name (`/company/acme`), never
 the id, and Exa returns a website: neither has anything in common with Sales
 Navigator, and they reach it through Apollo only for companies Apollo also
 found. The profile play's LinkedIn enrich returns the id, the page and the
-domain together, and its row in `tam_companies` unifies into the same account,
+domain together, and its row in `tam_accounts` unifies into the same account,
 which is what makes the rest one.
 That is why each source is profiled before the next one syncs.
 

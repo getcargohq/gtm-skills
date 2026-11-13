@@ -20,10 +20,16 @@ the next checkpoint.
    adapted resources.
 2. `cargo-ai project types`, then `cargo-ai project check`, then
    `cargo-ai project plan`. Confirm the plan shows the connectors, the source
-   models with **no schedule** and their unification, `tam_companies`, Unify
+   models with **no schedule** and their unification, `tam_accounts`, Unify
    Accounts **adopted with no column or schedule change**, and the one play
    **disabled, with no schedule**.
 3. Deploy only under the budget approval, Sales Navigator's model first.
+
+**Deployed before 0.3.0?** The profile model was `tam_companies`, keyed on
+`linkedin_company_id`. The plan now creates `tam_accounts` and leaves the old
+model in place: a deploy never deletes. Delete `tam_companies` by hand once
+the profile batch has filled `tam_accounts`, or its rows keep unifying into
+Accounts next to the new ones.
 
 Resolve `workspaceUuid` from `cargo-ai whoami` and each UUID from
 `cargo.state.json`. A model link is
@@ -68,7 +74,7 @@ For each source:
      --wait-until-finished
    ```
 
-   Read the five `tam_companies` rows: category, `computed__status`,
+   Read the five `tam_accounts` rows: category, `computed__status`,
    `computed__exclusion_reason`, domain. A wrong category here is a wrong
    category on every row.
 4. **The rest.** The same batch without `limit`. The play stays disabled: it
@@ -119,14 +125,14 @@ WITH tam AS (
     JSON_QUERY(a.ids, '$.object___tam_source_exa') IS NOT NULL AS exa,
     JSON_QUERY(a.ids, '$.apolloio___tam_source_apollo') IS NOT NULL AS apollo,
     JSON_QUERY(a.ids, '$.hubspot___companies') IS NOT NULL AS in_crm,
-    JSON_VALUE(a.ids, '$.object___tam_companies[0]') AS profile_id
+    JSON_VALUE(a.ids, '$.object___tam_accounts[0]') AS profile_id
   FROM object.accounts a
 ),
 universe AS (
-  SELECT tam.*, c.linkedin_company_id, c.name, c.domain, c.category,
+  SELECT tam.*, c.linkedin_id, c.name, c.domain, c.category,
          c.computed__status AS status, c.computed__exclusion_reason AS exclusion_reason
   FROM tam
-  LEFT JOIN object.tam_companies c ON c._id = tam.profile_id
+  LEFT JOIN object.tam_accounts c ON c._id = tam.profile_id
   WHERE sales_navigator OR ai_ark OR exa OR apollo
 )
 SELECT status, COUNT(*) AS companies FROM universe GROUP BY status ORDER BY companies DESC
@@ -189,7 +195,7 @@ fix the key on the row that carries it when the merge is wrong.
 ```sql
 SELECT _id, ids
 FROM object.accounts
-WHERE JSON_QUERY(ids, '$.object___tam_companies[1]') IS NOT NULL
+WHERE JSON_QUERY(ids, '$.object___tam_accounts[1]') IS NOT NULL
 ```
 
 **The coverage estimate.** You cannot count the companies no source found, but
@@ -243,7 +249,7 @@ The report gives, in this order:
 - the merges read, and what was fixed
 - actual credits against the estimate (`cargo-ai billing usage get-metrics`),
   with the pricing lookup time
-- the links to Unify Accounts, `tam_companies` and the four sources
+- the links to Unify Accounts, `tam_accounts` and the four sources
 
 ## Openings
 

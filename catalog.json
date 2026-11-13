@@ -2867,7 +2867,7 @@
         {
           "id": "growth-signal",
           "when": "Growth decides priority in your market",
-          "how": "Add `salesNavigator.findCompanyInsights` after the LinkedIn enrich in the profile play, and a growth column on `tam_companies",
+          "how": "Add `salesNavigator.findCompanyInsights` after the LinkedIn enrich in the profile play, and a growth column on `tam_accounts",
           "cost": "One more paid call per company. Keep growth as information, never as a gate: a company that is not growing is still in your market"
         },
         {
@@ -2887,10 +2887,10 @@
         "**Cargo merges; no workflow writes the TAM.** (`unification` on every model in `infra/models/`) Unify Accounts is the TAM. A play that dedups sources into its own table re-implements key normalisation, misses the merges Cargo makes across three rows, and leaves two account layers that disagree.",
         "**Every unification is declared.** Sales Navigator's default unification is off: leave it undeclared and the census never reaches Accounts. The others are declared too, so a provider changing its default cannot move your TAM.",
         "**One profile per company, after the merge.** (`infra/plays/profile-company.ts`) The LinkedIn enrich and the classification run on the account, so a company four sources found is paid for once, and the profile row is what joins the Sales Navigator row to the others.",
-        "**The profile matches on both domains.** (`infra/models/tam-companies.ts`) LinkedIn's domain and the account's own often differ (`corporate.acme.example` against `acme.example`). Match on LinkedIn's only and the profile becomes an account of its own while the source account stays unprofiled.",
+        "**The profile matches on both domains.** (`infra/models/tam-accounts.ts`) LinkedIn's domain and the account's own often differ (`corporate.acme.example` against `acme.example`). Match on LinkedIn's only and the profile becomes an account of its own while the source account stays unprofiled.",
         "**A company's domain comes from evidence, never from a short link.** (`infra/scripts/company-domain.ts`) LinkedIn's domain when it is real, else the account's, else where LinkedIn's short link lands. A `bit.ly` or `hubs.ly` host written as a domain is a key shared by unrelated companies, and Cargo merges them into one account.",
         "**Companies are classified from their own description into your categories.** (`infra/plays/profile-company.ts`, `infra/settings.ts`) Trust a provider's industry label and services firms land in the TAM while real software companies filed elsewhere are dropped.",
-        "**Nothing is deleted; everything out of scope carries its reason.** (`status` and `exclusion_reason`, computed on `tam_companies`) Delete instead and the report can no longer say what each source returned that was not your market, or why a company you expected is missing.",
+        "**Nothing is deleted; everything out of scope carries its reason.** (`status` and `exclusion_reason`, computed on `tam_accounts`) Delete instead and the report can no longer say what each source returned that was not your market, or why a company you expected is missing.",
         "**Nothing else is declared on Unify Accounts.** (`infra/models/accounts.ts`) A declared column list or schedule replaces the live one, and every pipeline and person in the workspace reads that model.",
         "**Unknown stays unknown.** A thin page, or a missing headcount or country, is `needs_review`, never out of scope. A provider that returns nothing has a coverage gap; it is not evidence about the company.",
         "**Sources run one after another.** (`references/run.md`) Profile one source's accounts before the next syncs: the next source's rows then merge onto accounts that already have a profile, and only the companies it adds are paid for.",
@@ -2901,7 +2901,7 @@
       ],
       "doneWhen": [
         "the ICP came from the context or was researched and approved, and the three criteria are in all four sources and `settings.ts`",
-        "the categories came from the CRM's industry field or `icp.md`, and every row of `tam_companies` carries one of them",
+        "the categories came from the CRM's industry field or `icp.md`, and every row of `tam_accounts` carries one of them",
         "every Sales Navigator URL is under 1,000 accounts and carries `INDUSTRY`, `COMPANY_HEADCOUNT` and `REGION`",
         "the sources were synced and profiled one at a time, in order, each piloted on five accounts first",
         "every account a TAM source found has one profile with a LinkedIn company id and a status, no LinkedIn company id sits on two accounts, and every account holding two LinkedIn ids was read",
@@ -2910,7 +2910,7 @@
         "`node --import tsx evals/contract.mjs` passes against the adapted resources"
       ],
       "cost": "Read this before pointing the skill at a market-sized brief.\n\n**Counting is free on AI Ark** and a fixed fee per search on Sales Navigator. Count every candidate\nbefore anything syncs.\n\n**Sourcing bills per returned record** on Sales Navigator, AI Ark and Apollo, and per search plus per\nresult past the tenth on Exa. Each source's `limit` (or the number of queries times\n`exaResultsPerQuery`) is its cap.\n\n**Enrichment bills once per company, not per source.** Cargo merges the sources before the play runs,\nso a company four sources found is one account and one profile: one LinkedIn enrich and one\nclassification. Estimate them on the expected number of distinct companies, which is well under the\nsum of the sources. The merge itself is free.\n\nFetch every live price immediately before the approval with `cargo-ai connection integration get` for\n`salesNavigator`, `aiArk`, `apolloio`, `exa` and `linkedin`, and record the lookup time. No price is\nwritten in this skill on purpose: they change.\n\nThe sources carry **no schedule**. See `refresh` above for what a re-sync really costs.",
-      "composesInto": "`account-scoring` tiers the in-scope companies of `tam_companies` against the same ICP; compare the tiers by\nnumber of sources, the companies several sources agree on tend to score higher. Pushing the net new\ninto the CRM is the usual next write, approved on its own; `crm-enrichment` and `crm-deduplication`\nkeep those records clean once they are there. `extract-sales-navigator-search` is the step that\nsplits a large Sales Navigator search, and `tam-building` is the single-source version of this skill."
+      "composesInto": "`account-scoring` tiers the in-scope companies of `tam_accounts` against the same ICP; compare the tiers by\nnumber of sources, the companies several sources agree on tend to score higher. Pushing the net new\ninto the CRM is the usual next write, approved on its own; `crm-enrichment` and `crm-deduplication`\nkeep those records clean once they are there. `extract-sales-navigator-search` is the step that\nsplits a large Sales Navigator search, and `tam-building` is the single-source version of this skill."
     },
     {
       "name": "track-funding-rounds",
