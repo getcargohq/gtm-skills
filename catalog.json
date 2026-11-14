@@ -2164,8 +2164,8 @@
     {
       "name": "post-engagement",
       "kind": "cookbook",
-      "job": "See who engages with your own LinkedIn posts, ranked: Cargo Signals syncs everyone who reacts to or comments on the founders' and company voices' posts, and a hosted Engagement Board your team opens with its Cargo login scores every person and every account, so repeat engagers and accounts with several people paying attention stop hiding behind one-off likes.",
-      "description": "See who engages with your own LinkedIn posts, ranked: Cargo Signals syncs everyone who reacts to or comments on the founders' and company voices' posts, and a hosted Engagement Board your team opens with its Cargo login scores every person and every account, so repeat engagers and accounts with several people paying attention stop hiding behind one-off likes. Triggers: \"who engages with our founder's LinkedIn posts\", \"dashboard of people who like and comment on our posts\", \"which accounts are engaging with our content\", \"score our LinkedIn engagers\", \"track engagement on our CEO's posts\", \"who keeps reacting to our posts\". Cargo project, Cargo Signals listenInfluencerEngagement, defineModel, defineApp, Cargo Hosting, storage SQL. Skip when: you want posts by other people about your problem, judged weekly in a Slack digest, which is social-listening; or you want one list of a post's engagers once, with nothing deployed.",
+      "job": "See who engages with your own LinkedIn posts, ranked: Cargo Signals syncs everyone who reacts to or comments on your team's posts, and a hosted Engagement Board your team opens with its Cargo login scores every person and account, so repeat engagers and accounts with several people paying attention stop hiding behind one-off likes.",
+      "description": "See who engages with your own LinkedIn posts, ranked: Cargo Signals syncs everyone who reacts to or comments on your team's posts, and a hosted Engagement Board your team opens with its Cargo login scores every person and account, so repeat engagers and accounts with several people paying attention stop hiding behind one-off likes. Triggers: \"who engages with our LinkedIn posts\", \"dashboard of people who like and comment on our posts\", \"which accounts are engaging with our content\", \"score our LinkedIn engagers\", \"track engagement on our CEO's posts\". Cargo project, Cargo Signals listenInfluencerEngagement, defineModel, defineApp, Cargo Hosting, storage SQL. Skip when: you want posts by other people about your problem, judged weekly in a Slack digest, which is social-listening; or one list of a post's engagers once, with nothing deployed.",
       "version": "0.1.0",
       "homepage": "https://github.com/getcargohq/gtm-skills/tree/main/post-engagement",
       "group": "Signals",
@@ -2219,9 +2219,9 @@
       "canChange": [
         {
           "id": "with-adjacent",
-          "when": "Founders of tools your buyers already evaluate post often, and their engagers are shopping",
+          "when": "People at tools your buyers already evaluate post often, and their engagers are shopping",
           "how": "Two more models on the same helper with those profiles (`post_reactors_adjacent`, `post_commenters_adjacent`), both added to `MODELS`, the authors added to `AUTHORS` with `ours: false`, and `ADJACENT_LABEL` set",
-          "cost": "A popular founder's post draws far more reactions than yours: set a lower `dailyLeadLimit` on those two. Their engagers count at `adjacentFactor`."
+          "cost": "Their posts can draw far more reactions than yours: set a lower `dailyLeadLimit` on those two. Their engagers count at `adjacentFactor`."
         },
         {
           "id": "comments-only",

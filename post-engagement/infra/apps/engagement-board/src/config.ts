@@ -15,7 +15,7 @@ export type Author = { handle: string; name: string; ours: boolean };
 
 // Every LinkedIn profile the models watch, keyed by the handle in its URL
 // (linkedin.com/in/<handle>). `ours: true` for your own people; `ours: false`
-// for the adjacent founders of the `with-adjacent` variation, whose engagers
+// for the adjacent voices of the `with-adjacent` variation, whose engagers
 // count at `SCORING.adjacentFactor`. A row whose profile is missing here is
 // dropped and named in a warning at the top of the board, so add a profile here
 // in the same change that adds it to the models.
@@ -29,9 +29,9 @@ export const AUTHORS: Record<string, Author> = {
   "sam-okafor": { handle: "sam-okafor", name: "Sam", ours: true },
 };
 
-// What the "adjacent" filter and the score help call those other founders,
-// e.g. "Contoso and Northwind founders". Unused until `with-adjacent`.
-export const ADJACENT_LABEL = "adjacent founders";
+// What the "adjacent" filter and the score help call those other voices,
+// e.g. "Contoso and Northwind teams". Unused until `with-adjacent`.
+export const ADJACENT_LABEL = "adjacent voices";
 
 // ICP fit, shown beside the score as a badge and a filter. It never decides who
 // is kept: every engager is on the board. Written from the ICP and personas in
@@ -54,7 +54,7 @@ export const ICP = {
 // SCORE. Deterministic on purpose: the same rows always give the same ranking,
 // so a person moving up the board means they engaged again, not that a model
 // changed its mind. A comment costs the person effort, a reaction one click.
-// Engagement on an adjacent founder's post says the person is shopping the
+// Engagement on an adjacent voice's post says the person is shopping the
 // category, which matters but is not about you. Points halve every
 // `halfLifeDays` so the board ranks who is warm now, and repeat engagement adds
 // up because every engagement contributes.

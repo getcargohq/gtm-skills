@@ -8,7 +8,7 @@ import { cargoSignals } from "../connectors/cargo-signals";
 import { modelsFolder } from "../folders";
 
 // PLACEHOLDER: the LinkedIn profiles whose posts you want watched, usually the
-// founders and whoever posts for the company. Each one also needs an entry in
+// people who post for the company. Each one also needs an entry in
 // `AUTHORS` in apps/engagement-board/src/config.ts, or its rows are dropped
 // from the board with a warning.
 const trackedProfiles = [
