@@ -46,11 +46,12 @@ For each source:
 
 1. **The rows landed.** `cargo-ai storage run list --model-uuid <sourceUuid>`
    shows the sync finished, then count the source's rows in SQL: a finished
-   run is not proof. A sync the workspace had no credits for is recorded as a
-   success with no rows, and the source then counts as up to date, so a plain
-   `storage run create` answers `upToDate`. Only when the count is 0, start it
-   once with `--is-force true`. Never re-run a source that has rows: it bills
-   every record again.
+   run is not proof, since a search that returns nothing still succeeds. A
+   source with no schedule then counts as up to date, so a plain
+   `storage run create` answers `upToDate`. When the count is 0, find out why
+   before running it again with `--is-force true`: a forced run bills the
+   search again. Never re-run a source that has rows: it bills every record
+   again.
 2. **Accounts merged them.** Refresh Unify Accounts
    (`cargo-ai storage run create --model-uuid <accountsUuid>`, then poll
    `storage run list`). Refreshing rebuilds the merge; it never re-runs a
