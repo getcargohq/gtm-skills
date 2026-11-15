@@ -34,7 +34,7 @@ import { askCargoUser } from "../users";
 // read with Cargo's own CLI, which the harness already has, and only the
 // prompt can say which commands need a "go" in the thread first. The rules
 // are in `ask-cargo.prompt.ts`. The CLI is signed in as the `ask_cargo`
-// service user (`repository.runAs`), a viewer: see `../users`.
+// service user (`runAs`), a viewer: see `../users`.
 export const askCargo = defineAgent("ask_cargo", {
   name: "Ask Cargo",
   description:
@@ -43,18 +43,17 @@ export const askCargo = defineAgent("ask_cargo", {
   harness: "claudeCode",
   connector: anthropic,
   languageModel: "claude-sonnet-5", // PLACEHOLDER — your model of choice
-  // Only `runAs` in `repository`, on purpose. Plan and deploy fill the rest
-  // from the project's own repository: they read the git origin of the
-  // checkout they run in and fill the repo, default branch and root
-  // directory, taking the connector from the project's GitHub
-  // `defineConnector`. (`null` is the opposite: an unbound agent with no
-  // clone.) `cargo-ai project check` prints what it resolved; verify it names the
-  // repository root and not `infra/`.
+  // No `state`: deploy binds this project's connected state (the one
+  // cargo.state.json points at), and the harness clones its repository at the
+  // state's directory and production branch. `cargo-ai project check` prints
+  // the binding. A project whose state is not connected deploys this agent
+  // unbound, with an empty sandbox and the plan note `unbound: this project's
+  // state is not connected`; connect the project before relying on it.
   //
-  // Nor an `env` to hold one: the one value a reply needs — the bot's own
-  // mention, so it can say what to type to confirm — arrives in every message
-  // that wakes the agent as Slack's raw `<@U…>` token, which the prompt reuses.
-  repository: { runAs: askCargoUser },
+  // No `env` either: the one value a reply needs — the bot's own mention, so
+  // it can say what to type to confirm — arrives in every message that wakes
+  // the agent as Slack's raw `<@U…>` token, which the prompt reuses.
+  runAs: askCargoUser,
   triggers: [
     agentConnectorTrigger({
       connector: slack,

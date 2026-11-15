@@ -31,7 +31,7 @@ import { goalCoverageUser } from "../users";
 // connectors, folders) is read with Cargo's own CLI, which the harness already
 // has, and only the prompt can say "read, never execute". The commands are
 // listed in `goal-coverage.prompt.ts` §2. The CLI is signed in as the
-// `goal_coverage` service user (`repository.runAs`), a viewer: see `../users`.
+// `goal_coverage` service user (`runAs`), a viewer: see `../users`.
 export const goalCoverage = defineAgent("goal_coverage", {
   name: "Goal coverage",
   description:
@@ -40,18 +40,18 @@ export const goalCoverage = defineAgent("goal_coverage", {
   harness: "claudeCode",
   connector: anthropic,
   languageModel: "claude-sonnet-5", // PLACEHOLDER: your model of choice
-  repository: {
-    // Deliberately partial: `repository`, `defaultBranch`, `rootDirectory` and
-    // the GitHub `connector` are omitted so plan and deploy fill them from the
-    // git origin of the checkout. `cargo-ai project check` prints what it
-    // resolved; verify it names the repository root and not `infra/`.
-    runAs: goalCoverageUser,
-    env: {
-      // PLACEHOLDER: the goal, in one sentence, for a project with no
-      // plan/company-plan.md. Leave it empty when that file exists: the file
-      // wins, because it is the version a human reviews.
-      COVERAGE_GOAL: "",
-    },
+  // No `state`: deploy binds this project's connected state (the one
+  // cargo.state.json points at), and the harness clones its repository at the
+  // state's directory and production branch. `cargo-ai project check` prints
+  // the binding. A project whose state is not connected deploys this agent
+  // unbound, with an empty sandbox and the plan note `unbound: this project's
+  // state is not connected`; connect the project before relying on it.
+  runAs: goalCoverageUser,
+  env: {
+    // PLACEHOLDER: the goal, in one sentence, for a project with no
+    // plan/company-plan.md. Leave it empty when that file exists: the file
+    // wins, because it is the version a human reviews.
+    COVERAGE_GOAL: "",
   },
   uses: [
     {

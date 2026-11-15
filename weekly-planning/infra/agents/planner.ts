@@ -36,24 +36,20 @@ export const planner = defineAgent("weekly_planning", {
   harness: "claudeCode",
   connector: anthropic,
   languageModel: "claude-sonnet-5", // PLACEHOLDER — your model of choice
-  repository: {
-    // Deliberately partial. `repository`, `defaultBranch`, `rootDirectory` and
-    // the GitHub `connector` are all OMITTED so plan and deploy fill them from
-    // the git origin of the checkout they run in, taking the connector from the
-    // project's own `defineConnector`.
-    //
-    // `rootDirectory` resolves to the directory whose package.json declares
-    // `@cargo-ai/cdk` — where node_modules is, and therefore the only place the
-    // agent's `npx tsx …/collect/week.ts` resolves. In the scaffolded layout
-    // that is the repository root, which is also where cadence/ and
-    // initiatives/ live. `cargo-ai project check` prints what it resolved; verify
-    // it names the repository root and not `infra/`.
-    env: {
-      // IANA timezone the recapped ISO week is computed in. Public, so a
-      // plain string rather than a secret. The cron is Monday 15:00 UTC,
-      // which is 8am here during PDT; change both together if you move it.
-      PLANNING_TIMEZONE: "America/Los_Angeles",
-    },
+  // No `state`: deploy binds this project's connected state (cargo.state.json),
+  // and the harness clones its repository at the state's directory and
+  // production branch. That directory must hold the package.json declaring
+  // `@cargo-ai/cdk`, where node_modules is and therefore the only place the
+  // agent's `npx tsx …/collect/week.ts` resolves. In the scaffolded layout
+  // that is the repository root, which is also where cadence/ and
+  // initiatives/ live. `cargo-ai project check` prints the binding; a project
+  // whose state is not connected deploys this agent unbound, with an empty
+  // sandbox.
+  env: {
+    // IANA timezone the recapped ISO week is computed in. Public, so a
+    // plain string rather than a secret. The cron is Monday 15:00 UTC,
+    // which is 8am here during PDT; change both together if you move it.
+    PLANNING_TIMEZONE: "America/Los_Angeles",
   },
   triggers: [
     {

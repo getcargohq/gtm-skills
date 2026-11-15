@@ -110,7 +110,7 @@ check("exactly one agent deploys, a harness on a monthly cron with the channel l
   assert.equal(byId.get("connector:anthropic").spec.integrationSlug, "anthropic", "claudeCode is proxied to Anthropic");
   assert.equal((agent.spec.capabilities ?? []).length, 0, "a context capability would be a write path that skips the pull request");
   assert.equal((agent.spec.tools ?? []).length, 0, "slack.postMessage is an action on the agent, not a wrapped tool");
-  const env = agent.spec.repository?.env ?? [];
+  const env = agent.spec.env ?? [];
   assert.equal((Array.isArray(env) ? env : Object.keys(env)).length, 0, "no env: the audit is in the prompt and there is no credential");
   const crons = (agent.spec.triggers ?? []).filter((t) => t.type === "cron");
   assert.equal(crons.length, 1, "exactly one cron trigger");

@@ -25,12 +25,13 @@ import { agentsFolder } from "../folders";
 //   cargo-ai ai message create --agent-uuid <uuid> \
 //     --parts '[{"type":"text","text":"Run the web capture. Follow your system prompt exactly."}]'
 //
-// No `repository` block, and nothing left to put in one. Plan and deploy
-// fill the repo, branch, root and GitHub connector from the git origin of
-// the checkout, which is the correct binding: the repository holding
-// context/ IS this project's. `cargo-ai project check` prints what it
-// resolved; confirm the root is the repository root and not `infra/`, since
-// that is where the agent's `npx tsx` resolves node_modules from.
+// No `state`, and nothing to put in one. Deploy binds this project's
+// connected state (cargo.state.json) and the harness clones its repository at
+// the state's directory and production branch, which is the correct binding:
+// the repository holding context/ IS this project's. `cargo-ai project check`
+// prints the binding; the state's directory must be where the agent's
+// `npx tsx` resolves node_modules from, and a project whose state is not
+// connected deploys this agent unbound.
 //
 // No `env` either, and no script. The domain and the pages are constants in
 // ./web-scribe.prompt.ts, next to the exact commands the agent runs, so the

@@ -23,10 +23,11 @@ import { agentsFolder } from "../folders";
 //   - no `context` capability. The checkout already holds context/, and a
 //     capability would be a second path that can write it without review.
 //
-// No `repository` block beyond `env`. Plan and deploy fill the repo, branch,
-// root and GitHub connector from the git origin of the checkout, which is the
-// repository holding context/ and cadence/. `cargo-ai project check` prints what
-// it resolved; confirm the root is the repository root and not `infra/`.
+// No `state`: deploy binds this project's connected state (cargo.state.json),
+// whose repository holds context/ and cadence/, and the harness clones it at
+// the state's directory and production branch. `cargo-ai project check` prints
+// the binding; a project whose state is not connected deploys this agent
+// unbound, with an empty sandbox.
 export const contentWriter = defineAgent("linkedin_content_writer", {
   name: "LinkedIn content writer",
   description:
@@ -35,12 +36,10 @@ export const contentWriter = defineAgent("linkedin_content_writer", {
   harness: "claudeCode",
   connector: anthropic,
   languageModel: "claude-sonnet-5", // PLACEHOLDER: your model of choice
-  repository: {
-    env: {
-      // PLACEHOLDER: the person the posts are written as, the way they sign
-      // their name. The prompt refuses to run while it reads PLACEHOLDER.
-      CONTENT_AUTHOR: "PLACEHOLDER",
-    },
+  env: {
+    // PLACEHOLDER: the person the posts are written as, the way they sign
+    // their name. The prompt refuses to run while it reads PLACEHOLDER.
+    CONTENT_AUTHOR: "PLACEHOLDER",
   },
   triggers: [
     {

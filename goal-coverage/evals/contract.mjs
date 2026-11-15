@@ -72,8 +72,8 @@ assert.equal(
 // Without `runAs` the CLI has no session and every workspace read fails; with a
 // broader role a prompt that is ignored can deploy or change resources.
 assert.ok(
-  agent.spec.repository?.runAsUserUuid,
-  "goal-coverage must run as a service user (repository.runAs): the sandbox needs a Cargo session",
+  agent.spec.runAsUserUuid,
+  "goal-coverage must run as a service user (runAs): the sandbox needs a Cargo session",
 );
 const user = byId.get("user:goal_coverage");
 assert.ok(user, "defineUser(goal_coverage) must exist");
@@ -106,12 +106,12 @@ findOne(
   "goal-coverage must have a cron trigger",
 );
 
-const env = agent.spec.repository?.env ?? [];
+const env = agent.spec.env ?? [];
 const envKeys = new Set((Array.isArray(env) ? env : []).map((entry) => entry.key));
 assert.equal(
   envKeys.has("COVERAGE_GOAL"),
   true,
-  "repository.env must carry COVERAGE_GOAL: it is the goal for a project with no plan/company-plan.md",
+  "env must carry COVERAGE_GOAL: it is the goal for a project with no plan/company-plan.md",
 );
 
 console.log("ok: goal-coverage contract");

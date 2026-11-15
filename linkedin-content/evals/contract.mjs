@@ -75,9 +75,9 @@ check("nothing on the agent can publish, and nothing can write context/", () => 
 
 check("the author is an env var, shipped as the placeholder the prompt refuses", async () => {
   const agent = byId.get("agent:linkedin_content_writer");
-  const env = agent.spec.repository?.env ?? [];
+  const env = agent.spec.env ?? [];
   const entry = (Array.isArray(env) ? env : []).find((e) => e.key === "CONTENT_AUTHOR");
-  assert.ok(entry, "repository.env must carry CONTENT_AUTHOR");
+  assert.ok(entry, "env must carry CONTENT_AUTHOR");
   assert.equal(entry.value, "PLACEHOLDER", "a template must not ship written as a real person");
   const { contentWriterPrompt } = await import("../infra/agents/content-writer.prompt.ts");
   assert.ok(contentWriterPrompt.includes("reads PLACEHOLDER"), "the author guard is gone");
