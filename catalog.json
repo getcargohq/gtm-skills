@@ -3244,7 +3244,7 @@
           "id": "separate-site-repo",
           "when": "The website's source lives in a repository other than the project's",
           "how": "Connect that repository as its own Cargo project, set `state: stateRef(\"<its state uuid>\")` on the agent, and `WEBSITE_ROOT` relative to that project's directory",
-          "cost": "The binding is no longer derived, so a disconnected or deleted project leaves the agent refused (`stateNotConnected`). Check it with `cargo-ai project check` after any change to that project."
+          "cost": "The binding is no longer derived, so a disconnected or deleted project leaves the agent refused at every turn. Check it with `cargo-ai project check` after any change to that project."
         },
         {
           "id": "ora-scan-key",
