@@ -29,12 +29,12 @@ import { agentsFolder } from "../folders";
 // teammate reads it in ten seconds and opens the pull request when a line
 // surprises them.
 //
-// No `repository` block, and nothing left to put in one. Plan and deploy
-// fill the repo, branch, root and GitHub connector from the git origin of
-// the checkout, which is the correct binding: the repository holding
-// context/ and outputs/ IS this project's. `cargo-ai project check` prints
-// what it resolved; confirm the root is the repository root and not
-// `infra/`.
+// No `state`, and nothing to put in one. Deploy binds this project's
+// connected state (cargo.state.json) and the harness clones its repository at
+// the state's directory and production branch, which is the correct binding:
+// the repository holding context/ and outputs/ IS this project's.
+// `cargo-ai project check` prints the binding; a project whose state is not
+// connected deploys this agent unbound.
 //
 // No `env` either, and no script. The CRM is extracted by the platform into
 // the three models under ../models/, and the audit is fixed SQL over them in

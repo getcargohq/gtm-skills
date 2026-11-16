@@ -62,11 +62,12 @@
     },
     {
       "title": "Fundamentals",
-      "description": "Deployed pipelines that build the base: the account universe, a standing score on every account, the website, and keeping it readable by AI agents.",
+      "description": "Deployed pipelines that build the base: the account universe, a standing score on every account, qualified stakeholders, the website, and keeping it readable by AI agents.",
       "skills": [
         "tam-building",
         "tam-building-advanced",
         "account-scoring",
+        "contact-sourcing",
         "website-building",
         "website-auditing"
       ]
@@ -393,7 +394,7 @@
       "kind": "cookbook",
       "job": "Ask your go-to-market repo and workspace anything from Slack: one agent the whole team @mentions answers from context, cadence and live runs, turns change requests into pull requests, captures a thread worth keeping into the cadence log and context, and hands work to the other deployed agents only after a go in the thread.",
       "description": "Ask your go-to-market repo and workspace anything from Slack: one agent the whole team @mentions answers from context, cadence and live runs, turns change requests into pull requests, captures a thread worth keeping into the cadence log and context, and hands work to the other deployed agents only after a go in the thread. Triggers: \"let the team ask our GTM agent from slack\", \"one agent on top of all the others\", \"a slack bot that knows our repo\", \"ask cargo from slack\", \"orchestrator agent for our GTM stack\", \"let anyone open a PR from slack\", \"capture this slack thread into our context\". Cargo project, defineAgent, harness claudeCode, Slack connector trigger, GitHub, cargo-ai CLI. Skip when: you want the day recapped and posted to Slack on a schedule, which is standup; or you want an answer in this chat right now with nothing deployed.",
-      "version": "0.2.3",
+      "version": "0.3.0",
       "homepage": "https://github.com/getcargohq/gtm-skills/tree/main/ask-cargo",
       "group": "Operations",
       "install": "cargo-ai project add cookbook/ask-cargo",
@@ -526,7 +527,7 @@
       "kind": "cookbook",
       "job": "Turn your recorded calls into a go-to-market knowledge base: each recorded call is collected every morning, scribed into a log entry, and, once a claim repeats, promoted into context, as one pull request against your go-to-market repo. Nine recorders ship; a tenth is one adapter file.",
       "description": "Turn your recorded calls into a go-to-market knowledge base: each recorded call is collected every morning, scribed into a log entry, and, once a claim repeats, promoted into context, as one pull request against your go-to-market repo. Nine recorders ship; a tenth is one adapter file. Triggers: \"our call recordings never make it into the knowledge base\", \"turn our call transcripts into context\", \"we relearn the same objection every quarter\", \"scribe yesterday's calls into the repo every morning\", \"replace the GitHub Action that summarizes our meetings\", \"we record on Granola, not Avoma\". Cargo project, defineAgent, harnessSlug claudeCode, workspace env var, GitHub, Avoma, Granola, Fathom, Gong, Fireflies, Grain, tl;dv, Modjo, Clari Copilot, cadence, context. Skip when: you want one call summarized right now, which is a read against the recorder's own API and needs nothing deployed.",
-      "version": "0.1.3",
+      "version": "0.2.0",
       "homepage": "https://github.com/getcargohq/gtm-skills/tree/main/call-capture",
       "group": "Context",
       "install": "cargo-ai project add cookbook/call-capture",
@@ -604,7 +605,7 @@
         "**`written: \"live\"` is a claim someone made with evidence.** (`scripts/collect/recorders/index.ts`) It means an adapter was run against a real workspace, and the collector prints a warning on every run of one that was not. Flip it to silence the warning and the registry starts implying that nine recorders are tested when one is — which is exactly how a convenience becomes a promise nobody checked, on a pipeline whose failure mode is a clean empty run.",
         "**Choices stay in code, the secret stays in the workspace, and the agent declares no `env`.** (`scripts/collect/config.ts`, `infra/agents/call-scribe.ts`) The recorder and the internal domain are typed constants, so the compiler checks the slug, a reviewer reads both in the diff, and an edit lands on the next clone rather than the next deploy. The credential is the mirror image: a workspace environment variable read server-side on every run, so it outlives the shell that set it and rotates without a deploy. Move a choice into the spec and nothing checks it; move the key there as a `secret()` and the next deploy is blocked on whoever runs it having the value exported, which on an unattended 07:00 pipeline is discovered as a morning with no pull request.",
         "**`scripts/call-capture/package.json` stays.** (`scripts/package.json`) It is not decoration. The loader imports only the resources folder `cargo.json` names, but in a project whose `cargo.json` names its root it imports every `.ts` there except directories carrying a `package.json`; delete it and `cargo-ai project plan` imports the collector and runs it against the live API on every plan.",
-        "**The harness root stays the directory holding the `package.json` that declares `@cargo-ai/cdk`.** (`infra/agents/call-scribe.ts`) That is where `node_modules` is, so it is the only place `npx tsx …/collect/calls.ts` resolves — and in the scaffolded layout it is the repository root, which is also where `cadence/` and `context/` live. The binder infers it, so nothing declares it here; what must not change is the outcome. **Check it, do not assume it:** `cargo-ai project check` prints the resolved binding, and a line ending `in infra/` means the harness was rooted where there is no package.json and no node_modules. The collector then cannot run at all, and the morning reports clean and empty. On a CLI old enough to resolve it that way, pin `rootDirectory: \".\"` in the repository block until you upgrade.",
+        "**The harness root stays the directory holding the `package.json` that declares `@cargo-ai/cdk`.** (`infra/agents/call-scribe.ts`) That is where `node_modules` is, so it is the only place `npx tsx …/collect/calls.ts` resolves — and in the scaffolded layout it is the repository root, which is also where `cadence/` and `context/` live. The harness clones the project's connected state at that state's directory, so nothing declares it here; what must not change is the outcome: the state is connected at the directory holding that `package.json`. **Check it, do not assume it:** `cargo-ai project check` prints the binding. A state connected at a subdirectory with no package.json leaves the collector unable to run, and the morning reports clean and empty; an unconnected state deploys the agent unbound, with nothing cloned.",
         "**The agent opens a pull request and never merges it.** (`infra/agents/call-scribe.prompt.ts`) Everything downstream reads `context/` as fact. Remove the review gate and a hallucinated objection, a misheard number, or a vendor call misread as pipeline becomes what your scorer, your researcher and your SDR all believe — and nothing will ever contradict it, because they read the same file.",
         "**One entry per call, keyed on the provider uuid, and raw captures are never touched.** (`infra/agents/call-scribe.prompt.ts`) The uuid in each file's `source:` line is the only idempotency key in this system. Let the agent rewrite entries \"to improve them\" and the run stops being idempotent: a re-run re-litigates history, the diff is unreviewable, and the earlier occurrence the repetition bar counted changes underneath it.",
         "**A claim reaches `context/` only on its second independent occurrence.** (`infra/agents/call-scribe.prompt.ts`) Drop the bar and the knowledge layer fills with singletons at the same confidence as durable truths. The failure is not noise, it is that nobody can tell which is which any more, and the layer stops being trusted at exactly the moment it is big enough to matter.",
@@ -657,6 +658,157 @@
         "`FullEnrich.findEmail` takes `domainName`, not `companyDomain`. The two rungs disagree on the field name, and a copy-paste between them silently resolves nothing.",
         "Clay's per-row credit and Cargo's credit are different units. Never compare the two numbers directly — compare what one sample of rows cost end to end on each."
       ]
+    },
+    {
+      "name": "contact-sourcing",
+      "kind": "cookbook",
+      "job": "Build a reusable on-demand tool that sources stakeholders at supplied accounts, qualifies their responsibilities, and returns all or up to N ranked by contact fit, with optional verified work email and phone enrichment.",
+      "description": "Build a reusable on-demand tool that sources stakeholders at supplied accounts, qualifies their responsibilities, and returns all or up to N ranked by contact fit, with optional verified work email and phone enrichment. Triggers: \"build a contact sourcing tool\", \"set up stakeholder sourcing\", \"rank stakeholders by relevance\", \"install contact sourcing\", \"return an enriched shortlist per account\". LinkedIn, Sales Navigator, OpenAI, Cargo project. Skip when: the user wants people at named accounts once today; use find-stakeholders. Existing profiles needing data use enrich-linkedin-profile; CRM field maintenance uses crm-enrichment.",
+      "version": "0.2.0",
+      "homepage": "https://github.com/getcargohq/gtm-skills/tree/main/contact-sourcing",
+      "group": "Fundamentals",
+      "install": "cargo-ai project add cookbook/contact-sourcing",
+      "partOf": [],
+      "personas": [
+        "gtm-engineering",
+        "revops",
+        "sales-development"
+      ],
+      "integrations": [
+        "anthropic",
+        "linkedin",
+        "openAi",
+        "salesNavigator"
+      ],
+      "example": {
+        "prompt": "Build a tool that finds up to three people responsible for capital-project schedules at each account, starting with bridgeworks.example. I only need their profiles and fit scores.",
+        "output": "| Rank | Person      | Current title            | Fit / 10 | Supporting evidence                                       |\n| ---- | ----------- | ------------------------ | -------- | --------------------------------------------------------- |\n| 1    | Morgan Vale | Project Controls Manager | 9        | Owns schedule-risk reviews across capital projects        |\n| 2    | Alex Rowan  | Senior Planner           | 8        | Maintains construction schedules and evaluates delay risk |\n\nTwo qualified people returned from 12 candidates; the maximum is three. Profile\nevidence accompanies each result. No email or phone lookup was requested."
+      },
+      "state": "to-be-approved",
+      "chain": 29,
+      "resources": [
+        "agents",
+        "connectors",
+        "folders",
+        "tools"
+      ],
+      "asked": [
+        {
+          "input": "existing_context_and_connections",
+          "kind": "derived",
+          "how": "Read seller context, personas, connectors and tool releases; inspect CRM connectivity without reading private deal contacts yet",
+          "why": "Prevents repeated research and duplicate resources; a CRM is optional"
+        },
+        {
+          "input": "provider_contract_and_costs",
+          "kind": "derived",
+          "how": "Read current action schemas, output paths, autocomplete values and cost metadata",
+          "why": "Prevents guessed filters and hidden page or verification charges"
+        },
+        {
+          "input": "seller_and_personas",
+          "kind": "asked if missing, then confirmed",
+          "how": "Establish product/use case; offer optional customer intelligence; approve persona table, Boolean and prompt together",
+          "why": "The tool ranks fit for this seller rather than generic seniority"
+        },
+        {
+          "input": "company_input",
+          "kind": "asked if missing",
+          "how": "Choose ID, URL, domain, or necessary multiple-input support",
+          "why": "An upstream ID skips paid resolution; extra identifiers must agree"
+        },
+        {
+          "input": "output_and_scope",
+          "kind": "asked if missing",
+          "how": "Choose top 3, top 5, top 10, another N or all; use useful existing won-deal evidence to refine N; choose enrichment, LLM provider/key-or-credits, search limit and restrictions",
+          "why": "Count and enrichment are separate; provider choice preserves the schema"
+        },
+        {
+          "input": "sample_and_calibration",
+          "kind": "asked",
+          "how": "Approve exact sample/max cost; assess relevance and missing people",
+          "why": "Static checks cannot prove provider coverage or qualification quality"
+        }
+      ],
+      "canChange": [
+        {
+          "id": "input",
+          "when": "Upstream already supplies ID, or the operator has URL/domain",
+          "how": "Set `inputMode`; keep only necessary routes",
+          "cost": "URL/domain adds resolution; ID bypasses it"
+        },
+        {
+          "id": "output",
+          "when": "The operator wants all relevant people or a bounded list",
+          "how": "topN: null` returns all qualified; a positive N slices after sorting, with or without enrichment",
+          "cost": "N caps output and any selected lookup spend; profile/AI spend still follows the search limit"
+        },
+        {
+          "id": "enrichment",
+          "when": "The operator needs contact details with the ranked result",
+          "how": "Set `email`/`phone` independently of the all-or-N choice",
+          "cost": "Adds only requested lookup/verification for selected people; a play can own this instead"
+        },
+        {
+          "id": "search_and_criteria",
+          "when": "Title ambiguity, geography or business-unit differences affect fit",
+          "how": "Update approved personas, title filters, optional threshold and restrictions together",
+          "cost": "Wider search raises profile/AI spend; narrower search can miss people"
+        },
+        {
+          "id": "model",
+          "when": "The operator has an OpenAI/Anthropic key or wants another supported model",
+          "how": "Choose `qualificationBackend`, `qualificationProvider` and `qualificationModel`; keep the shared schema and score anchors",
+          "cost": "Changes per-profile cost and judgment; agent mode adds only a bounded qualifier and its folder"
+        },
+        {
+          "id": "customer_intelligence",
+          "when": "Deal evidence can refine website positioning",
+          "how": "Read CRM/export contacts only after the operator chooses it",
+          "cost": "Extra analysis and private-data handling; website-only setup is faster"
+        },
+        {
+          "id": "reachable_N",
+          "when": "Operator explicitly needs N reachable contacts",
+          "how": "Add a separate maximum attempt/cost budget and report original ranks",
+          "cost": "May enrich lower-ranked people and cost more; never the default"
+        },
+        {
+          "id": "play",
+          "when": "Calibrated results should feed an existing process",
+          "how": "Confirm population, trigger, ownership and destination before wiring",
+          "cost": "Repeated executions rebill each eligible account; destination actions need their own authorization"
+        }
+      ],
+      "shouldNotChange": [
+        "**Resolve before sourcing.** `infra/index.ts` gates every search on a valid, verified company ID. Missing or conflicting identity returns `company_not_resolved`; losing the gate permits an unscoped people search.",
+        "**Titles find; evidence qualifies.** Wrong employers and responsibility mismatches are excluded; insufficient evidence stays identifiable outside the shortlist. An advisory seat does not prove primary employment.",
+        "**One identity before repeated spend.** Deduplicate stable LinkedIn IDs and canonical URLs before profiles and qualification. Do not equate opaque Sales Navigator IDs with numeric LinkedIn IDs or deduplicate people by name.",
+        "**Qualification precedes selection.** Profile retrieval supplies evidence; email/phone lookup supplies contact details later. Ranking by title alone or applying N before qualification changes which people can be returned.",
+        "**Count is independent of enrichment.** Return all qualified or slice up to N after sorting, even without contact lookup. N is a maximum; fewer qualifying people means fewer results. Optional enrichment only touches selected people.",
+        "**Sort numerically with stable ties.** The 0–10 scale has anchors. Selection uses an ordinary slice. An LLM does not order the array or assign outreach priority; enrichment completion order cannot change the saved ranks.",
+        "**Preserve selected people.** Lookup failures retain profile, qualification and rank with explicit statuses. Do not backfill lower-ranked contacts or retrieve LinkedIn profiles again after selection.",
+        "**Found is not verified.** Reuse only contact data meeting the approved requirements. A returned address without explicit verification stays unknown.",
+        "**Keep installation bounded.** No CRM, model, play, agent or unused enrichment branch is required for the default OpenAI-action path. Agent mode adds only a one-step qualifier with the same schema, without tools, memory, browsing or triggers. Reuse audited resources and the chosen provider connection.",
+        "**Approval has separate scopes.** Criteria/deployment approval precedes resource creation; sample and maximum-cost approval precedes paid execution; a full batch, destination write or schedule requires its own scope."
+      ],
+      "doneWhen": [
+        "Approved seller criteria retain source URLs, observed evidence, inferences, exclusions, persona IDs, provider filters and prompt version in consumer context.",
+        "The operator's closed-won research choice is recorded; website-only setup works.",
+        "The operator confirmed the exact title Boolean derived from context or seller research, the slightly broader search and its cost, and the provider/billing choice.",
+        "The compiled graph contains only selected input/output paths and no implicit play.",
+        "Live provider schemas and existing tool output mappings have been checked.",
+        "Unresolved companies cannot source; stable identity deduplication precedes spend.",
+        "Qualifications preserve profile evidence, current employment, uncertainty and a numeric fit score; the returned contacts have deterministic ranks.",
+        "The operator chose all or up to N independently of enrichment; the sorted qualified ranking is sliced before any requested lookups, returning fewer when needed. Three is only a starting suggestion; the chosen N has no fixed ceiling.",
+        "Only selected people receive requested email/phone enrichment; verified data can be reused; failures remain visible without backfill or a repeated profile lookup.",
+        "The adapted executable contracts, project type generation, check and plan pass.",
+        "The operator approved deployment, then the exact paid sample and maximum cost.",
+        "The sample shows coverage, ranked evidence and actual stage costs; corrections update reusable criteria and affected examples are retested as authorized.",
+        "The final handoff identifies unperformed live checks and any pending approval evidence, including this build's requested fresh demo and two implementations."
+      ],
+      "cost": "Read current `salesNavigator`, `linkedin`, the chosen LLM provider/agent and selected enrichment tool\nand verification metadata immediately before a preview. Record lookup time,\nCLI version, action slugs, units, cache assumptions and model settings.\n\nSeparate company resolution, people sourcing, profile retrieval, AI qualification,\nemail lookup/verification and phone lookup. Sales Navigator pages contain 25\nrecords: the compiled provider limit is `ceil(searchLimit / 25) * 25`, while\nprofile/qualification work is capped at `searchLimit`. Recommend a page multiple\nwhen it suits the account and explain any paid excess. Reaching the cap means\nlimited coverage, even if every retrieved person is qualified.\n\nUse the formula and approval procedure in [run.md](references/run.md). Do not\ninvent fixed prices, free-cache guarantees or a universal relevance threshold.",
+      "composesInto": "- `tam-building` supplies accounts and can pass already-resolved company IDs.\n- `crm-enrichment` supplies reusable company identity/profile components when present.\n- A play can slice `contacts` and own enrichment itself, or consume an enriched\n  shortlist directly; it owns any approved destination write.\n- `find-stakeholders` remains the one-off choice for people at named accounts today."
     },
     {
       "name": "crm-deduplication",
@@ -1314,8 +1466,8 @@
       "name": "find-stakeholders",
       "kind": "one-off",
       "job": "Find the buying committee at a target account — every stakeholder matching a set of titles, seniorities, and departments.",
-      "description": "Find the buying committee at a target account — every stakeholder matching a set of titles, seniorities, and departments, powered by Cargo. Triggers: \"find the buying committee at Acme\", \"who are the decision makers at this company\", \"find stakeholders\", \"multi-thread this account\", \"who else should I be talking to at this account\". Providers: aiArk. Skip when: you are sourcing across many companies rather than going deep on a few — use find-b2b-leads.",
-      "version": "1.0.5",
+      "description": "Find the buying committee at a target account — every stakeholder matching a set of titles, seniorities, and departments, powered by Cargo. Triggers: \"find the buying committee at Acme\", \"who are the decision makers at this company\", \"find stakeholders\", \"multi-thread this account\", \"who else should I be talking to at this account\". Providers: aiArk. Skip when: you want to build a reusable tool that qualifies and ranks stakeholders for repeated account inputs — use contact-sourcing. Or you are sourcing across many companies rather than going deep on a few — use find-b2b-leads.",
+      "version": "1.0.6",
       "homepage": "https://github.com/getcargohq/gtm-skills",
       "group": "Find the accounts and the people",
       "install": "npx skills add getcargohq/gtm-skills/find-stakeholders",
@@ -1371,7 +1523,7 @@
       "kind": "cookbook",
       "job": "Find what your goal needs that the workspace has not built: once a week a deployed agent reads the company goal, takes stock of every play, agent, model and connector in the workspace, and suggests at most five missing pipelines from the published catalog, each opened with what it noticed (\"thousands of accounts, none scored\"), as a pull request you can decline lines in and a Slack post.",
       "description": "Find what your goal needs that the workspace has not built: once a week a deployed agent reads the company goal, takes stock of every play, agent, model and connector in the workspace, and suggests at most five missing pipelines from the published catalog, each opened with what it noticed (\"thousands of accounts, none scored\"), as a pull request you can decline lines in and a Slack post. Triggers: \"what should we be running\", \"what are we missing for our goal\", \"suggest new plays for our goal\", \"which pipelines should we set up next\", \"we have 25 plays and do not know which 5 matter\", \"tell us what to build, do not wait to be asked\". Cargo project, defineAgent, harness claudeCode, catalog.json, plan/company-plan.md, Slack. Skip when: you want existing initiatives graded against last week's runs, which is weekly-planning; or something deployed is failing, which is workspace-health.",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "homepage": "https://github.com/getcargohq/gtm-skills/tree/main/goal-coverage",
       "group": "Operations",
       "install": "cargo-ai project add cookbook/goal-coverage",
@@ -1554,7 +1706,7 @@
       "kind": "cookbook",
       "job": "Draft LinkedIn posts every week from your own proof points: each Monday three post drafts for one author land in your go-to-market repo as one pull request, built only from what context/ and the cadence log already say, each with its hook and the files it draws on; nothing is ever published.",
       "description": "Draft LinkedIn posts every week from your own proof points: each Monday three post drafts for one author land in your go-to-market repo as one pull request, built only from what context/ and the cadence log already say, each with its hook and the files it draws on; nothing is ever published. Triggers: \"draft our founder's LinkedIn posts every week\", \"weekly LinkedIn drafts from our proof points\", \"turn our wins and insights into LinkedIn posts\", \"keep a LinkedIn content pipeline\", \"ghostwrite LinkedIn posts from our context\", \"content calendar for the CEO on LinkedIn\". Cargo project, defineAgent, harness claudeCode, GitHub, context/, cadence/content. Skip when: you want the company website and news read into context/, which is web-capture; or you want one post written now, in this chat, with nothing deployed.",
-      "version": "0.1.2",
+      "version": "0.2.0",
       "homepage": "https://github.com/getcargohq/gtm-skills/tree/main/linkedin-content",
       "group": "Operations",
       "install": "cargo-ai project add cookbook/linkedin-content",
@@ -1907,7 +2059,7 @@
       "kind": "cookbook",
       "job": "Track the next steps promised on sales calls and flag the overdue ones in Slack: every weekday morning each commitment made on a recorded call, by your team or the customer, is read from the call log, recorded once, closed when the activity log shows it was kept, and flagged once it falls due or goes overdue.",
       "description": "Track the next steps promised on sales calls and flag the overdue ones in Slack: every weekday morning each commitment made on a recorded call, by your team or the customer, is read from the call log, recorded once, closed when the activity log shows it was kept, and flagged once it falls due or goes overdue. Triggers: \"track the next steps from our calls\", \"remind me when I promised something on a call\", \"what did we commit to and not do\", \"chase customer follow-ups we agreed on\", \"commitment tracker for sales calls\", \"flag overdue next steps in slack\". Cargo project, defineAgent, harness claudeCode, call-capture entries, native models, Slack postMessage, ledger model; HubSpot, Salesforce or Attio as an adaptation. Skip when: you want calls written into the repository, which is call-capture; or a digest of everything that moved, which is standup.",
-      "version": "0.1.2",
+      "version": "0.2.0",
       "homepage": "https://github.com/getcargohq/gtm-skills/tree/main/next-step-tracker",
       "group": "Operations",
       "install": "cargo-ai project add cookbook/next-step-tracker",
@@ -2411,7 +2563,7 @@
       "kind": "cookbook",
       "job": "Post a daily go-to-market standup to Slack: every evening the day's go-to-market work is recapped into the cadence log and a digest is posted to Slack, as one reviewable pull request against your go-to-market repo.",
       "description": "Post a daily go-to-market standup to Slack: every evening the day's go-to-market work is recapped into the cadence log and a digest is posted to Slack, as one reviewable pull request against your go-to-market repo. Triggers: \"post the daily standup to slack\", \"end of day report in slack\", \"what happened today posted to slack\", \"keep a cadence log of each day\", \"replace the GitHub Action that posts our standup\", \"evening recap of the GTM day\". Cargo project, defineAgent, harness claudeCode, GitHub, Slack, slack.postMessage, cargo-ai CLI reads, cadence. Skip when: you want one recap of today in this chat with nothing deployed; or you want call transcripts scribed into context, which is call-capture.",
-      "version": "0.1.3",
+      "version": "0.2.0",
       "homepage": "https://github.com/getcargohq/gtm-skills/tree/main/standup",
       "group": "Operations",
       "install": "cargo-ai project add cookbook/standup",
@@ -2487,7 +2639,7 @@
         "**The workspace reads are read-only, and they are the CLI.** (`infra/agents/standup.prompt.ts`) §1b names the commands: `whoami`, run counts and failures, usage, what is deployed. No `capabilities` block is wired on the agent, because the read path is already in the sandbox and only the prompt can say \"read, never execute\". `orchestration action execute`, `batch create`, `cargo-ai project deploy` and anything that removes are the forbidden half of that list — those spend or deploy, and Slack posting is the locked `slack.postMessage` use. If `cargo-ai whoami` fails, the recap says so and continues from the git dump; it does not invent the numbers.",
         "**`slack.postMessage` is a connector action on the agent. `channelId` is locked in `config`.** (`infra/agents/standup.ts`) Wrapping it in a tool is ceremony, and this repo refuses those. A `SLACK_TOKEN` script, a GitHub Action, or a `chat.postMessage` curl is how the digest escapes Cargo: no run to inspect, no connector to revoke, and a token in the harness env that posts anywhere. Leaving the channel as a field the agent fills is how an internal recap lands in a customer shared channel.",
         "**`scripts/standup/package.json` stays.** (`scripts/package.json`) It is not decoration. The loader imports only the resources folder `cargo.json` names, but in a project whose `cargo.json` names its root it imports every `.ts` there except directories carrying a `package.json`; delete it and `cargo-ai project plan` imports the collector and runs git/`gh` on every plan.",
-        "**The harness root stays the directory holding the `package.json` that declares `@cargo-ai/cdk`.** (`infra/agents/standup.ts`) That is where `node_modules` is, so it is the only place `npx tsx …/collect/day.ts` resolves — and in the scaffolded layout it is the repository root, which is also where `cadence/` lives. **Check it, do not assume it:** `cargo-ai project check` prints the resolved binding, and a line ending `in infra/` means the harness was rooted where there is no package.json and no node_modules. The collector then cannot run at all, and the evening reports clean and empty. On a CLI old enough to resolve it that way, pin `rootDirectory: \".\"` in the repository block until you upgrade.",
+        "**The harness root stays the directory holding the `package.json` that declares `@cargo-ai/cdk`.** (`infra/agents/standup.ts`) That is where `node_modules` is, so it is the only place `npx tsx …/collect/day.ts` resolves — and in the scaffolded layout it is the repository root, which is also where `cadence/` lives. The harness clones the project's connected state at that state's directory, so the state must be connected at the directory holding that `package.json`. **Check it, do not assume it:** `cargo-ai project check` prints the binding. A state connected at a subdirectory with no package.json leaves the collector unable to run, and the evening reports clean and empty; an unconnected state deploys the agent unbound, with nothing cloned.",
         "**The agent opens a pull request and never merges it.** (`infra/agents/standup.prompt.ts`) The log is what next Monday's plan is written from. Remove the review gate and a hallucinated number, a vendor call misread as pipeline, or a stuck item filed against the wrong owner becomes the team's memory of the day.",
         "**One log file per calendar day, and this run owns only its three sections.** (`infra/agents/standup.prompt.ts`) Several runs write the same day's file. Add What moved / What is stuck / Worth remembering, never rewrite a section you did not write, and stop when those three are already there — that is the idempotency key. Matching on the Slack channel instead needs a `conversations.history` read Cargo does not ship, and a sibling bot's post in that channel reads as \"already ran\" — the standup then skips silently for nights at a time.",
         "**The day is reported against the active initiatives, in a founder's words.** (`infra/agents/standup.prompt.ts`) Every active initiative gets its block in the log and a line in the digest, including the ones that did nothing that day. Group by PR or by resource instead and the digest turns into a changelog: activity that reads as progress while a bet quietly stalls. The one exception runs the other way: a churn, a deal, a failing play or a spend spike that no initiative claims goes first, as \"Outside the plan\", rather than being squeezed into Engine upkeep. The voice rules (verdict first, plain words, no file paths) are what make it readable by someone who was not in the repo.",
@@ -2614,7 +2766,7 @@
       "kind": "cookbook",
       "job": "Build your total addressable market (TAM) from several sources as one account layer in Cargo: one brief goes to Sales Navigator, AI Ark lookalikes, Exa and Apollo, Cargo merges every company into one account, each is classified into your own categories, flagged in or out of scope with the reason and marked net new or already in your CRM, and the report estimates what no source found.",
       "description": "Build your total addressable market (TAM) from several sources as one account layer in Cargo: one brief goes to Sales Navigator, AI Ark lookalikes, Exa and Apollo, Cargo merges every company into one account, each is classified into your own categories, flagged in or out of scope with the reason and marked net new or already in your CRM, and the report estimates what no source found. Triggers: \"build our TAM from several data providers\", \"how much of our market do we actually have\", \"which of our TAM is net new and which is already in the CRM\", \"estimate the size of our market from our own data\". Cargo project, salesNavigator, aiArk, exa, linkedin, unifyAccounts, classify. Skip when: one source and one model are enough, which is tam-building; a list in the chat or a CSV, which is build-tam-list; or only a Sales Navigator search past its cap, which is extract-sales-navigator-search.",
-      "version": "0.2.0",
+      "version": "0.3.0",
       "homepage": "https://github.com/getcargohq/gtm-skills/tree/main/tam-building-advanced",
       "group": "Fundamentals",
       "install": "cargo-ai project add cookbook/tam-building-advanced",
@@ -2715,7 +2867,7 @@
         {
           "id": "growth-signal",
           "when": "Growth decides priority in your market",
-          "how": "Add `salesNavigator.findCompanyInsights` after the LinkedIn enrich in the profile play, and a growth column on `tam_companies",
+          "how": "Add `salesNavigator.findCompanyInsights` after the LinkedIn enrich in the profile play, and a growth column on `tam_accounts",
           "cost": "One more paid call per company. Keep growth as information, never as a gate: a company that is not growing is still in your market"
         },
         {
@@ -2735,10 +2887,10 @@
         "**Cargo merges; no workflow writes the TAM.** (`unification` on every model in `infra/models/`) Unify Accounts is the TAM. A play that dedups sources into its own table re-implements key normalisation, misses the merges Cargo makes across three rows, and leaves two account layers that disagree.",
         "**Every unification is declared.** Sales Navigator's default unification is off: leave it undeclared and the census never reaches Accounts. The others are declared too, so a provider changing its default cannot move your TAM.",
         "**One profile per company, after the merge.** (`infra/plays/profile-company.ts`) The LinkedIn enrich and the classification run on the account, so a company four sources found is paid for once, and the profile row is what joins the Sales Navigator row to the others.",
-        "**The profile matches on both domains.** (`infra/models/tam-companies.ts`) LinkedIn's domain and the account's own often differ (`corporate.acme.example` against `acme.example`). Match on LinkedIn's only and the profile becomes an account of its own while the source account stays unprofiled. Both keys go through a computed column that turns an empty value into null: an empty string is a key, and every row sharing it would merge.",
+        "**The profile matches on both domains.** (`infra/models/tam-accounts.ts`) LinkedIn's domain and the account's own often differ (`corporate.acme.example` against `acme.example`). Match on LinkedIn's only and the profile becomes an account of its own while the source account stays unprofiled.",
         "**A company's domain comes from evidence, never from a short link.** (`infra/scripts/company-domain.ts`) LinkedIn's domain when it is real, else the account's, else where LinkedIn's short link lands. A `bit.ly` or `hubs.ly` host written as a domain is a key shared by unrelated companies, and Cargo merges them into one account.",
         "**Companies are classified from their own description into your categories.** (`infra/plays/profile-company.ts`, `infra/settings.ts`) Trust a provider's industry label and services firms land in the TAM while real software companies filed elsewhere are dropped.",
-        "**Nothing is deleted; everything out of scope carries its reason.** (`status` and `exclusion_reason`, computed on `tam_companies`) Delete instead and the report can no longer say what each source returned that was not your market, or why a company you expected is missing.",
+        "**Nothing is deleted; everything out of scope carries its reason.** (`status` and `exclusion_reason`, computed on `tam_accounts`) Delete instead and the report can no longer say what each source returned that was not your market, or why a company you expected is missing.",
         "**Nothing else is declared on Unify Accounts.** (`infra/models/accounts.ts`) A declared column list or schedule replaces the live one, and every pipeline and person in the workspace reads that model.",
         "**Unknown stays unknown.** A thin page, or a missing headcount or country, is `needs_review`, never out of scope. A provider that returns nothing has a coverage gap; it is not evidence about the company.",
         "**Sources run one after another.** (`references/run.md`) Profile one source's accounts before the next syncs: the next source's rows then merge onto accounts that already have a profile, and only the companies it adds are paid for.",
@@ -2749,7 +2901,7 @@
       ],
       "doneWhen": [
         "the ICP came from the context or was researched and approved, and the three criteria are in all four sources and `settings.ts`",
-        "the categories came from the CRM's industry field or `icp.md`, and every row of `tam_companies` carries one of them",
+        "the categories came from the CRM's industry field or `icp.md`, and every row of `tam_accounts` carries one of them",
         "every Sales Navigator URL is under 1,000 accounts and carries `INDUSTRY`, `COMPANY_HEADCOUNT` and `REGION`",
         "the sources were synced and profiled one at a time, in order, each piloted on five accounts first",
         "every account a TAM source found has one profile with a LinkedIn company id and a status, no LinkedIn company id sits on two accounts, and every account holding two LinkedIn ids was read",
@@ -2757,8 +2909,8 @@
         "nothing was written to the CRM",
         "`node --import tsx evals/contract.mjs` passes against the adapted resources"
       ],
-      "cost": "Read this before pointing the skill at a market-sized brief.\n\n**Counting is free on AI Ark** and a fixed fee per search on Sales Navigator. Count every candidate\nbefore anything syncs.\n\n**Sourcing bills per returned record** on Sales Navigator, AI Ark and Apollo, and per returned result on\nExa. Each source's `limit` (or the number of queries times `exaResultsPerQuery`) is its invoice.\n\n**Enrichment bills once per company, not per source.** Cargo merges the sources before the play runs,\nso a company four sources found is one account and one profile: one LinkedIn enrich and one\nclassification. Estimate them on the expected number of distinct companies, which is well under the\nsum of the sources. The merge itself is free.\n\nFetch every live price immediately before the approval with `cargo-ai connection integration get` for\n`salesNavigator`, `aiArk`, `apolloio`, `exa` and `linkedin`, and record the lookup time. No price is\nwritten in this skill on purpose: they change.\n\nThe sources carry **no schedule**. See `refresh` above for what a re-sync really costs.",
-      "composesInto": "`account-scoring` tiers the in-scope companies of `tam_companies` against the same ICP; compare the tiers by\nnumber of sources, the companies several sources agree on tend to score higher. Pushing the net new\ninto the CRM is the usual next write, approved on its own; `crm-enrichment` and `crm-deduplication`\nkeep those records clean once they are there. `extract-sales-navigator-search` is the step that\nsplits a large Sales Navigator search, and `tam-building` is the single-source version of this skill."
+      "cost": "Read this before pointing the skill at a market-sized brief.\n\n**Counting is free on AI Ark** and a fixed fee per search on Sales Navigator. Count every candidate\nbefore anything syncs.\n\n**Sourcing bills per returned record** on Sales Navigator, AI Ark and Apollo, and per search plus per\nresult past the tenth on Exa. Each source's `limit` (or the number of queries times\n`exaResultsPerQuery`) is its cap.\n\n**Enrichment bills once per company, not per source.** Cargo merges the sources before the play runs,\nso a company four sources found is one account and one profile: one LinkedIn enrich and one\nclassification. Estimate them on the expected number of distinct companies, which is well under the\nsum of the sources. The merge itself is free.\n\nFetch every live price immediately before the approval with `cargo-ai connection integration get` for\n`salesNavigator`, `aiArk`, `apolloio`, `exa` and `linkedin`, and record the lookup time. No price is\nwritten in this skill on purpose: they change.\n\nThe sources carry **no schedule**. See `refresh` above for what a re-sync really costs.",
+      "composesInto": "`account-scoring` tiers the in-scope companies of `tam_accounts` against the same ICP; compare the tiers by\nnumber of sources, the companies several sources agree on tend to score higher. Pushing the net new\ninto the CRM is the usual next write, approved on its own; `crm-enrichment` and `crm-deduplication`\nkeep those records clean once they are there. `extract-sales-navigator-search` is the step that\nsplits a large Sales Navigator search, and `tam-building` is the single-source version of this skill."
     },
     {
       "name": "track-funding-rounds",
@@ -2951,7 +3103,7 @@
       "kind": "cookbook",
       "job": "Keep your company context current from your website and competitors' pages: each Monday your site, competitors' pages and news about both land in context/ as one pull request; the first run seeds positioning, offerings, an inferred ICP with a disqualifier, competitors, clients and proof, and every later run adds a dated note of what changed, never editing an existing file.",
       "description": "Keep your company context current from your website and competitors' pages: each Monday your site, competitors' pages and news about both land in context/ as one pull request; the first run seeds positioning, offerings, an inferred ICP with a disqualifier, competitors, clients and proof, and every later run adds a dated note of what changed, never editing an existing file. Triggers: \"keep our context current from our website\", \"watch competitor pricing pages\", \"add our company news to the knowledge base\", \"our context repo is empty, seed it from our website\", \"set up the workspace context from our domain\". Cargo project, harness claudeCode, parallel, GitHub. Skip when: news about target accounts, which is monitor-buying-signals; one company researched before a call, which is research-account; or the ICP verified against won and lost deals, which is win-loss-review.",
-      "version": "0.1.2",
+      "version": "0.2.0",
       "homepage": "https://github.com/getcargohq/gtm-skills/tree/main/web-capture",
       "group": "Context",
       "install": "cargo-ai project add cookbook/web-capture",
@@ -3029,7 +3181,7 @@
       "kind": "cookbook",
       "job": "Keep your site usable by AI agents: once a week Ora audits how agents discover, read and use your domain and up to three rival domains, one pull request applies the fixes your site source can make, and one Slack digest reports the Ora score and what moved.",
       "description": "Keep your site usable by AI agents: once a week Ora audits how agents discover, read and use your domain and up to three rival domains, one pull request applies the fixes your site source can make, and one Slack digest reports the Ora score and what moved. Triggers: \"make our site readable by ai agents\", \"track our ora score\", \"can ai agents read our site\", \"agent readiness audit\", \"compare our ora score with rivals\", \"fix llms.txt and agent discovery files\". Cargo project, defineAgent, harness claudeCode, Ora MCP server, mcpClients, native model, Slack postMessage, GitHub pull request. Skip when: the site itself is to be built or hosted, which is website-building; or rival pages and news belong in context, which is web-capture.",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "homepage": "https://github.com/getcargohq/gtm-skills/tree/main/website-auditing",
       "group": "Fundamentals",
       "install": "cargo-ai project add cookbook/website-auditing",
@@ -3091,8 +3243,8 @@
         {
           "id": "separate-site-repo",
           "when": "The website's source lives in a repository other than the project's",
-          "how": "Set `repository.repository`, `defaultBranch` and `connector` explicitly on the agent, and `WEBSITE_ROOT` relative to that repository",
-          "cost": "The binding is no longer derived, so a renamed repository breaks the run silently. Check it with `cargo-ai project check` after every rename."
+          "how": "Connect that repository as its own Cargo project, set `state: stateRef(\"<its state uuid>\")` on the agent, and `WEBSITE_ROOT` relative to that project's directory",
+          "cost": "The binding is no longer derived, so a disconnected or deleted project leaves the agent refused at every turn. Check it with `cargo-ai project check` after any change to that project."
         },
         {
           "id": "ora-scan-key",
@@ -3228,7 +3380,7 @@
       "kind": "cookbook",
       "job": "Decide what the go-to-market team works on this week: every Monday last week's work is ranked against active initiatives, declared infra, and live runs, as one reviewable pull request per initiative, or one workspace pull request when there are none.",
       "description": "Decide what the go-to-market team works on this week: every Monday last week's work is ranked against active initiatives, declared infra, and live runs, as one reviewable pull request per initiative, or one workspace pull request when there are none. Triggers: \"what should we work on this week\", \"are the bets we already have on track\", \"what should we do next this week\", \"rank our initiatives against what is actually running\", \"weekly GTM plan from the cadence log\", \"recommend next work from infra and runs\", \"the play is deployed but I don't think it ran\". Cargo project, defineAgent, harness claudeCode, GitHub, cargo-ai CLI reads, initiatives, cadence. Skip when: you want today recapped and posted to Slack, which is standup; or you want call transcripts scribed into context, which is call-capture.",
-      "version": "0.1.4",
+      "version": "0.2.0",
       "homepage": "https://github.com/getcargohq/gtm-skills/tree/main/weekly-planning",
       "group": "Operations",
       "install": "cargo-ai project add cookbook/weekly-planning",
@@ -3291,7 +3443,7 @@
         "**Zero active initiatives is one workspace pull request. N active is N pull requests, plus one `unplanned` only when work outside them is significant.** (`infra/agents/planner.prompt.ts`) Combining them is how a reviewer merges one bet and skips another. Opening a workspace pull request *and* the initiative ones gives routine unclaimed runs a second home they were not asked to have: they stay in the dump. The `unplanned` pull request is the exception, and its bar is concrete (more credits than any initiative, a play failing one run in five, a customer or revenue event no initiative claims). Drop it and an unplanned play can burn the week's credits without ever reaching a reviewer.",
         "**The workspace reads are read-only, and they are the CLI.** (`infra/agents/planner.prompt.ts`) §1b names the commands: `whoami`, what is deployed, run counts and failures, usage. No `capabilities` block is wired on the agent, because the read path is already in the sandbox and only the prompt can say \"read, never execute\". `orchestration action execute`, `batch create`, `cargo-ai project deploy` and anything that removes are the forbidden half of that list — a planner that can start a batch is a planner that can spend, and a recommendation is not a deploy. If `cargo-ai whoami` fails, every pull request says so and the recap continues from the git dump; it does not invent the numbers.",
         "**`scripts/weekly-planning/package.json` stays.** (`scripts/package.json`) It is not decoration. The loader imports only the resources folder `cargo.json` names, but in a project whose `cargo.json` names its root it imports every `.ts` there except directories carrying a `package.json`; delete it and `cargo-ai project plan` imports the collector and runs git/`gh` on every plan.",
-        "**The harness root stays the directory holding the `package.json` that declares `@cargo-ai/cdk`.** (`infra/agents/planner.ts`) That is where `node_modules` is, so it is the only place `npx tsx …/collect/week.ts` resolves — and in the scaffolded layout it is the repository root, which is also where `cadence/` and `initiatives/` live. **Check it, do not assume it:** `cargo-ai project check` prints the resolved binding, and a line ending `in infra/` means the harness was rooted where there is no package.json and no node_modules. The collector then cannot run at all, and Monday reports clean and empty. On a CLI old enough to resolve it that way, pin `rootDirectory: \".\"` in the repository block until you upgrade.",
+        "**The harness root stays the directory holding the `package.json` that declares `@cargo-ai/cdk`.** (`infra/agents/planner.ts`) That is where `node_modules` is, so it is the only place `npx tsx …/collect/week.ts` resolves — and in the scaffolded layout it is the repository root, which is also where `cadence/` and `initiatives/` live. The harness clones the project's connected state at that state's directory, so the state must be connected at the directory holding that `package.json`. **Check it, do not assume it:** `cargo-ai project check` prints the binding. A state connected at a subdirectory with no package.json leaves the collector unable to run, and Monday reports clean and empty; an unconnected state deploys the agent unbound.",
         "**The agent opens pull requests and never merges them.** (`infra/agents/planner.prompt.ts`) The recommendation is what next week's work is chosen from. Remove the review gate and a hallucinated gap, a play misread as idle, or a stuck item filed against the wrong owner becomes the team's next bet.",
         "**Every file opens with a verdict, in a founder's words.** (`infra/agents/planner.prompt.ts`) On track, Behind, At risk or Blocked, then why, then at most three recommendations each with an owner and a day. Without the verdict a reviewer has to read the whole file to learn whether the bet is in trouble, and a plan nobody finishes reading is one nobody acts on.",
         "**Do not invent a number.** (`infra/agents/planner.prompt.ts`) Drop a metrics line rather than carry last week's ARR forward. A made-up delta is worse than no delta, because the plan file is what leadership reads. A CLI read that errors is a note on the PR, not a count you fill in.",
@@ -3451,7 +3603,7 @@
       "kind": "cookbook",
       "job": "Know the morning something breaks: a deployed agent reads the last 24 hours of the workspace against the week before and posts to Slack only what is wrong and new: failing runs grouped by cause, a lost connector, a play that stopped, runs that succeed and write nothing, a spend spike, a stuck batch. Mondays it posts the week: still open, cleared, all clear.",
       "description": "Know the morning something breaks: a deployed agent reads the last 24 hours of the workspace against the week before and posts to Slack only what is wrong and new: failing runs grouped by cause, a lost connector, a play that stopped, runs that succeed and write nothing, a spend spike, a stuck batch. Mondays it posts the week: still open, cleared, all clear. Triggers: \"tell me what is broken in the workspace\", \"watch my workspace every morning\", \"alert me when a play stops running\", \"is anything failing in Cargo\", \"catch silent failures before a customer does\", \"tell me in slack every morning if a play broke\". Cargo project, defineAgent, harness claudeCode, orchestration SQL, billing metrics, Slack. Skip when: one run already failed and you want to know why, which is cargo-diagnostics in the Cargo pack; or you want initiatives graded against what ran, which is weekly-planning.",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "homepage": "https://github.com/getcargohq/gtm-skills/tree/main/workspace-health",
       "group": "Operations",
       "install": "cargo-ai project add cookbook/workspace-health",

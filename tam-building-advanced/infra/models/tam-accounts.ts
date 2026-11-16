@@ -14,8 +14,9 @@ import {
 // and how it classified it. Same columns whatever source found the company.
 //
 // It is also what makes the sources one market. Sales Navigator knows a
-// company by its LinkedIn id, AI Ark and Apollo by its domain and LinkedIn page
-// name, Exa by its website. This row carries all three, and it unifies into
+// company by its LinkedIn id, AI Ark by its domain and LinkedIn page name,
+// Exa by its website; only Apollo carries the id and the domain together, and
+// only for what it found. This row carries all three, and it unifies into
 // Accounts too, so every source's row for the same company lands on one
 // account.
 //
@@ -23,26 +24,24 @@ import {
 // classifier labels the company, these columns decide what the label means.
 // Nothing is deleted; read the TAM as `status = 'in_scope'`.
 
-// The row the two computed columns read. Native columns are typed only after
+// The row the computed columns read. Native columns are typed only after
 // `cargo-ai project types` has seen the model, so they are spelled out here.
 type Row = {
-  domain?: string | null;
-  account_domain?: string | null;
   category?: string | null;
   subsidiary_probability?: number | null;
   employee_count?: number | null;
   hq_country?: string | null;
 };
 
-export const tamCompanies = defineModel("tam_companies", {
-  name: "TAM companies",
+export const tamAccounts = defineModel("tam_accounts", {
+  name: "TAM accounts",
   kind: "native",
   extractSlug: "defineCustom",
   description:
     "One row per company in the TAM: its LinkedIn page, your category, and whether it is in scope.",
   config: {
     columns: [
-      { slug: "linkedin_company_id", type: "string" },
+      { slug: "linkedin_id", type: "string" },
       { slug: "linkedin_url", type: "string" },
       { slug: "name", type: "string" },
       { slug: "domain", type: "string" },
@@ -59,28 +58,6 @@ export const tamCompanies = defineModel("tam_companies", {
     ],
   },
   additionalColumns: [
-    // The two domain keys, empty as null. Unification normalises a value but
-    // keeps an empty string, and every row sharing "" would merge into one
-    // account, so the keys are these columns, never the raw ones.
-    {
-      kind: "computed",
-      slug: "match_domain",
-      type: "string",
-      label: "Match domain",
-      description:
-        "The company's domain from LinkedIn, or null when there is none.",
-      expression: (record: Row) => (record.domain ? record.domain : null),
-    },
-    {
-      kind: "computed",
-      slug: "match_account_domain",
-      type: "string",
-      label: "Match account domain",
-      description:
-        "The domain of the account that was profiled, or null when it had none.",
-      expression: (record: Row) =>
-        record.account_domain ? record.account_domain : null,
-    },
     {
       kind: "computed",
       slug: "status",
@@ -98,20 +75,28 @@ export const tamCompanies = defineModel("tam_companies", {
       },
       // A thin page, a missing headcount or a missing country is a gap in the
       // data, never a reason to drop the company: needs_review.
-      expression: (record: Row) =>
-        !record.category || record.category === unknownCategory
-          ? "needs_review"
-          : record.employee_count === null ||
-              record.employee_count === undefined ||
-              !record.hq_country
-            ? "needs_review"
-            : !inScopeCategories.includes(record.category) ||
-                (record.subsidiary_probability || 0) >= subsidiaryThreshold ||
-                record.employee_count < minEmployees ||
-                record.employee_count > maxEmployees ||
-                !countries.includes(record.hq_country)
-              ? "out_of_scope"
-              : "in_scope",
+      expression: (record: Row) => {
+        if (!record.category || record.category === unknownCategory) {
+          return "needs_review";
+        }
+        if (
+          record.employee_count === null ||
+          record.employee_count === undefined ||
+          !record.hq_country
+        ) {
+          return "needs_review";
+        }
+        if (
+          !inScopeCategories.includes(record.category) ||
+          (record.subsidiary_probability || 0) >= subsidiaryThreshold ||
+          record.employee_count < minEmployees ||
+          record.employee_count > maxEmployees ||
+          !countries.includes(record.hq_country)
+        ) {
+          return "out_of_scope";
+        }
+        return "in_scope";
+      },
     },
     {
       kind: "computed",
@@ -128,23 +113,34 @@ export const tamCompanies = defineModel("tam_companies", {
         maxEmployees,
         countries,
       },
-      expression: (record: Row) =>
-        !record.category || record.category === unknownCategory
-          ? "not_enough_information"
-          : record.employee_count === null ||
-              record.employee_count === undefined ||
-              !record.hq_country
-            ? "missing_size_or_country"
-            : !inScopeCategories.includes(record.category)
-              ? "category: " + record.category
-              : (record.subsidiary_probability || 0) >= subsidiaryThreshold
-                ? "subsidiary_or_country_page"
-                : record.employee_count < minEmployees ||
-                    record.employee_count > maxEmployees
-                  ? "size: " + record.employee_count
-                  : !countries.includes(record.hq_country)
-                    ? "country: " + record.hq_country
-                    : "",
+      expression: (record: Row) => {
+        if (!record.category || record.category === unknownCategory) {
+          return "not_enough_information";
+        }
+        if (
+          record.employee_count === null ||
+          record.employee_count === undefined ||
+          !record.hq_country
+        ) {
+          return "missing_size_or_country";
+        }
+        if (!inScopeCategories.includes(record.category)) {
+          return "category: " + record.category;
+        }
+        if ((record.subsidiary_probability || 0) >= subsidiaryThreshold) {
+          return "subsidiary_or_country_page";
+        }
+        if (
+          record.employee_count < minEmployees ||
+          record.employee_count > maxEmployees
+        ) {
+          return "size: " + record.employee_count;
+        }
+        if (!countries.includes(record.hq_country)) {
+          return "country: " + record.hq_country;
+        }
+        return "";
+      },
     },
   ],
   unification: {
@@ -156,9 +152,9 @@ export const tamCompanies = defineModel("tam_companies", {
     // with only LinkedIn's, the profile becomes an account of its own and the
     // source account is never profiled (live, 2026-11-11).
     uniqueColumns: [
-      { slug: "linkedin_company_id", reference: "linkedinId" },
-      { slug: "computed__match_domain", reference: "domain" },
-      { slug: "computed__match_account_domain", reference: "domain" },
+      { slug: "linkedin_id", reference: "linkedinId" },
+      { slug: "domain", reference: "domain" },
+      { slug: "account_domain", reference: "domain" },
       { slug: "linkedin_url", reference: "linkedinHandle" },
     ],
   },

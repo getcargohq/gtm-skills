@@ -4,7 +4,7 @@ import { z } from "zod";
 import { linkedin } from "../connectors/linkedin";
 import { playsFolder } from "../folders";
 import { accounts } from "../models/accounts";
-import { tamCompanies } from "../models/tam-companies";
+import { tamAccounts } from "../models/tam-accounts";
 import { tamSourceAiArk } from "../models/tam-source-ai-ark";
 import { tamSourceApollo } from "../models/tam-source-apollo";
 import { tamSourceExa } from "../models/tam-source-exa";
@@ -16,12 +16,6 @@ import {
   unknownCategory,
 } from "../settings";
 
-// A model's uuid inside a play filter. The deploy resolves model handles
-// anywhere in a spec, but the play filter's type predates handles, so the
-// token is passed as the string it becomes.
-const uuidOf = (handle: { uuid: unknown }): string =>
-  handle.uuid as unknown as string;
-
 // The options the classifier picks from: your categories, then what a company
 // can be instead. Built here because a workflow body cannot map an array.
 const categoryOptions = [
@@ -30,10 +24,22 @@ const categoryOptions = [
   unknownCategory,
 ].map((option) => ({ option }));
 
-const categoryInstructions =
-  "Which category describes what this company sells and to whom? Judge from the description, not from the industry label. If the description is too thin to tell, pick Not enough information.";
-const subsidiaryInstructions =
-  "Is this page a subsidiary, a regional or country page, or an acquired brand of a larger company, rather than an independent company?";
+// The two questions put to every company.
+const classifyQuestions = [
+  {
+    type: "choice",
+    id: "category",
+    instructions:
+      "Which category describes what this company sells and to whom? Judge from the description, not from the industry label. If the description is too thin to tell, pick Not enough information.",
+    options: categoryOptions,
+  },
+  {
+    type: "noul",
+    id: "subsidiary",
+    instructions:
+      "Is this page a subsidiary, a regional or country page, or an acquired brand of a larger company, rather than an independent company?",
+  },
+] as const;
 
 // One account in, one profile out. Runs once per company, after Cargo has
 // merged what every source found, so a company four sources found is read and
@@ -45,7 +51,7 @@ const subsidiaryInstructions =
 //    same identity, the same columns, whatever source found the company.
 // 2. Classification into your categories, from the company's own description,
 //    and the subsidiary question, in one call.
-// 3. One row in tam_companies. It unifies back into the same account, which is
+// 3. One row in tam_accounts. It unifies back into the same account, which is
 //    what joins a Sales Navigator row and an AI Ark row for the same company.
 const profileCompany = defineWorkflow(
   "tam_profile_company_workflow",
@@ -63,144 +69,66 @@ const profileCompany = defineWorkflow(
     }),
     uses: { linkedin },
     imports: {
-      tamCompanies,
-      categoryOptions,
-      categoryInstructions,
-      subsidiaryInstructions,
+      tamAccounts,
+      classifyQuestions,
       companyDomain,
     },
   },
   ({ input, uses, model, classify }) => {
     const page = input.linkedin_id || input.linkedin_handle;
-
-    // Two lookups, one per path, written as `if` blocks: a conditional
-    // expression (`page ? a : b`) compiles to both calls, which pays twice
-    // and fails on an account with no domain (live, 2026-11-11).
-    if (page) {
-      const company = uses.linkedin.enrichCompany({
-        linkedinUrl: `https://www.linkedin.com/company/${page}`,
-      });
-      if (!company.company_id) {
-        return { result: "unresolved" as const };
-      }
-      const judged = classify({
-        state: {
-          name: company.company_name,
-          website: company.website,
-          linkedin_industry: company.industries[0],
-          description: company.description,
-        },
-        questions: [
-          {
-            type: "choice",
-            id: "category",
-            instructions: categoryInstructions,
-            options: categoryOptions,
-          },
-          {
-            type: "noul",
-            id: "subsidiary",
-            instructions: subsidiaryInstructions,
-          },
-        ],
-      });
-      model.upsert({
-        modelUuid: tamCompanies.uuid,
-        matchingColumnSlug: "linkedin_company_id",
-        matchingValue: company.company_id,
-        mappings: [
-          { columnSlug: "linkedin_company_id", value: company.company_id },
-          { columnSlug: "linkedin_url", value: company.linkedin_url },
-          { columnSlug: "name", value: company.company_name },
-          {
-            columnSlug: "domain",
-            // Never blank, never a short link: LinkedIn's domain when it is
-            // real, else the account's, else where LinkedIn's short link lands.
-            value: companyDomain({
-              linkedinDomain: company.domain,
-              linkedinWebsite: company.website,
-              sourceDomain: input.domain || "",
-            }),
-          },
-          { columnSlug: "account_domain", value: input.domain || "" },
-          { columnSlug: "website", value: company.website },
-          { columnSlug: "hq_country", value: company.hq_country },
-          { columnSlug: "hq_city", value: company.hq_city },
-          { columnSlug: "employee_count", value: company.employee_count },
-          { columnSlug: "linkedin_industry", value: company.industries[0] },
-          { columnSlug: "description", value: company.description },
-          { columnSlug: "category", value: judged.answers.category.choice },
-          {
-            columnSlug: "subsidiary_probability",
-            value: judged.answers.subsidiary.noul,
-          },
-          { columnSlug: "profiled_at", value: new Date() },
-        ],
-      });
-      return { result: "profiled" as const };
-    }
-
-    // No LinkedIn page from any source (Exa): read it from the domain.
-    if (!input.domain) {
+    if (!page && !input.domain) {
       return { result: "unresolved" as const };
     }
-    const fromDomain = uses.linkedin.enrichCompanyFromDomain({
-      domain: input.domain,
-    });
-    if (!fromDomain.company_id) {
+
+    // The account's LinkedIn page when a source gave one, else its domain
+    // (Exa). Only the taken lookup runs.
+    const company = page
+      ? uses.linkedin.enrichCompany({
+          linkedinUrl: `https://www.linkedin.com/company/${page}`,
+        })
+      : uses.linkedin.enrichCompanyFromDomain({ domain: input.domain || "" });
+    if (!company.company_id) {
       return { result: "unresolved" as const };
     }
-    const judgedFromDomain = classify({
+
+    const judged = classify({
       state: {
-        name: fromDomain.company_name,
-        website: fromDomain.website,
-        linkedin_industry: fromDomain.industries[0],
-        description: fromDomain.description,
+        name: company.company_name,
+        website: company.website,
+        linkedin_industry: company.industries[0],
+        description: company.description,
       },
-      questions: [
-        {
-          type: "choice",
-          id: "category",
-          instructions: categoryInstructions,
-          options: categoryOptions,
-        },
-        {
-          type: "noul",
-          id: "subsidiary",
-          instructions: subsidiaryInstructions,
-        },
-      ],
+      questions: classifyQuestions,
     });
     model.upsert({
-      modelUuid: tamCompanies.uuid,
-      matchingColumnSlug: "linkedin_company_id",
-      matchingValue: fromDomain.company_id,
+      modelUuid: tamAccounts.uuid,
+      matchingColumnSlug: "linkedin_id",
+      matchingValue: company.company_id,
       mappings: [
-        { columnSlug: "linkedin_company_id", value: fromDomain.company_id },
-        { columnSlug: "linkedin_url", value: fromDomain.linkedin_url },
-        { columnSlug: "name", value: fromDomain.company_name },
+        { columnSlug: "linkedin_id", value: company.company_id },
+        { columnSlug: "linkedin_url", value: company.linkedin_url },
+        { columnSlug: "name", value: company.company_name },
         {
           columnSlug: "domain",
+          // Never blank, never a short link: LinkedIn's domain when it is
+          // real, else the account's, else where LinkedIn's short link lands.
           value: companyDomain({
-            linkedinDomain: fromDomain.domain,
-            linkedinWebsite: fromDomain.website,
-            sourceDomain: input.domain,
+            linkedinDomain: company.domain,
+            linkedinWebsite: company.website,
+            sourceDomain: input.domain || "",
           }),
         },
-        { columnSlug: "account_domain", value: input.domain },
-        { columnSlug: "website", value: fromDomain.website },
-        { columnSlug: "hq_country", value: fromDomain.hq_country },
-        { columnSlug: "hq_city", value: fromDomain.hq_city },
-        { columnSlug: "employee_count", value: fromDomain.employee_count },
-        { columnSlug: "linkedin_industry", value: fromDomain.industries[0] },
-        { columnSlug: "description", value: fromDomain.description },
-        {
-          columnSlug: "category",
-          value: judgedFromDomain.answers.category.choice,
-        },
+        { columnSlug: "account_domain", value: input.domain || "" },
+        { columnSlug: "website", value: company.website },
+        { columnSlug: "hq_country", value: company.hq_country },
+        { columnSlug: "hq_city", value: company.hq_city },
+        { columnSlug: "employee_count", value: company.employee_count },
+        { columnSlug: "linkedin_industry", value: company.industries[0] },
+        { columnSlug: "description", value: company.description },
+        { columnSlug: "category", value: judged.answers.category.choice },
         {
           columnSlug: "subsidiary_probability",
-          value: judgedFromDomain.answers.subsidiary.noul,
+          value: judged.answers.subsidiary.noul,
         },
         { columnSlug: "profiled_at", value: new Date() },
       ],
@@ -222,7 +150,7 @@ const profileCompany = defineWorkflow(
 export const profileCompanies = definePlay("tam_profile_companies", {
   name: "TAM: profile company",
   description:
-    "For every account a TAM source found and no profile covers: LinkedIn company enrich, classify into your categories, write one row in tam_companies.",
+    "For every account a TAM source found and no profile covers: LinkedIn company enrich, classify into your categories, write one row in tam_accounts.",
   folder: playsFolder,
   model: accounts,
   workflow: profileCompany,
@@ -234,25 +162,25 @@ export const profileCompanies = definePlay("tam_profile_companies", {
         conditions: [
           {
             kind: "string",
-            relatedModelUuid: uuidOf(tamSourceSalesNavigator),
+            relatedModelUuid: tamSourceSalesNavigator.uuid,
             columnSlug: "sales_navigator_company_id",
             operator: "isNotEmpty",
           },
           {
             kind: "string",
-            relatedModelUuid: uuidOf(tamSourceAiArk),
+            relatedModelUuid: tamSourceAiArk.uuid,
             columnSlug: "id",
             operator: "isNotEmpty",
           },
           {
             kind: "string",
-            relatedModelUuid: uuidOf(tamSourceApollo),
+            relatedModelUuid: tamSourceApollo.uuid,
             columnSlug: "id",
             operator: "isNotEmpty",
           },
           {
             kind: "string",
-            relatedModelUuid: uuidOf(tamSourceExa),
+            relatedModelUuid: tamSourceExa.uuid,
             columnSlug: "domain",
             operator: "isNotEmpty",
           },
@@ -263,10 +191,10 @@ export const profileCompanies = definePlay("tam_profile_companies", {
         conditions: [
           {
             kind: "string",
-            relatedModelUuid: uuidOf(tamCompanies),
-            columnSlug: "linkedin_company_id",
+            relatedModelUuid: tamAccounts.uuid,
+            columnSlug: "linkedin_id",
             // isNull, not isEmpty: an account no profile covers has no
-            // tam_companies row, so the joined column is NULL, and isEmpty
+            // tam_accounts row, so the joined column is NULL, and isEmpty
             // only matches an empty string (0 accounts, live 2026-11-11).
             operator: "isNull",
           },

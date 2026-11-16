@@ -43,7 +43,7 @@ adaptation is incomplete.
   writes anything.
 - The connectors are the four sources and LinkedIn. The CRM is read through
   Unify Accounts, never written.
-- Every source model and `tam_companies` declare a custom account unification;
+- Every source model and `tam_accounts` declare a custom account unification;
   Sales Navigator's is there (its default is off).
 - Unify Accounts is adopted with nothing else declared on it, and the plan
   showed no column or schedule change on it.
@@ -57,7 +57,7 @@ adaptation is incomplete.
 - The sources were synced, merged into Accounts and profiled one at a time, in
   order, each finished before the next started.
 - Five accounts of the first source were profiled and read before the rest.
-- Every account a TAM source found has a profile in `tam_companies` with a
+- Every account a TAM source found has a profile in `tam_accounts` with a
   LinkedIn company id, a category and a status, or was read as unresolved.
 - No LinkedIn company id sits on two accounts, and every account holding two
   profiles was read.

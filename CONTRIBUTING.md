@@ -139,7 +139,7 @@ that order.
 **A folder without a `SKILL.md` is not a skill and does not belong at the root.** A pipeline skill has
 one root `SKILL.md`; supporting agent instructions belong in `references/`, never in nested
 skills.
-Sixteen pipeline examples (`contact-sourcing`, `signal-based-tam`, `ai-sdr`,
+Fifteen pipeline examples (`signal-based-tam`, `ai-sdr`,
 `rep-cockpit`, …) were written before their skills and are kept in history, not
 in the tree: restore one with `git checkout 305cd88 -- <name>`, write its
 `SKILL.md`, and it lands with the skill. The validator refuses a resource folder
@@ -286,7 +286,7 @@ weight: it deploys, it shows up in the workspace, and it rots.
   or later) stores it encrypted server-side, and omitting `--value` reads the
   exported variable so the key stays out of argv and shell history. It is read
   on every run, so a rotation lands with no deploy. Workers, apps and agents
-  inherit the whole catalog, which means a harness agent's `repository.env`
+  inherit the whole catalog, which means a harness agent's `env`
   declares **nothing** for a key the workspace holds — and `@cargo-ai/cdk`'s type
   refuses a pointer there for exactly that reason. A connector is better off
   with no credential at all: `default: true` binds the connection the workspace

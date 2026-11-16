@@ -67,8 +67,8 @@ assert.equal(
 // Without `runAs` the CLI has no session and every workspace read fails; with a
 // broader role a prompt that is ignored can deploy or change resources.
 assert.ok(
-  agent.spec.repository?.runAsUserUuid,
-  "workspace-health must run as a service user (repository.runAs): the sandbox needs a Cargo session",
+  agent.spec.runAsUserUuid,
+  "workspace-health must run as a service user (runAs): the sandbox needs a Cargo session",
 );
 const user = byId.get("user:workspace_health");
 assert.ok(user, "defineUser(workspace_health) must exist");
@@ -114,13 +114,13 @@ findOne(
   "workspace-health must have a daily cron trigger",
 );
 
-const env = agent.spec.repository?.env ?? [];
+const env = agent.spec.env ?? [];
 const envKeys = new Set((Array.isArray(env) ? env : []).map((entry) => entry.key));
 for (const key of ["HEALTH_ERROR_RATE", "HEALTH_SPEND_MULTIPLE", "HEALTH_SPEND_FLOOR"]) {
   assert.equal(
     envKeys.has(key),
     true,
-    `repository.env must carry ${key}: a threshold the prompt reads instead of inventing`,
+    `env must carry ${key}: a threshold the prompt reads instead of inventing`,
   );
 }
 

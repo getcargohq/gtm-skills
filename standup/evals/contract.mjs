@@ -106,19 +106,19 @@ findOne(
   "standup must have a cron trigger",
 );
 
-const env = agent.spec.repository?.env ?? [];
+const env = agent.spec.env ?? [];
 const envKeys = new Set(
   (Array.isArray(env) ? env : []).map((entry) => entry.key),
 );
 assert.equal(
   envKeys.has("STANDUP_TIMEZONE"),
   true,
-  "repository.env must carry STANDUP_TIMEZONE so the collector and the prompt agree on the day",
+  "env must carry STANDUP_TIMEZONE so the collector and the prompt agree on the day",
 );
 assert.equal(
   envKeys.has("STANDUP_TITLE"),
   true,
-  "repository.env must carry STANDUP_TITLE so the Slack header is not invented each night",
+  "env must carry STANDUP_TITLE so the Slack header is not invented each night",
 );
 
 console.log("ok: standup contract");

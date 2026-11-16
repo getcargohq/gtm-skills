@@ -10,11 +10,8 @@ import { resetRegistry, resources } from "@cargo-ai/cdk";
 
 resetRegistry();
 const stamp = Date.now();
-// The play imports everything it reads; the Exa connector is used from the CLI
-// only (references/run.md), so it is loaded on its own, as the deploy does.
-for (const file of ["plays/profile-company.ts", "connectors/exa.ts"]) {
-  await import(`../infra/${file}?contract=${stamp}`);
-}
+// The play imports everything it reads, every source included.
+await import(`../infra/plays/profile-company.ts?contract=${stamp}`);
 
 const byId = new Map(resources().map((resource) => [resource.id, resource]));
 
@@ -147,13 +144,33 @@ assert.equal(
   "tam_source_sales_navigator must not attach identityIds: the search runs without a LinkedIn seat, and a seat puts that account at risk",
 );
 
-// Exa has no extractor: its source is a native model the operator loads from
-// the queries in settings.ts.
+// Exa has no `limit`: its cap is the number of queries times `numResults`,
+// and only company results carry the company's own domain.
 const exaSource = get("model:tam_source_exa").spec;
-assert.equal(exaSource.datasetUuid, "native");
+assert.equal(integrationOf(exaSource), "exa", "tam_source_exa must source from exa");
+assert.equal(
+  exaSource.extractorSlug,
+  "fetchSearch",
+  "tam_source_exa must use exa.fetchSearch",
+);
 assert.ok(
-  exaSource.config.columns.some((column) => column.slug === "domain"),
-  "tam_source_exa must hold the domain of every company Exa found",
+  Array.isArray(exaSource.config.queries) &&
+    exaSource.config.queries.length > 0,
+  "tam_source_exa must run the queries in exaQueries (settings.ts)",
+);
+assert.equal(
+  typeof exaSource.config.numResults,
+  "number",
+  "tam_source_exa must set numResults: with the number of queries, it is the only cap on what Exa bills",
+);
+assert.equal(
+  exaSource.config.category,
+  "company",
+  "tam_source_exa must search companies: any other category returns publishers' pages, whose domains would become accounts",
+);
+assert.ok(
+  atMostQuarterly(exaSource.schedule),
+  "tam_source_exa: no schedule, or a refresh at most once every three months. A sync re-runs every query and re-bills every result",
 );
 
 // ---------------------------------------------------------------------------
@@ -172,14 +189,16 @@ const UNIFIED = {
   ],
   "model:tam_source_apollo": [
     ["primary_domain", "domain"],
+    // The numeric LinkedIn id: what joins Apollo to Sales Navigator directly.
+    ["linkedin_uid", "linkedinId"],
     ["linkedin_url", "linkedinHandle"],
     ["linkedin_url", "linkedinId"],
   ],
   "model:tam_source_exa": [["domain", "domain"]],
-  "model:tam_companies": [
-    ["linkedin_company_id", "linkedinId"],
-    ["computed__match_domain", "domain"],
-    ["computed__match_account_domain", "domain"],
+  "model:tam_accounts": [
+    ["linkedin_id", "linkedinId"],
+    ["domain", "domain"],
+    ["account_domain", "domain"],
     ["linkedin_url", "linkedinHandle"],
   ],
 };
@@ -202,19 +221,17 @@ for (const [id, keys] of Object.entries(UNIFIED)) {
 
 // The profile row is the one that carries the LinkedIn id, the page and the
 // domain together: it is what joins a Sales Navigator row to an AI Ark row.
-const profile = get("model:tam_companies").spec;
+const profile = get("model:tam_accounts").spec;
 assert.equal(profile.datasetUuid, "native");
 const profileColumns = new Set([
   ...profile.config.columns.map((column) => column.slug),
   ...(profile.additionalColumns ?? []).map((column) => column.slug),
 ]);
 for (const column of [
-  "linkedin_company_id",
+  "linkedin_id",
   "linkedin_url",
   "domain",
   "account_domain",
-  "match_domain",
-  "match_account_domain",
   "employee_count",
   "hq_country",
   "category",
@@ -224,7 +241,7 @@ for (const column of [
 ]) {
   assert.ok(
     profileColumns.has(column),
-    `tam_companies must keep ${column}: the report and the ICP gates read it`,
+    `tam_accounts must keep ${column}: the report and the ICP gates read it`,
   );
 }
 for (const slug of ["status", "exclusion_reason"]) {
@@ -289,7 +306,7 @@ for (const modelId of [
   "model:tam_source_ai_ark",
   "model:tam_source_apollo",
   "model:tam_source_exa",
-  "model:tam_companies",
+  "model:tam_accounts",
 ]) {
   assert.ok(
     filterText.includes(modelId),

@@ -30,13 +30,14 @@ export const callScribe = defineAgent("call_scribe", {
   harness: "claudeCode",
   connector: anthropic,
   languageModel: "claude-sonnet-5", // PLACEHOLDER — your model of choice
-  // No `repository` block, and nothing left to put in one. Plan and deploy
-  // fill the repo, branch, root and GitHub connector from the git origin of
-  // the checkout — which is the correct binding, not a shortcut: the
-  // repository holding cadence/ and context/ IS this project's. Declare a
-  // field only to override that. `cargo-ai project check` prints what it resolved;
-  // confirm the root is the repository root and not `infra/`, since that is
-  // where the agent's `npx tsx` resolves node_modules from.
+  // No `state`, and nothing to put in one. Deploy binds this project's
+  // connected state (cargo.state.json) and the harness clones its repository
+  // at the state's directory and production branch — which is the correct
+  // binding, not a shortcut: the repository holding cadence/ and context/ IS
+  // this project's. Name another project with `stateRef(uuid)` only to
+  // override that. `cargo-ai project check` prints the binding; the state's
+  // directory must be where the agent's `npx tsx` resolves node_modules from,
+  // and a project whose state is not connected deploys this agent unbound.
   //
   // No `env` either. The recorder and the internal domain are in
   // scripts/call-capture/collect/config.ts, where the compiler checks the slug

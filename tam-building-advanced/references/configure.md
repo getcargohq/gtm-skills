@@ -23,9 +23,6 @@ look for its key (`hubspot___companies`, `salesforce___account`). HubSpot and
 Salesforce companies unify by default. A CRM that does not unify makes every
 company look net new: fix its unification before you report.
 
-**`tam-building` installed?** Its model is also `tam_companies`: rename this
-skill's profile model before deploying.
-
 This skill declares no `defineContext`: that resource is a per-workspace
 singleton owned by the project.
 

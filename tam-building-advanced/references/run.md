@@ -20,10 +20,16 @@ the next checkpoint.
    adapted resources.
 2. `cargo-ai project types`, then `cargo-ai project check`, then
    `cargo-ai project plan`. Confirm the plan shows the connectors, the source
-   models with **no schedule** and their unification, `tam_companies`, Unify
+   models with **no schedule** and their unification, `tam_accounts`, Unify
    Accounts **adopted with no column or schedule change**, and the one play
    **disabled, with no schedule**.
 3. Deploy only under the budget approval, Sales Navigator's model first.
+
+**Deployed before 0.3.0?** The profile model was `tam_companies`, keyed on
+`linkedin_company_id`. The plan now creates `tam_accounts` and leaves the old
+model in place: a deploy never deletes. Delete `tam_companies` by hand once
+the profile batch has filled `tam_accounts`, or its rows keep unifying into
+Accounts next to the new ones.
 
 Resolve `workspaceUuid` from `cargo-ai whoami` and each UUID from
 `cargo.state.json`. A model link is
@@ -39,8 +45,13 @@ companies that source adds.
 For each source:
 
 1. **The rows landed.** `cargo-ai storage run list --model-uuid <sourceUuid>`
-   shows the sync finished. Do not start a second one: it bills every record
-   again. For Exa, run the queries first (below).
+   shows the sync finished, then count the source's rows in SQL: a finished
+   run is not proof, since a search that returns nothing still succeeds. A
+   source with no schedule then counts as up to date, so a plain
+   `storage run create` answers `upToDate`. When the count is 0, find out why
+   before running it again with `--is-force true`: a forced run bills the
+   search again. Never re-run a source that has rows: it bills every record
+   again.
 2. **Accounts merged them.** Refresh Unify Accounts
    (`cargo-ai storage run create --model-uuid <accountsUuid>`, then poll
    `storage run list`). Refreshing rebuilds the merge; it never re-runs a
@@ -52,7 +63,7 @@ For each source:
    ```
 
    The key is `<dataset slug>___<model slug>` (`sales_navigator___…`,
-   `ai_ark___…`, `apolloio___…`, `object___…` for native models). The dataset
+   `ai_ark___…`, `exa___…`, `apolloio___…`, `object___…` for native models). The dataset
    slug is not always the connector slug: read one account's `ids` and use
    the keys you see in every query below. A brand-new company can take up to half an
    hour to appear. Wait until the count matches the source's row count, give
@@ -68,7 +79,7 @@ For each source:
      --wait-until-finished
    ```
 
-   Read the five `tam_companies` rows: category, `computed__status`,
+   Read the five `tam_accounts` rows: category, `computed__status`,
    `computed__exclusion_reason`, domain. A wrong category here is a wrong
    category on every row.
 4. **The rest.** The same batch without `limit`. The play stays disabled: it
@@ -78,21 +89,6 @@ For each source:
 5. **Done when** no account a source found is left without a profile: the
    play's filter returns nothing, or only accounts whose LinkedIn page could
    not be read (the play returns `unresolved` for them; read a few).
-
-**Exa.** For each query in `exaQueries` (`settings.ts`), run it once and write
-one row per result into `tam_source_exa` (`domain` from the result's URL, plus
-`url`, `title`, `query`, `searched_at`):
-
-```sh
-cargo-ai orchestration action execute --wait-until-finished \
-  --action '{"kind":"connector","integrationSlug":"exa","actionSlug":"search","config":{}}' \
-  --data '{"query":"<query>","category":"company","searchType":"auto","numResults":<exaResultsPerQuery>}'
-```
-
-Write the rows with the native `modelUpsert` action, matched on `domain`
-(everything in `--data`: `modelUuid`, `matchingColumnSlug`, `matchingValue`,
-`mappings`). A row written natively can take minutes to be readable: refresh
-Accounts after the last write, not between writes.
 
 ## Refresh
 
@@ -116,17 +112,17 @@ WITH tam AS (
     a._id AS account_id,
     JSON_QUERY(a.ids, '$.sales_navigator___tam_source_sales_navigator') IS NOT NULL AS sales_navigator,
     JSON_QUERY(a.ids, '$.ai_ark___tam_source_ai_ark') IS NOT NULL AS ai_ark,
-    JSON_QUERY(a.ids, '$.object___tam_source_exa') IS NOT NULL AS exa,
+    JSON_QUERY(a.ids, '$.exa___tam_source_exa') IS NOT NULL AS exa,
     JSON_QUERY(a.ids, '$.apolloio___tam_source_apollo') IS NOT NULL AS apollo,
     JSON_QUERY(a.ids, '$.hubspot___companies') IS NOT NULL AS in_crm,
-    JSON_VALUE(a.ids, '$.object___tam_companies[0]') AS profile_id
+    JSON_VALUE(a.ids, '$.object___tam_accounts[0]') AS profile_id
   FROM object.accounts a
 ),
 universe AS (
-  SELECT tam.*, c.linkedin_company_id, c.name, c.domain, c.category,
+  SELECT tam.*, c.linkedin_id, c.name, c.domain, c.category,
          c.computed__status AS status, c.computed__exclusion_reason AS exclusion_reason
   FROM tam
-  LEFT JOIN object.tam_companies c ON c._id = tam.profile_id
+  LEFT JOIN object.tam_accounts c ON c._id = tam.profile_id
   WHERE sales_navigator OR ai_ark OR exa OR apollo
 )
 SELECT status, COUNT(*) AS companies FROM universe GROUP BY status ORDER BY companies DESC
@@ -189,7 +185,7 @@ fix the key on the row that carries it when the merge is wrong.
 ```sql
 SELECT _id, ids
 FROM object.accounts
-WHERE JSON_QUERY(ids, '$.object___tam_companies[1]') IS NOT NULL
+WHERE JSON_QUERY(ids, '$.object___tam_accounts[1]') IS NOT NULL
 ```
 
 **The coverage estimate.** You cannot count the companies no source found, but
@@ -243,7 +239,7 @@ The report gives, in this order:
 - the merges read, and what was fixed
 - actual credits against the estimate (`cargo-ai billing usage get-metrics`),
   with the pricing lookup time
-- the links to Unify Accounts, `tam_companies` and the four sources
+- the links to Unify Accounts, `tam_accounts` and the four sources
 
 ## Openings
 

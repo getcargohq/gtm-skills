@@ -31,7 +31,7 @@ const HEALTH_CHANNEL_ID = "C0123456789";
 // No `capabilities`, on purpose: the CLI already in the sandbox is the read
 // path, and only the prompt can say "read, never execute". The commands are
 // listed in `workspace-health.prompt.ts` §2. The CLI is signed in as the
-// `workspace_health` service user (`repository.runAs`), a viewer: see
+// `workspace_health` service user (`runAs`), a viewer: see
 // `../users`.
 export const workspaceHealth = defineAgent("workspace_health", {
   name: "Workspace health",
@@ -41,21 +41,19 @@ export const workspaceHealth = defineAgent("workspace_health", {
   harness: "claudeCode",
   connector: anthropic,
   languageModel: "claude-sonnet-5", // PLACEHOLDER: your model of choice
-  repository: {
-    // Deliberately partial, resolved from the checkout's git origin at plan.
-    // `cargo-ai project check` prints what it resolved.
-    runAs: workspaceHealthUser,
-    env: {
-      // Public thresholds, so plain strings. A failure rate above this share
-      // of a workflow's runs is a finding; below it is provider coverage.
-      HEALTH_ERROR_RATE: "0.05",
-      // A day's credits above this multiple of the prior seven-day mean is a
-      // spike.
-      HEALTH_SPEND_MULTIPLE: "2",
-      // And the excess over that mean must be at least this many credits:
-      // below it a spike is noise on a workflow that barely spends.
-      HEALTH_SPEND_FLOOR: "10",
-    },
+  // No `state`: deploy binds this project's connected state (cargo.state.json).
+  // `cargo-ai project check` prints the binding.
+  runAs: workspaceHealthUser,
+  env: {
+    // Public thresholds, so plain strings. A failure rate above this share
+    // of a workflow's runs is a finding; below it is provider coverage.
+    HEALTH_ERROR_RATE: "0.05",
+    // A day's credits above this multiple of the prior seven-day mean is a
+    // spike.
+    HEALTH_SPEND_MULTIPLE: "2",
+    // And the excess over that mean must be at least this many credits:
+    // below it a spike is noise on a workflow that barely spends.
+    HEALTH_SPEND_FLOOR: "10",
   },
   uses: [
     {
