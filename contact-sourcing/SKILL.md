@@ -1,7 +1,7 @@
 ---
 name: contact-sourcing
 description: 'Build a reusable on-demand tool that sources stakeholders at supplied accounts, qualifies their responsibilities, and returns all or up to N ranked by contact fit, with optional verified work email and phone enrichment. Triggers: "build a contact sourcing tool", "set up stakeholder sourcing", "rank stakeholders by relevance", "install contact sourcing", "return an enriched shortlist per account". LinkedIn, Sales Navigator, OpenAI, Cargo project. Skip when: the user wants people at named accounts once today; use find-stakeholders. Existing profiles needing data use enrich-linkedin-profile; CRM field maintenance uses crm-enrichment.'
-version: "0.1.0"
+version: "0.2.0"
 compatibility: "Requires the cargo-project skill and a Cargo project. Checked with @cargo-ai/cdk 1.0.139 and zod 4.4.3 from the repository lockfile. No CRM, storage model, or play is required. Adapt in the consumer project before deployment."
 homepage: https://github.com/getcargohq/gtm-skills/tree/main/contact-sourcing
 metadata:

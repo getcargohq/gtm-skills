@@ -33,21 +33,19 @@ export const websiteAuditor = defineAgent("website_auditor", {
   harness: "claudeCode",
   connector: anthropic,
   languageModel: "claude-sonnet-5", // PLACEHOLDER: your model of choice
-  repository: {
-    // Deliberately partial: `repository`, `defaultBranch`, `rootDirectory` and
-    // the GitHub `connector` are filled by plan and deploy from the git origin
-    // of the checkout. The website's source is in that repository; when it is
-    // in another one, see `separate-site-repo` in SKILL.md.
-    env: {
-      // PLACEHOLDER: the domain the website is served on.
-      AUDIT_DOMAIN: "www.example.com",
-      // PLACEHOLDER: at most three competitor domains, comma separated, or
-      // empty. Each is one scan a week.
-      COMPETITOR_DOMAINS: "fabrikam.example,contoso.example",
-      // The website's source, relative to the repository root. This is where
-      // `cargo-ai project add cookbook/website-building` puts it.
-      WEBSITE_ROOT: "infra/website-building/apps/website",
-    },
+  // No `state`: deploy binds this project's connected state (cargo.state.json),
+  // and the harness clones its repository at the state's directory and
+  // production branch. The website's source is in that checkout; when it is
+  // in another project, see `separate-site-repo` in SKILL.md.
+  env: {
+    // PLACEHOLDER: the domain the website is served on.
+    AUDIT_DOMAIN: "www.example.com",
+    // PLACEHOLDER: at most three competitor domains, comma separated, or
+    // empty. Each is one scan a week.
+    COMPETITOR_DOMAINS: "fabrikam.example,contoso.example",
+    // The website's source, relative to the checkout root. This is where
+    // `cargo-ai project add cookbook/website-building` puts it.
+    WEBSITE_ROOT: "infra/website-building/apps/website",
   },
   mcpClients: [
     {

@@ -286,7 +286,7 @@ weight: it deploys, it shows up in the workspace, and it rots.
   or later) stores it encrypted server-side, and omitting `--value` reads the
   exported variable so the key stays out of argv and shell history. It is read
   on every run, so a rotation lands with no deploy. Workers, apps and agents
-  inherit the whole catalog, which means a harness agent's `repository.env`
+  inherit the whole catalog, which means a harness agent's `env`
   declares **nothing** for a key the workspace holds — and `@cargo-ai/cdk`'s type
   refuses a pointer there for exactly that reason. A connector is better off
   with no credential at all: `default: true` binds the connection the workspace

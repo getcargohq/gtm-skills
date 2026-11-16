@@ -47,7 +47,7 @@ check("the scribe is a harness agent on a weekly cron, with no actions, tools or
   assert.equal((agent.spec.connectorActions ?? []).length, 0, "it posts nothing: its only output is the pull request");
   assert.equal((agent.spec.tools ?? []).length, 0, "no tool");
   assert.equal((agent.spec.capabilities ?? []).length, 0, "a context capability would be a write path that skips the pull request");
-  const env = agent.spec.repository?.env ?? [];
+  const env = agent.spec.env ?? [];
   assert.equal((Array.isArray(env) ? env : Object.keys(env)).length, 0, "no env: the domain is in the prompt, and there is no credential");
 });
 

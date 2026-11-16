@@ -91,12 +91,12 @@ findOne(
   "the tracker must have one cron trigger",
 );
 
-const env = agent.spec.repository?.env ?? [];
+const env = agent.spec.env ?? [];
 const envKeys = new Set((Array.isArray(env) ? env : []).map((entry) => entry.key));
 assert.equal(
   envKeys.has("TRACKER_TIMEZONE"),
   true,
-  "repository.env must carry TRACKER_TIMEZONE so due dates and the one post a day agree on today",
+  "env must carry TRACKER_TIMEZONE so due dates and the one post a day agree on today",
 );
 
 console.log("ok: next-step-tracker contract");

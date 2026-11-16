@@ -396,7 +396,7 @@ await check("the selected installation configuration executes", async () => {
       configuration.qualificationModel,
     );
     assert.deepEqual(agent.spec.output.jsonSchema, qualificationSchema);
-    assert.equal(agent.spec.repository, null);
+    assert.equal(agent.spec.harnessSlug, undefined);
     assert.equal(agent.spec.maxSteps, 1);
     assert.equal(
       resources().find(
@@ -466,7 +466,7 @@ await check(
       qualificationSchema,
     );
     assert.equal(qualificationAgentSettings.maxSteps, 1);
-    assert.equal(qualificationAgentSettings.repository, null);
+    assert.equal(qualificationAgentSettings.harness, undefined);
     for (const key of ["capabilities", "uses", "mcpClients", "triggers"])
       assert.deepEqual(qualificationAgentSettings[key], []);
     for (const policy of qualificationPolicies.slice(1)) {

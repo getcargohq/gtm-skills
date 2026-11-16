@@ -91,10 +91,10 @@ findOne(
   "the auditor must have one cron trigger",
 );
 
-const env = agent.spec.repository?.env ?? [];
+const env = agent.spec.env ?? [];
 const envByKey = new Map((Array.isArray(env) ? env : []).map((entry) => [entry.key, entry.value]));
 for (const key of ["AUDIT_DOMAIN", "COMPETITOR_DOMAINS", "WEBSITE_ROOT"]) {
-  assert.ok(envByKey.has(key), `repository.env must carry ${key}`);
+  assert.ok(envByKey.has(key), `env must carry ${key}`);
 }
 assert.notEqual(envByKey.get("AUDIT_DOMAIN"), "", "AUDIT_DOMAIN must name the website's domain");
 assert.notEqual(envByKey.get("WEBSITE_ROOT"), "", "WEBSITE_ROOT must name the website's source");

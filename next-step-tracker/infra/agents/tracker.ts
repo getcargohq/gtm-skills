@@ -34,18 +34,16 @@ export const tracker = defineAgent("commitment_tracker", {
   harness: "claudeCode",
   connector: anthropic,
   languageModel: "claude-sonnet-5", // PLACEHOLDER: your model of choice
-  repository: {
-    // Deliberately partial: `repository`, `defaultBranch`, `rootDirectory` and
-    // the GitHub `connector` are filled by plan and deploy from the git origin
-    // of the checkout, taking the connector from the project's own. The
-    // harness clones the default branch, so it reads the call entries that
-    // were merged, not the ones still in an open call-capture pull request.
-    env: {
-      // IANA timezone "today" is computed in, for due dates and the one post a
-      // day. The cron is 14:00 UTC, which is 7am here during PDT; change both
-      // together.
-      TRACKER_TIMEZONE: "America/Los_Angeles",
-    },
+  // No `state`: deploy binds this project's connected state (cargo.state.json).
+  // The harness clones that state's production branch, so it reads the call
+  // entries that were merged, not the ones still in an open call-capture pull
+  // request. A project whose state is not connected deploys this agent
+  // unbound, with an empty sandbox; `cargo-ai project check` prints which.
+  env: {
+    // IANA timezone "today" is computed in, for due dates and the one post a
+    // day. The cron is 14:00 UTC, which is 7am here during PDT; change both
+    // together.
+    TRACKER_TIMEZONE: "America/Los_Angeles",
   },
   uses: [
     { ref: commitments, readOnly: false },

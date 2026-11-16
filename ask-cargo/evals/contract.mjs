@@ -63,8 +63,8 @@ assert.equal(
 // Without `runAs` the CLI has no session and every workspace read fails; with a
 // broader role a prompt that is ignored can deploy or change resources.
 assert.ok(
-  agent.spec.repository?.runAsUserUuid,
-  "ask-cargo must run as a service user (repository.runAs): the sandbox needs a Cargo session",
+  agent.spec.runAsUserUuid,
+  "ask-cargo must run as a service user (runAs): the sandbox needs a Cargo session",
 );
 const user = byId.get("user:ask_cargo");
 assert.ok(user, "defineUser(ask_cargo) must exist");

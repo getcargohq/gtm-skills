@@ -94,14 +94,14 @@ findOne(
   "weekly-planning must have a Monday cron trigger",
 );
 
-const env = agent.spec.repository?.env ?? [];
+const env = agent.spec.env ?? [];
 const envKeys = new Set(
   (Array.isArray(env) ? env : []).map((entry) => entry.key),
 );
 assert.equal(
   envKeys.has("PLANNING_TIMEZONE"),
   true,
-  "repository.env must carry PLANNING_TIMEZONE so the collector and the prompt agree on the week",
+  "env must carry PLANNING_TIMEZONE so the collector and the prompt agree on the week",
 );
 
 console.log("ok: weekly-planning contract");
