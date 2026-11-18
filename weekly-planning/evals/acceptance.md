@@ -16,7 +16,7 @@ Walk every line. A checked template without an evidence-backed consumer adaptati
   file is missing and the loader is importing the collector.
 - `cargo-ai project check` prints `agent:weekly_planning bound to <your repo>#<branch>`
   with no trailing subdirectory. The repo is the one holding `cadence/`, and
-  the GitHub grant can push to it. A trailing `in infra/` means the harness was
+  the Cargo GitHub app is installed on it. A trailing `in infra/` means the harness was
   rooted where there is no node_modules, so the collector cannot run.
 - `cargo-ai connection connector list` shows an authorized Anthropic connector,
   and `languageModel` in `infra/agents/planner.ts` names a model it can reach.

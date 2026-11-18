@@ -35,7 +35,6 @@ check("the template declares one agent, four bound connectors, three models and 
       "agent:win_loss_analyst",
       "connector:anthropic",
       "connector:crm",
-      "connector:github",
       "connector:slack",
       "folder:win_loss_review_agents",
       "folder:win_loss_review_models",
@@ -44,7 +43,7 @@ check("the template declares one agent, four bound connectors, three models and 
       "model:crm_deals",
     ],
   );
-  for (const id of ["connector:anthropic", "connector:crm", "connector:github", "connector:slack"]) {
+  for (const id of ["connector:anthropic", "connector:crm", "connector:slack"]) {
     assert.equal(byId.get(id).spec.config, undefined, `${id} must bind the workspace's connection, not declare a config`);
   }
   assert.equal(byId.get("connector:crm").spec.integrationSlug, "hubspot", "HubSpot is the checked example");

@@ -46,7 +46,6 @@ Adds 5 resources plus a script bundle.
 | ---------------------------------- | -------------------------- | ----------------------------------------------------------------- |
 | `infra/agents/standup.ts`          | `defineAgent` (claudeCode) | schedule, repository binding, locked Slack use                    |
 | `infra/agents/standup.prompt.ts`   | (not a resource)           | the recap contract: window, digest shape, limits                  |
-| `infra/connectors/git.ts`          | `defineConnector` (`github`) | the clone, branch, push and PR path, resolved by binding        |
 | `infra/connectors/slack.ts`        | `defineConnector` (`slack`)  | the post path; OAuth, bound rather than created                 |
 | `infra/connectors/anthropic.ts`    | `defineConnector` (`anthropic`) | the model the harness runs on, billed and metered            |
 | `infra/folders/index.ts`           | `defineFolder`             | the workspace folder this cookbook's resources are filed in       |

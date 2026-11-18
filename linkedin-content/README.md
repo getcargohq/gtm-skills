@@ -27,7 +27,6 @@ Adds 4 resources.
 | --------------------------------------- | ------------------------------- | ----------------------------------------------------------- |
 | `infra/agents/content-writer.ts`        | `defineAgent` (claudeCode)      | the weekly cron, the author env var, the model              |
 | `infra/agents/content-writer.prompt.ts` | (not a resource)                | what it reads, the three kinds, the citation rule, the PR   |
-| `infra/connectors/git.ts`               | `defineConnector` (`github`)    | the clone, branch, push and pull request path               |
 | `infra/connectors/anthropic.ts`         | `defineConnector` (`anthropic`) | the model the harness runs on                               |
 | `infra/folders/index.ts`                | `defineFolder`                  | where the agent is filed                                    |
 | `references/post.md`                    | (not a resource)                | the drafts file shape and the rules for a draft             |

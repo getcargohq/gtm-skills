@@ -28,7 +28,6 @@ Adds 9 resources.
 | `infra/agents/tracker.ts`       | `defineAgent` (claudeCode)      | the cron, the repository binding, the reads, the locked post |
 | `infra/agents/tracker.prompt.ts` | (not a resource)               | extract, close on evidence, post what is due                 |
 | `infra/models/commitments.ts`   | `defineModel` (native)          | the ledger: one row per promise                              |
-| `infra/connectors/git.ts`       | `defineConnector` (`github`)    | the clone path; read only                                    |
 | `infra/models/gtm-activities.ts`    | `defineModel` (native)          | the evidence a promise was kept; read-only                   |
 | `infra/models/gtm-accounts.ts`      | `defineModel` (native)          | who owns each account; read-only                             |
 | `infra/connectors/slack.ts`     | `defineConnector` (`slack`)     | the post path                                                |

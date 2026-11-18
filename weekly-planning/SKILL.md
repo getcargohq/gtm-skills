@@ -104,8 +104,7 @@ is enough.
    both; this folder never ships a shell. **If you are reading this from the project's
    `.claude/skills/`, the install already happened — start at step 2.** On a CLI too old to have
    `add`, copy this folder in as a sibling of what is there by hand; everything below is unchanged.
-2. **Reconcile it with what is already declared.** If the project already has a GitHub connector or
-   an agents folder, rewire the imports to the existing one and drop the copy; two resources with
+2. **Reconcile it with what is already declared.** If the project already has an agents folder, rewire the imports to the existing one and drop the copy; two resources with
    one slug is a collision at deploy. Append this folder's env needs to the project's `.env.example`;
    never overwrite it.
 3. **Adapt.** Work the sections below in order: _What should not change_ is what you argue back
@@ -133,7 +132,6 @@ _asked_ genuinely live in the operator's head.
 | Input                                              | Kind  | How it is answered                                                                                                                                                                                                                          | Why it matters                                                                                                                                                                                                                          |
 | -------------------------------------------------- | ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | project binding (`infra/agents/planner.ts`) | value | **derived**: leave `state` unset and deploy binds the project's connected state (`cargo.state.json`): its repository, directory and production branch. `cargo-ai project check` prints the binding; a project whose state is not connected deploys the agent unbound, with an empty sandbox. | This is the working tree the harness clones and the only place its plan files can land. An `owner/name` written by hand is the one value nobody notices is wrong until a pull request opens against a stranger's repository.            |
-| GitHub connector (`infra/connectors/git.ts`)       | value | **derived**: `cargo-ai connection connector list` shows whether one is authorized; if not, `cargo-ai project add connector/github` opens the OAuth consent. The declaration is `default: true` because a deploy cannot mint an OAuth grant.         | It is the agent's entire write path into the repository. Without it the run does the work and has nowhere to put it.                                                                                                                    |
 | LLM connector and model (`infra/connectors/anthropic.ts`) | value | **derived**: `cargo-ai connection connector list` shows whether an Anthropic connector is authorized; if not, `cargo-ai project add connector/anthropic` takes the key. `default: true` because a deploy cannot mint one. Any Anthropic model pairs with `claudeCode`; the agent's `languageModel` is a placeholder to set. | A harness does not bring its own model — it runs against Cargo's LLM proxy, so this is what the Monday run is billed and metered against. Omit either and `defineAgent` throws at `plan`; pair `claudeCode` with an `openAi` connector and it typechecks green and fails at deploy. |
 | `PLANNING_TIMEZONE` (`infra/agents/planner.ts`)    | value | **derived**: default `America/Los_Angeles`. Change it only if the team's week is not Pacific. Change it together with `cron`.                                                                                                                 | The previous ISO week is computed in this timezone. A timezone the collector does not share with the prompt splits the dump and the plan files across two weeks.                                                                      |
 | cadence and initiatives paths                      | value | **derived**: read `cadence/README.md` and `ls initiatives/` for what already exists                                                                                                                                                           | The agent writes into a layer humans already curate. A second parallel folder splits the record in half. An empty `initiatives/` is not an error: it is the one-workspace-PR path.                                                      |
@@ -142,7 +140,7 @@ Checked before moving on, not after the deploy:
 
 - the collector was run by hand once and wrote a real raw file
 - `cargo-ai project check` prints `agent:weekly_planning bound to <your repo>#<branch>` with no trailing
-  subdirectory — the repo is the one holding `cadence/`, and the GitHub grant can push to it. A
+  subdirectory — the repo is the one holding `cadence/`, and the Cargo GitHub app is installed on it. A
   trailing `in infra/` is the failure to catch here: it roots the harness where there is no
   node_modules, so the collector cannot run
 - `scripts/weekly-planning/package.json` is present in the project after the install
@@ -225,7 +223,7 @@ it if you still want it, and records why under `## Decisions` in your copy of th
 - `node --import tsx evals/contract.mjs` passes: harness is `claudeCode` bound to an Anthropic
   connector and a model, no capability is wired on the agent, there is no Slack action, and no
   tool wraps git or the CLI
-- `cargo-ai project plan` reports the agent, the GitHub and Anthropic connectors and the folder, and
+- `cargo-ai project plan` reports the agent, the Anthropic connector and the folder, and
   does **not** run git or `gh` while planning
 - with **zero** active initiatives, the first scheduled run opened exactly one unmerged pull
   request titled `[cadence] workspace <YYYY-Www>` whose diff contains the dump and

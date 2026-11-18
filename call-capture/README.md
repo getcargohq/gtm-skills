@@ -46,7 +46,6 @@ Adds 4 resources plus a script bundle.
 | ------------------------------- | ---------------------------- | ---------------------------------------------------------- |
 | `infra/agents/call-scribe.ts`   | `defineAgent` (claudeCode)   | schedule, model, folder — and no env of its own            |
 | `infra/agents/call-scribe.prompt.ts` | (not a resource)        | the scribe's contract: window, cap, repetition bar, limits |
-| `infra/connectors/git.ts`       | `defineConnector` (`github`) | the clone, branch, push and PR path, resolved by binding   |
 | `infra/connectors/anthropic.ts` | `defineConnector` (`anthropic`) | the model the harness runs on, billed and metered          |
 | `infra/folders/index.ts`  | `defineFolder`               | the workspace folder this cookbook's resources are filed in |
 | `scripts/collect/recorder.ts`   | (not a resource)             | the `Recorder` contract and the provider-agnostic pipeline |

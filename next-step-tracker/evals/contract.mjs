@@ -11,7 +11,6 @@ import { resetRegistry, resources } from "@cargo-ai/cdk";
 resetRegistry();
 const stamp = Date.now();
 await import(`../infra/agents/tracker.ts?contract=${stamp}`);
-await import(`../infra/connectors/git.ts?contract=${stamp}`);
 
 const byId = new Map(resources().map((resource) => [resource.id, resource]));
 
@@ -21,7 +20,6 @@ const findOne = (nodes, predicate, message) => {
   return matches[0];
 };
 
-assert.ok(byId.get("connector:github"), "defineConnector(github) must exist: the harness clones through it");
 
 const agent = byId.get("agent:commitment_tracker");
 assert.ok(agent, "defineAgent(commitment_tracker) must exist");

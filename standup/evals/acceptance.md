@@ -22,7 +22,7 @@ Walk every line. A checked template without an evidence-backed consumer adaptati
   the loader is importing the collector.
 - `cargo-ai project check` prints `agent:standup bound to <your repo>#<branch>` with
   no trailing subdirectory. The repo is the one holding `cadence/`, and the
-  GitHub grant can push to it. A trailing `in infra/` means the harness was
+  Cargo GitHub app is installed on it. A trailing `in infra/` means the harness was
   rooted where there is no node_modules, so the collector cannot run.
 - `cargo-ai connection connector list` shows an authorized Slack connector, or
   `cargo-ai project add connector/slack` was used to open the OAuth consent.

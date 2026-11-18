@@ -38,11 +38,10 @@ check("the template declares one agent, one folder and two bound connectors", ()
     [
       "agent:linkedin_content_writer",
       "connector:anthropic",
-      "connector:github",
       "folder:linkedin_content_agents",
     ],
   );
-  for (const id of ["connector:anthropic", "connector:github"]) {
+  for (const id of ["connector:anthropic"]) {
     assert.equal(byId.get(id).spec.config, undefined, `${id} must bind the workspace's connection, not declare a config`);
   }
 });

@@ -102,8 +102,7 @@ is enough.
    folder never ships a shell. **If you are reading this from the project's `.claude/skills/`, the
    install already happened — start at step 2.** On a CLI too old to have `add`, copy this folder in
    as a sibling of what is there by hand; everything below is unchanged.
-2. **Reconcile it with what is already declared.** If the project already has a GitHub connector or
-   an agents folder, rewire the imports to the existing one and drop the copy; two resources with
+2. **Reconcile it with what is already declared.** If the project already has an agents folder, rewire the imports to the existing one and drop the copy; two resources with
    one slug is a collision at deploy. The knowledge layer needs no work: the scaffold already
    declares the repo's root `context/` in `infra/context.ts`, and `defineContext` is a per-workspace
    singleton, which is why this folder ships none. **Append nothing to `.env.example`:** this
@@ -185,7 +184,6 @@ _asked_ genuinely live in the operator's head.
 | `CALL_RECORDER_API_KEY`                                              | env    | **asked**: the recorder's API key, put in the workspace with `cargo-ai workspaceManagement envVar create --key CALL_RECORDER_API_KEY --secret` (step 3) and named in no file here. A harness agent inherits the workspace catalog, so nothing declares it. Gong and Clari Copilot issue two values; that one variable holds `<first>:<second>` and the adapter splits it.                                  | It is the collector's only credential, and the workspace is the only copy of it that outlives the session that set it. In the catalog it is read server-side on every run, so a rotation needs no deploy; as a `secret()` in the agent's env it is the deploying shell's value, so every deploy needs the key again and a rotation lands only on a re-apply. |
 | `INTERNAL_DOMAIN` (`scripts/collect/config.ts`)              | value  | **derived**: your own email domain, which the workspace members' addresses already name                                                                                                                                                                | It is how an internal call is told from a customer one. Avoma's `is_internal` is false on every meeting in some workspaces, so it cannot be used; leave the placeholder and every standup is captured as an account.  |
 | adapter state (`scripts/collect/recorders/index.ts`)   | value  | **derived**: `--list` prints which adapters were verified against a live workspace (Avoma) and which were written from vendor docs (the other eight). Nothing to decide — it decides how hard you check step 5 before deploying.                          | The contract is compiler-enforced, so a half-written adapter fails to build rather than half-working. Pointed at the wrong API it fails on the first request, which is loud; pointed at the right API with a stale field name it captures nothing and reports a clean empty run every morning. |
-| GitHub connector (`infra/connectors/git.ts`)                 | value  | **derived**: `cargo-ai connection connector list` shows whether one is authorized; if not, `cargo-ai project add connector/github` opens the OAuth consent. The declaration is `default: true` because a deploy cannot mint an OAuth grant.                    | It is the agent's entire write path. Without it the run does the work and has nowhere to put it.                                                                                                                      |
 | LLM connector and model (`infra/connectors/anthropic.ts`)    | value  | **derived**: `cargo-ai connection connector list` shows whether an Anthropic connector is authorized; if not, `cargo-ai project add connector/anthropic` takes the key. `default: true` because a deploy cannot mint one. Any Anthropic model pairs with `claudeCode`; the agent's `languageModel` is a placeholder to set.        | A harness does not bring its own model — it runs against Cargo's LLM proxy, so this is what the daily run is billed and metered against. Omit either and `defineAgent` throws at `plan`; pair `claudeCode` with an `openAi` connector and it typechecks green and fails at deploy. |
 | cadence and context paths                                    | value  | **derived**: read `cadence/README.md` and `context/README.md`, and `ls cadence/log/` for what already exists                                                                                                                                            | The agent writes into layers humans already curate. A second parallel folder splits the record in half and the repetition bar stops seeing the earlier occurrence.                                                    |
 
@@ -197,8 +195,8 @@ Checked before moving on, not after the deploy:
   that listing is the deployed credential, and a value only ever exported in a shell is not one
 - the collector was run by hand once and wrote real raw files
 - `cargo-ai project check` prints `agent:call_scribe bound to <your repo>#<branch>` with no trailing
-  subdirectory — the repo is the one holding `context/` and `cadence/`, and the GitHub grant can
-  push to it. A trailing `in infra/` is the failure to catch here: it roots the harness where there
+  subdirectory — the repo is the one holding `context/` and `cadence/`, and the Cargo GitHub app
+  is installed on it. A trailing `in infra/` is the failure to catch here: it roots the harness where there
   is no node_modules, so the collector cannot run
 - exactly one `defineContext` in the project, resolving to the repo's root `context/`
 - `scripts/call-capture/package.json` is present in the project after the install

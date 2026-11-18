@@ -2,7 +2,7 @@
 name: linkedin-content
 description: 'Draft LinkedIn posts every week from your own proof points: each Monday three post drafts for one author land in your go-to-market repo as one pull request, built only from what context/ and the cadence log already say, each with its hook and the files it draws on; nothing is ever published. Triggers: "draft our founder''s LinkedIn posts every week", "weekly LinkedIn drafts from our proof points", "turn our wins and insights into LinkedIn posts", "keep a LinkedIn content pipeline", "ghostwrite LinkedIn posts from our context", "content calendar for the CEO on LinkedIn". Cargo project, defineAgent, harness claudeCode, GitHub, context/, cadence/content. Skip when: you want the company website and news read into context/, which is web-capture; or you want one post written now, in this chat, with nothing deployed.'
 version: "0.2.0"
-compatibility: "Requires @cargo-ai/cli 1.0.154 or later with @cargo-ai/cdk 1.0.150 or later (harness agents bound to the project's connected state, with `env` at the top level of `defineAgent`), a Cargo workspace, an authenticated Anthropic connector, an authorized GitHub connector, and a GTM repository with context/ and cadence/ at its root (the shape `cargo-ai project init` scaffolds)."
+compatibility: "Requires @cargo-ai/cli 1.0.154 or later with @cargo-ai/cdk 1.0.150 or later (harness agents bound to the project's connected state, with `env` at the top level of `defineAgent`), a Cargo workspace, an authenticated Anthropic connector, a GTM repository with context/ and cadence/ at its root (the shape `cargo-ai project init` scaffolds), with the Cargo GitHub app installed on the repository."
 homepage: https://github.com/getcargohq/gtm-skills/tree/main/linkedin-content
 metadata:
   author: getcargo
@@ -83,7 +83,7 @@ is enough.
    `cargo-ai project init <dir> --cookbook linkedin-content && cd <dir> && npm install` does both. **If
    you are reading this from the project's `.claude/skills/`, the install already happened — start
    at step 2.**
-2. **Reconcile it with what is already declared.** If the project already has a GitHub or Anthropic
+2. **Reconcile it with what is already declared.** If the project already has an Anthropic
    connector, rewire the imports to the existing one and drop the copy; two resources with one slug
    is a collision at deploy.
 3. **Name the author.** Set `CONTENT_AUTHOR` in `infra/agents/content-writer.ts` to the person the
@@ -108,7 +108,7 @@ is enough.
 | `CONTENT_AUTHOR` (`infra/agents/content-writer.ts`)       | asked | the person the posts are written as, the way they sign their name                                                                                                          | Every draft is in the first person. A team name produces posts nobody can publish as themselves.                                              |
 | project binding | value | **derived**: leave `state` unset and deploy binds the project's connected state (`cargo.state.json`): its repository, directory and production branch. `cargo-ai project check` prints the binding; a project whose state is not connected deploys the agent unbound, with an empty sandbox. | The drafts are read from and written to this repository. A hand-written `owner/name` opens the pull request against the wrong one.            |
 | what context/ holds                                       | value | **derived**: `ls context/*/` before the first run. A repository with no `proof/` or `insight/` files gets drafts that say so.                                                 | The agent can only draft what is written down. An empty `proof/` is a reason to install `call-capture` or `win-loss-review` first, not to invent. |
-| GitHub and Anthropic connectors                           | value | **derived**: `cargo-ai connection connector list`; `cargo-ai project add connector/github` if missing. `languageModel` is a placeholder to set.                                 | GitHub is the agent's only write path. Anthropic is what every Monday is billed against.                                                      |
+| Anthropic connector                                       | value | **derived**: `cargo-ai connection connector list`; `cargo-ai project add connector/anthropic` if missing. `languageModel` is a placeholder to set.                                 | Anthropic is what every Monday is billed against.                                                      |
 
 Checked before moving on, not after the deploy:
 
@@ -159,7 +159,7 @@ Checked before moving on, not after the deploy:
 ## What it costs
 
 No connector action runs: the agent reads files in its checkout and opens a pull request through
-GitHub. The recurring cost is the harness run itself, once a week, billed as LLM tokens through the
+the Cargo GitHub app. The recurring cost is the harness run itself, once a week, billed as LLM tokens through the
 Anthropic connector, and it scales with how much of `context/` and `cadence/` there is to read.
 
 The `performance-report` variation adds one paid LinkedIn action per run. Before adding it, read its

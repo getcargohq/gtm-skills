@@ -83,8 +83,8 @@ is enough.
    both. **If you are reading this from the project's `.claude/skills/`, the install already
    happened, so start at step 2.** On a CLI too old to have `add`, copy this folder in as a sibling of
    what is there by hand; everything below is unchanged.
-2. **Reconcile it with what is already declared.** If the project already has an Anthropic,
-   GitHub or Slack connector, rewire the imports to the existing one and drop the copy; two
+2. **Reconcile it with what is already declared.** If the project already has an Anthropic
+   or Slack connector, rewire the imports to the existing one and drop the copy; two
    resources with one slug is a collision at deploy.
 3. **Adapt.** Work the sections below in order: _What should not change_ is what you argue back
    about; _What you can change_ is what you offer unprompted; _What you will be asked_ is the
@@ -107,7 +107,7 @@ is enough.
 | thresholds (`HEALTH_ERROR_RATE`, `HEALTH_SPEND_MULTIPLE`, `HEALTH_SPEND_FLOOR`) | value | **derived**: keep the defaults for the first week, then read the Monday post. Raise the error rate on enrichment-heavy workspaces where provider coverage misses are normal. | Too low and coverage misses read as outages; too high and a real outage hides under the line. |
 | project binding | value | **derived**: leave `state` unset and deploy binds the project's connected state (`cargo.state.json`): its repository, directory and production branch. `cargo-ai project check` prints the binding; a project whose state is not connected deploys the agent unbound, with an empty sandbox. | The harness clones it for the `cargo-ai` toolchain. It never pushes. |
 | service user (`infra/users/index.ts`) | value | **derived**: `workspace_health`, a service user on the adopted `viewer` system role. Deploying creates it; the deploying user's own role must cover viewer. If the project already adopts `viewer`, import that role instead of declaring it twice. | Every run's `cargo-ai` session. Without it the sandbox has no session and every workspace read fails. Viewer reads runs, plays, agents and usage but cannot deploy or change a resource. |
-| Anthropic, GitHub, Slack connectors | value | **derived**: `cargo-ai connection connector list`; add a missing one with `cargo-ai project add connector/<name>`. | The model the run is billed against, the clone, and the post. |
+| Anthropic and Slack connectors | value | **derived**: `cargo-ai connection connector list`; add a missing one with `cargo-ai project add connector/<name>`. | The model the run is billed against, and the post. |
 
 ## What you can change
 
