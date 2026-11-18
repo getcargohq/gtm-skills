@@ -8,8 +8,8 @@ Walk every line. A checked template without an evidence-backed consumer adaptati
   on an Anthropic connector, exactly one Slack trigger on `allChannels`, nothing on `uses`, no
   capability.
 - `cargo-ai project check` prints `agent:ask_cargo bound to <your repo>#<branch>` with no trailing
-  subdirectory, and the GitHub grant can push a branch to that repository.
-- `cargo-ai connection connector list` shows authorized Slack, GitHub and Anthropic connectors, and
+  subdirectory, and the Cargo GitHub app is installed on that repository.
+- `cargo-ai connection connector list` shows authorized Slack and Anthropic connectors, and
   `languageModel` names a model the Anthropic one can reach.
 - Every channel the bot is in is internal, read out loud from the Slack connector's channel
   autocomplete. A customer shared channel is either left by the bot or listed on the agent that

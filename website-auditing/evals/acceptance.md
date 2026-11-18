@@ -11,7 +11,7 @@ Walk every line. A checked template without an evidence-backed consumer adaptati
   `COMPETITOR_DOMAINS` (at most three) and `WEBSITE_ROOT` in the repository env.
 - `cargo-ai project check` prints `agent:website_auditor bound to <your repo>#<branch>` with no
   trailing subdirectory.
-- `cargo-ai connection connector list` shows authorized GitHub, Slack and Anthropic connectors.
+- `cargo-ai connection connector list` shows authorized Slack and Anthropic connectors.
 - `WEBSITE_ROOT` exists on the default branch and is the folder the site deploys from.
 - `curl -s https://ora.ai/api/score/<domain>` answers for every configured domain, or the domain has
   never been scanned and the first run will scan it.

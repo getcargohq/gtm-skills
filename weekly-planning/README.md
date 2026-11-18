@@ -44,7 +44,6 @@ Adds 4 resources plus a script bundle.
 | ---------------------------------- | ---------------------------- | ----------------------------------------------------------------- |
 | `infra/agents/planner.ts`          | `defineAgent` (claudeCode)   | schedule, repository binding, env                                 |
 | `infra/agents/planner.prompt.ts`   | (not a resource)             | the recap contract: window, one-PR-per-initiative rule, limits    |
-| `infra/connectors/git.ts`          | `defineConnector` (`github`) | the clone, branch, push and PR path, resolved by binding          |
 | `infra/connectors/anthropic.ts`    | `defineConnector` (`anthropic`) | the model the harness runs on, billed and metered              |
 | `infra/folders/index.ts`           | `defineFolder`               | the workspace folder this pipeline's resources are filed in       |
 | `scripts/collect/week.ts`          | (not a resource)             | the entrypoint: dump git / `gh` / initiatives / infra for the week |

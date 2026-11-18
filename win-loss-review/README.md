@@ -38,7 +38,6 @@ cargo-ai project add cookbook/win-loss-review
 | `infra/models/crm-contacts.ts`            | `defineModel` (`crm_contacts`)  | the people at the accounts, shared with the other CRM cookbooks    |
 | `infra/connectors/crm.ts`                 | `defineConnector` (`hubspot`)   | the CRM the models extract, bound                                  |
 | `infra/connectors/anthropic.ts`           | `defineConnector` (`anthropic`) | the model the harness runs on, billed and metered                  |
-| `infra/connectors/git.ts`                 | `defineConnector` (`github`)    | the clone, branch, push and PR path, resolved by binding           |
 | `infra/connectors/slack.ts`               | `defineConnector` (`slack`)     | the digest, through a locked `postMessage`                         |
 | `infra/folders/index.ts`                  | `defineFolder` ×2               | the agent and the models, filed under the cookbook                 |
 

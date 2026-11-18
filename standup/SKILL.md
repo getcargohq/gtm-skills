@@ -111,8 +111,8 @@ is enough.
    folder never ships a shell. **If you are reading this from the project's `.claude/skills/`, the
    install already happened — start at step 2.** On a CLI too old to have `add`, copy this folder in
    as a sibling of what is there by hand; everything below is unchanged.
-2. **Reconcile it with what is already declared.** If the project already has a GitHub connector, a
-   Slack connector, or an agents folder, rewire the imports to the existing one and drop the copy;
+2. **Reconcile it with what is already declared.** If the project already has a Slack connector or
+   an agents folder, rewire the imports to the existing one and drop the copy;
    two resources with one slug is a collision at deploy. Append this folder's env needs to the
    project's `.env.example`; never overwrite it.
 3. **Point Slack at your channel.** Authorize the Slack connector if the workspace does not have
@@ -149,7 +149,6 @@ _asked_ genuinely live in the operator's head.
 | Slack connector (`infra/connectors/slack.ts`)      | value | **derived**: `cargo-ai connection connector list` shows whether one is authorized; if not, `cargo-ai project add connector/slack` opens the OAuth consent. The declaration is `default: true` because a deploy cannot mint an OAuth grant.           | It is the agent's entire post path. Without it the run writes the log and has nowhere to send the digest.                                                                                                                               |
 | `channelId` (`infra/agents/standup.ts`)            | asked | the Slack channel id (`C…`) the digest is allowed to land in. Read it from the connector's channel autocomplete, not by guessing a name. Invite the bot.                                                                                      | Locked on `postMessage` so the agent cannot pick a customer shared channel. A name (`#general`) collides; an empty lock posts nowhere useful and looks like success.                                                                    |
 | `STANDUP_TITLE` (`infra/agents/standup.ts`)        | asked | the short name in the Slack header (`:racing_car: *GTM - Sat Aug 1*`). A founder-facing label, not the GitHub slug.                                                                                                                          | Two standups in the same channel are told apart from the first line. A repo name here reads as infrastructure, not as the GTM day.                                                                                                      |
-| GitHub connector (`infra/connectors/git.ts`)       | value | **derived**: `cargo-ai connection connector list` shows whether one is authorized; if not, `cargo-ai project add connector/github` opens the OAuth consent. The declaration is `default: true` because a deploy cannot mint an OAuth grant.         | It is the agent's entire write path into the repository. Without it the run does the work and has nowhere to put it.                                                                                                                    |
 | LLM connector and model (`infra/connectors/anthropic.ts`) | value | **derived**: `cargo-ai connection connector list` shows whether an Anthropic connector is authorized; if not, `cargo-ai project add connector/anthropic` takes the key. `default: true` because a deploy cannot mint one. Any Anthropic model pairs with `claudeCode`; the agent's `languageModel` is a placeholder to set. | A harness does not bring its own model — it runs against Cargo's LLM proxy, so this is what the nightly run is billed and metered against. Omit either and `defineAgent` throws at `plan`; pair `claudeCode` with an `openAi` connector and it typechecks green and fails at deploy. |
 | cadence paths                                      | value | **derived**: read `cadence/README.md` and `ls cadence/log/` for what already exists                                                                                                                                                           | The agent writes into a layer humans already curate. A second parallel folder splits the record in half.                                                                                                                                |
 
@@ -157,7 +156,7 @@ Checked before moving on, not after the deploy:
 
 - the collector was run by hand once and wrote a real raw file
 - `cargo-ai project check` prints `agent:standup bound to <your repo>#<branch>` with no trailing
-  subdirectory — the repo is the one holding `cadence/`, and the GitHub grant can push to it. A
+  subdirectory — the repo is the one holding `cadence/`, and the Cargo GitHub app is installed on it. A
   trailing `in infra/` is the failure to catch here: it roots the harness where there is no
   node_modules, so the collector cannot run
 - `channelId` is a `C…` id the Slack connector can see, and the bot is in that channel

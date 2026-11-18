@@ -11,7 +11,6 @@ import { resetRegistry, resources } from "@cargo-ai/cdk";
 resetRegistry();
 const stamp = Date.now();
 await import(`../infra/agents/standup.ts?contract=${stamp}`);
-await import(`../infra/connectors/git.ts?contract=${stamp}`);
 await import(`../infra/connectors/anthropic.ts?contract=${stamp}`);
 
 const byId = new Map(resources().map((resource) => [resource.id, resource]));
@@ -22,7 +21,6 @@ const findOne = (nodes, predicate, message) => {
   return matches[0];
 };
 
-assert.ok(byId.get("connector:github"), "defineConnector(github) must exist");
 assert.ok(byId.get("connector:slack"), "defineConnector(slack) must exist");
 assert.equal(
   byId.has("tool:post-slack"),

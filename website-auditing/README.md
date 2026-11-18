@@ -27,7 +27,6 @@ Adds 7 resources.
 | `infra/agents/website-auditor.ts`      | `defineAgent` (claudeCode)      | the cron, the repository binding, the Ora MCP client, the post    |
 | `infra/agents/website-auditor.prompt.ts` | (not a resource)              | score, record, compare, fix, post                                 |
 | `infra/models/website-audits.ts`        | `defineModel` (native)          | the ledger: one row per domain per week                           |
-| `infra/connectors/git.ts`                | `defineConnector` (`github`)    | the clone and the pull request                                    |
 | `infra/connectors/slack.ts`              | `defineConnector` (`slack`)     | the post path                                                     |
 | `infra/connectors/anthropic.ts`          | `defineConnector` (`anthropic`) | the model the harness runs on                                     |
 | `infra/folders/index.ts`                 | `defineFolder` ×2               | where the agent and the model are filed                           |

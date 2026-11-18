@@ -2,7 +2,7 @@
 name: web-capture
 description: 'Keep your company context current from your website and competitors'' pages: each Monday your site, competitors'' pages and news about both land in context/ as one pull request; the first run seeds positioning, offerings, an inferred ICP with a disqualifier, competitors, clients and proof, and every later run adds a dated note of what changed, never editing an existing file. Triggers: "keep our context current from our website", "watch competitor pricing pages", "add our company news to the knowledge base", "our context repo is empty, seed it from our website", "set up the workspace context from our domain". Cargo project, harness claudeCode, parallel, GitHub. Skip when: news about target accounts, which is monitor-buying-signals; one company researched before a call, which is research-account; or the ICP verified against won and lost deals, which is win-loss-review.'
 version: "0.2.0"
-compatibility: "Requires @cargo-ai/cli 1.0.154 or later with @cargo-ai/cdk 1.0.150 or later (harness agents bound to the project's connected state), a Cargo workspace, an authenticated Anthropic connector (the harness runs against Cargo's proxy), an authorized GitHub connector, and a GTM repository with `context/` and `cadence/` at its root (the shape `cargo-ai project init` scaffolds). Nothing here needs a credential in .env, and nothing here reads a CRM, a call or Slack."
+compatibility: "Requires @cargo-ai/cli 1.0.154 or later with @cargo-ai/cdk 1.0.150 or later (harness agents bound to the project's connected state), a Cargo workspace, an authenticated Anthropic connector (the harness runs against Cargo's proxy), a GTM repository with `context/` and `cadence/` at its root (the shape `cargo-ai project init` scaffolds), with the Cargo GitHub app installed on the repository. Nothing here needs a credential in .env, and nothing here reads a CRM, a call or Slack."
 homepage: https://github.com/getcargohq/gtm-skills/tree/main/web-capture
 metadata:
   author: getcargo
@@ -105,7 +105,7 @@ is enough.
    folder never ships a shell. **If you are reading this from the project's `.claude/skills/`, the
    install already happened: start at step 2.** On a CLI too old to have `add`, copy this folder in
    as a sibling of what is there by hand; everything below is unchanged.
-2. **Reconcile it with what is already declared.** If the project already has a GitHub or
+2. **Reconcile it with what is already declared.** If the project already has an
    Anthropic connector or an agents folder, rewire the imports to the existing one and drop the
    copy; two resources with one slug is a collision at deploy. The knowledge layer needs no work:
    the scaffold already declares the repo's root `context/` in `infra/context.ts`, and

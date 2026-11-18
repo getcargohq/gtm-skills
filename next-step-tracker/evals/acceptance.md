@@ -11,7 +11,7 @@ Walk every line. A checked template without an evidence-backed consumer adaptati
   repository env.
 - `cargo-ai project check` prints `agent:commitment_tracker bound to <your repo>#<branch>` with no
   trailing subdirectory.
-- `cargo-ai connection connector list` shows authorized GitHub, Slack and Anthropic
+- `cargo-ai connection connector list` shows authorized Slack and Anthropic
   connectors.
 - `cadence/log/calls/` on the default branch holds at least one entry dated in the last 30 days with
   an unchecked action.

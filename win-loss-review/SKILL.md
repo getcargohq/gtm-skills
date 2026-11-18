@@ -2,7 +2,7 @@
 name: win-loss-review
 description: 'Run a monthly win-loss review of your CRM''s closed deals, landed in context/ as one pull request: the ICP verified against won versus lost with a disqualifier, dated insights with counts and denominators, objections from recorded lost reasons, and a client file per closed-won account; a five-line Slack digest says what changed. Never edits a persona, nor the ICP after the first pass. Triggers: "verify our ICP against won and lost deals", "what do closed-lost deals say about who we should not sell to", "keep the context repo current from the CRM every month", "our lost reasons should become objections", "run a monthly win-loss review". Cargo project, harness claudeCode, HubSpot, Salesforce, Attio, Slack. Skip when: there is no CRM yet and the context should come from the website, which is web-capture; or you want one account researched before a call, which is research-account.'
 version: "0.2.0"
-compatibility: "Requires @cargo-ai/cli 1.0.154 or later with @cargo-ai/cdk 1.0.150 or later (harness agents bound to the project's connected state), a Cargo workspace, an authenticated Anthropic connector (the harness runs against Cargo's proxy), an authorized GitHub connector, an authorized Slack connector, an authorized CRM connection (HubSpot in the checked example; Salesforce and Attio adapt the connector, the models and the queries), and a GTM repository with `context/` and `outputs/` at its root (the shape `cargo-ai project init` scaffolds). Nothing here needs a credential in .env, and nothing here reads calls, postings or the website."
+compatibility: "Requires @cargo-ai/cli 1.0.154 or later with @cargo-ai/cdk 1.0.150 or later (harness agents bound to the project's connected state), a Cargo workspace, an authenticated Anthropic connector (the harness runs against Cargo's proxy), an authorized Slack connector, an authorized CRM connection (HubSpot in the checked example; Salesforce and Attio adapt the connector, the models and the queries), and a GTM repository with `context/` and `outputs/` at its root (the shape `cargo-ai project init` scaffolds). Nothing here needs a credential in .env, and nothing here reads calls, postings or the website."
 homepage: https://github.com/getcargohq/gtm-skills/tree/main/win-loss-review
 metadata:
   author: getcargo
@@ -108,7 +108,7 @@ is enough.
    folder never ships a shell. **If you are reading this from the project's `.claude/skills/`, the
    install already happened: start at step 2.** On a CLI too old to have `add`, copy this folder in
    as a sibling of what is there by hand; everything below is unchanged.
-2. **Reconcile it with what is already declared.** If the project already has a `crm`, GitHub,
+2. **Reconcile it with what is already declared.** If the project already has a `crm`,
    Slack or Anthropic connector, or `crm_accounts` / `crm_contacts` models (crm-enrichment and
    crm-deduplication declare both, identically), rewire the imports to the existing ones and drop
    the copies; two resources with one slug is a collision at deploy. The knowledge layer needs no

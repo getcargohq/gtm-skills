@@ -11,11 +11,9 @@ import { resetRegistry, resources } from "@cargo-ai/cdk";
 resetRegistry();
 const stamp = Date.now();
 await import(`../infra/agents/ask-cargo.ts?contract=${stamp}`);
-await import(`../infra/connectors/git.ts?contract=${stamp}`);
 
 const byId = new Map(resources().map((resource) => [resource.id, resource]));
 
-assert.ok(byId.get("connector:github"), "defineConnector(github) must exist");
 assert.ok(byId.get("connector:slack"), "defineConnector(slack) must exist");
 
 const agent = byId.get("agent:ask_cargo");

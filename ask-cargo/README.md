@@ -43,7 +43,6 @@ Adds 5 resources.
 | `infra/agents/ask-cargo.ts`        | `defineAgent` (claudeCode)      | the Slack trigger, repository binding, model                 |
 | `infra/agents/ask-cargo.prompt.ts` | (not a resource)                | the rules: what it reads, changes, and waits for a go on     |
 | `infra/connectors/slack.ts`        | `defineConnector` (`slack`)     | the trigger; the platform replies through it                 |
-| `infra/connectors/git.ts`          | `defineConnector` (`github`)    | the clone, branch, push and pull request path                |
 | `infra/connectors/anthropic.ts`    | `defineConnector` (`anthropic`) | the model the harness runs on, billed and metered            |
 | `infra/folders/index.ts`           | `defineFolder`                  | the workspace folder this cookbook's agent is filed in       |
 | `infra/users/index.ts`             | `defineUser`, `defineRole`      | the viewer service user every turn's `cargo-ai` runs as      |

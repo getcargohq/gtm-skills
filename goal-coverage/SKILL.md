@@ -96,8 +96,8 @@ is enough.
    **If you are reading this from the project's `.claude/skills/`, the install already happened, so
    start at step 2.** On a CLI too old to have `add`, copy this folder in as a sibling of what is
    there by hand; everything below is unchanged.
-2. **Reconcile it with what is already declared.** If the project already has an Anthropic,
-   GitHub or Slack connector, rewire the imports to the existing one and drop the copy; two
+2. **Reconcile it with what is already declared.** If the project already has an Anthropic
+   or Slack connector, rewire the imports to the existing one and drop the copy; two
    resources with one slug is a collision at deploy.
 3. **Adapt.** Work the sections below in order: _What should not change_ is what you argue back
    about; _What you can change_ is what you offer unprompted; _What you will be asked_ is the
@@ -120,7 +120,7 @@ is enough.
 | Slack channel (`infra/agents/goal-coverage.ts`) | value | **asked**: which channel the revenue leader reads. Resolve the name to its `C…` id with the Slack connector's channel autocomplete, never type an id. | Locked on the use so the agent cannot post internal suggestions into a customer channel. |
 | project binding | value | **derived**: leave `state` unset and deploy binds the project's connected state (`cargo.state.json`): its repository, directory and production branch. `cargo-ai project check` prints the binding; a project whose state is not connected deploys the agent unbound, with an empty sandbox. | It is where the coverage file lands and where next week's memory is read from. |
 | service user (`infra/users/index.ts`) | value | **derived**: `goal_coverage`, a service user on the adopted `viewer` system role. Deploying creates it; the deploying user's own role must cover viewer. If the project already adopts `viewer`, import that role instead of declaring it twice. | Every run's `cargo-ai` session. Without it the sandbox has no session and every workspace read fails. Viewer reads folders, plays, agents, models and connectors but cannot deploy or change a resource. |
-| Anthropic, GitHub, Slack connectors | value | **derived**: `cargo-ai connection connector list`; add a missing one with `cargo-ai project add connector/<name>`. All three are `default: true` because a deploy cannot mint an OAuth grant. | The model the run is billed against, the pull request path, and the post. |
+| Anthropic and Slack connectors | value | **derived**: `cargo-ai connection connector list`; add a missing one with `cargo-ai project add connector/<name>`. Both are `default: true` because a deploy cannot mint an OAuth grant. | The model the run is billed against, and the post. |
 
 ## What you can change
 

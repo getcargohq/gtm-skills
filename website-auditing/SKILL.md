@@ -2,7 +2,7 @@
 name: website-auditing
 description: 'Keep your site usable by AI agents: once a week Ora audits how agents discover, read and use your domain and up to three rival domains, one pull request applies the fixes your site source can make, and one Slack digest reports the Ora score and what moved. Triggers: "make our site readable by ai agents", "track our ora score", "can ai agents read our site", "agent readiness audit", "compare our ora score with rivals", "fix llms.txt and agent discovery files". Cargo project, defineAgent, harness claudeCode, Ora MCP server, mcpClients, native model, Slack postMessage, GitHub pull request. Skip when: the site itself is to be built or hosted, which is website-building; or rival pages and news belong in context, which is web-capture.'
 version: "0.2.0"
-compatibility: "Requires @cargo-ai/cli 1.0.154 or later with @cargo-ai/cdk 1.0.150 or later (harness agents bound to the project's connected state, with `env` at the top level of `defineAgent`), a Cargo workspace, a repository holding the website's source (website-building puts it there), authorized GitHub, Slack and Anthropic connectors, and outbound access to Ora's public MCP server (no Ora account or key)."
+compatibility: "Requires @cargo-ai/cli 1.0.154 or later with @cargo-ai/cdk 1.0.150 or later (harness agents bound to the project's connected state, with `env` at the top level of `defineAgent`), a Cargo workspace, a repository holding the website's source (website-building puts it there), authorized Slack and Anthropic connectors, the Cargo GitHub app installed on the repository, and outbound access to Ora's public MCP server (no Ora account or key)."
 homepage: https://github.com/getcargohq/gtm-skills/tree/main/website-auditing
 metadata:
   author: getcargo
@@ -85,7 +85,7 @@ is enough.
    `cargo-ai project init <dir> --cookbook website-auditing && cd <dir> && npm install` does both. **If
    you are reading this from the project's `.claude/skills/`, the install already happened, so start
    at step 2.**
-2. **Reconcile it with what is already declared.** If the project already has a GitHub, Slack or
+2. **Reconcile it with what is already declared.** If the project already has a Slack or
    Anthropic connector, rewire the imports to the existing one and drop the copy; two resources with
    one slug is a collision at deploy.
 3. **Find the website's source.** Set `WEBSITE_ROOT` in `infra/agents/website-auditor.ts` to the
