@@ -40,10 +40,31 @@ as passed.
 ## A monthly run
 
 - It read the deals closed since the date of the last merged run record.
-- With new deals: a pull request that adds files and modifies none under `icp/` or `persona/`.
+- With new deals: a pull request that adds files and modifies none under `icp/` or `persona/`, and
+  never touches `context/icp/scoring.md`.
 - With none: no pull request, and the digest says so.
+
+## The scoring pass
+
+- It stopped three times, and the run record holds each answer: the audit and window confirmed, the
+  Tier 1 list confirmed after the four questions, the 10-account cost approved.
+- The window was read from the deals' sales cycle (12 months unless cycles run past a year), or the
+  run record says the operator gave it.
+- Tier 1 is written in relative terms with no amount, and no outcome field filled for under about
+  60% of customers is in the rule.
+- `outputs/<date>-win-loss-scoring/` holds the run record, `evidence.csv` and numbered scripts, with
+  no amount, no email and no person; raw responses sit under `~/.cache/win-loss-scoring/`, not in
+  the repository.
+- `context/icp/scoring.md` has the sections and model block of `references/scoring-format.md`:
+  weights summing to 100, every attribute with a `get` a non-customer can answer, `unknown` at half
+  the weight, modifiers outside the 100.
+- Every filter and attribute carries an evidence line naming both groups and the sample, and says
+  whether it held in the period before; every dropped candidate is listed with its reason.
+- A script run over the block on the cohort reproduces the band counts in the run record, and most
+  Tier 1 accounts land in Strong.
+- One pull request titled `[win-loss-review] scoring model <date>`, unmerged.
 
 ## After merge
 
-- The verified ICP section is readable from the workspace context repository after
-  `cargo-ai project deploy`, and an agent with the `context` capability quotes it back with its tag.
+- The verified ICP section and `scoring.md` are readable from the workspace context repository
+  after `cargo-ai project deploy`, and an agent with the `context` capability quotes them back.

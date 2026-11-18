@@ -18,7 +18,7 @@
  * `plan`, and `deploy` use, so what is asserted here is what would deploy.
  */
 import assert from "node:assert/strict";
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { loadResources } from "@cargo-ai/cdk";
 
 const infraDir = new URL("../infra", import.meta.url).pathname;
@@ -137,6 +137,60 @@ check("the prompt carries the contract's fixed points and names no other cookboo
   ]) assert.ok(winLossAnalystPrompt.toLowerCase().includes(line.toLowerCase()), `prompt lost: ${line}`);
   for (const word of ["call-capture", "web-capture", "theirstack", "cadence/log/calls", "job posting"]) {
     assert.ok(!winLossAnalystPrompt.toLowerCase().includes(word), `prompt mentions ${word}: this cookbook reads the CRM and nothing else`);
+  }
+});
+
+check("the monthly agent never writes the scoring model", async () => {
+  const { winLossAnalystPrompt } = await import("../infra/agents/win-loss-analyst.prompt.ts");
+  assert.ok(
+    winLossAnalystPrompt.includes("never write context/icp/scoring.md"),
+    "the prompt lost the rule: scoring.md is rebuilt only by a scoring pass, with a person at every stop",
+  );
+});
+
+check("the scoring pass carries its fixed points", () => {
+  const read = (file) => readFileSync(new URL(`../references/${file}`, import.meta.url), "utf8");
+  const pass = read("scoring-pass.md");
+  for (const line of [
+    "Internal data defines what great looks like; it never scores",
+    "Contract value alone never decides",
+    "Tier 1 against Tier 2",
+    "it held in the period before",
+    "Missing is not \"no\"",
+    "Test on 10 accounts first",
+    "never told whether the account is Tier 1",
+    "-win-loss-scoring",
+    "never merge the pull request",
+    "Hand off to account-scoring",
+  ]) assert.ok(pass.includes(line), `scoring-pass.md lost: ${line}`);
+  assert.ok(!pass.includes("outputs/<today>-win-loss-review/"), "the scoring pass must not write the monthly run's directory: the monthly agent reads it as its next <since>");
+  const format = read("scoring-format.md");
+  for (const line of ["Weights sum to 100", "Unknown is neutral", "Code computes", "Outside-visible only"]) {
+    assert.ok(format.includes(line), `scoring-format.md lost: ${line}`);
+  }
+  const research = read("custom-attributes.md");
+  for (const line of ["{{domain}}", "Assume the goal is net-new prospecting", "First-party only"]) {
+    assert.ok(research.includes(line), `custom-attributes.md lost: ${line}`);
+  }
+});
+
+check("the model block in scoring-format.md is internally consistent", () => {
+  const format = readFileSync(new URL("../references/scoring-format.md", import.meta.url), "utf8");
+  const block = format.match(/```json\n([\s\S]*?)\n```/)?.[1];
+  assert.ok(block, "scoring-format.md lost its json model block");
+  const model = JSON.parse(block);
+  const slugs = new Set(model.attributes.map((attribute) => attribute.slug));
+  for (const attribute of model.attributes) {
+    assert.ok(["firmographic", "provider", "research"].includes(attribute.get?.kind), `${attribute.slug}: get.kind`);
+    if (attribute.get.kind === "research") assert.equal(attribute.type, "enum", `${attribute.slug}: research attributes are enums`);
+  }
+  for (const rule of [...model.filters, ...model.weights, ...model.modifiers])
+    assert.ok(slugs.has(rule.attribute), `${rule.attribute} is scored but never declared as an attribute`);
+  assert.equal(model.weights.reduce((sum, rule) => sum + rule.weight, 0), 100, "the example's weights must sum to 100");
+  for (const rule of model.weights) {
+    const best = Math.max(...(rule.points ? Object.values(rule.points) : rule.ranges.map((range) => range.points)));
+    assert.equal(best, rule.weight, `${rule.attribute}: its best value scores its weight`);
+    assert.equal(rule.unknown, Math.floor(rule.weight / 2), `${rule.attribute}: unknown is half the weight, rounded down`);
   }
 });
 
