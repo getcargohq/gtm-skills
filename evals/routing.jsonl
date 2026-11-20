@@ -240,3 +240,5 @@
 {"prompt": "Track our Ora score against our competitors in Slack", "expect": "website-auditing"}
 {"prompt": "Make our website readable by AI agents: llms.txt, structured data, agent discovery files", "expect": "website-auditing"}
 {"prompt": "Build our company website on Cargo and make it agent-ready from the start", "expect": "website-building", "why": "Building and hosting the site is website-building; agent-readiness audits and fixes a site that already exists."}
+{"prompt": "Find work emails for this CSV of names and company domains", "expect": "find-work-email", "why": "The CSV email job reaches the skill whose first move is the workspace's preset Find email tool, not waterfall-enrichment's whole-record calls."}
+{"prompt": "Verify these 300 emails before tomorrow's send", "expect": "verify-email-list", "why": "Verification reaches the skill that leads with the preset Verify email tool, not the finder."}

@@ -51,17 +51,17 @@ play runs directly on the CRM extract and matches the CRM record ID.
 
 The contact path is one play with three gated tool resources:
 
-1. Cargo-native Find Email
-2. Cargo-native Find LinkedIn Profile from Email
+1. Cargo-native Find email
+2. Cargo-native Find LinkedIn URL from email
 3. Custom Contact LinkedIn Enrichment
 
 ```mermaid
 flowchart LR
   contact["CRM contact"] --> linkedin{"LinkedIn present?"}
-  linkedin -->|yes, email blank| emailTool["Find Email<br/>Cargo-native"]
+  linkedin -->|yes, email blank| emailTool["Find email<br/>Cargo-native"]
   linkedin -->|yes, email present| profileTool["Contact LinkedIn Enrichment<br/>custom"]
   emailTool --> profileTool
-  linkedin -->|no, email present| linkedinTool["Find LinkedIn Profile from Email<br/>Cargo-native"]
+  linkedin -->|no, email present| linkedinTool["Find LinkedIn URL from email<br/>Cargo-native"]
   linkedinTool -->|profile found| profileTool
   linkedinTool -->|not found| stop["Stop without write"]
   linkedin -->|no identifiers| stop
@@ -70,22 +70,22 @@ flowchart LR
 
 ### Contact resources
 
-| Resource                         | Kind              | Purpose                                                       |
-| -------------------------------- | ----------------- | ------------------------------------------------------------- |
-| `crm_contacts`                   | Model             | Direct CRM contact extract                                    |
-| Find Email                       | Cargo-native tool | Resolve an email for a known LinkedIn profile                 |
-| Find LinkedIn Profile from Email | Cargo-native tool | Resolve a LinkedIn profile for a known email                  |
-| `contact_linkedin_enrichment`    | Custom tool       | Enrich a known LinkedIn profile without CRM access            |
-| `enrich_contacts`                | Play              | Gate the three contact tools and fill approved contact blanks |
+| Resource                      | Kind              | Purpose                                                       |
+| ----------------------------- | ----------------- | ------------------------------------------------------------- |
+| `crm_contacts`                | Model             | Direct CRM contact extract                                    |
+| Find email                    | Cargo-native tool | Resolve an email for a known LinkedIn profile                 |
+| Find LinkedIn URL from email  | Cargo-native tool | Resolve a LinkedIn profile for a known email                  |
+| `contact_linkedin_enrichment` | Custom tool       | Enrich a known LinkedIn profile without CRM access            |
+| `enrich_contacts`             | Play              | Gate the three contact tools and fill approved contact blanks |
 
 ### Contact route behavior
 
-| Starting state     | Native lookup                    | Custom enrichment          | CRM write                  |
-| ------------------ | -------------------------------- | -------------------------- | -------------------------- |
-| Email and LinkedIn | None                             | Yes                        | Yes                        |
-| LinkedIn only      | Find Email                       | Yes                        | Yes                        |
-| Email only         | Find LinkedIn Profile from Email | Only if a profile resolves | Only if a profile resolves |
-| Neither            | None                             | No                         | No                         |
+| Starting state     | Native lookup                | Custom enrichment          | CRM write                  |
+| ------------------ | ---------------------------- | -------------------------- | -------------------------- |
+| Email and LinkedIn | None                         | Yes                        | Yes                        |
+| LinkedIn only      | Find email                   | Yes                        | Yes                        |
+| Email only         | Find LinkedIn URL from email | Only if a profile resolves | Only if a profile resolves |
+| Neither            | None                         | No                         | No                         |
 
 Explicit branches compile the custom tool into three mutually exclusive call nodes. They all target
 the same `contact_linkedin_enrichment` resource. Successful writes fill only blank `email`,
@@ -113,9 +113,11 @@ Shared setup:
 
 Contact-only setup:
 
-1. Instantiate Cargo-native Find Email and Find LinkedIn Profile from Email.
+1. Look up the workspace's read-only Find email and Find LinkedIn URL from email tools (every
+   workspace is seeded with both, in its Cargo Tools folder).
 2. Replace both `REPLACE-WITH-...-TOOL-UUID` values in `infra/plays/enrich-contacts.ts`.
-3. Confirm the native tool contracts. The example expects `email` and `linkedin_url` outputs.
+3. Confirm the native tool contracts. Find email takes camelCase `linkedinUrl`, `firstName`,
+   `lastName`; the example expects `email` and `linkedin_url` outputs.
 
 The checked example targets HubSpot. Salesforce and Attio require adapting the connector, extracts,
 record ID fields, write action, and blank-only guard. Keep one CRM shape across both selected paths.

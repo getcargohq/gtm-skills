@@ -98,7 +98,7 @@ Collect:
 
 - CRM contact object, extractor, record ID, property schemas, and write action.
 - LinkedIn profile enrichment input, output, and live pricing schema.
-- Cargo-native Find Email and Find LinkedIn Profile from Email availability, UUIDs, inputs, outputs,
+- Cargo-native Find email and Find LinkedIn URL from email availability, UUIDs, inputs, outputs,
   and live unit prices.
 - Existing compatible contact properties and genuine customer-managed duplicates.
 
@@ -119,12 +119,12 @@ Reuse compatible properties and keep provider-derived business properties neutra
 
 Count mutually exclusive eligible rows:
 
-| Route            | Definition                    | Calls per row                                                                  |
-| ---------------- | ----------------------------- | ------------------------------------------------------------------------------ |
-| Both identifiers | Email and LinkedIn present    | Contact LinkedIn Enrichment                                                    |
-| LinkedIn only    | LinkedIn present, email blank | Find Email, then Contact LinkedIn Enrichment                                   |
-| Email only       | Email present, LinkedIn blank | Find LinkedIn Profile from Email, then Contact LinkedIn Enrichment if resolved |
-| Neither          | Both blank                    | No call and not eligible                                                       |
+| Route            | Definition                    | Calls per row                                                              |
+| ---------------- | ----------------------------- | -------------------------------------------------------------------------- |
+| Both identifiers | Email and LinkedIn present    | Contact LinkedIn Enrichment                                                |
+| LinkedIn only    | LinkedIn present, email blank | Find email, then Contact LinkedIn Enrichment                               |
+| Email only       | Email present, LinkedIn blank | Find LinkedIn URL from email, then Contact LinkedIn Enrichment if resolved |
+| Neither          | Both blank                    | No call and not eligible                                                   |
 
 Eligibility also requires null-or-stale `cargo_last_enriched_at` and at least one approved blank
 destination. Pair `isNull` with `isEmpty` for every blank string check.
@@ -145,7 +145,7 @@ contact spend. Do not make a paid call during the audit.
   "native_tools": {
     "find_email": {
       "uuid": "<deployed UUID>",
-      "inputs": ["linkedin_url", "first_name", "last_name"],
+      "inputs": ["linkedinUrl", "firstName", "lastName"],
       "output": "email",
       "unit_credits": null
     },
