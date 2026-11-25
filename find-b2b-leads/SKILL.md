@@ -1,7 +1,7 @@
 ---
 name: find-b2b-leads
 description: "Find B2B leads by job title, company, and keyword, and return them as a structured list, powered by Cargo. Triggers: \"find 50 VPs of Sales at fintech companies\", \"build me a list of leads\", \"who are the heads of engineering at Series B startups\", \"get me prospects matching this profile\", \"source leads for my outbound\", \"build a b2b lead list\", \"lead sourcing\". Providers: salesNavigator. Skip when: you need companies rather than people — use build-tam-list; or you already have the people and need contact details — use find-work-email."
-version: "1.2.4"
+version: "1.2.5"
 compatibility: Requires @cargo-ai/cli (npm). Sign in or create an account with `cargo-ai login --email` (emailed code, no browser), `--oauth`, or an API token
 homepage: https://github.com/getcargohq/gtm-skills
 metadata:
@@ -80,7 +80,7 @@ Illustrative output, fictional records:
 | Marcus Hale | VP Sales, North America | Contoso | Denver, CO | linkedin.com/in/marcus-hale-example |
 | Dana Whitfield | Vice President of Sales | Tailspin | Boston, MA | linkedin.com/in/dana-whitfield-example |
 
-One page of 25 leads for 5 credits (25 × 0.2); no emails yet — pipe the URLs into `enrich-linkedin-profile` for those.
+One page of 25 leads for 5 credits (25 × 0.2); no emails yet, so pipe the URLs into `find-work-email` for those.
 
 ## What it costs
 
@@ -99,7 +99,7 @@ with it.
 - `FullEnrich.lookupPerson` (free) resolves one person from a LinkedIn URL, or from a full name plus company domain.
 - Filters take LinkedIn codes as strings: `personal.industryCodes` (`"4"` is Software Development), `personal.geoCodes` (`"103644278"` is the United States), `role.seniorityLevels` (`"300"` is Vice President, `"310"` CXO, `"220"` Director). Keys outside the schema, such as `company.industries` or `personal.locations`, are refused before the run starts (`Unknown field: …`); inside a workflow node they are dropped silently and the search runs unfiltered. Plain names in place of codes match nothing. Resolve names with `cargo-ai connection connector autocomplete --connector-uuid <uuid> --slug listIndustries --params '{}' --value software` (`listGeoCodes` for places).
 - Pages come back in blocks of 25; ask for a `limit` in multiples of 25.
-- Sourcing returns profiles, not emails. Pipe the LinkedIn URLs into `enrich-linkedin-profile` for verified emails.
+- Sourcing returns profiles, not emails. Pipe the LinkedIn URLs into `find-work-email`, whose Find email tool takes `linkedinUrl`, for verified emails.
 
 ## Going further
 

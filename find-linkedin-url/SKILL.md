@@ -1,7 +1,7 @@
 ---
 name: find-linkedin-url
-description: "Resolve a person's LinkedIn profile URL from their name and company, with an identity-validation gate that rejects wrong matches, powered by Cargo. Triggers: \"find the LinkedIn for John Smith at Acme\", \"get LinkedIn URLs for these contacts\", \"what's this person's LinkedIn\", \"add LinkedIn profiles to my list\". Providers: linkedin. Skip when: you already have the LinkedIn URL and want the profile data — use enrich-linkedin-profile."
-version: "1.0.5"
+description: "Resolve a person's LinkedIn profile URL from their name and company, with an identity-validation gate that rejects wrong matches, or from their personal email with the workspace's native Find LinkedIn URL from email tool, powered by Cargo. Triggers: \"find the LinkedIn for John Smith at Acme\", \"get LinkedIn URLs for these contacts\", \"what's this person's LinkedIn\", \"add LinkedIn profiles to my list\", \"find LinkedIn from email\", \"LinkedIn profiles from these personal emails\", \"reverse email to LinkedIn\". Providers: linkedin; the workspace's Find LinkedIn URL from email tool (find_linkedin_url_from_personal_email) for emails. Skip when: you already have the LinkedIn URL and want the profile data, use enrich-linkedin-profile; or you want a work email, use find-work-email."
+version: "1.1.0"
 compatibility: Requires @cargo-ai/cli (npm). Sign in or create an account with `cargo-ai login --email` (emailed code, no browser), `--oauth`, or an API token
 homepage: https://github.com/getcargohq/gtm-skills
 metadata:
@@ -24,7 +24,7 @@ metadata:
 
 # Find LinkedIn URL
 
-Resolve a person's LinkedIn profile URL from their name and company, with an identity-validation gate that rejects wrong matches.
+Resolve a person's LinkedIn profile URL from their name and company, with an identity-validation gate that rejects wrong matches, or from their personal email.
 
 ## Before anything else
 
@@ -51,6 +51,28 @@ paid call on a new account.
 Already signed in? `cargo-ai whoami` confirms it.
 
 ## Do the job
+
+Two inputs, two paths. **From a name and company**, resolve a candidate with
+`linkedin.findProfileUrl` and validate it (below). **From an email**, run Cargo's own tool by
+default, not a single provider: every workspace carries **Find LinkedIn URL from email** as a
+read-only preset in its Cargo Tools folder, addressed by its template slug
+`find_linkedin_url_from_personal_email` (no UUID to look up). It takes `email` (`firstName` and
+`lastName` help) and returns `linkedin_url`, for 1 to 3 credits a row.
+
+```bash
+# From personal emails: the profile URL lands in cargo_linkedin_url
+cargo-ai orchestration action execute-batch \
+  --action '{"kind":"tool","templateSlug":"find_linkedin_url_from_personal_email"}' \
+  --records '[{"email":"john.smith@gmail.com","firstName":"John","lastName":"Smith"}]' \
+  --limit 20 --wait-until-finished
+```
+
+A single provider (`aiArk.reverseLookup`, ...) runs instead only when the user names it, explicitly
+asks for the cheapest path, or the tool is missing from the workspace
+(`cargo-ai orchestration action get-output-schema --action '{"kind":"tool","templateSlug":"find_linkedin_url_from_personal_email"}'`
+errors, free); say which before you leave the default.
+
+From a name and company:
 
 ```bash
 # 1. Resolve a candidate URL
@@ -97,6 +119,7 @@ Illustrative output, fictional records:
 |---|---|
 | `linkedin.findProfileUrl` | 0.25 |
 | `linkedin.enrichProfile` | 0.25 |
+| Find LinkedIn URL from email tool (`"kind":"tool"`) | 1 to 3 |
 
 **Never run this across a full list on the first attempt.** Sample 10–20 records, report the
 observed cost and hit-rate, then get the user to approve the full run — quoting the record count

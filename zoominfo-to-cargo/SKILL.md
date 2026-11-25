@@ -1,7 +1,7 @@
 ---
 name: zoominfo-to-cargo
-description: "Rebuild a ZoomInfo list on Cargo and measure the coverage you actually lose or gain before the renewal, powered by Cargo. Triggers: \"ZoomInfo alternative\", \"migrate off ZoomInfo\", \"replace ZoomInfo\", \"our ZoomInfo renewal is coming up\", \"ZoomInfo is too expensive\", \"I have a ZoomInfo export\", \"cheaper than ZoomInfo\", \"Lusha alternative\", \"Cognism alternative\". Providers: waterfall. Skip when: you are porting a Clay table rather than a contact list — use clay-to-cargo; or you have no list yet and simply want contacts sourced — use find-b2b-leads."
-version: "1.0.4"
+description: "Rebuild a ZoomInfo list on Cargo and measure the coverage you actually lose or gain before the renewal, powered by Cargo. Triggers: \"ZoomInfo alternative\", \"migrate off ZoomInfo\", \"replace ZoomInfo\", \"our ZoomInfo renewal is coming up\", \"ZoomInfo is too expensive\", \"I have a ZoomInfo export\", \"cheaper than ZoomInfo\", \"Lusha alternative\", \"Cognism alternative\". Providers: the workspace's Find email and Verify email tools (email_waterfall, email_validator); waterfall for company rows. Skip when: you are porting a Clay table rather than a contact list — use clay-to-cargo; or you have no list yet and simply want contacts sourced — use find-b2b-leads."
+version: "1.1.0"
 compatibility: Requires @cargo-ai/cli (npm). Sign in or create an account with `cargo-ai login --email` (emailed code, no browser), `--oauth`, or an API token
 homepage: https://github.com/getcargohq/gtm-skills
 metadata:
@@ -64,13 +64,16 @@ without them there is nothing to compare against.
 
 ### 2. Re-derive the same rows from the identifiers only
 
-Feed in name and domain, nothing the incumbent found, and see what comes back:
+Feed in name and domain, or the LinkedIn URL, nothing the incumbent found, and see what comes
+back. Cargo's side is the workspace's own **Find email** tool, not another single provider: a
+read-only preset in every workspace's Cargo Tools folder, a waterfall Cargo maintains with each hit
+verified by zeroBounce, addressed by its template slug (no UUID to look up). Inputs are camelCase:
 
 ```bash
 cargo-ai orchestration action execute-batch \
-  --action '{"kind":"connector","integrationSlug":"waterfall","actionSlug":"enrichContact"}' \
-  --records '[{"full_name":"Jane Doe","domain":"acme.com"},{"linkedin":"https://linkedin.com/in/someone"}]' \
-  --wait-until-finished
+  --action '{"kind":"tool","templateSlug":"email_waterfall"}' \
+  --records '[{"firstName":"Jane","lastName":"Doe","companyDomain":"acme.com"},{"linkedinUrl":"https://www.linkedin.com/in/someone"}]' \
+  --limit 20 --wait-until-finished
 ```
 
 Company rows the same way, since seat-priced tools are often kept for firmographics rather than
@@ -83,21 +86,22 @@ cargo-ai orchestration action execute-batch \
   --wait-until-finished
 ```
 
-### 3. Verify both sides, including theirs
+### 3. Verify theirs
 
 This is the step people skip and it is the one that decides the answer. An incumbent's address is
-not correct because it was expensive:
+not correct because it was expensive. Check the export's addresses with the workspace's **Verify
+email** tool; Find email's addresses are already verified, so they need no second check:
 
 ```bash
 cargo-ai orchestration action execute-batch \
-  --action '{"kind":"connector","integrationSlug":"waterfall","actionSlug":"verifyEmail"}' \
+  --action '{"kind":"tool","templateSlug":"email_validator"}' \
   --records '[{"email":"jane@acme.com"}]' \
   --wait-until-finished
 ```
 
 ### 4. Report three numbers
 
-**Verified coverage from the incumbent**, **verified coverage from the waterfall**, and **the
+**Verified coverage from the incumbent**, **verified coverage from Find email**, and **the
 credits the second one cost**. Those three decide a renewal. Anything else is a preference.
 
 Operations are asynchronous. `--wait-until-finished` blocks until done; without it you get a run
@@ -110,23 +114,23 @@ or batch UUID to poll with `cargo-ai orchestration run get <uuid>` (2s interval)
 
 Illustrative output, fictional records:
 
-| Measure | ZoomInfo export | Cargo waterfall |
+| Measure | ZoomInfo export | Cargo Find email tool |
 |---|---|---|
-| Emails present | 20 / 20 | 17 / 20 |
+| Emails present | 20 / 20 | 15 / 20 |
 | Verified deliverable | 13 / 20 | 15 / 20 |
-| Credits for the sample | seat licence | 43.7 |
+| Credits for the sample | seat licence | 20.5 |
 
-Verified coverage 13 of 20 from the incumbent against 15 of 20 from the waterfall, for 43.7 credits (20 × 2 to re-derive + 37 × 0.1 to verify both sides).
+Verified coverage 13 of 20 from the incumbent against 15 of 20 from Cargo's Find email tool, for 20.5 credits (15 × 1.1 for the addresses Find email returned, its 5 misses roughly free, + 20 × 0.2 to verify the export).
 
 ## What it costs
 
 | Action | Credits |
 |---|---|
-| `waterfall.verifyEmail` | 0.1 |
+| Find email tool (`"kind":"tool"`) | 1.1 to 4 per address found, roughly 0 per miss |
+| Verify email tool (`"kind":"tool"`) | 0.2 |
 | `waterfall.enrichCompany` | 1 |
-| `waterfall.enrichContact` | 2 |
 
-Twenty contact rows re-derived and both sides verified is roughly 20 × (2 + 0.2), around 44
+Twenty contact rows re-derived and the export verified is roughly 20 × (1.1 + 0.2), around 26
 credits, inside the free balance a new account starts with.
 
 **Never run this across a full list on the first attempt.** Sample 10–20 records, report the

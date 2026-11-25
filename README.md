@@ -64,12 +64,12 @@ Resolve identity, enrich it, and make sure the address is deliverable before you
 
 | Skill | Does | Try saying |
 | --- | --- | --- |
-| [`find-linkedin-url`](find-linkedin-url/SKILL.md) | Resolve a person's LinkedIn profile URL from their name and company, with an identity-validation gate that rejects wrong matches. | “These 25 customer champions in `champions.csv` have no LinkedIn URL — find the right profile for each.” |
-| [`enrich-linkedin-profile`](enrich-linkedin-profile/SKILL.md) | Turn a LinkedIn profile URL into a full person profile plus a verified work email in a single call. | “I have LinkedIn URLs for the 60 people who registered for our roundtable — get me their current role and a work email.” |
-| [`find-work-email`](find-work-email/SKILL.md) | Find a verified work email address from a person's name and company domain. | “Find work emails for the 40 people in `webinar-attendees.csv` — first name, last name and company domain are all there.” |
+| [`find-linkedin-url`](find-linkedin-url/SKILL.md) | Resolve a person's LinkedIn profile URL from their name and company, with an identity-validation gate that rejects wrong matches, or from their personal email with the workspace's native Find LinkedIn URL from email tool. | “These 25 customer champions in `champions.csv` have no LinkedIn URL — find the right profile for each.” |
+| [`enrich-linkedin-profile`](enrich-linkedin-profile/SKILL.md) | Turn a LinkedIn profile URL into a full person profile (current role, seniority, employer, career history, education, skills), with the work email from the workspace's native Find email tool. | “I have LinkedIn URLs for the 60 people who registered for our roundtable — get me their current role and a work email.” |
+| [`find-work-email`](find-work-email/SKILL.md) | Find a verified work email from a name and company domain or a LinkedIn URL. | “Find work emails for the 40 people in `webinar-attendees.csv` — first name, last name and company domain are all there.” |
 | [`verify-email-list`](verify-email-list/SKILL.md) | Verify a list of email addresses so you stop sending to bounces. | “Check the 200 addresses in `q3-newsletter-optins.csv` before tomorrow's send and tell me which to drop.” |
 | [`enrich-company-data`](enrich-company-data/SKILL.md) | Enrich a list of companies with firmographics — industry, size, geography, founding year, and headquarters. | “Add industry, headcount and HQ to the 300 domains in `accounts-export.csv`.” |
-| [`waterfall-enrichment`](waterfall-enrichment/SKILL.md) | Cascade one lookup through several vendors in priority order, so a row the first source misses falls through to the next instead of being lost. | “Run the 20 contacts in `event-leads.csv` through the waterfall and verify every email before I import them.” |
+| [`waterfall-enrichment`](waterfall-enrichment/SKILL.md) | Cascade one lookup through several vendors in priority order, so a row the first source misses falls through to the next instead of being lost, and find phone numbers on the workspace's native Find phone tool. | “Run the 20 contacts in `event-leads.csv` through the waterfall and verify every email before I import them.” |
 
 ### Watch for the moment to reach out
 

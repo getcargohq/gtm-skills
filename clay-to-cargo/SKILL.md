@@ -1,7 +1,7 @@
 ---
 name: clay-to-cargo
 description: "Rebuild a Clay table on Cargo, powered by Cargo — map every Clay enrichment column to its provider action, price the run before it happens, and keep the result as version-controlled code instead of a spreadsheet. Triggers: \"migrate from Clay\", \"move my Clay table to Cargo\", \"Clay alternative\", \"replace Clay\", \"I have a Clay export\", \"what does Clay's enrichment column map to\", \"my Clay bill is too high\", \"Clay but as code\". Migration, mapping, parity, spreadsheet, declarative. Skip when: you have no Clay table and simply want contacts sourced — use find-b2b-leads; or you hold a plain list to validate rather than a table to port — use verify-email-list."
-version: "1.1.0"
+version: "1.2.0"
 compatibility: Requires @cargo-ai/cli (npm). Sign in or create an account with `cargo-ai login --email` (emailed code, no browser), `--oauth`, or an API token
 homepage: https://github.com/getcargohq/gtm-skills
 metadata:
@@ -86,20 +86,24 @@ column does, not on its label**. The families that cover most production tables:
 
 | What the Clay column does | Cargo action | What changes |
 |---|---|---|
-| Find work email, LinkedIn URL in hand | `prospeo.enrichLinkedin` | Returns the person record; run the finders below only on the residue |
-| Find work email (a Clay email waterfall) | the workspace's **Find email** tool (`"kind":"tool"`) | One tool, five providers in turn, each hit verified before it returns; the address only, no provider name |
-| Find work email, the user's own provider order | `prospeo.findEmail`, then `FullEnrich.findEmail` on the misses | Two explicit rungs instead of one hidden waterfall, so you see which rung paid |
-| Validate / verify email | `waterfall.verifyEmail` | One action, cheapest tier first; skip it for addresses the Find email tool returned |
+| Find work email, from name + domain **or** a LinkedIn URL (any Clay email column, waterfall or single provider) | the workspace's **Find email** tool (`email_waterfall`) | The default. One tool Cargo maintains, several providers in turn, each hit verified before it returns; the address only, no provider name |
+| Find work email, an exception applies (see below) | `prospeo.findEmail`, then `FullEnrich.findEmail` on the misses | Two explicit rungs instead of one hidden waterfall, so you see which rung paid |
+| Person record, LinkedIn URL in hand | `prospeo.enrichLinkedin` | The profile only; the email still comes from Find email |
+| Validate / verify email | the workspace's **Verify email** tool (`email_validator`) | Skip it for addresses the Find email tool returned, which are already verified |
 | Enrich company | `companyEnrich.enrichByDomain` | Domain in, firmographics out |
 
 **Four Clay concepts do not map one to one, and every one of them is invisible in a CSV:**
 
 - **Waterfalls** are one column hiding an ordered provider list. For a work-email column, every
-  Cargo workspace already has that column as a read-only **Find email** tool (apolloio, FullEnrich,
-  findyMail, peopleDataLabs, waterfall, each hit checked by zeroBounce); use it unless the user
-  needs their own order. Then they become explicit rungs, cheapest first, escalating only the
-  misses. Ask which providers the waterfall held; if that is unavailable, say the order is Cargo's
-  rather than theirs.
+  Cargo workspace already has that column as a read-only **Find email** tool, a waterfall Cargo
+  maintains and keeps extending (apolloio, FullEnrich, findyMail, peopleDataLabs, waterfall today,
+  each hit checked by zeroBounce), and it is the default even when the Clay column ran a single
+  provider. Explicit rungs, cheapest first and escalating only the misses, replace it only when
+  one of these holds, and say which before you leave the default: the user names a provider or
+  wants their own order kept; the user explicitly asks for the cheapest path; the tool is missing
+  from the workspace
+  (`cargo-ai orchestration action get-output-schema --action '{"kind":"tool","templateSlug":"email_waterfall"}'`
+  errors, free); or the row lacks the tool's input and cannot get it.
 - **Run conditions** decide which rows a column touches. Ignore them and you run every action on
   every row, which is the most common way a cheaper migration comes back more expensive.
 - **Auto-update** makes the table a schedule, which is a cost decision rather than a default.
@@ -126,8 +130,8 @@ cargo-ai orchestration action execute-batch \
   --records '[{"firstName":"John","lastName":"Smith","companyDomain":"acme.com"}]' \
   --wait-until-finished
 
-# Only when the user wants their own provider order (or the tool is missing):
-# cheaper rung first, escalate only the misses
+# Only when an exception applies (a named provider or their own order, an explicit
+# cheapest-path request, the tool missing): cheaper rung first, escalate only the misses
 cargo-ai orchestration action execute-batch \
   --action '{"kind":"connector","integrationSlug":"prospeo","actionSlug":"findEmail"}' \
   --records '[{"firstName":"John","lastName":"Smith","companyDomain":"acme.com"}]' \
@@ -142,7 +146,7 @@ cargo-ai orchestration action execute-batch \
 # Verify what the hand-built rungs resolved, before anyone sends to it
 # (the Find email tool's addresses are already checked)
 cargo-ai orchestration action execute-batch \
-  --action '{"kind":"connector","integrationSlug":"waterfall","actionSlug":"verifyEmail"}' \
+  --action '{"kind":"tool","templateSlug":"email_validator"}' \
   --records '[{"email":"john.smith@acme.com"}]' \
   --wait-until-finished
 
@@ -152,7 +156,8 @@ cargo-ai orchestration action execute-batch \
   --records '[{"domain":"acme.com"}]' \
   --wait-until-finished
 
-# Person records where the export already carries LinkedIn URLs
+# Person records where the export already carries LinkedIn URLs (the profile;
+# their emails come from the Find email tool with linkedinUrl)
 cargo-ai orchestration action execute-batch \
   --action '{"kind":"connector","integrationSlug":"prospeo","actionSlug":"enrichLinkedin"}' \
   --records '[{"url":"https://www.linkedin.com/in/johnsmith"}]' \
@@ -186,7 +191,7 @@ Illustrative output, fictional records:
 | Find email tool (`"kind":"tool"`) | 1.1 to 4 per address found, roughly 0 per miss |
 | `prospeo.findEmail` | 0.5 |
 | `FullEnrich.findEmail` | 1 |
-| `waterfall.verifyEmail` | 0.1 |
+| Verify email tool (`"kind":"tool"`) | 0.2 |
 | `companyEnrich.enrichByDomain` | 0.25 |
 | `prospeo.enrichLinkedin` | 0.5 |
 
@@ -210,8 +215,8 @@ measures nothing, because both tools resolve the easy rows. Then report three nu
 
 Three rules for reading that table honestly:
 
-- **On an email disagreement the verified value wins, not the source.** Run `waterfall.verifyEmail`
-  on both sides before calling either one wrong. Clay being different is not Clay being right.
+- **On an email disagreement the verified value wins, not the source.** Run the Verify email tool
+  on Clay's side before calling either one wrong. Clay being different is not Clay being right.
 - **Never compare a Clay credit to a Cargo credit.** They are different units and the comparison
   is meaningless. Compare what one sample of rows cost end to end on each side, which is a
   measurement rather than an argument.
@@ -240,7 +245,7 @@ table: the columns are now a file someone can review in a pull request.
 
 ## Worth knowing
 
-- Run the cheap rung across everything, then escalate only the misses — never run both on the full list.
+- On the exception path, run the cheap rung across everything, then escalate only the misses. Never run both on the full list.
 - `prospeo.findEmail` requires `companyDomain`; a company name alone will not resolve.
 - `FullEnrich.findEmail` takes `domainName`, not `companyDomain`. The two rungs disagree on the field name, and a copy-paste between them silently resolves nothing.
 - Clay's per-row credit and Cargo's credit are different units. Never compare the two numbers directly — compare what one sample of rows cost end to end on each.

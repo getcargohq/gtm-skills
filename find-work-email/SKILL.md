@@ -1,7 +1,7 @@
 ---
 name: find-work-email
-description: "Find a verified work email address from a person's name and company domain, powered by Cargo. Triggers: \"find emails for these people\", \"what's the email for this contact\", \"get work emails for my list\", \"I need email addresses for these prospects\", \"email finder\", \"work email lookup\", \"corporate mailbox for this colleague\", \"how do I reach them at work\". Providers: the workspace's preset Find email tool first, then prospeo and FullEnrich by hand. Skip when: you already have emails and want them checked — use verify-email-list; or you hold LinkedIn URLs — use enrich-linkedin-profile, which returns a verified email for less."
-version: "1.2.0"
+description: "Find a verified work email from a name and company domain or a LinkedIn URL, powered by Cargo. Triggers: \"find emails for these people\", \"what's the email for this contact\", \"get work emails for my list\", \"I need email addresses for these prospects\", \"email finder\", \"work email lookup\", \"corporate mailbox for this colleague\", \"how do I reach them at work\", \"I have LinkedIn URLs and need emails\", \"work emails from LinkedIn URLs\", \"work email from a personal email\", \"use AI Ark to find emails\", \"cheapest way to get emails\". Providers: the workspace's native Find email tool by default; aiArk, prospeo or FullEnrich only by stated exception. Skip when: you already have emails and want them checked, use verify-email-list; or you want the whole person profile (role, seniority, history) from a LinkedIn URL, use enrich-linkedin-profile."
+version: "1.3.0"
 compatibility: Requires @cargo-ai/cli (npm). Sign in or create an account with `cargo-ai login --email` (emailed code, no browser), `--oauth`, or an API token
 homepage: https://github.com/getcargohq/gtm-skills
 metadata:
@@ -24,7 +24,7 @@ metadata:
 
 # Find Work Email
 
-Find a verified work email address from a person's name and company domain.
+Find a verified work email address from a person's name and company domain, or from their LinkedIn URL.
 
 ## Before anything else
 
@@ -52,12 +52,23 @@ Already signed in? `cargo-ai whoami` confirms it.
 
 ## Do the job
 
-Every Cargo workspace already has the email waterfall built: a read-only **Find email** tool in
-its Cargo Tools folder. It tries apolloio, FullEnrich, findyMail, peopleDataLabs and waterfall in
-turn and checks each address it finds with zeroBounce before returning it. Use it first.
+**Email lookups run on Cargo's own tools by default**, not on a single provider. Every Cargo
+workspace carries them as read-only presets in its Cargo Tools folder. Address each by its template
+slug: `{"kind":"tool","templateSlug":"<slug>"}` resolves to the workspace's own copy, so there is
+no UUID to look up (needs `@cargo-ai/cli` 1.0.138 or later).
 
-Address it by its template slug, `email_waterfall`: the action resolves to this workspace's own
-copy of the tool, so there is no UUID to look up (needs `@cargo-ai/cli` 1.0.138 or later).
+| You hold | Tool (default) | `templateSlug` | Inputs (camelCase) | Returns | Credits |
+|---|---|---|---|---|---|
+| Name + company domain, **or** a LinkedIn URL | Find email | `email_waterfall` | `firstName` + `lastName` + `companyDomain`, or `linkedinUrl` | `email`, already verified | 1.1 to 4 per hit |
+| A personal email | Find work email from personal email | `work_email_from_personal` | `email` (`firstName`, `lastName` help) | `workEmail`, `linkedinUrl` | 1 to 8.25 |
+
+Find email is a waterfall Cargo maintains and keeps extending, with providers and verification
+added as they prove out (apolloio, FullEnrich, findyMail, peopleDataLabs and waterfall today, each
+hit checked by zeroBounce), so its coverage is far above any single provider. Measured on one
+customer list, chaining `aiArk` behind a LinkedIn enrich found work emails for 23% of contacts;
+the Find email tool reaches about 90% where `aiArk` alone reaches about 20%. It stays the default
+when you hold LinkedIn URLs; the other native option for those is **Find work email from LinkedIn
+URL** (`work_email_from_linkedin`, `linkedinUrl` in, `email` out, 0.5 to 3 credits).
 
 ```bash
 # 1. Run a sample. Inputs are camelCase: firstName + lastName + companyDomain,
@@ -69,17 +80,43 @@ cargo-ai orchestration action execute-batch \
 
 # 2. Read the rows: the address is in cargo_email, empty where no provider had one
 cargo-ai orchestration batch download --uuid <batch-uuid>
+
+# Holding personal emails instead: the work address lands in cargo_workEmail
+cargo-ai orchestration action execute-batch \
+  --action '{"kind":"tool","templateSlug":"work_email_from_personal"}' \
+  --records '[{"email":"john.smith@gmail.com","firstName":"John","lastName":"Smith"}]' \
+  --limit 20 --wait-until-finished
 ```
 
 A work email per contact, already verified, with unresolved rows left empty rather than guessed.
 Report the hit rate and the credits the sample spent, get approval, then run the full list.
 
-**When to chain providers by hand instead:** the tool is missing from the workspace, or the user
-wants their own provider order. Then run the cheaper rung on everything and escalate only the
-misses, and verify what comes back with `verify-email-list`:
+### When to leave the default
+
+A single provider (`aiArk`, `FullEnrich`, `prospeo`, `hunter`, ...) runs only when one of these
+holds, and **say which one before you leave the default**:
+
+1. **The user names a provider** ("use AI Ark", "run FullEnrich"). Run that provider's action.
+2. **The user explicitly asks for the cheapest path** ("cheapest way possible", "minimise
+   credits"). Then the cost-ranked ladder below is fine, and expensive rungs can be dropped. A
+   tight budget the user did not state is not this exception: quote the tool's cost and let them
+   choose.
+3. **The tool is missing from the workspace**:
+   `cargo-ai orchestration action get-output-schema --action '{"kind":"tool","templateSlug":"email_waterfall"}'`
+   errors (free, runs nothing).
+4. **The row lacks the tool's input and cannot get it**: no name and domain, and no LinkedIn URL.
+
+The ladder runs the cheapest rung on everything and escalates only the misses. Addresses it
+returns are unverified, so check them with `verify-email-list` before anyone sends:
 
 ```bash
-# Cheaper rung first, escalate only the misses
+# Rows with a LinkedIn URL: cheapest rung, bills 0 when no email is found
+cargo-ai orchestration action execute-batch \
+  --action '{"kind":"connector","integrationSlug":"aiArk","actionSlug":"enrichPerson"}' \
+  --records '[{"linkedinUrl":"https://www.linkedin.com/in/johnsmith"}]' \
+  --wait-until-finished
+
+# Rows with name + domain, and the LinkedIn misses
 cargo-ai orchestration action execute-batch \
   --action '{"kind":"connector","integrationSlug":"prospeo","actionSlug":"findEmail"}' \
   --records '[{"firstName":"John","lastName":"Smith","companyDomain":"acme.com"}]' \
@@ -116,6 +153,8 @@ Illustrative output, fictional records:
 | Action | Credits |
 |---|---|
 | Find email tool (`"kind":"tool"`) | 1.1 to 4 per address found, roughly 0 per miss |
+| Find work email from personal email tool (`"kind":"tool"`) | 1 to 8.25 per address found |
+| `aiArk.enrichPerson` | 0.1 |
 | `prospeo.findEmail` | 0.5 |
 | `FullEnrich.findEmail` | 1 |
 
@@ -138,7 +177,11 @@ with it.
   comes back empty. Use the camelCase names above.
 - Rows the tool cannot use (a domain that does not parse, a name under two letters, a LinkedIn URL
   that is not a `/in/` profile) end before any provider is called, empty and free.
-- By hand, run the cheap rung across everything, then escalate only the misses. Never run both on the full list.
+- A profile call (`aiArk.enrichPerson`, `linkedin.enrichProfile`) is fine for the profile, but
+  **the email comes from Find email**, even when the profile call returned one, unless one of the
+  four exceptions above holds.
+- On the ladder, run the cheap rung across everything, then escalate only the misses. Never run
+  every rung on the full list.
 - `prospeo.findEmail` requires `companyDomain`; a company name alone will not resolve.
 
 ## Going further
