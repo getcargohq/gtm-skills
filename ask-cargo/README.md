@@ -43,7 +43,7 @@ Adds 5 resources.
 | `infra/agents/ask-cargo.ts`        | `defineAgent` (claudeCode)      | the Slack trigger, repository binding, model                 |
 | `infra/agents/ask-cargo.prompt.ts` | (not a resource)                | the rules: what it reads, changes, and waits for a go on     |
 | `infra/connectors/slack.ts`        | `defineConnector` (`slack`)     | the trigger; the platform replies through it                 |
-| `infra/connectors/anthropic.ts`    | `defineConnector` (`anthropic`) | the model the harness runs on, billed and metered            |
+| `infra/connectors/claude-code.ts`    | `defineConnector` (`claudeCode`) | the model the harness runs on, billed and metered            |
 | `infra/folders/index.ts`           | `defineFolder`                  | the workspace folder this cookbook's agent is filed in       |
 | `infra/users/index.ts`             | `defineUser`, `defineRole`      | the viewer service user every turn's `cargo-ai` runs as      |
 | `references/roster.md`             | (not a resource)                | which deployed agent owns which job                          |
@@ -87,7 +87,7 @@ answering from the cadence log, and turning a Slack message into a diff someone 
 
 1. **Where the bot is** — the trigger is `allChannels`, so the agent answers in every channel the
    bot has been invited to. Keep it out of customer shared channels, or switch to `channelIds`.
-2. **`languageModel`** — `infra/agents/ask-cargo.ts`: any Anthropic model the workspace's connector
+2. **`languageModel`** — `infra/agents/ask-cargo.ts`: any Claude model the workspace's Claude Code connector
    can reach.
 3. **`references/roster.md`** — the agents your workspace runs, from `cargo-ai ai agent list`.
 

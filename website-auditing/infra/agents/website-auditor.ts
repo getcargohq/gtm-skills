@@ -1,7 +1,7 @@
 import { defineAgent } from "@cargo-ai/cdk";
 
 import { websiteAuditorPrompt } from "./website-auditor.prompt";
-import { anthropic } from "../connectors/anthropic";
+import { claudeCode } from "../connectors/claude-code";
 import { slack } from "../connectors/slack";
 import { agentsFolder } from "../folders";
 import { websiteAudits } from "../models/website-audits";
@@ -31,7 +31,7 @@ export const websiteAuditor = defineAgent("website_auditor", {
     "Weekly Ora agent-readiness score for our website and competitors, one pull request with the fixes the site's source can make, and one Slack digest.",
   color: "purple",
   harness: "claudeCode",
-  connector: anthropic,
+  connector: claudeCode,
   languageModel: "claude-sonnet-5", // PLACEHOLDER: your model of choice
   // No `state`: deploy binds this project's connected state (cargo.state.json),
   // and the harness clones its repository at the state's directory and

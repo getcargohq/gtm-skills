@@ -405,7 +405,7 @@
         "gtm-engineering"
       ],
       "integrations": [
-        "anthropic",
+        "claudeCode",
         "slack"
       ],
       "example": {
@@ -477,7 +477,7 @@
         "**It does not claim to know who asked.** (`infra/agents/ask-cargo.prompt.ts`) The model is not told. A pull request that names a requester names a guess."
       ],
       "doneWhen": [
-        "`node --import tsx evals/contract.mjs` passes: harness is `claudeCode` on an Anthropic connector, one Slack trigger on `allChannels`, nothing on `uses`, no capability, `runAs` a viewer service user",
+        "`node --import tsx evals/contract.mjs` passes: harness is `claudeCode` on a Claude Code connector, one Slack trigger on `allChannels`, nothing on `uses`, no capability, `runAs` a viewer service user",
         "`cargo-ai project plan` reports the agent, the three connectors, the folder, the `ask_cargo` user and the adopted `viewer` role",
         "a question in a channel the bot is in (\"what is our ICP?\") got an answer in the thread that cites a file under `context/`",
         "a question about the workspace (\"what failed yesterday?\") cites the `cargo-ai` command it ran; a read that errored says so instead of a number. `cargo-ai whoami` in the sandbox names the `ask_cargo` service user",
@@ -488,7 +488,7 @@
         "\"@Cargo capture this\" in an internal thread wrote `cadence/log/raw/slack/` and `cadence/log/slack/` files with the thread's `source:` line on the thread's pull request, reacted :white_check_mark:, and replied with the entry path and the pull request; a second mention with no new replies wrote nothing; the same request in a shared channel was refused",
         "every mention produced exactly one reply, and no reply contains a `<@…>` mention"
       ],
-      "cost": "Every turn is a harness run: a sandbox, a clone of the repository, and LLM tokens billed through the\nbound Anthropic connector. A turn that only answers a question costs tokens and nothing else. The\nread-only `cargo-ai` calls are API calls, not connector actions, and bill nothing.\n\nWhat spends is what someone approves with a go: the connector actions, batches and agent handoffs in\n§3 of the prompt. The agent reads each price live (`cargo-ai connection integration get <slug>`) and\nsays the total before it asks for the go, so the proposal is the cost line. Nothing runs on a\nschedule.",
+      "cost": "Every turn is a harness run: a sandbox, a clone of the repository, and LLM tokens billed through the\nbound Claude Code connector. A turn that only answers a question costs tokens and nothing else. The\nread-only `cargo-ai` calls are API calls, not connector actions, and bill nothing.\n\nWhat spends is what someone approves with a go: the connector actions, batches and agent handoffs in\n§3 of the prompt. The agent reads each price live (`cargo-ai connection integration get <slug>`) and\nsays the total before it asks for the go, so the proposal is the cost line. Nothing runs on a\nschedule.",
       "composesInto": "Nothing in particular comes after it: it is the on-demand layer over whatever else is deployed, so\nit gets more useful with every pipeline that writes logs, calls or scores it can read."
     },
     {
@@ -537,7 +537,7 @@
         "revops"
       ],
       "integrations": [
-        "anthropic"
+        "claudeCode"
       ],
       "example": {
         "prompt": "Every morning, pull yesterday's Gong calls into this repo as log entries and open one pull request with anything worth adding to our context.",
@@ -1535,7 +1535,7 @@
         "gtm-engineering"
       ],
       "integrations": [
-        "anthropic",
+        "claudeCode",
         "slack"
       ],
       "example": {
@@ -1585,7 +1585,7 @@
         "**The decline memory is the coverage file.** (`goal-coverage.prompt.ts` §4) Drop the pull request and a declined suggestion returns every Tuesday until someone mutes the post."
       ],
       "doneWhen": [
-        "`node --import tsx evals/contract.mjs` passes: a `claudeCode` harness bound to an Anthropic connector and a model, `runAs` a viewer service user, no capability, exactly one connector action (`slack.postMessage` with the channel locked), and a `COVERAGE_GOAL` env entry",
+        "`node --import tsx evals/contract.mjs` passes: a `claudeCode` harness bound to a Claude Code connector and a model, `runAs` a viewer service user, no capability, exactly one connector action (`slack.postMessage` with the channel locked), and a `COVERAGE_GOAL` env entry",
         "`cargo-ai project plan` reports the agent, its folder, and the three connectors",
         "the first run opened one unmerged pull request titled `[cadence] coverage <YYYY-Www>` whose diff is exactly `cadence/coverage/<YYYY-Www>.md`, with the goal quoted verbatim and at most five suggestions, each ending `status: open`",
         "no suggestion names a pipeline that is installed by any of the three signals, or one that is not in the catalog",
@@ -1594,7 +1594,7 @@
         "a second run the same week opened nothing and posted nothing",
         "after a suggestion was merged as `status: declined: <reason>`, the next week's run did not suggest it"
       ],
-      "cost": "The recurring cost is the harness run once a week, billed as LLM tokens through the bound Anthropic\nconnector. It scales with what the agent reads: the plan file, a few list commands, one or two\naggregate queries, the catalog, and up to eight earlier coverage files. The workspace reads are API\ncalls, not connector actions, so they bill nothing, and the run never executes an action that\nspends. The Slack post is one connector action a week.",
+      "cost": "The recurring cost is the harness run once a week, billed as LLM tokens through the bound Claude Code\nconnector. It scales with what the agent reads: the plan file, a few list commands, one or two\naggregate queries, the catalog, and up to eight earlier coverage files. The workspace reads are API\ncalls, not connector actions, so they bill nothing, and the run never executes an action that\nspends. The Slack post is one connector action a week.",
       "composesInto": "Whatever it suggests. Each suggestion's install line is `cargo-ai project add cookbook/<name>`,\nand the next run counts that pipeline as covered. Pairs with `weekly-planning` (are the bets we\nhave on track) and `workspace-health` (is what we deployed broken)."
     },
     {
@@ -1716,7 +1716,7 @@
         "sales-leadership"
       ],
       "integrations": [
-        "anthropic"
+        "claudeCode"
       ],
       "example": {
         "prompt": "Every Monday, draft three LinkedIn posts for our CEO, Dana Ruiz, from what's in context/.",
@@ -1785,7 +1785,7 @@
         "a second run the same week linked the open pull request, opened no second one and changed nothing",
         "nothing was posted to LinkedIn or anywhere else"
       ],
-      "cost": "No connector action runs: the agent reads files in its checkout and opens a pull request through\nthe Cargo GitHub app. The recurring cost is the harness run itself, once a week, billed as LLM tokens through the\nAnthropic connector, and it scales with how much of `context/` and `cadence/` there is to read.\n\nThe `performance-report` variation adds one paid LinkedIn action per run. Before adding it, read its\nlive price: `cargo-ai orchestration action list extractProfilePostActivity --kind connector\n--integration-slug linkedin`, and say it out loud.",
+      "cost": "No connector action runs: the agent reads files in its checkout and opens a pull request through\nthe Cargo GitHub app. The recurring cost is the harness run itself, once a week, billed as LLM tokens through the\nClaude Code connector, and it scales with how much of `context/` and `cadence/` there is to read.\n\nThe `performance-report` variation adds one paid LinkedIn action per run. Before adding it, read its\nlive price: `cargo-ai orchestration action list extractProfilePostActivity --kind connector\n--integration-slug linkedin`, and say it out loud.",
       "composesInto": "`call-capture`, `win-loss-review` and `web-capture` (they write the proof, insights and objections\nthe drafts are built from), and `standup` (whose log entries are this week's material)."
     },
     {
@@ -2069,7 +2069,7 @@
         "sales-development"
       ],
       "integrations": [
-        "anthropic",
+        "claudeCode",
         "slack"
       ],
       "example": {
@@ -2155,7 +2155,7 @@
         "a promise the customer made is phrased as a follow-up to chase, not a task to do",
         "`git log` on the default branch shows no commit and no pull request from the tracker"
       ],
-      "cost": "The evidence reads are SQL over workspace models and bill nothing. The post is `slack.postMessage`\non the bound connector; immediately before the plan, run\n`cargo-ai orchestration action list postMessage --kind connector --integration-slug slack` and read\nthe current cost out loud. The recurring cost is the harness run itself, once each weekday, billed as\nLLM tokens through the Anthropic connector. It scales with the number of call entries in the window\nand open commitments to check, not with the size of the activity log, and the run posts at most once.",
+      "cost": "The evidence reads are SQL over workspace models and bill nothing. The post is `slack.postMessage`\non the bound connector; immediately before the plan, run\n`cargo-ai orchestration action list postMessage --kind connector --integration-slug slack` and read\nthe current cost out loud. The recurring cost is the harness run itself, once each weekday, billed as\nLLM tokens through the Claude Code connector. It scales with the number of call entries in the window\nand open commitments to check, not with the size of the activity log, and the run posts at most once.",
       "composesInto": "`call-capture` (the call log it reads), and `standup` (the evening recap can cite what closed today)."
     },
     {
@@ -2571,7 +2571,7 @@
         "revops"
       ],
       "integrations": [
-        "anthropic",
+        "claudeCode",
         "slack"
       ],
       "example": {
@@ -2644,7 +2644,7 @@
       ],
       "doneWhen": [
         "`--dry-run` printed the dump, and the run without it wrote `cadence/log/raw/standup/<date>.md`; running it twice that evening overwrote the same file",
-        "`node --import tsx evals/contract.mjs` passes: harness is `claudeCode` bound to an Anthropic connector, no capability is wired, `postMessage` is on `uses` with `channelId` locked, and no tool wraps it",
+        "`node --import tsx evals/contract.mjs` passes: harness is `claudeCode` bound to a Claude Code connector, no capability is wired, `postMessage` is on `uses` with `channelId` locked, and no tool wraps it",
         "`cargo-ai project plan` reports the agent, the two connectors and the folder, and does **not** run git or `gh` while planning",
         "the first scheduled run opened one pull request titled `[cadence] log <date>` whose diff contains the raw dump and the three log sections, and whose body carries `## Slack digest` plus a posted-or-not line",
         "the digest landed once in the locked channel, with `Full log: <PR URL>` as the last line",
@@ -2653,7 +2653,7 @@
         "a quiet day still produced an entry that says so",
         "no number in the digest is absent from the raw dump, a metrics file dated that day, or a `cargo-ai` read the agent actually ran. A CLI read that errors is a note on the PR, not a made-up count"
       ],
-      "cost": "The collector talks to git and, when `gh` is installed, to GitHub from the harness environment.\nThose calls are not Cargo connector actions.\n\nThe Slack post is `slack.postMessage` on the bound connector. Immediately before the plan, run\n`cargo-ai orchestration action list postMessage --kind connector --integration-slug slack` and\nread the current cost. Say that number out loud as a per-post cost; the run posts once.\n\nThe recurring cost is the harness run itself, once a day, billed as LLM tokens through the bound\nAnthropic connector, and it scales with how much the agent reads — the dump, the day's cadence\nfiles, a short window of git history, and the read-only `cargo-ai` calls in §1b (whoami, run\ncounts, usage, what is deployed). Those reads are API calls, not connector actions, so they bill\nnothing. There is no per-record fan-out, and the recap never runs a command that spends.",
+      "cost": "The collector talks to git and, when `gh` is installed, to GitHub from the harness environment.\nThose calls are not Cargo connector actions.\n\nThe Slack post is `slack.postMessage` on the bound connector. Immediately before the plan, run\n`cargo-ai orchestration action list postMessage --kind connector --integration-slug slack` and\nread the current cost. Say that number out loud as a per-post cost; the run posts once.\n\nThe recurring cost is the harness run itself, once a day, billed as LLM tokens through the bound\nClaude Code connector, and it scales with how much the agent reads — the dump, the day's cadence\nfiles, a short window of git history, and the read-only `cargo-ai` calls in §1b (whoami, run\ncounts, usage, what is deployed). Those reads are API calls, not connector actions, so they bill\nnothing. There is no per-record fan-out, and the recap never runs a command that spends.",
       "composesInto": "`weekly-planning` (the week's logs are what it ranks against infra and runs)."
     },
     {
@@ -3113,7 +3113,7 @@
         "marketing"
       ],
       "integrations": [
-        "anthropic"
+        "claudeCode"
       ],
       "example": {
         "prompt": "Every Monday, read our website, our competitors' pricing and changelog pages, and the news about all of us, and keep context/ current.",
@@ -3189,7 +3189,7 @@
         "gtm-engineering"
       ],
       "integrations": [
-        "anthropic",
+        "claudeCode",
         "slack"
       ],
       "example": {
@@ -3281,7 +3281,7 @@
         "a second run the same week wrote no row, opened no pull request and posted nothing",
         "after the pull request is merged and deployed, the next week's row shows its checks out of `failing_checks`"
       ],
-      "cost": "Ora's reads are free and keyless; Cargo bills nothing for them. The post is `slack.postMessage` on\nthe bound connector; immediately before the plan, run\n`cargo-ai orchestration action list postMessage --kind connector --integration-slug slack` and read\nthe current cost out loud. The recurring cost is the harness run itself, once a week, billed as LLM\ntokens through the Anthropic connector. It is largest on a week with a pull request, when the agent\nreads Ora's playbook, the site's source and runs its build; a re-run that stops at the ledger costs\na small fraction of that.",
+      "cost": "Ora's reads are free and keyless; Cargo bills nothing for them. The post is `slack.postMessage` on\nthe bound connector; immediately before the plan, run\n`cargo-ai orchestration action list postMessage --kind connector --integration-slug slack` and read\nthe current cost out loud. The recurring cost is the harness run itself, once a week, billed as LLM\ntokens through the Claude Code connector. It is largest on a week with a pull request, when the agent\nreads Ora's playbook, the site's source and runs its build; a re-run that stops at the ledger costs\na small fraction of that.",
       "composesInto": "`website-building` (the site whose source this pipeline fixes, and whose deploy ships the merged\npull request), `web-capture` (what competitors publish, next to how readable it is to agents), and\n`weekly-planning` (the digest's to-dos are week-sized work)."
     },
     {
@@ -3387,7 +3387,7 @@
         "revops"
       ],
       "integrations": [
-        "anthropic"
+        "claudeCode"
       ],
       "example": {
         "prompt": "Every Monday morning, check last week's runs against our initiatives and open one pull request per initiative saying what to do next.",
@@ -3447,15 +3447,15 @@
       ],
       "doneWhen": [
         "`--dry-run` printed the dump for the previous ISO week, and the run without it wrote `cadence/log/raw/planning/<YYYY-Www>.md`; running it twice that Monday overwrote the same file",
-        "`node --import tsx evals/contract.mjs` passes: harness is `claudeCode` bound to an Anthropic connector and a model, no capability is wired on the agent, there is no Slack action, and no tool wraps git or the CLI",
-        "`cargo-ai project plan` reports the agent, the Anthropic connector and the folder, and does **not** run git or `gh` while planning",
+        "`node --import tsx evals/contract.mjs` passes: harness is `claudeCode` bound to a Claude Code connector and a model, no capability is wired on the agent, there is no Slack action, and no tool wraps git or the CLI",
+        "`cargo-ai project plan` reports the agent, the Claude Code connector and the folder, and does **not** run git or `gh` while planning",
         "with **zero** active initiatives, the first scheduled run opened exactly one unmerged pull request titled `[cadence] workspace <YYYY-Www>` whose diff contains the dump and `cadence/plan/<YYYY-Www>.md` with `## Recommendations`",
         "with **N** active initiatives, it opened exactly N unmerged pull requests, one per slug, each diff containing the dump and exactly one `cadence/plan/<YYYY-Www>-<slug>.md` — never a second initiative in the same diff — plus one `[cadence] unplanned <YYYY-Www>` pull request only when work no initiative claims met the bar in the prompt",
         "every plan file's `description` and PR body open with the same verdict (On track, Behind, At risk, Blocked, Unplanned, or No active initiatives), and every recommendation names an action and a day",
         "a re-run the same Monday opened no additional pull request for a target whose `## Recommendations` section was already on disk",
         "no number in a plan file is absent from the raw dump, a metrics file dated that week, or a `cargo-ai` read the agent actually ran. A CLI read that errors is a note on the PR, not a made-up count"
       ],
-      "cost": "The collector talks to git and, when `gh` is installed, to GitHub from the harness environment.\nThose calls are not Cargo connector actions.\n\nThe recurring cost is the harness run itself, once a week, billed as LLM tokens through the bound\nAnthropic connector, and it scales with how much the agent reads — the dump, the week's cadence\nfiles, the active initiative files, declared infra, and the read-only `cargo-ai` calls in §1b\n(whoami, what is deployed, run counts, usage). Those reads are API calls, not connector actions, so\nthey bill nothing. There is no per-record fan-out, and the recap never runs a command that spends.",
+      "cost": "The collector talks to git and, when `gh` is installed, to GitHub from the harness environment.\nThose calls are not Cargo connector actions.\n\nThe recurring cost is the harness run itself, once a week, billed as LLM tokens through the bound\nClaude Code connector, and it scales with how much the agent reads — the dump, the week's cadence\nfiles, the active initiative files, declared infra, and the read-only `cargo-ai` calls in §1b\n(whoami, what is deployed, run counts, usage). Those reads are API calls, not connector actions, so\nthey bill nothing. There is no per-record fan-out, and the recap never runs a command that spends.",
       "composesInto": "Nothing in particular comes after it: the plan it opens is the next week's work."
     },
     {
@@ -3474,7 +3474,7 @@
         "gtm-engineering"
       ],
       "integrations": [
-        "anthropic",
+        "claudeCode",
         "hubspot",
         "slack"
       ],
@@ -3580,7 +3580,7 @@
         "gtm-engineering"
       ],
       "integrations": [
-        "anthropic",
+        "claudeCode",
         "slack"
       ],
       "example": {
@@ -3630,7 +3630,7 @@
         "**A threshold, not every error.** (`HEALTH_ERROR_RATE`) Enrichment that finds no email for some records is coverage, not breakage. Report every error and the channel is muted inside a week."
       ],
       "doneWhen": [
-        "`node --import tsx evals/contract.mjs` passes: a `claudeCode` harness bound to an Anthropic connector and a model, `runAs` a viewer service user, no capability, exactly two connector actions (`slack.postMessage` and `slack.getConversationHistory`) locked to the same channel, a daily cron, and all three threshold env entries",
+        "`node --import tsx evals/contract.mjs` passes: a `claudeCode` harness bound to a Claude Code connector and a model, `runAs` a viewer service user, no capability, exactly two connector actions (`slack.postMessage` and `slack.getConversationHistory`) locked to the same channel, a daily cron, and all three threshold env entries",
         "`cargo-ai project plan` reports the agent, its folder, and the three connectors",
         "the first run with a known problem in the workspace (a disabled play that used to run, or a workflow failing above the threshold) posted it once, naming the play and the cause",
         "every number in the post matches the same read re-run by hand",
@@ -3638,7 +3638,7 @@
         "on the first Monday it posted the weekly line, even with nothing new",
         "nothing in the workspace changed because of a run: no rerun, no cancel, no play enabled or disabled"
       ],
-      "cost": "The recurring cost is the harness run once a day, billed as LLM tokens through the bound Anthropic\nconnector. It scales with how much is wrong: a clean day is three list commands and five aggregate\nqueries; a bad day adds up to two `run get` reads per failing workflow. The workspace reads are API\ncalls, not connector actions, so they bill nothing, and the run never executes an action that\nspends. Slack is one history read a day, plus a post only on days with something to say.",
+      "cost": "The recurring cost is the harness run once a day, billed as LLM tokens through the bound Claude Code\nconnector. It scales with how much is wrong: a clean day is three list commands and five aggregate\nqueries; a bad day adds up to two `run get` reads per failing workflow. The workspace reads are API\ncalls, not connector actions, so they bill nothing, and the run never executes an action that\nspends. Slack is one history read a day, plus a post only on days with something to say.",
       "composesInto": "The pack's `cargo-diagnostics`, for the deep dive on the run each finding names. Pairs with\n`goal-coverage` (what the goal still needs) and `weekly-planning` (are the bets on track)."
     },
     {

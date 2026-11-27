@@ -29,17 +29,17 @@ cargo-ai project add cookbook/win-loss-review
 
 ## Resources
 
-| File                                      | Resource                        | Role                                                               |
-| ----------------------------------------- | ------------------------------- | ------------------------------------------------------------------ |
-| `infra/agents/win-loss-analyst.ts`        | `defineAgent` (claudeCode)      | monthly cron, locked Slack channel, no env                         |
-| `infra/agents/win-loss-analyst.prompt.ts` | (not a resource)                | the audit's SQL, the first pass, the monthly append, the digest    |
-| `infra/models/crm-deals.ts`               | `defineModel` (`crm_deals`)     | every deal, all columns; the queries narrow to closed              |
-| `infra/models/crm-accounts.ts`            | `defineModel` (`crm_accounts`)  | the accounts behind the deals, shared with the other CRM cookbooks |
-| `infra/models/crm-contacts.ts`            | `defineModel` (`crm_contacts`)  | the people at the accounts, shared with the other CRM cookbooks    |
-| `infra/connectors/crm.ts`                 | `defineConnector` (`hubspot`)   | the CRM the models extract, bound                                  |
-| `infra/connectors/anthropic.ts`           | `defineConnector` (`anthropic`) | the model the harness runs on, billed and metered                  |
-| `infra/connectors/slack.ts`               | `defineConnector` (`slack`)     | the digest, through a locked `postMessage`                         |
-| `infra/folders/index.ts`                  | `defineFolder` ×2               | the agent and the models, filed under the cookbook                 |
+| File                                      | Resource                         | Role                                                               |
+| ----------------------------------------- | -------------------------------- | ------------------------------------------------------------------ |
+| `infra/agents/win-loss-analyst.ts`        | `defineAgent` (claudeCode)       | monthly cron, locked Slack channel, no env                         |
+| `infra/agents/win-loss-analyst.prompt.ts` | (not a resource)                 | the audit's SQL, the first pass, the monthly append, the digest    |
+| `infra/models/crm-deals.ts`               | `defineModel` (`crm_deals`)      | every deal, all columns; the queries narrow to closed              |
+| `infra/models/crm-accounts.ts`            | `defineModel` (`crm_accounts`)   | the accounts behind the deals, shared with the other CRM cookbooks |
+| `infra/models/crm-contacts.ts`            | `defineModel` (`crm_contacts`)   | the people at the accounts, shared with the other CRM cookbooks    |
+| `infra/connectors/crm.ts`                 | `defineConnector` (`hubspot`)    | the CRM the models extract, bound                                  |
+| `infra/connectors/claude-code.ts`         | `defineConnector` (`claudeCode`) | the model the harness runs on, billed and metered                  |
+| `infra/connectors/slack.ts`               | `defineConnector` (`slack`)      | the digest, through a locked `postMessage`                         |
+| `infra/folders/index.ts`                  | `defineFolder` ×2                | the agent and the models, filed under the cookbook                 |
 
 ## Why models, not a script
 

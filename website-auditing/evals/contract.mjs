@@ -30,10 +30,10 @@ assert.equal(
 );
 
 // The harness runs against Cargo's LLM proxy, selected by the connector's
-// integration: `claudeCode` with anything but `anthropic` deploys broken.
-const llm = byId.get("connector:anthropic");
-assert.ok(llm, "defineConnector(anthropic) must exist: the harness needs a model");
-assert.equal(llm.spec.integrationSlug, "anthropic", "claudeCode is proxied to Anthropic");
+// integration: only `claudeCode` serves the `claudeCode` harness.
+const llm = byId.get("connector:claude_code");
+assert.ok(llm, "defineConnector(claude_code) must exist: the harness needs a model");
+assert.equal(llm.spec.integrationSlug, "claudeCode", "the claudeCode harness runs on the claudeCode integration");
 assert.ok(agent.spec.connectorUuid, "the auditor must bind the LLM connector");
 assert.equal(typeof agent.spec.languageModelSlug, "string", "the auditor must name a languageModel");
 

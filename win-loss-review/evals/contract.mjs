@@ -33,7 +33,7 @@ check("the template declares one agent, four bound connectors, three models and 
     [...byId.keys()].sort(),
     [
       "agent:win_loss_analyst",
-      "connector:anthropic",
+      "connector:claude_code",
       "connector:crm",
       "connector:slack",
       "folder:win_loss_review_agents",
@@ -43,7 +43,7 @@ check("the template declares one agent, four bound connectors, three models and 
       "model:crm_deals",
     ],
   );
-  for (const id of ["connector:anthropic", "connector:crm", "connector:slack"]) {
+  for (const id of ["connector:claude_code", "connector:crm", "connector:slack"]) {
     assert.equal(byId.get(id).spec.config, undefined, `${id} must bind the workspace's connection, not declare a config`);
   }
   assert.equal(byId.get("connector:crm").spec.integrationSlug, "hubspot", "HubSpot is the checked example");
@@ -106,7 +106,7 @@ check("exactly one agent deploys, a harness on a monthly cron with the channel l
   assert.equal(agent.spec.harnessSlug, "claudeCode", "its output is a repo diff");
   assert.ok(agent.spec.connectorUuid, "the harness does not bring its own model");
   assert.equal(typeof agent.spec.languageModelSlug, "string", "it must name a languageModel");
-  assert.equal(byId.get("connector:anthropic").spec.integrationSlug, "anthropic", "claudeCode is proxied to Anthropic");
+  assert.equal(byId.get("connector:claude_code").spec.integrationSlug, "claudeCode", "the claudeCode harness runs on the claudeCode integration");
   assert.equal((agent.spec.capabilities ?? []).length, 0, "a context capability would be a write path that skips the pull request");
   assert.equal((agent.spec.tools ?? []).length, 0, "slack.postMessage is an action on the agent, not a wrapped tool");
   const env = agent.spec.env ?? [];

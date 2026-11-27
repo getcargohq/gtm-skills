@@ -47,7 +47,7 @@ Adds 5 resources plus a script bundle.
 | `infra/agents/standup.ts`          | `defineAgent` (claudeCode) | schedule, repository binding, locked Slack use                    |
 | `infra/agents/standup.prompt.ts`   | (not a resource)           | the recap contract: window, digest shape, limits                  |
 | `infra/connectors/slack.ts`        | `defineConnector` (`slack`)  | the post path; OAuth, bound rather than created                 |
-| `infra/connectors/anthropic.ts`    | `defineConnector` (`anthropic`) | the model the harness runs on, billed and metered            |
+| `infra/connectors/claude-code.ts`    | `defineConnector` (`claudeCode`) | the model the harness runs on, billed and metered            |
 | `infra/folders/index.ts`           | `defineFolder`             | the workspace folder this cookbook's resources are filed in       |
 | `scripts/collect/day.ts`           | (not a resource)           | the entrypoint: dump git / `gh` / cadence files for the day       |
 
@@ -115,8 +115,8 @@ time.
 2. **`STANDUP_TITLE`** — `infra/agents/standup.ts`: the short name in the Slack header.
 3. **`STANDUP_TIMEZONE`** — same file: IANA timezone the recapped calendar day is
    computed in. Change it together with `cron`.
-4. **`languageModel`** — same file: any Anthropic model the workspace's connector can
-   reach. `claudeCode` pairs with the `anthropic` integration and nothing else.
+4. **`languageModel`** — same file: any Claude model the workspace's Claude Code connector
+   lists. The `claudeCode` harness runs on the `claudeCode` integration and nothing else.
 
 ## What it does not do
 

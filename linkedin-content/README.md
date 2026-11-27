@@ -27,7 +27,7 @@ Adds 4 resources.
 | --------------------------------------- | ------------------------------- | ----------------------------------------------------------- |
 | `infra/agents/content-writer.ts`        | `defineAgent` (claudeCode)      | the weekly cron, the author env var, the model              |
 | `infra/agents/content-writer.prompt.ts` | (not a resource)                | what it reads, the three kinds, the citation rule, the PR   |
-| `infra/connectors/anthropic.ts`         | `defineConnector` (`anthropic`) | the model the harness runs on                               |
+| `infra/connectors/claude-code.ts`         | `defineConnector` (`claudeCode`) | the model the harness runs on                               |
 | `infra/folders/index.ts`                | `defineFolder`                  | where the agent is filed                                    |
 | `references/post.md`                    | (not a resource)                | the drafts file shape and the rules for a draft             |
 
@@ -45,7 +45,7 @@ second path that can write the knowledge layer without the review every other pi
 ## Placeholders (edit before deploy)
 
 1. **`CONTENT_AUTHOR`** in `infra/agents/content-writer.ts`: the person the posts are written as.
-2. **`languageModel`**: any Anthropic model the workspace's connector can reach.
+2. **`languageModel`**: any Claude model the workspace's Claude Code connector lists.
 3. **The cron**: Monday 14:00 UTC, after `web-capture`'s Monday run.
 
 ## What it does not do

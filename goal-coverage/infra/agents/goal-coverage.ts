@@ -1,7 +1,7 @@
 import { defineAgent } from "@cargo-ai/cdk";
 
 import { goalCoveragePrompt } from "./goal-coverage.prompt";
-import { anthropic } from "../connectors/anthropic";
+import { claudeCode } from "../connectors/claude-code";
 import { slack } from "../connectors/slack";
 import { agentsFolder } from "../folders";
 import { goalCoverageUser } from "../users";
@@ -38,7 +38,7 @@ export const goalCoverage = defineAgent("goal_coverage", {
     "Once a week, compares the company goal against what the workspace runs and suggests at most five pipelines it is missing, as a pull request and a Slack post.",
   color: "green",
   harness: "claudeCode",
-  connector: anthropic,
+  connector: claudeCode,
   languageModel: "claude-sonnet-5", // PLACEHOLDER: your model of choice
   // No `state`: deploy binds this project's connected state (the one
   // cargo.state.json points at), and the harness clones its repository at the

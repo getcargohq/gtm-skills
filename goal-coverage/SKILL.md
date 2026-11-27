@@ -2,7 +2,7 @@
 name: goal-coverage
 description: 'Find what your goal needs that the workspace has not built: once a week a deployed agent reads the company goal, takes stock of every play, agent, model and connector in the workspace, and suggests at most five missing pipelines from the published catalog, each opened with what it noticed ("thousands of accounts, none scored"), as a pull request you can decline lines in and a Slack post. Triggers: "what should we be running", "what are we missing for our goal", "suggest new plays for our goal", "which pipelines should we set up next", "we have 25 plays and do not know which 5 matter", "tell us what to build, do not wait to be asked". Cargo project, defineAgent, harness claudeCode, catalog.json, plan/company-plan.md, Slack. Skip when: you want existing initiatives graded against last week''s runs, which is weekly-planning; or something deployed is failing, which is workspace-health.'
 version: "0.2.0"
-compatibility: "Requires @cargo-ai/cli 1.0.154 or later with @cargo-ai/cdk 1.0.150 or later (harness agents bound to the project's connected state, with `env` and `runAs` at the top level of `defineAgent`). Also needs a Cargo workspace, an authenticated Anthropic connector, a Slack connector, and a GTM repository. The goal is read from plan/company-plan.md when it exists, otherwise from COVERAGE_GOAL on the agent."
+compatibility: "Requires @cargo-ai/cli 1.0.154 or later with @cargo-ai/cdk 1.0.150 or later (harness agents bound to the project's connected state, with `env` and `runAs` at the top level of `defineAgent`). Also needs a Cargo workspace, a Claude Code connector, a Slack connector, and a GTM repository. The goal is read from plan/company-plan.md when it exists, otherwise from COVERAGE_GOAL on the agent."
 homepage: https://github.com/getcargohq/gtm-skills/tree/main/goal-coverage
 metadata:
   author: getcargo
@@ -96,7 +96,7 @@ is enough.
    **If you are reading this from the project's `.claude/skills/`, the install already happened, so
    start at step 2.** On a CLI too old to have `add`, copy this folder in as a sibling of what is
    there by hand; everything below is unchanged.
-2. **Reconcile it with what is already declared.** If the project already has an Anthropic
+2. **Reconcile it with what is already declared.** If the project already has a Claude Code
    or Slack connector, rewire the imports to the existing one and drop the copy; two
    resources with one slug is a collision at deploy.
 3. **Adapt.** Work the sections below in order: _What should not change_ is what you argue back
@@ -120,7 +120,7 @@ is enough.
 | Slack channel (`infra/agents/goal-coverage.ts`) | value | **asked**: which channel the revenue leader reads. Resolve the name to its `C…` id with the Slack connector's channel autocomplete, never type an id. | Locked on the use so the agent cannot post internal suggestions into a customer channel. |
 | project binding | value | **derived**: leave `state` unset and deploy binds the project's connected state (`cargo.state.json`): its repository, directory and production branch. `cargo-ai project check` prints the binding; a project whose state is not connected deploys the agent unbound, with an empty sandbox. | It is where the coverage file lands and where next week's memory is read from. |
 | service user (`infra/users/index.ts`) | value | **derived**: `goal_coverage`, a service user on the adopted `viewer` system role. Deploying creates it; the deploying user's own role must cover viewer. If the project already adopts `viewer`, import that role instead of declaring it twice. | Every run's `cargo-ai` session. Without it the sandbox has no session and every workspace read fails. Viewer reads folders, plays, agents, models and connectors but cannot deploy or change a resource. |
-| Anthropic and Slack connectors | value | **derived**: `cargo-ai connection connector list`; add a missing one with `cargo-ai project add connector/<name>`. Both are `default: true` because a deploy cannot mint an OAuth grant. | The model the run is billed against, and the post. |
+| Claude Code and Slack connectors | value | **derived**: `cargo-ai connection connector list`; add a missing one with `cargo-ai project add connector/<name>`. Both are `default: true` because a deploy cannot mint an OAuth grant. | The model the run is billed against, and the post. |
 
 ## What you can change
 
@@ -153,7 +153,7 @@ is enough.
 
 ## Done when
 
-- `node --import tsx evals/contract.mjs` passes: a `claudeCode` harness bound to an Anthropic
+- `node --import tsx evals/contract.mjs` passes: a `claudeCode` harness bound to a Claude Code
   connector and a model, `runAs` a viewer service user, no capability, exactly one connector action (`slack.postMessage` with the
   channel locked), and a `COVERAGE_GOAL` env entry
 - `cargo-ai project plan` reports the agent, its folder, and the three connectors
@@ -169,7 +169,7 @@ is enough.
 
 ## What it costs
 
-The recurring cost is the harness run once a week, billed as LLM tokens through the bound Anthropic
+The recurring cost is the harness run once a week, billed as LLM tokens through the bound Claude Code
 connector. It scales with what the agent reads: the plan file, a few list commands, one or two
 aggregate queries, the catalog, and up to eight earlier coverage files. The workspace reads are API
 calls, not connector actions, so they bill nothing, and the run never executes an action that

@@ -5,7 +5,7 @@ Walk every line. A checked template without an evidence-backed consumer adaptati
 ## Before deploy
 
 - `node --import tsx evals/contract.mjs` passes against the adapted graph: a `claudeCode` harness on
-  an Anthropic connector, one weekly cron, nothing on `uses`, no capability, `CONTENT_AUTHOR` set.
+  a Claude Code connector, one weekly cron, nothing on `uses`, no capability, `CONTENT_AUTHOR` set.
 - `cargo-ai project check` prints `agent:linkedin_content_writer bound to <your repo>#<branch>` with no
   trailing subdirectory, and the Cargo GitHub app is installed on that repository.
 - `context/` has at least one `global/` file and one `proof/` or `insight/` file.

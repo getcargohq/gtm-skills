@@ -132,7 +132,7 @@ _asked_ genuinely live in the operator's head.
 | Input                                              | Kind  | How it is answered                                                                                                                                                                                                                          | Why it matters                                                                                                                                                                                                                          |
 | -------------------------------------------------- | ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | project binding (`infra/agents/planner.ts`) | value | **derived**: leave `state` unset and deploy binds the project's connected state (`cargo.state.json`): its repository, directory and production branch. `cargo-ai project check` prints the binding; a project whose state is not connected deploys the agent unbound, with an empty sandbox. | This is the working tree the harness clones and the only place its plan files can land. An `owner/name` written by hand is the one value nobody notices is wrong until a pull request opens against a stranger's repository.            |
-| LLM connector and model (`infra/connectors/anthropic.ts`) | value | **derived**: `cargo-ai connection connector list` shows whether an Anthropic connector is authorized; if not, `cargo-ai project add connector/anthropic` takes the key. `default: true` because a deploy cannot mint one. Any Anthropic model pairs with `claudeCode`; the agent's `languageModel` is a placeholder to set. | A harness does not bring its own model — it runs against Cargo's LLM proxy, so this is what the Monday run is billed and metered against. Omit either and `defineAgent` throws at `plan`; pair `claudeCode` with an `openAi` connector and it typechecks green and fails at deploy. |
+| LLM connector and model (`infra/connectors/claude-code.ts`) | value | **derived**: `cargo-ai connection connector list` shows whether a Claude Code connector exists; if not, `cargo-ai project add connector/claudeCode` sets one up (paste a `claude setup-token` token to bill a Claude Pro or Max plan, or leave it empty to run on Cargo credits). `default: true` because a deploy cannot mint one. Any Claude model the `claudeCode` integration lists works; the agent's `languageModel` is a placeholder to set. | A harness does not bring its own model — it runs against Cargo's LLM proxy, so this is what the Monday run is billed and metered against. Omit either and `defineAgent` throws at `plan`; bind the harness to any other integration (`anthropic` included) and it typechecks green and fails at deploy. |
 | `PLANNING_TIMEZONE` (`infra/agents/planner.ts`)    | value | **derived**: default `America/Los_Angeles`. Change it only if the team's week is not Pacific. Change it together with `cron`.                                                                                                                 | The previous ISO week is computed in this timezone. A timezone the collector does not share with the prompt splits the dump and the plan files across two weeks.                                                                      |
 | cadence and initiatives paths                      | value | **derived**: read `cadence/README.md` and `ls initiatives/` for what already exists                                                                                                                                                           | The agent writes into a layer humans already curate. A second parallel folder splits the record in half. An empty `initiatives/` is not an error: it is the one-workspace-PR path.                                                      |
 
@@ -220,10 +220,10 @@ it if you still want it, and records why under `## Decisions` in your copy of th
 
 - `--dry-run` printed the dump for the previous ISO week, and the run without it wrote
   `cadence/log/raw/planning/<YYYY-Www>.md`; running it twice that Monday overwrote the same file
-- `node --import tsx evals/contract.mjs` passes: harness is `claudeCode` bound to an Anthropic
+- `node --import tsx evals/contract.mjs` passes: harness is `claudeCode` bound to a Claude Code
   connector and a model, no capability is wired on the agent, there is no Slack action, and no
   tool wraps git or the CLI
-- `cargo-ai project plan` reports the agent, the Anthropic connector and the folder, and
+- `cargo-ai project plan` reports the agent, the Claude Code connector and the folder, and
   does **not** run git or `gh` while planning
 - with **zero** active initiatives, the first scheduled run opened exactly one unmerged pull
   request titled `[cadence] workspace <YYYY-Www>` whose diff contains the dump and
@@ -246,7 +246,7 @@ The collector talks to git and, when `gh` is installed, to GitHub from the harne
 Those calls are not Cargo connector actions.
 
 The recurring cost is the harness run itself, once a week, billed as LLM tokens through the bound
-Anthropic connector, and it scales with how much the agent reads — the dump, the week's cadence
+Claude Code connector, and it scales with how much the agent reads — the dump, the week's cadence
 files, the active initiative files, declared infra, and the read-only `cargo-ai` calls in §1b
 (whoami, what is deployed, run counts, usage). Those reads are API calls, not connector actions, so
 they bill nothing. There is no per-record fan-out, and the recap never runs a command that spends.

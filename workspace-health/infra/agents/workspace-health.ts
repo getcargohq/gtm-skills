@@ -1,7 +1,7 @@
 import { defineAgent } from "@cargo-ai/cdk";
 
 import { workspaceHealthPrompt } from "./workspace-health.prompt";
-import { anthropic } from "../connectors/anthropic";
+import { claudeCode } from "../connectors/claude-code";
 import { slack } from "../connectors/slack";
 import { agentsFolder } from "../folders";
 import { workspaceHealthUser } from "../users";
@@ -39,7 +39,7 @@ export const workspaceHealth = defineAgent("workspace_health", {
     "Every morning, checks the workspace for failing runs, stopped plays, empty outputs and credit spikes, and posts to Slack only when something is wrong.",
   color: "red",
   harness: "claudeCode",
-  connector: anthropic,
+  connector: claudeCode,
   languageModel: "claude-sonnet-5", // PLACEHOLDER: your model of choice
   // No `state`: deploy binds this project's connected state (cargo.state.json).
   // `cargo-ai project check` prints the binding.

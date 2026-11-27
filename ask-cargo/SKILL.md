@@ -103,7 +103,7 @@ this is enough.
    install already happened — start at step 2.** On a CLI too old to have `add`, copy this folder in
    as a sibling of what is there by hand; everything below is unchanged.
 2. **Reconcile it with what is already declared.** If the project already has a Slack or
-   Anthropic connector (standup and weekly-planning each bring one), rewire the imports to the
+   Claude Code connector (standup and weekly-planning each bring one), rewire the imports to the
    existing one and drop the copy; two resources with one slug is a collision at deploy.
 3. **Check where the bot already is.** Authorize the Slack connector if the workspace does not have
    one (`cargo-ai project add connector/slack`). The trigger is `allChannels`, so the agent answers in
@@ -130,7 +130,7 @@ this is enough.
 | --------------------------------------------------------- | ----- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | project binding (`infra/agents/ask-cargo.ts`) | value | **derived**: leave `state` unset and deploy binds the project's connected state (`cargo.state.json`): its repository, directory and production branch. `cargo-ai project check` prints the binding; a project whose state is not connected deploys the agent unbound, with an empty sandbox.                               | This is the checkout every answer reads and every pull request opens against. An `owner/name` typed by hand is the value nobody notices is wrong until a pull request lands on a stranger's repository.                         |
 | service user (`infra/users/index.ts`)                     | value | **derived**: `ask_cargo`, a service user on the adopted `viewer` system role. Deploying creates it; the deploying user's own role must cover viewer.                                                                                                               | Every turn's `cargo-ai` session. Viewer reads runs, models, agents and usage and can message other agents, but cannot deploy or change a resource, so the prompt's limits hold even when the prompt is ignored.               |
-| Slack and LLM connectors (`infra/connectors/`)            | value | **derived**: `cargo-ai connection connector list` shows what is authorized; `cargo-ai project add connector/<slack\|anthropic>` opens the consent for what is missing. Both are `default: true` because a deploy cannot mint a grant.                      | Slack is the trigger, Anthropic what every turn is billed against. A harness paired with a non-Anthropic connector typechecks green and fails at deploy.                                            |
+| Slack and LLM connectors (`infra/connectors/`)            | value | **derived**: `cargo-ai connection connector list` shows what is authorized; `cargo-ai project add connector/<slack\|claudeCode>` opens the consent for what is missing. Both are `default: true` because a deploy cannot mint a grant.                      | Slack is the trigger, Claude Code what every turn is billed against. A harness paired with any other integration, `anthropic` included, typechecks green and fails at deploy.                                            |
 | channel reach (`infra/agents/ask-cargo.ts`)               | value | **derived**: `allChannels: true`, so the reach is every channel the bot is in. Read them from the Slack connector's channel autocomplete; `cargo-ai ai agent list` shows which other agents list channels of their own.                                            | The agent reads the ICP, the pipeline and the spend out loud to whoever is in the channel. A customer shared channel the bot is in leaks all of it. A channel another agent lists stays that agent's, and a second `allChannels` agent answers alongside this one. |
 | roster (`references/roster.md`)                           | value | **derived**: `cargo-ai ai agent list` for what is deployed, each agent's description for what it owns.                                                                                                                                                            | Without it the agent guesses which agent owns a job from names alone, and "re-score Acme" goes to the wrong one or gets re-done by hand.                                                                                        |
 
@@ -202,7 +202,7 @@ it if you still want it, and records why under `## Decisions` in your copy of th
 
 ## Done when
 
-- `node --import tsx evals/contract.mjs` passes: harness is `claudeCode` on an Anthropic connector,
+- `node --import tsx evals/contract.mjs` passes: harness is `claudeCode` on a Claude Code connector,
   one Slack trigger on `allChannels`, nothing on `uses`, no capability, `runAs` a viewer service user
 - `cargo-ai project plan` reports the agent, the three connectors, the folder, the `ask_cargo` user and the
   adopted `viewer` role
@@ -227,7 +227,7 @@ it if you still want it, and records why under `## Decisions` in your copy of th
 ## What it costs
 
 Every turn is a harness run: a sandbox, a clone of the repository, and LLM tokens billed through the
-bound Anthropic connector. A turn that only answers a question costs tokens and nothing else. The
+bound Claude Code connector. A turn that only answers a question costs tokens and nothing else. The
 read-only `cargo-ai` calls are API calls, not connector actions, and bill nothing.
 
 What spends is what someone approves with a go: the connector actions, batches and agent handoffs in

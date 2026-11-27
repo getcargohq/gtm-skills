@@ -34,7 +34,7 @@ cargo-ai project add cookbook/goal-coverage
 | --- | --- |
 | `infra/agents/goal-coverage.ts` | the agent: weekly cron, harness, the locked Slack post, `COVERAGE_GOAL` |
 | `infra/agents/goal-coverage.prompt.ts` | the contract: goal, reads, menu, memory, choice, file, PR, post |
-| `infra/connectors/` | Anthropic and Slack, both bound with `default: true` |
+| `infra/connectors/` | Claude Code and Slack, both bound with `default: true` |
 | `infra/folders/index.ts` | the agent folder, named after the cookbook |
 | `evals/contract.mjs` | the boundaries schema validation cannot express |
 | `evals/acceptance.md` | the walk-through after the first run |

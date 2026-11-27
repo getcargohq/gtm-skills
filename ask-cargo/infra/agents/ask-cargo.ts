@@ -1,7 +1,7 @@
 import { agentConnectorTrigger, defineAgent } from "@cargo-ai/cdk";
 
 import { askCargoPrompt } from "./ask-cargo.prompt";
-import { anthropic } from "../connectors/anthropic";
+import { claudeCode } from "../connectors/claude-code";
 import { slack } from "../connectors/slack";
 import { agentsFolder } from "../folders";
 import { askCargoUser } from "../users";
@@ -19,8 +19,8 @@ import { askCargoUser } from "../users";
 //
 // `connector` and `languageModel` are required even here. The harness does not
 // bring its own model: it runs against Cargo's LLM proxy, which bills this
-// connector and meters usage against this slug. Any Anthropic model works with
-// `claudeCode`; see `../connectors/anthropic.ts`.
+// connector and meters usage against this slug. Any Claude model the
+// `claudeCode` integration lists works; see `../connectors/claude-code.ts`.
 //
 // No `uses`, on purpose. The Slack trigger replies in the thread by itself,
 // so there is no postMessage to declare. Handing work to other agents — the
@@ -41,7 +41,7 @@ export const askCargo = defineAgent("ask_cargo", {
     "The team's GTM agent in Slack: answers from the repo and the workspace, opens pull requests for changes, and hands work to the other agents only after a go in the thread.",
   color: "blue",
   harness: "claudeCode",
-  connector: anthropic,
+  connector: claudeCode,
   languageModel: "claude-sonnet-5", // PLACEHOLDER — your model of choice
   // No `state`: deploy binds this project's connected state (the one
   // cargo.state.json points at), and the harness clones its repository at the

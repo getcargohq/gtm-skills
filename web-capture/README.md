@@ -32,12 +32,12 @@ cargo-ai project add cookbook/web-capture
 
 Adds 4 resources and no script.
 
-| File                                | Resource                        | Role                                                                           |
-| ----------------------------------- | ------------------------------- | ------------------------------------------------------------------------------ |
-| `infra/agents/web-scribe.ts`        | `defineAgent` (claudeCode)      | the scribe: model, folder, weekly cron, no env                                 |
-| `infra/agents/web-scribe.prompt.ts` | (not a resource)                | the whole procedure: domain, pages, competitors, the exact commands, the rules |
-| `infra/connectors/anthropic.ts`     | `defineConnector` (`anthropic`) | the model the harness runs on, billed and metered                              |
-| `infra/folders/index.ts`            | `defineFolder`                  | the workspace folder the agent is filed in                                     |
+| File                                | Resource                         | Role                                                                           |
+| ----------------------------------- | -------------------------------- | ------------------------------------------------------------------------------ |
+| `infra/agents/web-scribe.ts`        | `defineAgent` (claudeCode)       | the scribe: model, folder, weekly cron, no env                                 |
+| `infra/agents/web-scribe.prompt.ts` | (not a resource)                 | the whole procedure: domain, pages, competitors, the exact commands, the rules |
+| `infra/connectors/claude-code.ts`   | `defineConnector` (`claudeCode`) | the model the harness runs on, billed and metered                              |
+| `infra/folders/index.ts`            | `defineFolder`                   | the workspace folder the agent is filed in                                     |
 
 ## Why no script
 

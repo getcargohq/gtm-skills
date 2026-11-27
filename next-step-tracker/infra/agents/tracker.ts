@@ -1,7 +1,7 @@
 import { defineAgent } from "@cargo-ai/cdk";
 
 import { trackerPrompt } from "./tracker.prompt";
-import { anthropic } from "../connectors/anthropic";
+import { claudeCode } from "../connectors/claude-code";
 import { slack } from "../connectors/slack";
 import { agentsFolder } from "../folders";
 import { gtmAccounts } from "../models/gtm-accounts";
@@ -32,7 +32,7 @@ export const tracker = defineAgent("commitment_tracker", {
     "Records every commitment made on a call, closes the ones the activity log shows were kept, and posts the ones due or overdue to Slack.",
   color: "yellow",
   harness: "claudeCode",
-  connector: anthropic,
+  connector: claudeCode,
   languageModel: "claude-sonnet-5", // PLACEHOLDER: your model of choice
   // No `state`: deploy binds this project's connected state (cargo.state.json).
   // The harness clones that state's production branch, so it reads the call
