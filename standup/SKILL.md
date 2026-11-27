@@ -149,7 +149,7 @@ _asked_ genuinely live in the operator's head.
 | Slack connector (`infra/connectors/slack.ts`)      | value | **derived**: `cargo-ai connection connector list` shows whether one is authorized; if not, `cargo-ai project add connector/slack` opens the OAuth consent. The declaration is `default: true` because a deploy cannot mint an OAuth grant.           | It is the agent's entire post path. Without it the run writes the log and has nowhere to send the digest.                                                                                                                               |
 | `channelId` (`infra/agents/standup.ts`)            | asked | the Slack channel id (`C…`) the digest is allowed to land in. Read it from the connector's channel autocomplete, not by guessing a name. Invite the bot.                                                                                      | Locked on `postMessage` so the agent cannot pick a customer shared channel. A name (`#general`) collides; an empty lock posts nowhere useful and looks like success.                                                                    |
 | `STANDUP_TITLE` (`infra/agents/standup.ts`)        | asked | the short name in the Slack header (`:racing_car: *GTM - Sat Aug 1*`). A founder-facing label, not the GitHub slug.                                                                                                                          | Two standups in the same channel are told apart from the first line. A repo name here reads as infrastructure, not as the GTM day.                                                                                                      |
-| LLM connector and model (`infra/connectors/anthropic.ts`) | value | **derived**: `cargo-ai connection connector list` shows whether an Anthropic connector is authorized; if not, `cargo-ai project add connector/anthropic` takes the key. `default: true` because a deploy cannot mint one. Any Anthropic model pairs with `claudeCode`; the agent's `languageModel` is a placeholder to set. | A harness does not bring its own model — it runs against Cargo's LLM proxy, so this is what the nightly run is billed and metered against. Omit either and `defineAgent` throws at `plan`; pair `claudeCode` with an `openAi` connector and it typechecks green and fails at deploy. |
+| LLM connector and model (`infra/connectors/claude-code.ts`) | value | **derived**: `cargo-ai connection connector list` shows whether a Claude Code connector exists; if not, `cargo-ai project add connector/claudeCode` sets one up (paste a `claude setup-token` token to bill a Claude Pro or Max plan, or leave it empty to run on Cargo credits). `default: true` because a deploy cannot mint one. Any Claude model the `claudeCode` integration lists works; the agent's `languageModel` is a placeholder to set. | A harness does not bring its own model — it runs against Cargo's LLM proxy, so this is what the nightly run is billed and metered against. Omit either and `defineAgent` throws at `plan`; bind the harness to any other integration (`anthropic` included) and it typechecks green and fails at deploy. |
 | cadence paths                                      | value | **derived**: read `cadence/README.md` and `ls cadence/log/` for what already exists                                                                                                                                                           | The agent writes into a layer humans already curate. A second parallel folder splits the record in half.                                                                                                                                |
 
 Checked before moving on, not after the deploy:
@@ -240,7 +240,7 @@ it if you still want it, and records why under `## Decisions` in your copy of th
 
 - `--dry-run` printed the dump, and the run without it wrote `cadence/log/raw/standup/<date>.md`;
   running it twice that evening overwrote the same file
-- `node --import tsx evals/contract.mjs` passes: harness is `claudeCode` bound to an Anthropic
+- `node --import tsx evals/contract.mjs` passes: harness is `claudeCode` bound to a Claude Code
   connector, no capability is wired, `postMessage` is on `uses` with `channelId` locked, and no
   tool wraps it
 - `cargo-ai project plan` reports the agent, the two connectors and the folder, and does **not** run
@@ -268,7 +268,7 @@ The Slack post is `slack.postMessage` on the bound connector. Immediately before
 read the current cost. Say that number out loud as a per-post cost; the run posts once.
 
 The recurring cost is the harness run itself, once a day, billed as LLM tokens through the bound
-Anthropic connector, and it scales with how much the agent reads — the dump, the day's cadence
+Claude Code connector, and it scales with how much the agent reads — the dump, the day's cadence
 files, a short window of git history, and the read-only `cargo-ai` calls in §1b (whoami, run
 counts, usage, what is deployed). Those reads are API calls, not connector actions, so they bill
 nothing. There is no per-record fan-out, and the recap never runs a command that spends.

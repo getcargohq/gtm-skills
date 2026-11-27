@@ -11,7 +11,7 @@ import { resetRegistry, resources } from "@cargo-ai/cdk";
 resetRegistry();
 const stamp = Date.now();
 await import(`../infra/agents/standup.ts?contract=${stamp}`);
-await import(`../infra/connectors/anthropic.ts?contract=${stamp}`);
+await import(`../infra/connectors/claude-code.ts?contract=${stamp}`);
 
 const byId = new Map(resources().map((resource) => [resource.id, resource]));
 
@@ -36,15 +36,15 @@ assert.equal(
   "standup must be a Claude Code harness agent: the output is a repo diff",
 );
 
-// The harness runs against Cargo's LLM proxy, and the proxy is selected by the
-// connector's integration: `claudeCode` with anything but `anthropic`
-// typechecks green and fails at deploy.
-const llm = byId.get("connector:anthropic");
-assert.ok(llm, "defineConnector(anthropic) must exist: the harness needs a model");
+// The harness runs against Cargo's LLM proxy, and only the `claudeCode`
+// integration serves the `claudeCode` harness: any other typechecks green and
+// fails at deploy.
+const llm = byId.get("connector:claude_code");
+assert.ok(llm, "defineConnector(claude_code) must exist: the harness needs a model");
 assert.equal(
   llm.spec.integrationSlug,
-  "anthropic",
-  "claudeCode is proxied to Anthropic: an openAi connector deploys broken",
+  "claudeCode",
+  "the claudeCode harness runs on the claudeCode integration: any other deploys broken",
 );
 assert.ok(
   agent.spec.connectorUuid,

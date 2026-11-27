@@ -32,7 +32,7 @@ cargo-ai project add cookbook/workspace-health
 | --- | --- |
 | `infra/agents/workspace-health.ts` | the agent: daily cron, harness, post and history read locked to one channel, thresholds |
 | `infra/agents/workspace-health.prompt.ts` | the contract: the five checks, dedup, the Monday line |
-| `infra/connectors/` | Anthropic and Slack, both bound with `default: true` |
+| `infra/connectors/` | Claude Code and Slack, both bound with `default: true` |
 | `infra/folders/index.ts` | the agent folder, named after the cookbook |
 | `evals/contract.mjs` | the boundaries schema validation cannot express |
 | `evals/acceptance.md` | the walk-through after the first run |

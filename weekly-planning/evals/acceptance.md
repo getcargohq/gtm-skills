@@ -18,14 +18,14 @@ Walk every line. A checked template without an evidence-backed consumer adaptati
   with no trailing subdirectory. The repo is the one holding `cadence/`, and
   the Cargo GitHub app is installed on it. A trailing `in infra/` means the harness was
   rooted where there is no node_modules, so the collector cannot run.
-- `cargo-ai connection connector list` shows an authorized Anthropic connector,
+- `cargo-ai connection connector list` shows a Claude Code connector,
   and `languageModel` in `infra/agents/planner.ts` names a model it can reach.
   The harness runs against Cargo's proxy, so a missing one throws at `plan`.
 - `cargo-ai whoami` names the workspace this recap should read. It is §1b's
   first command; whether the harness sandbox carries a session of its own is
   what the first scheduled run establishes, and the PRs say so either way.
 - `node --import tsx evals/contract.mjs` passes against the adapted graph:
-  harness is `claudeCode` bound to an Anthropic connector and a model, no
+  harness is `claudeCode` bound to a Claude Code connector and a model, no
   capability is wired on the agent, there is no Slack action.
 - The cadence and initiatives paths in the system prompt match what
   `cadence/README.md` describes, or the new folders are introduced
@@ -58,7 +58,7 @@ Walk every line. A checked template without an evidence-backed consumer adaptati
 - Recommendations land as pull requests. No Slack token, no `chat.postMessage`
   script, no GitHub Action, no `execute_action`.
 - `evals/contract.mjs` still passes after adaptation: harness is `claudeCode`
-  bound to an Anthropic connector, no capability is wired on the agent, there
+  bound to a Claude Code connector, no capability is wired on the agent, there
   is no Slack action, and no tool wraps git or the CLI.
 - The `cargo-ai` calls in the run's transcript were read-only (whoami, play
   and agent list, run count / list, usage). No `orchestration action execute`,

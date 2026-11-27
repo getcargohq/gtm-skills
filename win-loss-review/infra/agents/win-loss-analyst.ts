@@ -1,7 +1,7 @@
 import { defineAgent } from "@cargo-ai/cdk";
 
 import { winLossAnalystPrompt } from "./win-loss-analyst.prompt";
-import { anthropic } from "../connectors/anthropic";
+import { claudeCode } from "../connectors/claude-code";
 import { slack } from "../connectors/slack";
 import { agentsFolder } from "../folders";
 
@@ -18,8 +18,8 @@ import { agentsFolder } from "../folders";
 //
 // `connector` and `languageModel` are required even here. The harness does not
 // bring its own model: it runs against Cargo's LLM proxy, which bills this
-// connector and meters usage against this slug. Any Anthropic model works with
-// `claudeCode`; see `../connectors/anthropic.ts`.
+// connector and meters usage against this slug. Any Claude model the
+// `claudeCode` integration lists works; see `../connectors/claude-code.ts`.
 //
 // Slack is a Cargo connector action on `uses`, not a script and not a wrapped
 // tool. `channelId` is locked the same way `mailboxUuid` is locked on
@@ -53,7 +53,7 @@ export const winLossAnalyst = defineAgent("win_loss_analyst", {
     "Monthly: audits the CRM's won and lost deals, verifies the ICP, appends dated insights, objections, clients and proof to context/, opens one pull request, posts a five-line digest to Slack.",
   color: "blue",
   harness: "claudeCode",
-  connector: anthropic,
+  connector: claudeCode,
   languageModel: "claude-sonnet-5", // PLACEHOLDER — your model of choice
   uses: [
     {

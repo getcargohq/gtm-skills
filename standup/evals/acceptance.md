@@ -26,11 +26,11 @@ Walk every line. A checked template without an evidence-backed consumer adaptati
   rooted where there is no node_modules, so the collector cannot run.
 - `cargo-ai connection connector list` shows an authorized Slack connector, or
   `cargo-ai project add connector/slack` was used to open the OAuth consent.
-- The same list shows an authorized Anthropic connector, and `languageModel` in
+- The same list shows a Claude Code connector, and `languageModel` in
   `infra/agents/standup.ts` names a model it can reach. The harness runs against
   Cargo's proxy, so a missing one throws at `plan`.
 - `node --import tsx evals/contract.mjs` passes against the adapted graph:
-  harness is `claudeCode` bound to an Anthropic connector, no capability is
+  harness is `claudeCode` bound to a Claude Code connector, no capability is
   wired, `postMessage` is on `uses` with `channelId` locked.
 - The cadence paths in the system prompt match what `cadence/README.md`
   describes, or the new folders are introduced deliberately and that README is

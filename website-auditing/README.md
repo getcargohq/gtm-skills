@@ -28,7 +28,7 @@ Adds 7 resources.
 | `infra/agents/website-auditor.prompt.ts` | (not a resource)              | score, record, compare, fix, post                                 |
 | `infra/models/website-audits.ts`        | `defineModel` (native)          | the ledger: one row per domain per week                           |
 | `infra/connectors/slack.ts`              | `defineConnector` (`slack`)     | the post path                                                     |
-| `infra/connectors/anthropic.ts`          | `defineConnector` (`anthropic`) | the model the harness runs on                                     |
+| `infra/connectors/claude-code.ts`          | `defineConnector` (`claudeCode`) | the model the harness runs on                                     |
 | `infra/folders/index.ts`                 | `defineFolder` ×2               | where the agent and the model are filed                           |
 | `references/digest.md`                   | (not a resource)                | the message shape and the rule for each line                      |
 
@@ -48,7 +48,7 @@ scanned, fixed and posted, has to live somewhere that is not waiting for a pull 
 
 1. **`AUDIT_DOMAIN`, `COMPETITOR_DOMAINS`, `WEBSITE_ROOT`** in `infra/agents/website-auditor.ts`.
 2. **`channelId`**: the Slack channel id the digest lands in.
-3. **`languageModel`**: any Anthropic model the workspace's connector can reach.
+3. **`languageModel`**: any Claude model the workspace's Claude Code connector lists.
 
 ## What it does not do
 

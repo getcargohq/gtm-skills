@@ -2,7 +2,7 @@
 name: website-auditing
 description: 'Keep your site usable by AI agents: once a week Ora audits how agents discover, read and use your domain and up to three rival domains, one pull request applies the fixes your site source can make, and one Slack digest reports the Ora score and what moved. Triggers: "make our site readable by ai agents", "track our ora score", "can ai agents read our site", "agent readiness audit", "compare our ora score with rivals", "fix llms.txt and agent discovery files". Cargo project, defineAgent, harness claudeCode, Ora MCP server, mcpClients, native model, Slack postMessage, GitHub pull request. Skip when: the site itself is to be built or hosted, which is website-building; or rival pages and news belong in context, which is web-capture.'
 version: "0.2.0"
-compatibility: "Requires @cargo-ai/cli 1.0.154 or later with @cargo-ai/cdk 1.0.150 or later (harness agents bound to the project's connected state, with `env` at the top level of `defineAgent`), a Cargo workspace, a repository holding the website's source (website-building puts it there), authorized Slack and Anthropic connectors, the Cargo GitHub app installed on the repository, and outbound access to Ora's public MCP server (no Ora account or key)."
+compatibility: "Requires @cargo-ai/cli 1.0.154 or later with @cargo-ai/cdk 1.0.150 or later (harness agents bound to the project's connected state, with `env` at the top level of `defineAgent`), a Cargo workspace, a repository holding the website's source (website-building puts it there), authorized Slack and Claude Code connectors, the Cargo GitHub app installed on the repository, and outbound access to Ora's public MCP server (no Ora account or key)."
 homepage: https://github.com/getcargohq/gtm-skills/tree/main/website-auditing
 metadata:
   author: getcargo
@@ -86,7 +86,7 @@ is enough.
    you are reading this from the project's `.claude/skills/`, the install already happened, so start
    at step 2.**
 2. **Reconcile it with what is already declared.** If the project already has a Slack or
-   Anthropic connector, rewire the imports to the existing one and drop the copy; two resources with
+   Claude Code connector, rewire the imports to the existing one and drop the copy; two resources with
    one slug is a collision at deploy.
 3. **Find the website's source.** Set `WEBSITE_ROOT` in `infra/agents/website-auditor.ts` to the
    folder the site builds from, relative to the repository root. `website-building` puts it at
@@ -129,7 +129,7 @@ is enough.
 | `WEBSITE_ROOT` (`infra/agents/website-auditor.ts`)         | derived | `ls` the repository for the site's `package.json` (or its static root).                                                                                                    | The only folder the agent may change. Wrong, and every fix lands in a folder nothing deploys.                                                       |
 | `channelId` (`infra/agents/website-auditor.ts`)            | asked   | The Slack channel id (`C…`) from the connector's autocomplete. Invite the bot.                                                                                             | Locked, so the digest lands where the web team reads it and nowhere else.                                                                           |
 | project binding (`infra/agents/website-auditor.ts`) | value | **derived**: leave `state` unset and deploy binds the project's connected state (`cargo.state.json`): its repository, directory and production branch. `cargo-ai project check` prints the binding; a project whose state is not connected deploys the agent unbound, with an empty sandbox.          | It is where the site's source is cloned and the pull request opens.                                                                                 |
-| LLM connector and model (`infra/connectors/anthropic.ts`)    | value   | **derived**: `cargo-ai connection connector list`. Any Anthropic model pairs with `claudeCode`; `languageModel` is a placeholder to set.                                    | The harness runs against Cargo's LLM proxy, so this is what each Monday is billed against.                                                          |
+| LLM connector and model (`infra/connectors/claude-code.ts`)    | value   | **derived**: `cargo-ai connection connector list`. Any Claude model the `claudeCode` integration lists works; `languageModel` is a placeholder to set.                                    | The harness runs against Cargo's LLM proxy, so this is what each Monday is billed against.                                                          |
 
 ## What you can change
 
@@ -191,7 +191,7 @@ Ora's reads are free and keyless; Cargo bills nothing for them. The post is `sla
 the bound connector; immediately before the plan, run
 `cargo-ai orchestration action list postMessage --kind connector --integration-slug slack` and read
 the current cost out loud. The recurring cost is the harness run itself, once a week, billed as LLM
-tokens through the Anthropic connector. It is largest on a week with a pull request, when the agent
+tokens through the Claude Code connector. It is largest on a week with a pull request, when the agent
 reads Ora's playbook, the site's source and runs its build; a re-run that stops at the ledger costs
 a small fraction of that.
 

@@ -28,9 +28,9 @@ const check = (name, run) => checks.push([name, run]);
 check("the template declares one agent, one folder and two bound connectors", () => {
   assert.deepEqual(
     [...byId.keys()].sort(),
-    ["agent:web_scribe", "connector:anthropic", "folder:web_capture_agents"],
+    ["agent:web_scribe", "connector:claude_code", "folder:web_capture_agents"],
   );
-  for (const id of ["connector:anthropic"]) {
+  for (const id of ["connector:claude_code"]) {
     assert.equal(byId.get(id).spec.config, undefined, `${id} must bind the workspace's connection, not declare a config`);
   }
 });

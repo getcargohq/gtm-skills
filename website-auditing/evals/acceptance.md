@@ -5,13 +5,13 @@ Walk every line. A checked template without an evidence-backed consumer adaptati
 ## Before deploy
 
 - `node --import tsx evals/contract.mjs` passes against the adapted graph: a `claudeCode` harness on
-  an Anthropic connector, one MCP client on `https://ora.ai/api/mcp` with no credential and its
+  a Claude Code connector, one MCP client on `https://ora.ai/api/mcp` with no credential and its
   write tools and `run_checks` disabled, `website_audits` the only model and writable, no connector
   action but Slack `postMessage` with `channelId` locked, one cron, and `AUDIT_DOMAIN`,
   `COMPETITOR_DOMAINS` (at most three) and `WEBSITE_ROOT` in the repository env.
 - `cargo-ai project check` prints `agent:website_auditor bound to <your repo>#<branch>` with no
   trailing subdirectory.
-- `cargo-ai connection connector list` shows authorized Slack and Anthropic connectors.
+- `cargo-ai connection connector list` shows authorized Slack and Claude Code connectors.
 - `WEBSITE_ROOT` exists on the default branch and is the folder the site deploys from.
 - `curl -s https://ora.ai/api/score/<domain>` answers for every configured domain, or the domain has
   never been scanned and the first run will scan it.

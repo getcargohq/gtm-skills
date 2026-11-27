@@ -1,7 +1,7 @@
 import { defineAgent } from "@cargo-ai/cdk";
 
 import { callScribePrompt } from "./call-scribe.prompt";
-import { anthropic } from "../connectors/anthropic";
+import { claudeCode } from "../connectors/claude-code";
 import { agentsFolder } from "../folders";
 
 // The scribe: a Claude Code harness agent, not a streamText agent.
@@ -15,8 +15,8 @@ import { agentsFolder } from "../folders";
 //
 // `connector` and `languageModel` are required even here. The harness does not
 // bring its own model: it runs against Cargo's LLM proxy, which bills this
-// connector and meters usage against this slug. Any Anthropic model works with
-// `claudeCode`; see `../connectors/anthropic.ts`.
+// connector and meters usage against this slug. Any Claude model the
+// `claudeCode` integration lists works; see `../connectors/claude-code.ts`.
 //
 // This replaces a scheduled CI workflow that launched a hosted agent. One
 // resource now holds the schedule, the repository binding and the
@@ -28,7 +28,7 @@ export const callScribe = defineAgent("call_scribe", {
     "Collects yesterday's call recordings into the cadence layer, scribes them, and opens one reviewable pull request.",
   color: "blue",
   harness: "claudeCode",
-  connector: anthropic,
+  connector: claudeCode,
   languageModel: "claude-sonnet-5", // PLACEHOLDER — your model of choice
   // No `state`, and nothing to put in one. Deploy binds this project's
   // connected state (cargo.state.json) and the harness clones its repository

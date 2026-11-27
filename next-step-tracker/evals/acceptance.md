@@ -5,13 +5,13 @@ Walk every line. A checked template without an evidence-backed consumer adaptati
 ## Before deploy
 
 - `node --import tsx evals/contract.mjs` passes against the adapted graph: a `claudeCode` harness on
-  an Anthropic connector, `commitments` writable, `gtm_activities` and `gtm_accounts` read-only, no connector action but
+  a Claude Code connector, `commitments` writable, `gtm_activities` and `gtm_accounts` read-only, no connector action but
   Slack,
   `postMessage` with `channelId` locked, no Slack read, one cron, `TRACKER_TIMEZONE` in the
   repository env.
 - `cargo-ai project check` prints `agent:commitment_tracker bound to <your repo>#<branch>` with no
   trailing subdirectory.
-- `cargo-ai connection connector list` shows authorized Slack and Anthropic
+- `cargo-ai connection connector list` shows authorized Slack and Claude Code
   connectors.
 - `cadence/log/calls/` on the default branch holds at least one entry dated in the last 30 days with
   an unchecked action.

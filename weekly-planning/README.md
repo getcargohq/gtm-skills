@@ -44,7 +44,7 @@ Adds 4 resources plus a script bundle.
 | ---------------------------------- | ---------------------------- | ----------------------------------------------------------------- |
 | `infra/agents/planner.ts`          | `defineAgent` (claudeCode)   | schedule, repository binding, env                                 |
 | `infra/agents/planner.prompt.ts`   | (not a resource)             | the recap contract: window, one-PR-per-initiative rule, limits    |
-| `infra/connectors/anthropic.ts`    | `defineConnector` (`anthropic`) | the model the harness runs on, billed and metered              |
+| `infra/connectors/claude-code.ts`    | `defineConnector` (`claudeCode`) | the model the harness runs on, billed and metered              |
 | `infra/folders/index.ts`           | `defineFolder`               | the workspace folder this pipeline's resources are filed in       |
 | `scripts/collect/week.ts`          | (not a resource)             | the entrypoint: dump git / `gh` / initiatives / infra for the week |
 
@@ -107,8 +107,8 @@ compete with that initiative.
 
 1. **`PLANNING_TIMEZONE`** — `infra/agents/planner.ts`: IANA timezone the
    previous ISO week is computed in. Change it together with `cron`.
-2. **`languageModel`** — same file: any Anthropic model the workspace's
-   connector can reach. `claudeCode` pairs with the `anthropic` integration and
+2. **`languageModel`** — same file: any Claude model the workspace's
+   Claude Code connector lists. The `claudeCode` harness runs on the `claudeCode` integration and
    nothing else.
 
 ## What it does not do

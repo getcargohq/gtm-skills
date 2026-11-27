@@ -2,7 +2,7 @@
 name: next-step-tracker
 description: 'Track the next steps promised on sales calls and flag the overdue ones in Slack: every weekday morning each commitment made on a recorded call, by your team or the customer, is read from the call log, recorded once, closed when the activity log shows it was kept, and flagged once it falls due or goes overdue. Triggers: "track the next steps from our calls", "remind me when I promised something on a call", "what did we commit to and not do", "chase customer follow-ups we agreed on", "commitment tracker for sales calls", "flag overdue next steps in slack". Cargo project, defineAgent, harness claudeCode, call-capture entries, native models, Slack postMessage, ledger model; HubSpot, Salesforce or Attio as an adaptation. Skip when: you want calls written into the repository, which is call-capture; or a digest of everything that moved, which is standup.'
 version: "0.2.0"
-compatibility: "Requires @cargo-ai/cli 1.0.154 or later with @cargo-ai/cdk 1.0.150 or later (harness agents bound to the project's connected state, with `env` at the top level of `defineAgent`), a Cargo workspace, a GTM repository whose cadence/log/calls/ is written by call-capture (or by hand in the same shape), authorized Slack and Anthropic connectors, and the Cargo GitHub app installed on the repository. No CRM is required: the example reads activity from native models, and a CRM-backed model is a swap."
+compatibility: "Requires @cargo-ai/cli 1.0.154 or later with @cargo-ai/cdk 1.0.150 or later (harness agents bound to the project's connected state, with `env` at the top level of `defineAgent`), a Cargo workspace, a GTM repository whose cadence/log/calls/ is written by call-capture (or by hand in the same shape), authorized Slack and Claude Code connectors, and the Cargo GitHub app installed on the repository. No CRM is required: the example reads activity from native models, and a CRM-backed model is a swap."
 homepage: https://github.com/getcargohq/gtm-skills/tree/main/next-step-tracker
 metadata:
   author: getcargo
@@ -84,7 +84,7 @@ is enough.
    start at step 2.** On a CLI too old to have `add`, copy this folder in as a sibling of what is
    there by hand; everything below is unchanged.
 2. **Reconcile it with what is already declared.** If the project already has a Slack or
-   Anthropic connector, or a `gtm_accounts` model, rewire the imports to the existing one and drop the copy; two
+   Claude Code connector, or a `gtm_accounts` model, rewire the imports to the existing one and drop the copy; two
    resources with one slug is a collision at deploy.
 3. **Check there is a call log to read.** `ls cadence/log/calls/` on the default branch. Empty means
    install `call-capture` first, or the tracker runs clean and finds nothing every morning.
@@ -117,7 +117,7 @@ _asked_ genuinely live in the operator's head.
 | evidence source (`infra/models/gtm-activities.ts`, `gtm-accounts.ts`) | value | **derived**: `cargo-ai storage model list`. A project with a CRM-backed activities or gtm_accounts model uses `crm-backed`; otherwise the native models stay and something must fill `gtm_activities` (a sequencer webhook, a play, `cargo-ai storage record create-bulk`). | It is the only evidence a promise was kept besides a later call. An empty `gtm_activities` closes nothing, and the post grows every day until it is muted. |
 | `channelId` (`infra/agents/tracker.ts`)                   | asked | the Slack channel id (`C…`) the nudges may land in, read from the connector's channel autocomplete. Invite the bot.                                                                             | Nudges quote what customers said on calls. Locked so they never land in a customer shared channel.                                                    |
 | `TRACKER_TIMEZONE` and the cron (`infra/agents/tracker.ts`) | asked | the team's morning. Keep the cron after call-capture's, so yesterday's calls are in the log when the tracker reads it.                                                                          | A timezone that disagrees with the cron makes "due today" yesterday's list.                                                                           |
-| LLM connector and model (`infra/connectors/anthropic.ts`) | value | **derived**: `cargo-ai connection connector list`. Any Anthropic model pairs with `claudeCode`; `languageModel` is a placeholder to set.                                                         | The harness runs against Cargo's LLM proxy, so this is what each morning is billed against. An `openAi` connector here typechecks and fails at deploy. |
+| LLM connector and model (`infra/connectors/claude-code.ts`) | value | **derived**: `cargo-ai connection connector list`. Any Claude model the `claudeCode` integration lists works; `languageModel` is a placeholder to set.                                                         | The harness runs against Cargo's LLM proxy, so this is what each morning is billed against. Any other integration here, `anthropic` included, typechecks and fails at deploy. |
 
 Checked before moving on, not after the deploy:
 
@@ -183,7 +183,7 @@ The evidence reads are SQL over workspace models and bill nothing. The post is `
 on the bound connector; immediately before the plan, run
 `cargo-ai orchestration action list postMessage --kind connector --integration-slug slack` and read
 the current cost out loud. The recurring cost is the harness run itself, once each weekday, billed as
-LLM tokens through the Anthropic connector. It scales with the number of call entries in the window
+LLM tokens through the Claude Code connector. It scales with the number of call entries in the window
 and open commitments to check, not with the size of the activity log, and the run posts at most once.
 
 ## Composes into

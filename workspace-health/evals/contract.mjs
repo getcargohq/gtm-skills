@@ -11,7 +11,7 @@ import { resetRegistry, resources } from "@cargo-ai/cdk";
 resetRegistry();
 const stamp = Date.now();
 await import(`../infra/agents/workspace-health.ts?contract=${stamp}`);
-await import(`../infra/connectors/anthropic.ts?contract=${stamp}`);
+await import(`../infra/connectors/claude-code.ts?contract=${stamp}`);
 
 const byId = new Map(resources().map((resource) => [resource.id, resource]));
 
@@ -31,12 +31,12 @@ assert.equal(
   "workspace-health must be a Claude Code harness agent: the cargo-ai CLI and its orchestration SQL are its read path",
 );
 
-const llm = byId.get("connector:anthropic");
-assert.ok(llm, "defineConnector(anthropic) must exist: the harness needs a model");
+const llm = byId.get("connector:claude_code");
+assert.ok(llm, "defineConnector(claude_code) must exist: the harness needs a model");
 assert.equal(
   llm.spec.integrationSlug,
-  "anthropic",
-  "claudeCode is proxied to Anthropic: an openAi connector deploys broken",
+  "claudeCode",
+  "the claudeCode harness runs on the claudeCode integration: any other deploys broken",
 );
 assert.ok(
   agent.spec.connectorUuid,

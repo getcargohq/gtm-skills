@@ -31,7 +31,7 @@ Adds 9 resources.
 | `infra/models/gtm-activities.ts`    | `defineModel` (native)          | the evidence a promise was kept; read-only                   |
 | `infra/models/gtm-accounts.ts`      | `defineModel` (native)          | who owns each account; read-only                             |
 | `infra/connectors/slack.ts`     | `defineConnector` (`slack`)     | the post path                                                |
-| `infra/connectors/anthropic.ts` | `defineConnector` (`anthropic`) | the model the harness runs on                                |
+| `infra/connectors/claude-code.ts` | `defineConnector` (`claudeCode`) | the model the harness runs on                                |
 | `infra/folders/index.ts`        | `defineFolder` ×2               | where the agent and the model are filed                      |
 | `references/nudge.md`           | (not a resource)                | the message shape and the rule for each line                 |
 
@@ -53,7 +53,7 @@ the agent and its prompt do not change, and no CRM action is ever added to the a
 
 1. **`channelId`** in `infra/agents/tracker.ts`: the Slack channel id the nudges land in.
 2. **`TRACKER_TIMEZONE` and the cron**: keep the run after call-capture's.
-3. **`languageModel`**: any Anthropic model the workspace's connector can reach.
+3. **`languageModel`**: any Claude model the workspace's Claude Code connector lists.
 
 ## What it does not do
 

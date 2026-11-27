@@ -1,7 +1,7 @@
 import { defineAgent } from "@cargo-ai/cdk";
 
 import { webScribePrompt } from "./web-scribe.prompt";
-import { anthropic } from "../connectors/anthropic";
+import { claudeCode } from "../connectors/claude-code";
 import { agentsFolder } from "../folders";
 
 // The web scribe: a Claude Code harness agent on a weekly cron.
@@ -15,8 +15,8 @@ import { agentsFolder } from "../folders";
 //
 // `connector` and `languageModel` are required even here. The harness does not
 // bring its own model: it runs against Cargo's LLM proxy, which bills this
-// connector and meters usage against this slug. Any Anthropic model works with
-// `claudeCode`; see `../connectors/anthropic.ts`.
+// connector and meters usage against this slug. Any Claude model the
+// `claudeCode` integration lists works; see `../connectors/claude-code.ts`.
 //
 // The first run seeds whatever context/ domain is empty; every run after adds
 // what changed that week. Run the first one by hand rather than waiting for
@@ -49,7 +49,7 @@ export const webScribe = defineAgent("web_scribe", {
     "Weekly: reads the company's website and the week's news, seeds any empty context/ domain, adds what changed as dated files, and opens one pull request.",
   color: "blue",
   harness: "claudeCode",
-  connector: anthropic,
+  connector: claudeCode,
   languageModel: "claude-sonnet-5", // PLACEHOLDER: your model of choice
   triggers: [
     {

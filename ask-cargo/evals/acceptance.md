@@ -5,12 +5,12 @@ Walk every line. A checked template without an evidence-backed consumer adaptati
 ## Before deploy
 
 - `node --import tsx evals/contract.mjs` passes against the adapted graph: harness is `claudeCode`
-  on an Anthropic connector, exactly one Slack trigger on `allChannels`, nothing on `uses`, no
+  on a Claude Code connector, exactly one Slack trigger on `allChannels`, nothing on `uses`, no
   capability.
 - `cargo-ai project check` prints `agent:ask_cargo bound to <your repo>#<branch>` with no trailing
   subdirectory, and the Cargo GitHub app is installed on that repository.
-- `cargo-ai connection connector list` shows authorized Slack and Anthropic connectors, and
-  `languageModel` names a model the Anthropic one can reach.
+- `cargo-ai connection connector list` shows authorized Slack and Claude Code connectors, and
+  `languageModel` names a model the Claude Code one lists.
 - Every channel the bot is in is internal, read out loud from the Slack connector's channel
   autocomplete. A customer shared channel is either left by the bot or listed on the agent that
   owns it.

@@ -2,7 +2,7 @@
 name: workspace-health
 description: 'Know the morning something breaks: a deployed agent reads the last 24 hours of the workspace against the week before and posts to Slack only what is wrong and new: failing runs grouped by cause, a lost connector, a play that stopped, runs that succeed and write nothing, a spend spike, a stuck batch. Mondays it posts the week: still open, cleared, all clear. Triggers: "tell me what is broken in the workspace", "watch my workspace every morning", "alert me when a play stops running", "is anything failing in Cargo", "catch silent failures before a customer does", "tell me in slack every morning if a play broke". Cargo project, defineAgent, harness claudeCode, orchestration SQL, billing metrics, Slack. Skip when: one run already failed and you want to know why, which is cargo-diagnostics in the Cargo pack; or you want initiatives graded against what ran, which is weekly-planning.'
 version: "0.2.0"
-compatibility: "Requires @cargo-ai/cli 1.0.154 or later with @cargo-ai/cdk 1.0.150 or later (harness agents bound to the project's connected state, with `env` and `runAs` at the top level of `defineAgent`). Also needs a Cargo workspace, an authenticated Anthropic connector, a Slack connector with the Cargo app invited to the findings channel, and a Cargo project repository the harness clones for its CLI."
+compatibility: "Requires @cargo-ai/cli 1.0.154 or later with @cargo-ai/cdk 1.0.150 or later (harness agents bound to the project's connected state, with `env` and `runAs` at the top level of `defineAgent`). Also needs a Cargo workspace, a Claude Code connector, a Slack connector with the Cargo app invited to the findings channel, and a Cargo project repository the harness clones for its CLI."
 homepage: https://github.com/getcargohq/gtm-skills/tree/main/workspace-health
 metadata:
   author: getcargo
@@ -83,7 +83,7 @@ is enough.
    both. **If you are reading this from the project's `.claude/skills/`, the install already
    happened, so start at step 2.** On a CLI too old to have `add`, copy this folder in as a sibling of
    what is there by hand; everything below is unchanged.
-2. **Reconcile it with what is already declared.** If the project already has an Anthropic
+2. **Reconcile it with what is already declared.** If the project already has a Claude Code
    or Slack connector, rewire the imports to the existing one and drop the copy; two
    resources with one slug is a collision at deploy.
 3. **Adapt.** Work the sections below in order: _What should not change_ is what you argue back
@@ -107,7 +107,7 @@ is enough.
 | thresholds (`HEALTH_ERROR_RATE`, `HEALTH_SPEND_MULTIPLE`, `HEALTH_SPEND_FLOOR`) | value | **derived**: keep the defaults for the first week, then read the Monday post. Raise the error rate on enrichment-heavy workspaces where provider coverage misses are normal. | Too low and coverage misses read as outages; too high and a real outage hides under the line. |
 | project binding | value | **derived**: leave `state` unset and deploy binds the project's connected state (`cargo.state.json`): its repository, directory and production branch. `cargo-ai project check` prints the binding; a project whose state is not connected deploys the agent unbound, with an empty sandbox. | The harness clones it for the `cargo-ai` toolchain. It never pushes. |
 | service user (`infra/users/index.ts`) | value | **derived**: `workspace_health`, a service user on the adopted `viewer` system role. Deploying creates it; the deploying user's own role must cover viewer. If the project already adopts `viewer`, import that role instead of declaring it twice. | Every run's `cargo-ai` session. Without it the sandbox has no session and every workspace read fails. Viewer reads runs, plays, agents and usage but cannot deploy or change a resource. |
-| Anthropic and Slack connectors | value | **derived**: `cargo-ai connection connector list`; add a missing one with `cargo-ai project add connector/<name>`. | The model the run is billed against, and the post. |
+| Claude Code and Slack connectors | value | **derived**: `cargo-ai connection connector list`; add a missing one with `cargo-ai project add connector/<name>`. | The model the run is billed against, and the post. |
 
 ## What you can change
 
@@ -139,7 +139,7 @@ is enough.
 
 ## Done when
 
-- `node --import tsx evals/contract.mjs` passes: a `claudeCode` harness bound to an Anthropic
+- `node --import tsx evals/contract.mjs` passes: a `claudeCode` harness bound to a Claude Code
   connector and a model, `runAs` a viewer service user, no capability, exactly two connector actions (`slack.postMessage` and
   `slack.getConversationHistory`) locked to the same channel, a daily cron, and all three threshold env
   entries
@@ -154,7 +154,7 @@ is enough.
 
 ## What it costs
 
-The recurring cost is the harness run once a day, billed as LLM tokens through the bound Anthropic
+The recurring cost is the harness run once a day, billed as LLM tokens through the bound Claude Code
 connector. It scales with how much is wrong: a clean day is three list commands and five aggregate
 queries; a bad day adds up to two `run get` reads per failing workflow. The workspace reads are API
 calls, not connector actions, so they bill nothing, and the run never executes an action that

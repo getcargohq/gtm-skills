@@ -1,7 +1,7 @@
 import { defineAgent } from "@cargo-ai/cdk";
 
 import { contentWriterPrompt } from "./content-writer.prompt";
-import { anthropic } from "../connectors/anthropic";
+import { claudeCode } from "../connectors/claude-code";
 import { agentsFolder } from "../folders";
 
 // The content writer: a Claude Code harness agent on a weekly cron.
@@ -34,7 +34,7 @@ export const contentWriter = defineAgent("linkedin_content_writer", {
     "Weekly: drafts LinkedIn posts for one author from context/ and the cadence log, every claim cited, as one pull request. Never publishes.",
   color: "blue",
   harness: "claudeCode",
-  connector: anthropic,
+  connector: claudeCode,
   languageModel: "claude-sonnet-5", // PLACEHOLDER: your model of choice
   env: {
     // PLACEHOLDER: the person the posts are written as, the way they sign

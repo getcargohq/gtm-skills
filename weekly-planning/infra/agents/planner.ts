@@ -1,7 +1,7 @@
 import { defineAgent } from "@cargo-ai/cdk";
 
 import { plannerPrompt } from "./planner.prompt";
-import { anthropic } from "../connectors/anthropic";
+import { claudeCode } from "../connectors/claude-code";
 import { agentsFolder } from "../folders";
 
 // The planner: a Claude Code harness agent, not a streamText agent.
@@ -15,8 +15,8 @@ import { agentsFolder } from "../folders";
 //
 // `connector` and `languageModel` are required even here. The harness does not
 // bring its own model: it runs against Cargo's LLM proxy, which bills this
-// connector and meters usage against this slug. Any Anthropic model works with
-// `claudeCode`; see `../connectors/anthropic.ts`.
+// connector and meters usage against this slug. Any Claude model the
+// `claudeCode` integration lists works; see `../connectors/claude-code.ts`.
 //
 // No `capabilities`, on purpose. The workspace half of the week — whoami, the
 // week's runs, credits, what is even deployed — is read with Cargo's own CLI,
@@ -34,7 +34,7 @@ export const planner = defineAgent("weekly_planning", {
     "Ranks last week's GTM work against active initiatives, declared infra, and live runs, and opens one reviewable pull request per initiative (or one workspace pull request when there are none).",
   color: "blue",
   harness: "claudeCode",
-  connector: anthropic,
+  connector: claudeCode,
   languageModel: "claude-sonnet-5", // PLACEHOLDER — your model of choice
   // No `state`: deploy binds this project's connected state (cargo.state.json),
   // and the harness clones its repository at the state's directory and
