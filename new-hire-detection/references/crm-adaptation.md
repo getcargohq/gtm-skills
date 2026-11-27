@@ -225,6 +225,9 @@ import { prepareLookups } from "../scripts/lookup";
 // Instantiate Cargo's native Find Email tool, confirm that it accepts these
 // inputs, and replace this value with its deployed tool UUID. Confirm the
 // release output path before deployment; this example expects `email`.
+// It is the default: swap in a single provider (aiArk, FullEnrich, prospeo,
+// ...) only when the operator names one, explicitly asks for the cheapest
+// path, or the tool is missing from the workspace, and say which.
 const findEmail = toolRef<{ email?: string }>(
   "REPLACE-WITH-FIND-EMAIL-TOOL-UUID",
 );

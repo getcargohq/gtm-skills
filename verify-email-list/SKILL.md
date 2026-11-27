@@ -1,7 +1,7 @@
 ---
 name: verify-email-list
-description: "Verify a list of email addresses so you stop sending to bounces, powered by Cargo. Triggers: \"verify these emails\", \"clean my email list\", \"check if these addresses are valid\", \"our bounce rate is too high\", \"validate emails before sending\", \"check deliverability before the campaign goes out\". Providers: the workspace's preset Verify email tool first, then waterfall by hand. Skip when: you do not have the emails yet — use find-work-email first."
-version: "1.1.0"
+description: "Verify a list of email addresses so you stop sending to bounces, powered by Cargo. Triggers: \"verify these emails\", \"clean my email list\", \"check if these addresses are valid\", \"our bounce rate is too high\", \"validate emails before sending\", \"check deliverability before the campaign goes out\". Providers: the workspace's Verify email tool (email_validator) by default; waterfall only when the user names it, asks for the cheapest path, or the tool is missing. Skip when: you do not have the emails yet — use find-work-email first."
+version: "1.2.0"
 compatibility: Requires @cargo-ai/cli (npm). Sign in or create an account with `cargo-ai login --email` (emailed code, no browser), `--oauth`, or an API token
 homepage: https://github.com/getcargohq/gtm-skills
 metadata:
@@ -70,9 +70,12 @@ cargo-ai orchestration batch download --uuid <batch-uuid>
 
 A deliverability status per address, so you can drop the risky ones before sending.
 
-**Half the price by hand:** `waterfall.verifyEmail` is 0.1 against the tool's 0.2, and is the
-fallback when the tool is missing from the workspace. It returns `email_status` instead of
-`status` and `is_safe`:
+**Leave the default only by stated exception**, and say which one: the user names a provider, the
+user explicitly asks for the cheapest path (`waterfall.verifyEmail` is 0.1 against the tool's 0.2;
+a tight budget the user did not state is not this exception, so quote the tool's cost and let them
+choose), or the tool is missing from the workspace
+(`cargo-ai orchestration action get-output-schema --action '{"kind":"tool","templateSlug":"email_validator"}'`
+errors, free). `waterfall.verifyEmail` returns `email_status` instead of `status` and `is_safe`:
 
 ```bash
 cargo-ai orchestration action execute-batch \
@@ -98,7 +101,7 @@ Illustrative output, fictional records:
 | j.doe@globex.example | invalid | false |
 | m.klein@contoso.example | valid | true |
 
-171 safe to send, 29 not (18 catch-all, 11 invalid): drop 29 before sending; 40 credits (200 × 0.2) with the Verify email tool, or 20 by hand with `waterfall.verifyEmail`.
+171 safe to send, 29 not (18 catch-all, 11 invalid): drop 29 before sending; 40 credits (200 × 0.2) with the Verify email tool, or 20 with `waterfall.verifyEmail` when the user asked for the cheapest path.
 
 ## What it costs
 
@@ -118,7 +121,7 @@ with it.
   as unproven, and decide with the user whether catch-alls go out.
 - Addresses from `find-work-email`'s Find email tool were already checked before it returned them;
   verifying them again spends credits for nothing.
-- `waterfall.verifyEmail` is the cheapest verification tier in the priority stack.
+- `waterfall.verifyEmail` is the cheapest verification tier, for the exceptions above only.
 
 ## Going further
 

@@ -1,7 +1,7 @@
 ---
 name: enrich-linkedin-profile
-description: "Turn a LinkedIn profile URL into a full person profile plus a verified work email in a single call, powered by Cargo. Triggers: \"enrich these LinkedIn profiles\", \"get details from this LinkedIn URL\", \"I have LinkedIn URLs and need emails\", \"enrich LinkedIn data\", \"who is this person\", \"contact enrichment\", \"linkedin enrichment\", \"get their headline and tenure\", \"pull the whole biography\". Providers: aiArk. Skip when: you do not have the LinkedIn URL yet — use find-linkedin-url first; or you only have a name and domain — use find-work-email."
-version: "1.1.5"
+description: "Turn a LinkedIn profile URL into a full person profile (current role, seniority, employer, career history, education, skills), with the work email from the workspace's native Find email tool, powered by Cargo. Triggers: \"enrich these LinkedIn profiles\", \"get details from this LinkedIn URL\", \"enrich LinkedIn data\", \"who is this person\", \"contact enrichment\", \"linkedin enrichment\", \"get their headline and tenure\", \"pull the whole biography\". Providers: aiArk for the profile; the workspace's Find email tool (email_waterfall) for the email. Skip when: you do not have the LinkedIn URL yet, use find-linkedin-url first; or you only need the email, from a LinkedIn URL or a name and domain, use find-work-email."
+version: "1.2.0"
 compatibility: Requires @cargo-ai/cli (npm). Sign in or create an account with `cargo-ai login --email` (emailed code, no browser), `--oauth`, or an API token
 homepage: https://github.com/getcargohq/gtm-skills
 metadata:
@@ -24,7 +24,7 @@ metadata:
 
 # Enrich LinkedIn Profile
 
-Turn a LinkedIn profile URL into a full person profile plus a verified work email in a single call.
+Turn a LinkedIn profile URL into a full person profile, plus a verified work email from the workspace's Find email tool.
 
 ## Before anything else
 
@@ -52,14 +52,35 @@ Already signed in? `cargo-ai whoami` confirms it.
 
 ## Do the job
 
+The profile comes from `aiArk.enrichPerson`; **the email comes from Cargo's own Find email tool**,
+even when the profile call returned one. Find email is a read-only preset in every workspace's
+Cargo Tools folder, a waterfall Cargo maintains with each hit verified by zeroBounce, addressed by
+its template slug `email_waterfall` (no UUID to look up). Measured on one customer list, chaining
+`aiArk` behind a LinkedIn enrich found work emails for 23% of contacts; Find email reaches about
+90% where `aiArk` alone reaches about 20%.
+
 ```bash
+# 1. The profile: role, seniority, company, history
 cargo-ai orchestration action execute-batch \
   --action '{"kind":"connector","integrationSlug":"aiArk","actionSlug":"enrichPerson"}' \
   --records '[{"linkedinUrl":"https://www.linkedin.com/in/example"}]' \
   --wait-until-finished
+
+# 2. The work email, from the same URLs (camelCase linkedinUrl); it lands in cargo_email
+cargo-ai orchestration action execute-batch \
+  --action '{"kind":"tool","templateSlug":"email_waterfall"}' \
+  --records '[{"linkedinUrl":"https://www.linkedin.com/in/example"}]' \
+  --limit 20 --wait-until-finished
 ```
 
-Full profile — role, seniority, company, history — plus a verified email address.
+Full profile (role, seniority, company, history) plus a verified email address.
+
+Keep the `aiArk` email instead of running step 2 only when one of these holds, and say which
+before you leave the default: the user named `aiArk` for emails, the user explicitly asked for the
+cheapest path, or the Find email tool is missing from the workspace
+(`cargo-ai orchestration action get-output-schema --action '{"kind":"tool","templateSlug":"email_waterfall"}'`
+errors, free). That address is unverified, so run it through `verify-email-list` before anyone
+sends to it.
 
 Operations are asynchronous. `--wait-until-finished` blocks until done; without it you get a run
 or batch UUID to poll with `cargo-ai orchestration run get <uuid>` (2s interval) or
@@ -77,13 +98,14 @@ Illustrative output, fictional records:
 | linkedin.com/in/tomas-ferreira-example | Tomás Ferreira | Head of RevOps | Head | Fabrikam | tferreira@fabrikam.example |
 | linkedin.com/in/lena-voss-example | | | | | |
 
-51 of 60 returned a profile and a verified email; the 9 without an email came back empty and billed nothing, so 5.1 credits (51 × 0.1).
+51 of 60 returned a profile, and Find email resolved a verified address for 54; the misses on both calls billed roughly nothing, so about 64.5 credits (51 × 0.1 + 54 × 1.1).
 
 ## What it costs
 
 | Action | Credits |
 |---|---|
 | `aiArk.enrichPerson` | 0.1 |
+| Find email tool (`"kind":"tool"`) | 1.1 to 4 per address found, roughly 0 per miss |
 
 **Never run this across a full list on the first attempt.** Sample 10–20 records, report the
 observed cost and hit-rate, then get the user to approve the full run — quoting the record count
@@ -92,8 +114,9 @@ with it.
 
 ## Worth knowing
 
-- Bills 0 when no email is found, so a miss is free. A miss also returns no profile: the row comes back empty, not profile-only, so a contact you need the role for but not the email belongs in a profile lookup such as `linkedin.enrichProfile` instead.
-- The single best value in the catalog when you already hold LinkedIn URLs: profile and verified email together for less than a separate email lookup alone.
+- `aiArk.enrichPerson` bills 0 when it finds no email, so a miss is free. A miss also returns no profile: the row comes back empty, not profile-only, so a contact you need the role for belongs in a profile lookup such as `linkedin.enrichProfile` instead.
+- Find email's address is already verified (catch-alls excluded by default), so it needs no second check.
+- Only after the email? Skip step 1 and use `find-work-email`.
 
 ## Going further
 

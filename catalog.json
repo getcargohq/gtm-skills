@@ -364,8 +364,8 @@
       "name": "apollo-to-cargo",
       "kind": "one-off",
       "job": "Rebuild an Apollo list on Cargo and price the two side by side before you move anything.",
-      "description": "Rebuild an Apollo list on Cargo and price the two side by side before you move anything, powered by Cargo. Triggers: \"Apollo alternative\", \"migrate off Apollo\", \"move my Apollo list to Cargo\", \"replace Apollo.io\", \"I have an Apollo export\", \"Apollo credits ran out\", \"is Cargo cheaper than Apollo\", \"Apollo coverage is bad in my niche\". Providers: apolloio, waterfall. Skip when: you are porting a Clay table rather than an Apollo list — use clay-to-cargo; or you simply want contacts sourced and have nothing to migrate — use find-b2b-leads.",
-      "version": "1.0.5",
+      "description": "Rebuild an Apollo list on Cargo and price the two side by side before you move anything, powered by Cargo. Triggers: \"Apollo alternative\", \"migrate off Apollo\", \"move my Apollo list to Cargo\", \"replace Apollo.io\", \"I have an Apollo export\", \"Apollo credits ran out\", \"is Cargo cheaper than Apollo\", \"Apollo coverage is bad in my niche\". Providers: apolloio; the workspace's Find email and Verify email tools (email_waterfall, email_validator). Skip when: you are porting a Clay table rather than an Apollo list — use clay-to-cargo; or you simply want contacts sourced and have nothing to migrate — use find-b2b-leads.",
+      "version": "1.1.0",
       "homepage": "https://github.com/getcargohq/gtm-skills",
       "group": "Coming from another tool",
       "install": "npx skills add getcargohq/gtm-skills/apollo-to-cargo",
@@ -375,17 +375,16 @@
         "gtm-engineering"
       ],
       "integrations": [
-        "apolloio",
-        "waterfall"
+        "apolloio"
       ],
       "example": {
         "prompt": "Before our Apollo renewal, compare it with Cargo on 20 rows from `apollo-q3-export.csv`.",
-        "output": "| Source | Emails found | Verified | Credits | Credits per verified |\n|---|---|---|---|---|\n| Apollo, via Cargo | 15 / 20 | 11 | 21.5 | 1.95 |\n| Cargo waterfall | 18 / 20 | 17 | 41.8 | 2.46 |\n\n63.3 credits for the whole comparison (20 × 1 + 15 × 0.1 on Apollo, 20 × 2 + 18 × 0.1 on the waterfall): the waterfall verified 6 more addresses at a higher cost per address, and the call is the user's."
+        "output": "| Source | Emails found | Verified | Credits | Credits per verified |\n|---|---|---|---|---|\n| Apollo, via Cargo | 15 / 20 | 11 | 23 | 2.09 |\n| Cargo Find email tool | 17 / 20 | 17 | 18.7 | 1.10 |\n\n41.7 credits for the whole comparison (20 × 1 + 15 × 0.2 on Apollo, 17 × 1.1 on the Find email tool, its 3 misses roughly free): Find email returned 6 more verified addresses on these rows, and whether that justifies the switch is the user's call."
       },
-      "cost": "| Action | Credits |\n|---|---|\n| `waterfall.verifyEmail` | 0.1 |\n| `apolloio.enrichPerson` | 1 |\n| `apolloio.enrichOrganization` | 1 |\n| `waterfall.enrichContact` | 2 |\n\nA 20-row comparison running both sides is roughly 20 × (1 + 2 + 0.1 × 2), around 64 credits,\nwhich fits inside the free balance a new account starts with.\n\n**Never run this across a full list on the first attempt.** Sample 10–20 records, report the\nobserved cost and hit-rate, then get the user to approve the full run — quoting the record count\nand the credit estimate. A batch fans out across every record in the source, and the bill scales\nwith it.",
+      "cost": "| Action | Credits |\n|---|---|\n| Find email tool (`\"kind\":\"tool\"`) | 1.1 to 4 per address found, roughly 0 per miss |\n| Verify email tool (`\"kind\":\"tool\"`) | 0.2 |\n| `apolloio.enrichPerson` | 1 |\n| `apolloio.enrichOrganization` | 1 |\n\nA 20-row comparison running both sides is roughly 20 × (1 + 0.2) on Apollo plus about 1.1 per\naddress Find email returns, around 46 credits, which fits inside the free balance a new account\nstarts with.\n\n**Never run this across a full list on the first attempt.** Sample 10–20 records, report the\nobserved cost and hit-rate, then get the user to approve the full run — quoting the record count\nand the credit estimate. A batch fans out across every record in the source, and the bill scales\nwith it.",
       "worthKnowing": [
         "**Do not quote a saving you have not measured.** The comparison above exists because the answer varies by niche: Apollo's coverage is genuinely strong in some segments and thin in others, and the sample is what tells you which one you are in.",
-        "**`apolloio.enrichPerson` costs 9 rather than 1 with `revealPhoneNumber: true`.** Leave it off unless phones are the reason for the migration, and say so when you turn it on.",
+        "**`apolloio.enrichPerson` costs 9 rather than 1 with `revealPhoneNumber: true`.** Leave it off unless phones are the reason for the migration, and say so when you turn it on. Cargo's side of a phone comparison is the workspace's **Find phone** tool (`phone_waterfall`, `linkedinUrl` in, 3 to 7 credits), and only when the user asked for phones.",
         "**An Apollo export is a snapshot.** Rows exported months ago carry stale titles and stale companies, so a low hit rate on an old export is a fact about the export, not about either vendor. Check the export date before reading anything into the numbers."
       ]
     },
@@ -630,7 +629,7 @@
       "kind": "one-off",
       "job": "Rebuild a Clay table on Cargo — map every Clay enrichment column to its provider action, price the run before it happens, and keep the result as version-controlled code instead of a spreadsheet.",
       "description": "Rebuild a Clay table on Cargo, powered by Cargo — map every Clay enrichment column to its provider action, price the run before it happens, and keep the result as version-controlled code instead of a spreadsheet. Triggers: \"migrate from Clay\", \"move my Clay table to Cargo\", \"Clay alternative\", \"replace Clay\", \"I have a Clay export\", \"what does Clay's enrichment column map to\", \"my Clay bill is too high\", \"Clay but as code\". Migration, mapping, parity, spreadsheet, declarative. Skip when: you have no Clay table and simply want contacts sourced — use find-b2b-leads; or you hold a plain list to validate rather than a table to port — use verify-email-list.",
-      "version": "1.1.0",
+      "version": "1.2.0",
       "homepage": "https://github.com/getcargohq/gtm-skills",
       "group": "Coming from another tool",
       "install": "npx skills add getcargohq/gtm-skills/clay-to-cargo",
@@ -642,16 +641,15 @@
       "integrations": [
         "prospeo",
         "FullEnrich",
-        "waterfall",
         "companyEnrich"
       ],
       "example": {
         "prompt": "Rebuild our \"Inbound enrichment\" Clay table on Cargo — here's the ClayMate JSON export.",
         "output": "| Clay column | Cargo action | Clay fill | Cargo fill | Agreement |\n|---|---|---|---|---|\n| Work Email | Find email tool | 14 / 20 | 16 / 20 | 13 of 14 |\n| Email Valid? | checked inside the Find email tool | 14 / 14 | 16 / 16 | 13 of 14 |\n| Company Industry | `companyEnrich.enrichByDomain` | 20 / 20 | 19 / 20 | 18 of 19 |\n\n20 sample rows, 6 of them rows Clay left empty, for about 22.6 credits end to end (16 × 1.1 for the addresses found, the 4 misses roughly free, + 20 × 0.25); whether that parity is enough to switch is the user's call."
       },
-      "cost": "| Action | Credits |\n|---|---|\n| Find email tool (`\"kind\":\"tool\"`) | 1.1 to 4 per address found, roughly 0 per miss |\n| `prospeo.findEmail` | 0.5 |\n| `FullEnrich.findEmail` | 1 |\n| `waterfall.verifyEmail` | 0.1 |\n| `companyEnrich.enrichByDomain` | 0.25 |\n| `prospeo.enrichLinkedin` | 0.5 |\n\n**Never run this across a full list on the first attempt.** Sample 10–20 rows from the export,\nreport the observed cost and per-column fill rate, then get the user to approve the full run —\nquoting the row count and the credit estimate. A batch fans out across every record in the source,\nand the bill scales with it.",
+      "cost": "| Action | Credits |\n|---|---|\n| Find email tool (`\"kind\":\"tool\"`) | 1.1 to 4 per address found, roughly 0 per miss |\n| `prospeo.findEmail` | 0.5 |\n| `FullEnrich.findEmail` | 1 |\n| Verify email tool (`\"kind\":\"tool\"`) | 0.2 |\n| `companyEnrich.enrichByDomain` | 0.25 |\n| `prospeo.enrichLinkedin` | 0.5 |\n\n**Never run this across a full list on the first attempt.** Sample 10–20 rows from the export,\nreport the observed cost and per-column fill rate, then get the user to approve the full run —\nquoting the row count and the credit estimate. A batch fans out across every record in the source,\nand the bill scales with it.",
       "worthKnowing": [
-        "Run the cheap rung across everything, then escalate only the misses — never run both on the full list.",
+        "On the exception path, run the cheap rung across everything, then escalate only the misses. Never run both on the full list.",
         "`prospeo.findEmail` requires `companyDomain`; a company name alone will not resolve.",
         "`FullEnrich.findEmail` takes `domainName`, not `companyDomain`. The two rungs disagree on the field name, and a copy-paste between them silently resolves nothing.",
         "Clay's per-row credit and Cargo's credit are different units. Never compare the two numbers directly — compare what one sample of rows cost end to end on each."
@@ -992,7 +990,7 @@
       "kind": "cookbook",
       "job": "Clean up and enrich a messy CRM: fill the missing identifiers on accounts and contacts first (LinkedIn, domain, email), write them back into blank fields only, then deduplicate on those identifiers with crm-deduplication. Keeps records filled and refreshes them when they go stale.",
       "description": "Clean up and enrich a messy CRM: fill the missing identifiers on accounts and contacts first (LinkedIn, domain, email), write them back into blank fields only, then deduplicate on those identifiers with crm-deduplication. Keeps records filled and refreshes them when they go stale. Triggers: \"keep our CRM accounts filled\", \"keep our CRM contacts filled\", \"nobody refreshes the company records\", \"nobody refreshes the contact records\", \"enrich my CRM\", \"refresh stale firmographics\", \"every new CRM company\", \"every new CRM contact\", \"contacts are missing emails, LinkedIn URLs, or titles\". HubSpot, Salesforce, Attio, Cargo project. Skip when: the records are not in a CRM. A supplied company list is enrich-company-data, a supplied LinkedIn URL list is enrich-linkedin-profile, and a one-time email lookup is find-work-email.",
-      "version": "0.7.4",
+      "version": "0.7.5",
       "homepage": "https://github.com/getcargohq/gtm-skills/tree/main/crm-enrichment",
       "group": "CRM",
       "install": "cargo-ai project add cookbook/crm-enrichment",
@@ -1198,9 +1196,9 @@
     {
       "name": "enrich-linkedin-profile",
       "kind": "one-off",
-      "job": "Turn a LinkedIn profile URL into a full person profile plus a verified work email in a single call.",
-      "description": "Turn a LinkedIn profile URL into a full person profile plus a verified work email in a single call, powered by Cargo. Triggers: \"enrich these LinkedIn profiles\", \"get details from this LinkedIn URL\", \"I have LinkedIn URLs and need emails\", \"enrich LinkedIn data\", \"who is this person\", \"contact enrichment\", \"linkedin enrichment\", \"get their headline and tenure\", \"pull the whole biography\". Providers: aiArk. Skip when: you do not have the LinkedIn URL yet — use find-linkedin-url first; or you only have a name and domain — use find-work-email.",
-      "version": "1.1.5",
+      "job": "Turn a LinkedIn profile URL into a full person profile (current role, seniority, employer, career history, education, skills), with the work email from the workspace's native Find email tool.",
+      "description": "Turn a LinkedIn profile URL into a full person profile (current role, seniority, employer, career history, education, skills), with the work email from the workspace's native Find email tool, powered by Cargo. Triggers: \"enrich these LinkedIn profiles\", \"get details from this LinkedIn URL\", \"enrich LinkedIn data\", \"who is this person\", \"contact enrichment\", \"linkedin enrichment\", \"get their headline and tenure\", \"pull the whole biography\". Providers: aiArk for the profile; the workspace's Find email tool (email_waterfall) for the email. Skip when: you do not have the LinkedIn URL yet, use find-linkedin-url first; or you only need the email, from a LinkedIn URL or a name and domain, use find-work-email.",
+      "version": "1.2.0",
       "homepage": "https://github.com/getcargohq/gtm-skills",
       "group": "Get the contact data",
       "install": "npx skills add getcargohq/gtm-skills/enrich-linkedin-profile",
@@ -1214,12 +1212,13 @@
       ],
       "example": {
         "prompt": "I have LinkedIn URLs for the 60 people who registered for our roundtable — get me their current role and a work email.",
-        "output": "| linkedinUrl | fullName | title | seniority | company | email |\n|---|---|---|---|---|---|\n| linkedin.com/in/priya-raman-example | Priya Raman | VP Data Platform | VP | Northwind | priya.raman@northwind.example |\n| linkedin.com/in/tomas-ferreira-example | Tomás Ferreira | Head of RevOps | Head | Fabrikam | tferreira@fabrikam.example |\n| linkedin.com/in/lena-voss-example | | | | | |\n\n51 of 60 returned a profile and a verified email; the 9 without an email came back empty and billed nothing, so 5.1 credits (51 × 0.1)."
+        "output": "| linkedinUrl | fullName | title | seniority | company | email |\n|---|---|---|---|---|---|\n| linkedin.com/in/priya-raman-example | Priya Raman | VP Data Platform | VP | Northwind | priya.raman@northwind.example |\n| linkedin.com/in/tomas-ferreira-example | Tomás Ferreira | Head of RevOps | Head | Fabrikam | tferreira@fabrikam.example |\n| linkedin.com/in/lena-voss-example | | | | | |\n\n51 of 60 returned a profile, and Find email resolved a verified address for 54; the misses on both calls billed roughly nothing, so about 64.5 credits (51 × 0.1 + 54 × 1.1)."
       },
-      "cost": "| Action | Credits |\n|---|---|\n| `aiArk.enrichPerson` | 0.1 |\n\n**Never run this across a full list on the first attempt.** Sample 10–20 records, report the\nobserved cost and hit-rate, then get the user to approve the full run — quoting the record count\nand the credit estimate. A batch fans out across every record in the source, and the bill scales\nwith it.",
+      "cost": "| Action | Credits |\n|---|---|\n| `aiArk.enrichPerson` | 0.1 |\n| Find email tool (`\"kind\":\"tool\"`) | 1.1 to 4 per address found, roughly 0 per miss |\n\n**Never run this across a full list on the first attempt.** Sample 10–20 records, report the\nobserved cost and hit-rate, then get the user to approve the full run — quoting the record count\nand the credit estimate. A batch fans out across every record in the source, and the bill scales\nwith it.",
       "worthKnowing": [
-        "Bills 0 when no email is found, so a miss is free. A miss also returns no profile: the row comes back empty, not profile-only, so a contact you need the role for but not the email belongs in a profile lookup such as `linkedin.enrichProfile` instead.",
-        "The single best value in the catalog when you already hold LinkedIn URLs: profile and verified email together for less than a separate email lookup alone."
+        "`aiArk.enrichPerson` bills 0 when it finds no email, so a miss is free. A miss also returns no profile: the row comes back empty, not profile-only, so a contact you need the role for belongs in a profile lookup such as `linkedin.enrichProfile` instead.",
+        "Find email's address is already verified (catch-alls excluded by default), so it needs no second check.",
+        "Only after the email? Skip step 1 and use `find-work-email`."
       ]
     },
     {
@@ -1349,7 +1348,7 @@
       "kind": "one-off",
       "job": "Find B2B leads by job title, company, and keyword, and return them as a structured list.",
       "description": "Find B2B leads by job title, company, and keyword, and return them as a structured list, powered by Cargo. Triggers: \"find 50 VPs of Sales at fintech companies\", \"build me a list of leads\", \"who are the heads of engineering at Series B startups\", \"get me prospects matching this profile\", \"source leads for my outbound\", \"build a b2b lead list\", \"lead sourcing\". Providers: salesNavigator. Skip when: you need companies rather than people — use build-tam-list; or you already have the people and need contact details — use find-work-email.",
-      "version": "1.2.4",
+      "version": "1.2.5",
       "homepage": "https://github.com/getcargohq/gtm-skills",
       "group": "Find the accounts and the people",
       "install": "npx skills add getcargohq/gtm-skills/find-b2b-leads",
@@ -1362,7 +1361,7 @@
       ],
       "example": {
         "prompt": "Find 25 VPs of Sales at US software companies and give me their LinkedIn URLs.",
-        "output": "| fullName | title | company | location | linkedinUrl |\n|---|---|---|---|---|\n| Priya Raman | VP of Sales | Northwind | Austin, TX | linkedin.com/in/priya-raman-example |\n| Marcus Hale | VP Sales, North America | Contoso | Denver, CO | linkedin.com/in/marcus-hale-example |\n| Dana Whitfield | Vice President of Sales | Tailspin | Boston, MA | linkedin.com/in/dana-whitfield-example |\n\nOne page of 25 leads for 5 credits (25 × 0.2); no emails yet — pipe the URLs into `enrich-linkedin-profile` for those."
+        "output": "| fullName | title | company | location | linkedinUrl |\n|---|---|---|---|---|\n| Priya Raman | VP of Sales | Northwind | Austin, TX | linkedin.com/in/priya-raman-example |\n| Marcus Hale | VP Sales, North America | Contoso | Denver, CO | linkedin.com/in/marcus-hale-example |\n| Dana Whitfield | Vice President of Sales | Tailspin | Boston, MA | linkedin.com/in/dana-whitfield-example |\n\nOne page of 25 leads for 5 credits (25 × 0.2); no emails yet, so pipe the URLs into `find-work-email` for those."
       },
       "cost": "| Action | Credits |\n|---|---|\n| `salesNavigator.searchLeads` | 0.2 |\n\n**Never run this across a full list on the first attempt.** Sample 10–20 records, report the\nobserved cost and hit-rate, then get the user to approve the full run — quoting the record count\nand the credit estimate. A batch fans out across every record in the source, and the bill scales\nwith it.",
       "worthKnowing": [
@@ -1370,7 +1369,7 @@
         "`FullEnrich.lookupPerson` (free) resolves one person from a LinkedIn URL, or from a full name plus company domain.",
         "Filters take LinkedIn codes as strings: `personal.industryCodes` (`\"4\"` is Software Development), `personal.geoCodes` (`\"103644278\"` is the United States), `role.seniorityLevels` (`\"300\"` is Vice President, `\"310\"` CXO, `\"220\"` Director). Keys outside the schema, such as `company.industries` or `personal.locations`, are refused before the run starts (`Unknown field: …`); inside a workflow node they are dropped silently and the search runs unfiltered. Plain names in place of codes match nothing. Resolve names with `cargo-ai connection connector autocomplete --connector-uuid <uuid> --slug listIndustries --params '{}' --value software` (`listGeoCodes` for places).",
         "Pages come back in blocks of 25; ask for a `limit` in multiples of 25.",
-        "Sourcing returns profiles, not emails. Pipe the LinkedIn URLs into `enrich-linkedin-profile` for verified emails."
+        "Sourcing returns profiles, not emails. Pipe the LinkedIn URLs into `find-work-email`, whose Find email tool takes `linkedinUrl`, for verified emails."
       ]
     },
     {
@@ -1404,9 +1403,9 @@
     {
       "name": "find-linkedin-url",
       "kind": "one-off",
-      "job": "Resolve a person's LinkedIn profile URL from their name and company, with an identity-validation gate that rejects wrong matches.",
-      "description": "Resolve a person's LinkedIn profile URL from their name and company, with an identity-validation gate that rejects wrong matches, powered by Cargo. Triggers: \"find the LinkedIn for John Smith at Acme\", \"get LinkedIn URLs for these contacts\", \"what's this person's LinkedIn\", \"add LinkedIn profiles to my list\". Providers: linkedin. Skip when: you already have the LinkedIn URL and want the profile data — use enrich-linkedin-profile.",
-      "version": "1.0.5",
+      "job": "Resolve a person's LinkedIn profile URL from their name and company, with an identity-validation gate that rejects wrong matches, or from their personal email with the workspace's native Find LinkedIn URL from email tool.",
+      "description": "Resolve a person's LinkedIn profile URL from their name and company, with an identity-validation gate that rejects wrong matches, or from their personal email with the workspace's native Find LinkedIn URL from email tool, powered by Cargo. Triggers: \"find the LinkedIn for John Smith at Acme\", \"get LinkedIn URLs for these contacts\", \"what's this person's LinkedIn\", \"add LinkedIn profiles to my list\", \"find LinkedIn from email\", \"LinkedIn profiles from these personal emails\", \"reverse email to LinkedIn\". Providers: linkedin; the workspace's Find LinkedIn URL from email tool (find_linkedin_url_from_personal_email) for emails. Skip when: you already have the LinkedIn URL and want the profile data, use enrich-linkedin-profile; or you want a work email, use find-work-email.",
+      "version": "1.1.0",
       "homepage": "https://github.com/getcargohq/gtm-skills",
       "group": "Get the contact data",
       "install": "npx skills add getcargohq/gtm-skills/find-linkedin-url",
@@ -1422,7 +1421,7 @@
         "prompt": "These 25 customer champions in `champions.csv` have no LinkedIn URL — find the right profile for each.",
         "output": "| fullName | companyName | linkedinUrl | status |\n|---|---|---|---|\n| Priya Raman | Northwind | linkedin.com/in/priya-raman-example | validated |\n| Tomás Ferreira | Fabrikam | linkedin.com/in/tomas-ferreira-example | validated |\n| Sam Lee | Globex | | rejected: candidate works at Globex Foods |\n| Ana Costa | Initech | | no candidate |\n\n20 of 25 validated, 2 rejected on a company mismatch, 3 with no candidate; 11.75 credits (25 × 0.25 to resolve + 22 × 0.25 to validate)."
       },
-      "cost": "| Action | Credits |\n|---|---|\n| `linkedin.findProfileUrl` | 0.25 |\n| `linkedin.enrichProfile` | 0.25 |\n\n**Never run this across a full list on the first attempt.** Sample 10–20 records, report the\nobserved cost and hit-rate, then get the user to approve the full run — quoting the record count\nand the credit estimate. A batch fans out across every record in the source, and the bill scales\nwith it.",
+      "cost": "| Action | Credits |\n|---|---|\n| `linkedin.findProfileUrl` | 0.25 |\n| `linkedin.enrichProfile` | 0.25 |\n| Find LinkedIn URL from email tool (`\"kind\":\"tool\"`) | 1 to 3 |\n\n**Never run this across a full list on the first attempt.** Sample 10–20 records, report the\nobserved cost and hit-rate, then get the user to approve the full run — quoting the record count\nand the credit estimate. A batch fans out across every record in the source, and the bill scales\nwith it.",
       "worthKnowing": [
         "`findProfileUrl` returns the URL as `linkedin_profile_url` (with `company_name` and `current_title` beside it, which are the first things to check); `enrichProfile` takes it as `linkedinUrl`. The batch download prefixes every output column with `cargo_`.",
         "Step 2 is not optional. Unvalidated resolution runs ~50% accurate because of same-name collisions; validated it is ~80%.",
@@ -1491,9 +1490,9 @@
     {
       "name": "find-work-email",
       "kind": "one-off",
-      "job": "Find a verified work email address from a person's name and company domain.",
-      "description": "Find a verified work email address from a person's name and company domain, powered by Cargo. Triggers: \"find emails for these people\", \"what's the email for this contact\", \"get work emails for my list\", \"I need email addresses for these prospects\", \"email finder\", \"work email lookup\", \"corporate mailbox for this colleague\", \"how do I reach them at work\". Providers: the workspace's preset Find email tool first, then prospeo and FullEnrich by hand. Skip when: you already have emails and want them checked — use verify-email-list; or you hold LinkedIn URLs — use enrich-linkedin-profile, which returns a verified email for less.",
-      "version": "1.2.0",
+      "job": "Find a verified work email from a name and company domain or a LinkedIn URL.",
+      "description": "Find a verified work email from a name and company domain or a LinkedIn URL, powered by Cargo. Triggers: \"find emails for these people\", \"what's the email for this contact\", \"get work emails for my list\", \"I need email addresses for these prospects\", \"email finder\", \"work email lookup\", \"corporate mailbox for this colleague\", \"how do I reach them at work\", \"I have LinkedIn URLs and need emails\", \"work emails from LinkedIn URLs\", \"work email from a personal email\", \"use AI Ark to find emails\", \"cheapest way to get emails\". Providers: the workspace's native Find email tool by default; aiArk, prospeo or FullEnrich only by stated exception. Skip when: you already have emails and want them checked, use verify-email-list; or you want the whole person profile (role, seniority, history) from a LinkedIn URL, use enrich-linkedin-profile.",
+      "version": "1.3.0",
       "homepage": "https://github.com/getcargohq/gtm-skills",
       "group": "Get the contact data",
       "install": "npx skills add getcargohq/gtm-skills/find-work-email",
@@ -1503,6 +1502,7 @@
         "revops"
       ],
       "integrations": [
+        "aiArk",
         "prospeo",
         "FullEnrich"
       ],
@@ -1510,12 +1510,13 @@
         "prompt": "Find work emails for the 40 people in `webinar-attendees.csv` — first name, last name and company domain are all there.",
         "output": "| firstName | lastName | companyDomain | email |\n|---|---|---|---|\n| Priya | Raman | northwind.example | priya.raman@northwind.example |\n| Tomás | Ferreira | fabrikam.example | tferreira@fabrikam.example |\n| Hannah | Okafor | globex.example | hannah.okafor@globex.example |\n| Wei | Zhang | initech.example | |\n\n37 of 40 resolved and verified by the Find email tool, 3 left empty rather than guessed; about 41 credits (37 × 1.1 for addresses the first provider settled, the 3 misses roughly free)."
       },
-      "cost": "| Action | Credits |\n|---|---|\n| Find email tool (`\"kind\":\"tool\"`) | 1.1 to 4 per address found, roughly 0 per miss |\n| `prospeo.findEmail` | 0.5 |\n| `FullEnrich.findEmail` | 1 |\n\nThe tool's range is its declared price: about 1.1 when the first provider finds a valid address,\nmore when it has to walk further. Providers generally bill only on a hit, so a row nobody covers\ncosts close to nothing; the sample's receipt is the number to quote.\n\n**Never run this across a full list on the first attempt.** Sample 10–20 records, report the\nobserved cost and hit-rate, then get the user to approve the full run — quoting the record count\nand the credit estimate. A batch fans out across every record in the source, and the bill scales\nwith it.",
+      "cost": "| Action | Credits |\n|---|---|\n| Find email tool (`\"kind\":\"tool\"`) | 1.1 to 4 per address found, roughly 0 per miss |\n| Find work email from personal email tool (`\"kind\":\"tool\"`) | 1 to 8.25 per address found |\n| `aiArk.enrichPerson` | 0.1 |\n| `prospeo.findEmail` | 0.5 |\n| `FullEnrich.findEmail` | 1 |\n\nThe tool's range is its declared price: about 1.1 when the first provider finds a valid address,\nmore when it has to walk further. Providers generally bill only on a hit, so a row nobody covers\ncosts close to nothing; the sample's receipt is the number to quote.\n\n**Never run this across a full list on the first attempt.** Sample 10–20 records, report the\nobserved cost and hit-rate, then get the user to approve the full run — quoting the record count\nand the credit estimate. A batch fans out across every record in the source, and the bill scales\nwith it.",
       "worthKnowing": [
         "The tool returns `{email}` and nothing else: no status, no catch-all flag, no provider name. With `returns_catchalls` unset (the default) every address it returns passed zeroBounce as valid, so it needs no second check. Set `returns_catchalls: true` and it may also return catch-all addresses, unmarked; run those through `verify-email-list`.",
         "A misspelled input is not refused: `linkedin_url` or `first_name` is dropped silently and the row comes back empty. Use the camelCase names above.",
         "Rows the tool cannot use (a domain that does not parse, a name under two letters, a LinkedIn URL that is not a `/in/` profile) end before any provider is called, empty and free.",
-        "By hand, run the cheap rung across everything, then escalate only the misses. Never run both on the full list.",
+        "A profile call (`aiArk.enrichPerson`, `linkedin.enrichProfile`) is fine for the profile, but **the email comes from Find email**, even when the profile call returned one, unless one of the four exceptions above holds.",
+        "On the ladder, run the cheap rung across everything, then escalate only the misses. Never run every rung on the full list.",
         "`prospeo.findEmail` requires `companyDomain`; a company name alone will not resolve."
       ]
     },
@@ -1926,7 +1927,7 @@
       "kind": "cookbook",
       "job": "Get a Slack alert when a decision-maker joins a company in your ICP: a Sales Navigator job-change search watches your market for people who just took a role you sell to, an agent qualifies each one's new company against your ICP, and fits are posted with verdict and links.",
       "description": "Get a Slack alert when a decision-maker joins a company in your ICP: a Sales Navigator job-change search watches your market for people who just took a role you sell to, an agent qualifies each one's new company against your ICP, and fits are posted with verdict and links. Triggers: \"watch our market for new hires\", \"put new VPs of Sales in our market into HubSpot\", \"post in Slack when a new VP Sales joins a company in our ICP\", \"a decision-maker just joined a company in our market\", \"a new head of sales starts at an account\", \"new KDM detection\", \"route new hires into the CRM\", \"tell the deal owner when a new decision-maker lands mid-deal\", \"run our new-hire play on a schedule\". Cargo project, Sales Navigator, Slack, HubSpot, Salesforce, Attio. Skip when: your own CRM contacts may have moved jobs, which is track-job-changes; or you want a list of people once, which is find-b2b-leads.",
-      "version": "0.1.3",
+      "version": "0.1.4",
       "homepage": "https://github.com/getcargohq/gtm-skills/tree/main/new-hire-detection",
       "group": "Signals",
       "install": "cargo-ai project add cookbook/new-hire-detection",
@@ -2969,8 +2970,8 @@
       "name": "verify-email-list",
       "kind": "one-off",
       "job": "Verify a list of email addresses so you stop sending to bounces.",
-      "description": "Verify a list of email addresses so you stop sending to bounces, powered by Cargo. Triggers: \"verify these emails\", \"clean my email list\", \"check if these addresses are valid\", \"our bounce rate is too high\", \"validate emails before sending\", \"check deliverability before the campaign goes out\". Providers: the workspace's preset Verify email tool first, then waterfall by hand. Skip when: you do not have the emails yet — use find-work-email first.",
-      "version": "1.1.0",
+      "description": "Verify a list of email addresses so you stop sending to bounces, powered by Cargo. Triggers: \"verify these emails\", \"clean my email list\", \"check if these addresses are valid\", \"our bounce rate is too high\", \"validate emails before sending\", \"check deliverability before the campaign goes out\". Providers: the workspace's Verify email tool (email_validator) by default; waterfall only when the user names it, asks for the cheapest path, or the tool is missing. Skip when: you do not have the emails yet — use find-work-email first.",
+      "version": "1.2.0",
       "homepage": "https://github.com/getcargohq/gtm-skills",
       "group": "Get the contact data",
       "install": "npx skills add getcargohq/gtm-skills/verify-email-list",
@@ -2985,13 +2986,13 @@
       ],
       "example": {
         "prompt": "Check the 200 addresses in `q3-newsletter-optins.csv` before tomorrow's send and tell me which to drop.",
-        "output": "| email | status | is_safe |\n|---|---|---|\n| priya.raman@northwind.example | valid | true |\n| sales@fabrikam.example | catchall | false |\n| j.doe@globex.example | invalid | false |\n| m.klein@contoso.example | valid | true |\n\n171 safe to send, 29 not (18 catch-all, 11 invalid): drop 29 before sending; 40 credits (200 × 0.2) with the Verify email tool, or 20 by hand with `waterfall.verifyEmail`."
+        "output": "| email | status | is_safe |\n|---|---|---|\n| priya.raman@northwind.example | valid | true |\n| sales@fabrikam.example | catchall | false |\n| j.doe@globex.example | invalid | false |\n| m.klein@contoso.example | valid | true |\n\n171 safe to send, 29 not (18 catch-all, 11 invalid): drop 29 before sending; 40 credits (200 × 0.2) with the Verify email tool, or 20 with `waterfall.verifyEmail` when the user asked for the cheapest path."
       },
       "cost": "| Action | Credits |\n|---|---|\n| Verify email tool (`\"kind\":\"tool\"`) | 0.2 |\n| `waterfall.verifyEmail` | 0.1 |\n\n**Never run this across a full list on the first attempt.** Sample 10–20 records, report the\nobserved cost and hit-rate, then get the user to approve the full run — quoting the record count\nand the credit estimate. A batch fans out across every record in the source, and the bill scales\nwith it.",
       "worthKnowing": [
         "`is_safe` is true only for `valid`. Treat everything else (catch-all, unknown, invalid, disposable) as unproven, and decide with the user whether catch-alls go out.",
         "Addresses from `find-work-email`'s Find email tool were already checked before it returned them; verifying them again spends credits for nothing.",
-        "`waterfall.verifyEmail` is the cheapest verification tier in the priority stack."
+        "`waterfall.verifyEmail` is the cheapest verification tier, for the exceptions above only."
       ]
     },
     {
@@ -3072,9 +3073,9 @@
     {
       "name": "waterfall-enrichment",
       "kind": "one-off",
-      "job": "Cascade one lookup through several vendors in priority order, so a row the first source misses falls through to the next instead of being lost.",
-      "description": "Cascade one lookup through several vendors in priority order, so a row the first source misses falls through to the next instead of being lost, powered by Cargo. Triggers: \"waterfall enrichment\", \"cascade through providers\", \"fallback chain\", \"my single vendor has bad coverage\", \"try another source when the first one misses\", \"improve my match rate\", \"multi-vendor fallback\". Providers: waterfall. Skip when: you want one address for one name and domain — use find-work-email, the cheaper single job; or you hold addresses and only want them checked — use verify-email-list.",
-      "version": "1.0.5",
+      "job": "Cascade one lookup through several vendors in priority order, so a row the first source misses falls through to the next instead of being lost, and find phone numbers on the workspace's native Find phone tool.",
+      "description": "Cascade one lookup through several vendors in priority order, so a row the first source misses falls through to the next instead of being lost, and find phone numbers on the workspace's native Find phone tool, powered by Cargo. Triggers: \"waterfall enrichment\", \"cascade through providers\", \"fallback chain\", \"my single vendor has bad coverage\", \"try another source when the first one misses\", \"improve my match rate\", \"multi-vendor fallback\", \"phone numbers for these leads\", \"find mobile numbers\", \"get phones for my contacts\". Providers: the workspace's Find email and Find phone tools (email_waterfall, phone_waterfall) by default, then waterfall for the whole record. Skip when: you want one address for one name and domain, use find-work-email; or you hold addresses and only want them checked, use verify-email-list.",
+      "version": "1.1.0",
       "homepage": "https://github.com/getcargohq/gtm-skills",
       "group": "Get the contact data",
       "install": "npx skills add getcargohq/gtm-skills/waterfall-enrichment",
@@ -3090,7 +3091,7 @@
         "prompt": "Run the 20 contacts in `event-leads.csv` through the waterfall and verify every email before I import them.",
         "output": "| full_name | domain | email | provider | verified |\n|---|---|---|---|---|\n| Priya Raman | northwind.example | priya.raman@northwind.example | rung 1 | valid |\n| Tomás Ferreira | fabrikam.example | tferreira@fabrikam.example | rung 3 | valid |\n| Hannah Okafor | globex.example | h.okafor@globex.example | rung 2 | invalid |\n| Wei Zhang | initech.example | | none | |\n\n16 of 20 enriched and 14 verified deliverable, 4 left empty; 41.6 credits (20 × 2 + 16 × 0.1)."
       },
-      "cost": "| Action | Credits |\n|---|---|\n| `waterfall.verifyEmail` | 0.1 |\n| `waterfall.enrichCompany` | 1 |\n| `waterfall.enrichContact` | 2 |\n\n**Never run this across a full list on the first attempt.** Sample 10–20 records, report the\nobserved cost and hit-rate, then get the user to approve the full run — quoting the record count\nand the credit estimate. A batch fans out across every record in the source, and the bill scales\nwith it.",
+      "cost": "| Action | Credits |\n|---|---|\n| Find email tool (`\"kind\":\"tool\"`) | 1.1 to 4 per address found, roughly 0 per miss |\n| Find phone tool (`\"kind\":\"tool\"`) | 3 to 7 |\n| `waterfall.verifyEmail` | 0.1 |\n| `waterfall.enrichCompany` | 1 |\n| `waterfall.enrichContact` | 2 |\n\n**Never run this across a full list on the first attempt.** Sample 10–20 records, report the\nobserved cost and hit-rate, then get the user to approve the full run — quoting the record count\nand the credit estimate. A batch fans out across every record in the source, and the bill scales\nwith it.",
       "worthKnowing": [
         "**Order the rungs cheapest first.** Verification at 0.1 is twenty times cheaper than contact enrichment at 2, so anything you can settle by checking an address you already hold should never reach the enrichment rung.",
         "**A waterfall bills the record, not the vendor.** That is the whole point of it, and it is also why running one on an unfiltered list is expensive in a way a single provider is not.",
@@ -3645,8 +3646,8 @@
       "name": "zoominfo-to-cargo",
       "kind": "one-off",
       "job": "Rebuild a ZoomInfo list on Cargo and measure the coverage you actually lose or gain before the renewal.",
-      "description": "Rebuild a ZoomInfo list on Cargo and measure the coverage you actually lose or gain before the renewal, powered by Cargo. Triggers: \"ZoomInfo alternative\", \"migrate off ZoomInfo\", \"replace ZoomInfo\", \"our ZoomInfo renewal is coming up\", \"ZoomInfo is too expensive\", \"I have a ZoomInfo export\", \"cheaper than ZoomInfo\", \"Lusha alternative\", \"Cognism alternative\". Providers: waterfall. Skip when: you are porting a Clay table rather than a contact list — use clay-to-cargo; or you have no list yet and simply want contacts sourced — use find-b2b-leads.",
-      "version": "1.0.4",
+      "description": "Rebuild a ZoomInfo list on Cargo and measure the coverage you actually lose or gain before the renewal, powered by Cargo. Triggers: \"ZoomInfo alternative\", \"migrate off ZoomInfo\", \"replace ZoomInfo\", \"our ZoomInfo renewal is coming up\", \"ZoomInfo is too expensive\", \"I have a ZoomInfo export\", \"cheaper than ZoomInfo\", \"Lusha alternative\", \"Cognism alternative\". Providers: the workspace's Find email and Verify email tools (email_waterfall, email_validator); waterfall for company rows. Skip when: you are porting a Clay table rather than a contact list — use clay-to-cargo; or you have no list yet and simply want contacts sourced — use find-b2b-leads.",
+      "version": "1.1.0",
       "homepage": "https://github.com/getcargohq/gtm-skills",
       "group": "Coming from another tool",
       "install": "npx skills add getcargohq/gtm-skills/zoominfo-to-cargo",
@@ -3660,9 +3661,9 @@
       ],
       "example": {
         "prompt": "Our ZoomInfo renewal is next month — measure what we'd lose on 20 rows from `zi-export.csv`.",
-        "output": "| Measure | ZoomInfo export | Cargo waterfall |\n|---|---|---|\n| Emails present | 20 / 20 | 17 / 20 |\n| Verified deliverable | 13 / 20 | 15 / 20 |\n| Credits for the sample | seat licence | 43.7 |\n\nVerified coverage 13 of 20 from the incumbent against 15 of 20 from the waterfall, for 43.7 credits (20 × 2 to re-derive + 37 × 0.1 to verify both sides)."
+        "output": "| Measure | ZoomInfo export | Cargo Find email tool |\n|---|---|---|\n| Emails present | 20 / 20 | 15 / 20 |\n| Verified deliverable | 13 / 20 | 15 / 20 |\n| Credits for the sample | seat licence | 20.5 |\n\nVerified coverage 13 of 20 from the incumbent against 15 of 20 from Cargo's Find email tool, for 20.5 credits (15 × 1.1 for the addresses Find email returned, its 5 misses roughly free, + 20 × 0.2 to verify the export)."
       },
-      "cost": "| Action | Credits |\n|---|---|\n| `waterfall.verifyEmail` | 0.1 |\n| `waterfall.enrichCompany` | 1 |\n| `waterfall.enrichContact` | 2 |\n\nTwenty contact rows re-derived and both sides verified is roughly 20 × (2 + 0.2), around 44\ncredits, inside the free balance a new account starts with.\n\n**Never run this across a full list on the first attempt.** Sample 10–20 records, report the\nobserved cost and hit-rate, then get the user to approve the full run — quoting the record count\nand the credit estimate. A batch fans out across every record in the source, and the bill scales\nwith it.",
+      "cost": "| Action | Credits |\n|---|---|\n| Find email tool (`\"kind\":\"tool\"`) | 1.1 to 4 per address found, roughly 0 per miss |\n| Verify email tool (`\"kind\":\"tool\"`) | 0.2 |\n| `waterfall.enrichCompany` | 1 |\n\nTwenty contact rows re-derived and the export verified is roughly 20 × (1.1 + 0.2), around 26\ncredits, inside the free balance a new account starts with.\n\n**Never run this across a full list on the first attempt.** Sample 10–20 records, report the\nobserved cost and hit-rate, then get the user to approve the full run — quoting the record count\nand the credit estimate. A batch fans out across every record in the source, and the bill scales\nwith it.",
       "worthKnowing": [
         "**Sample the segment you actually sell into.** Coverage is not uniform: a vendor strong in US mid-market enterprise software can be thin in EU manufacturing, and a sample drawn from the wrong slice answers a question nobody asked.",
         "**Do not compare against the export's row count.** Compare against its *verified* rows. Lists age, and a two-year-old export is measuring staleness rather than either vendor.",

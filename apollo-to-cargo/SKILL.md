@@ -1,7 +1,7 @@
 ---
 name: apollo-to-cargo
-description: "Rebuild an Apollo list on Cargo and price the two side by side before you move anything, powered by Cargo. Triggers: \"Apollo alternative\", \"migrate off Apollo\", \"move my Apollo list to Cargo\", \"replace Apollo.io\", \"I have an Apollo export\", \"Apollo credits ran out\", \"is Cargo cheaper than Apollo\", \"Apollo coverage is bad in my niche\". Providers: apolloio, waterfall. Skip when: you are porting a Clay table rather than an Apollo list — use clay-to-cargo; or you simply want contacts sourced and have nothing to migrate — use find-b2b-leads."
-version: "1.0.5"
+description: "Rebuild an Apollo list on Cargo and price the two side by side before you move anything, powered by Cargo. Triggers: \"Apollo alternative\", \"migrate off Apollo\", \"move my Apollo list to Cargo\", \"replace Apollo.io\", \"I have an Apollo export\", \"Apollo credits ran out\", \"is Cargo cheaper than Apollo\", \"Apollo coverage is bad in my niche\". Providers: apolloio; the workspace's Find email and Verify email tools (email_waterfall, email_validator). Skip when: you are porting a Clay table rather than an Apollo list — use clay-to-cargo; or you simply want contacts sourced and have nothing to migrate — use find-b2b-leads."
+version: "1.1.0"
 compatibility: Requires @cargo-ai/cli (npm). Sign in or create an account with `cargo-ai login --email` (emailed code, no browser), `--oauth`, or an API token
 homepage: https://github.com/getcargohq/gtm-skills
 metadata:
@@ -84,23 +84,27 @@ cargo-ai orchestration action execute-batch \
   --wait-until-finished
 ```
 
-### 3. Run the same rows through the waterfall
+### 3. Run the same rows through Cargo's Find email tool
 
-This is the comparison. Same input, several providers behind one call:
+This is the comparison. Cargo's side is the workspace's own **Find email** tool, not another single
+provider: a read-only preset in every workspace's Cargo Tools folder, a waterfall Cargo maintains
+with each hit verified by zeroBounce, addressed by its template slug (no UUID to look up). Same
+rows, camelCase inputs:
 
 ```bash
 cargo-ai orchestration action execute-batch \
-  --action '{"kind":"connector","integrationSlug":"waterfall","actionSlug":"enrichContact"}' \
-  --records '[{"full_name":"Jane Doe","domain":"acme.com"}]' \
-  --wait-until-finished
+  --action '{"kind":"tool","templateSlug":"email_waterfall"}' \
+  --records '[{"firstName":"Jane","lastName":"Doe","companyDomain":"acme.com"}]' \
+  --limit 20 --wait-until-finished
 ```
 
-Then verify both sets, because a match rate counted on unverified addresses flatters whichever
-source guessed more:
+Then verify Apollo's addresses with the workspace's **Verify email** tool, because a match rate
+counted on unverified addresses flatters whichever source guessed more. Find email's addresses are
+already verified, so they need no second check:
 
 ```bash
 cargo-ai orchestration action execute-batch \
-  --action '{"kind":"connector","integrationSlug":"waterfall","actionSlug":"verifyEmail"}' \
+  --action '{"kind":"tool","templateSlug":"email_validator"}' \
   --records '[{"email":"jane@acme.com"}]' \
   --wait-until-finished
 ```
@@ -123,22 +127,23 @@ Illustrative output, fictional records:
 
 | Source | Emails found | Verified | Credits | Credits per verified |
 |---|---|---|---|---|
-| Apollo, via Cargo | 15 / 20 | 11 | 21.5 | 1.95 |
-| Cargo waterfall | 18 / 20 | 17 | 41.8 | 2.46 |
+| Apollo, via Cargo | 15 / 20 | 11 | 23 | 2.09 |
+| Cargo Find email tool | 17 / 20 | 17 | 18.7 | 1.10 |
 
-63.3 credits for the whole comparison (20 × 1 + 15 × 0.1 on Apollo, 20 × 2 + 18 × 0.1 on the waterfall): the waterfall verified 6 more addresses at a higher cost per address, and the call is the user's.
+41.7 credits for the whole comparison (20 × 1 + 15 × 0.2 on Apollo, 17 × 1.1 on the Find email tool, its 3 misses roughly free): Find email returned 6 more verified addresses on these rows, and whether that justifies the switch is the user's call.
 
 ## What it costs
 
 | Action | Credits |
 |---|---|
-| `waterfall.verifyEmail` | 0.1 |
+| Find email tool (`"kind":"tool"`) | 1.1 to 4 per address found, roughly 0 per miss |
+| Verify email tool (`"kind":"tool"`) | 0.2 |
 | `apolloio.enrichPerson` | 1 |
 | `apolloio.enrichOrganization` | 1 |
-| `waterfall.enrichContact` | 2 |
 
-A 20-row comparison running both sides is roughly 20 × (1 + 2 + 0.1 × 2), around 64 credits,
-which fits inside the free balance a new account starts with.
+A 20-row comparison running both sides is roughly 20 × (1 + 0.2) on Apollo plus about 1.1 per
+address Find email returns, around 46 credits, which fits inside the free balance a new account
+starts with.
 
 **Never run this across a full list on the first attempt.** Sample 10–20 records, report the
 observed cost and hit-rate, then get the user to approve the full run — quoting the record count
@@ -151,7 +156,9 @@ with it.
   varies by niche: Apollo's coverage is genuinely strong in some segments and thin in others, and
   the sample is what tells you which one you are in.
 - **`apolloio.enrichPerson` costs 9 rather than 1 with `revealPhoneNumber: true`.** Leave it off
-  unless phones are the reason for the migration, and say so when you turn it on.
+  unless phones are the reason for the migration, and say so when you turn it on. Cargo's side
+  of a phone comparison is the workspace's **Find phone** tool (`phone_waterfall`, `linkedinUrl`
+  in, 3 to 7 credits), and only when the user asked for phones.
 - **An Apollo export is a snapshot.** Rows exported months ago carry stale titles and stale
   companies, so a low hit rate on an old export is a fact about the export, not about either
   vendor. Check the export date before reading anything into the numbers.

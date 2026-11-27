@@ -1,7 +1,7 @@
 ---
 name: crm-enrichment
 description: 'Clean up and enrich a messy CRM: fill the missing identifiers on accounts and contacts first (LinkedIn, domain, email), write them back into blank fields only, then deduplicate on those identifiers with crm-deduplication. Keeps records filled and refreshes them when they go stale. Triggers: "keep our CRM accounts filled", "keep our CRM contacts filled", "nobody refreshes the company records", "nobody refreshes the contact records", "enrich my CRM", "refresh stale firmographics", "every new CRM company", "every new CRM contact", "contacts are missing emails, LinkedIn URLs, or titles". HubSpot, Salesforce, Attio, Cargo project. Skip when: the records are not in a CRM. A supplied company list is enrich-company-data, a supplied LinkedIn URL list is enrich-linkedin-profile, and a one-time email lookup is find-work-email.'
-version: "0.7.4"
+version: "0.7.5"
 compatibility: "Requires the cargo-project skill, a Cargo project (cargo.json at its root), @cargo-ai/cdk 1.0.82 or later, and authenticated CRM and LinkedIn connectors. The repository example does not deploy or access a CRM until it is adapted in the consumer project."
 homepage: https://github.com/getcargohq/gtm-skills/tree/main/crm-enrichment
 metadata:

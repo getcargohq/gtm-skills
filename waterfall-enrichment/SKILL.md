@@ -1,7 +1,7 @@
 ---
 name: waterfall-enrichment
-description: "Cascade one lookup through several vendors in priority order, so a row the first source misses falls through to the next instead of being lost, powered by Cargo. Triggers: \"waterfall enrichment\", \"cascade through providers\", \"fallback chain\", \"my single vendor has bad coverage\", \"try another source when the first one misses\", \"improve my match rate\", \"multi-vendor fallback\". Providers: waterfall. Skip when: you want one address for one name and domain — use find-work-email, the cheaper single job; or you hold addresses and only want them checked — use verify-email-list."
-version: "1.0.5"
+description: "Cascade one lookup through several vendors in priority order, so a row the first source misses falls through to the next instead of being lost, and find phone numbers on the workspace's native Find phone tool, powered by Cargo. Triggers: \"waterfall enrichment\", \"cascade through providers\", \"fallback chain\", \"my single vendor has bad coverage\", \"try another source when the first one misses\", \"improve my match rate\", \"multi-vendor fallback\", \"phone numbers for these leads\", \"find mobile numbers\", \"get phones for my contacts\". Providers: the workspace's Find email and Find phone tools (email_waterfall, phone_waterfall) by default, then waterfall for the whole record. Skip when: you want one address for one name and domain, use find-work-email; or you hold addresses and only want them checked, use verify-email-list."
+version: "1.1.0"
 compatibility: Requires @cargo-ai/cli (npm). Sign in or create an account with `cargo-ai login --email` (emailed code, no browser), `--oauth`, or an API token
 homepage: https://github.com/getcargohq/gtm-skills
 metadata:
@@ -54,12 +54,37 @@ Already signed in? `cargo-ai whoami` confirms it.
 
 ## Do the job
 
-**Only after the email, or a phone number?** Every Cargo workspace already has those waterfalls
-built as read-only tools: **Find email** (apolloio, FullEnrich, findyMail, peopleDataLabs,
-waterfall, each hit verified) and **Find phone** (`linkedinUrl` in). Run them by template slug,
-with no UUID to look up:
-`--action '{"kind":"tool","templateSlug":"email_waterfall"}'` or
-`--action '{"kind":"tool","templateSlug":"phone_waterfall"}'`; `find-work-email` walks through it.
+**Email and phone lookups run on Cargo's own tools by default**, not on a single provider. Every
+Cargo workspace carries them as read-only presets in its Cargo Tools folder, addressed by template
+slug with no UUID to look up:
+
+| You need | Tool (default) | `templateSlug` | Inputs (camelCase) | Returns | Credits |
+|---|---|---|---|---|---|
+| Work email, from name + company domain **or** a LinkedIn URL | Find email | `email_waterfall` | `firstName` + `lastName` + `companyDomain`, or `linkedinUrl` | `email`, already verified | 1.1 to 4 per hit |
+| Phone (explicit request only) | Find phone | `phone_waterfall` | `linkedinUrl` | `phone` | 3 to 7 |
+
+These are waterfalls Cargo maintains and keeps extending, with providers and verification added as
+they prove out, so their coverage is far above any single provider: on one customer list Find
+email reached about 90% where `aiArk` alone reached about 20%. `find-work-email` walks through the
+email side. **Phone stays gated: never fetch one unless the user asked for phones.**
+
+```bash
+# Phones, only when the user asked for them; the number lands in cargo_phone
+cargo-ai orchestration action execute-batch \
+  --action '{"kind":"tool","templateSlug":"phone_waterfall"}' \
+  --records '[{"linkedinUrl":"https://www.linkedin.com/in/someone"}]' \
+  --limit 20 --wait-until-finished
+```
+
+A single provider (`aiArk`, `FullEnrich`, `prospeo`, `hunter`, ...) runs instead only when one of
+these holds, and **say which one before you leave the default**: the user names a provider; the
+user explicitly asks for the cheapest path (then a cost-ranked ladder is fine; a tight budget they
+did not state is not this exception, so quote the tool's cost and let them choose); the tool is
+missing from the workspace
+(`cargo-ai orchestration action get-output-schema --action '{"kind":"tool","templateSlug":"phone_waterfall"}'`
+errors, free); or the row lacks the tool's input and cannot get it, such as a phone wanted for a
+contact with no LinkedIn URL that `find-linkedin-url` could not resolve.
+
 The calls below are for the whole contact or company record.
 
 Contact enrichment across the stack. One call, several sources behind it:
@@ -80,7 +105,8 @@ cargo-ai orchestration action execute-batch \
   --wait-until-finished
 ```
 
-Then verify what came back, because an enriched address is still a guess until it is checked:
+Then verify the addresses the whole-record call returned, because an enriched address is still a
+guess until it is checked (Find email's addresses are already verified):
 
 ```bash
 cargo-ai orchestration action execute-batch \
@@ -112,6 +138,8 @@ Illustrative output, fictional records:
 
 | Action | Credits |
 |---|---|
+| Find email tool (`"kind":"tool"`) | 1.1 to 4 per address found, roughly 0 per miss |
+| Find phone tool (`"kind":"tool"`) | 3 to 7 |
 | `waterfall.verifyEmail` | 0.1 |
 | `waterfall.enrichCompany` | 1 |
 | `waterfall.enrichContact` | 2 |

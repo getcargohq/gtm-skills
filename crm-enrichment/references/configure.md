@@ -94,6 +94,16 @@ Every workspace is seeded with both, read-only, in its Cargo Tools folder:
 1. Find email
 2. Find LinkedIn URL from email
 
+They are the defaults for every email and LinkedIn-from-email lookup this play makes: waterfalls
+Cargo maintains and keeps extending, so their coverage is far above any single provider. Find
+email's address is already verified (zeroBounce, catch-alls excluded by default), so the play adds
+no second check. Swap in a single provider (`aiArk`, `FullEnrich`, `prospeo`, `hunter`, ...) only
+when one of these holds, and record which one in the plan: the operator names the provider; the
+operator explicitly asks for the cheapest path; the tool is missing from the workspace (the
+`get-output-schema` call below errors); or the rows lack the tool's input and cannot get it.
+Profile enrichment (`linkedin.enrichProfile` here) still owns the profile fields; the email comes
+from Find email.
+
 Look each one up (`cargo-ai orchestration action list "find email" --kind tool`, or
 `cargo-ai orchestration tool list` filtered on `isReadOnly` and the exact name). Record its UUID,
 accepted inputs, output paths, and live unit price.

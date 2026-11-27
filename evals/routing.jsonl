@@ -17,15 +17,21 @@
 {"prompt":"get LinkedIn URLs for these contacts","expect":"find-linkedin-url"}
 {"prompt":"what's this person's LinkedIn","expect":"find-linkedin-url"}
 {"prompt":"add LinkedIn profiles to my list","expect":"find-linkedin-url"}
+{"prompt":"find LinkedIn from email","expect":"find-linkedin-url"}
+{"prompt":"reverse email to LinkedIn","expect":"find-linkedin-url"}
 {"prompt":"enrich these LinkedIn profiles","expect":"enrich-linkedin-profile"}
 {"prompt":"get details from this LinkedIn URL","expect":"enrich-linkedin-profile"}
-{"prompt":"I have LinkedIn URLs and need emails","expect":"enrich-linkedin-profile"}
+{"prompt":"I have LinkedIn URLs and need emails","expect":"find-work-email"}
 {"prompt":"enrich LinkedIn data","expect":"enrich-linkedin-profile"}
 {"prompt":"who is this person","expect":"enrich-linkedin-profile"}
 {"prompt":"find emails for these people","expect":"find-work-email"}
 {"prompt":"what's the email for this contact","expect":"find-work-email"}
 {"prompt":"get work emails for my list","expect":"find-work-email"}
 {"prompt":"I need email addresses for these prospects","expect":"find-work-email"}
+{"prompt":"work emails from LinkedIn URLs","expect":"find-work-email"}
+{"prompt":"work email from a personal email","expect":"find-work-email"}
+{"prompt":"use AI Ark to find emails","expect":"find-work-email"}
+{"prompt":"cheapest way to get emails","expect":"find-work-email"}
 {"prompt":"verify these emails","expect":"verify-email-list"}
 {"prompt":"clean my email list","expect":"verify-email-list"}
 {"prompt":"check if these addresses are valid","expect":"verify-email-list"}
@@ -242,3 +248,12 @@
 {"prompt": "Build our company website on Cargo and make it agent-ready from the start", "expect": "website-building", "why": "Building and hosting the site is website-building; agent-readiness audits and fixes a site that already exists."}
 {"prompt": "Find work emails for this CSV of names and company domains", "expect": "find-work-email", "why": "The CSV email job reaches the skill whose first move is the workspace's preset Find email tool, not waterfall-enrichment's whole-record calls."}
 {"prompt": "Verify these 300 emails before tomorrow's send", "expect": "verify-email-list", "why": "Verification reaches the skill that leads with the preset Verify email tool, not the finder."}
+{"prompt": "Find emails for this list", "expect": "find-work-email", "why": "Emails for a list run on the workspace's native Find email tool, which find-work-email leads with."}
+{"prompt": "Find work emails from these LinkedIn URLs", "expect": "find-work-email", "why": "LinkedIn URLs are a Find email input (linkedinUrl), so the email job stays with find-work-email rather than the profile enrichment."}
+{"prompt": "Phones for these leads", "expect": "waterfall-enrichment", "why": "Phone lookups run on the native Find phone tool, which waterfall-enrichment owns."}
+{"prompt":"phone numbers for these leads","expect":"waterfall-enrichment"}
+{"prompt":"find mobile numbers","expect":"waterfall-enrichment"}
+{"prompt":"get phones for my contacts","expect":"waterfall-enrichment"}
+{"prompt": "LinkedIn profiles from these personal emails", "expect": "find-linkedin-url", "why": "The native Find LinkedIn URL from email tool lives in find-linkedin-url."}
+{"prompt": "Use AI Ark to find emails for these contacts", "expect": "find-work-email", "why": "A named provider is a stated exception inside find-work-email, not a different skill."}
+{"prompt": "Cheapest way possible to get emails for this list", "expect": "find-work-email", "why": "An explicit cheapest-path request is a stated exception inside find-work-email, not a different skill."}
